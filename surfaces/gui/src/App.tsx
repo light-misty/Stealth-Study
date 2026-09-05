@@ -1378,7 +1378,11 @@ export function App() {
     setSurface("session"); // selecting a conversation always returns to the conversation view
     setTodo([]);
     setStreaming("");
-    setRunning(false);
+    // Don't reset `running` here — the new session's `ready` event will
+    // restore the truth (including `d.running` for a mid-turn reconnect,
+    // see the case "ready" handler). Eagerly clearing it briefly hides
+    // the Stop button when the user returns to a session whose turn is
+    // still running (issue #506).
     if (ag) setAgent(ag);
     setReviewerPaused(false);
     setDraftFolderPicked(false); // a resumed session's folder is inherited, not a pick
