@@ -26,14 +26,14 @@ const fetch = (
 ): Promise<Response> => {
   const headers = new Headers(init.headers);
   const token = apiToken();
-  if (token) headers.set("X-OpenWorker-Token", token);
+  if (token) headers.set("X-HIUWorkSpace-Token", token);
   return globalThis.fetch(input, { ...init, headers });
 };
 
 const openWebSocket = (url: string): WebSocket => {
   const token = apiToken();
   return token
-    ? new WebSocket(url, ["openworker", token])
+    ? new WebSocket(url, ["hiu-workspace", token])
     : new WebSocket(url);
 };
 
