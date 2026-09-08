@@ -68,7 +68,7 @@ def test_reads_outside_every_root_now_ask(session, command):
     assert not runs(session, command), command
 
 
-def test_openworkers_own_secrets_are_no_longer_readable(session):
+def test_hiu_workspaces_own_secrets_are_no_longer_readable(session):
     # The floor hard-denies WRITES to this file in every mode and cannot be overridden.
     # Reading was never checked, so one click on a convenience button dumped it into the
     # transcript — and from there to the model provider on the next turn.

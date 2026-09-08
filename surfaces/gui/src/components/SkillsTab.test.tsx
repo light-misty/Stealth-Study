@@ -191,7 +191,7 @@ describe("SkillsTab", () => {
     });
   });
 
-  it("Add skill menu: three doors; Create with OpenWorker hands off to a conversation", async () => {
+  it("Add skill menu: three doors; Create with HIU WorkSpace hands off to a conversation", async () => {
     const calls = stubFetch([{ match: "/v1/skills", method: "GET", json: { skills: [] } }]);
     const onCreateSkill = vi.fn();
     render(<SkillsTab onCreateSkill={onCreateSkill} />);
@@ -240,7 +240,7 @@ describe("SkillsTab", () => {
     // No permanently-open description box or draft-era UI (§5.2/§9) — adding is menu-only.
     expect(screen.queryByLabelText("Describe the skill")).toBeNull();
     expect(screen.queryByText("Start a conversation")).toBeNull();
-    expect(screen.queryByText("Ask OpenWorker to revise")).toBeNull();
+    expect(screen.queryByText("Ask HIU WorkSpace to revise")).toBeNull();
     expect(screen.queryByText(/Not a chat/)).toBeNull();
     // The menu closes after picking a door.
     await openWriteForm();

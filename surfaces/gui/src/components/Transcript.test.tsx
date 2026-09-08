@@ -197,7 +197,7 @@ describe("bubble hover affordances (FB-005)", () => {
   const TS = 1752969720; // unix seconds, as the server stamps them
   const ITEMS: Item[] = [
     { kind: "user", text: "post the digest", ts: TS },
-    { kind: "assistant", text: "Done — posted to #all-openworker." }, // pre-stamp history: no ts
+    { kind: "assistant", text: "Done — posted to #all-hiu-workspace." }, // pre-stamp history: no ts
   ];
 
   it("copy button copies the bubble's raw text and flashes Copied", async () => {
@@ -213,7 +213,7 @@ describe("bubble hover affordances (FB-005)", () => {
     // not claim success), hence the await.
     await waitFor(() => expect(copies[0].textContent).toBe("Copied"));
     fireEvent.click(copies[1]);
-    expect(writeText).toHaveBeenCalledWith("Done — posted to #all-openworker.");
+    expect(writeText).toHaveBeenCalledWith("Done — posted to #all-hiu-workspace.");
   });
 
   it("timestamp renders only when the item carries ts; full date rides the title", () => {
