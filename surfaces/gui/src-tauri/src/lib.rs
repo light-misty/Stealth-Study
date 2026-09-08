@@ -20,9 +20,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-#[cfg(feature = "stt")]
 use ocw_stt::{Dictation, DownloadProgress};
-#[cfg(feature = "stt")]
 use serde::Serialize;
 use tauri::{
     menu::{Menu, MenuItem},
@@ -401,28 +399,22 @@ fn start_window_drag(window: tauri::WebviewWindow) -> bool {
 // -- local dictation ---------------------------------------------------------------------------
 // The actual microphone/model code lives in the Tauri-free `ocw-stt` crate. This shell owns the
 // macOS permission prompt and translates the reusable API into React-friendly Tauri commands.
-// Gated behind the `stt` feature so the GUI can build without LLVM (whisper-rs-sys dependency).
 
-#[cfg(feature = "stt")]
-mod stt {
-    use super::*;
-    use ocw_stt::{Dictation, DownloadProgress};
+#[derive(Clone, Serialize)]
+struct VoiceInputStatus {
+    recording: bool,
+    model_installed: bool,
+    model_verified: bool,
+    test_passed: bool,
+    download_in_progress: bool,
+    model_name: &'static str,
+    model_bytes: u64,
+    supported: bool,
+    device_summary: String,
+    compatibility_reason: Option<String>,
+}
 
-    #[derive(Clone, Serialize)]
-    pub struct VoiceInputStatus {
-        pub recording: bool,
-        pub model_installed: bool,
-        pub model_verified: bool,
-        pub test_passed: bool,
-        pub download_in_progress: bool,
-        pub model_name: &'static str,
-        pub model_bytes: u64,
-        pub supported: bool,
-        pub device_summary: String,
-        pub compatibility_reason: Option<String>,
-    }
-
-pub fn voice_input_status(dictation: &Dictation) -> VoiceInputStatus {
+fn voice_input_status(dictation: &Dictation) -> VoiceInputStatus {
     let status = dictation.status();
     let (supported, device_summary, compatibility_reason) = voice_input_compatibility();
     VoiceInputStatus {
@@ -440,7 +432,7 @@ pub fn voice_input_status(dictation: &Dictation) -> VoiceInputStatus {
 }
 
 #[cfg(target_os = "macos")]
-pub fn voice_input_compatibility() -> (bool, String, Option<String>) {
+fn voice_input_compatibility() -> (bool, String, Option<String>) {
     let version = Command::new("/usr/bin/sw_vers")
         .arg("-productVersion")
         .output()
@@ -472,7 +464,7 @@ pub fn voice_input_compatibility() -> (bool, String, Option<String>) {
 }
 
 #[cfg(target_os = "windows")]
-pub fn voice_input_compatibility() -> (bool, String, Option<String>) {
+fn voice_input_compatibility() -> (bool, String, Option<String>) {
     let version = Command::new("cmd")
         .args(["/C", "ver"])
         .output()
@@ -498,7 +490,7 @@ pub fn voice_input_compatibility() -> (bool, String, Option<String>) {
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-pub fn voice_input_compatibility() -> (bool, String, Option<String>) {
+fn voice_input_compatibility() -> (bool, String, Option<String>) {
     (
         false,
         format!("{} · {}", std::env::consts::OS, std::env::consts::ARCH),
@@ -507,12 +499,12 @@ pub fn voice_input_compatibility() -> (bool, String, Option<String>) {
 }
 
 #[tauri::command]
-pub fn get_dictation_status(state: tauri::State<Arc<Dictation>>) -> VoiceInputStatus {
+fn get_dictation_status(state: tauri::State<Arc<Dictation>>) -> VoiceInputStatus {
     voice_input_status(&state)
 }
 
 #[tauri::command]
-pub async fn start_dictation(
+async fn start_dictation(
     state: tauri::State<'_, Arc<Dictation>>,
 ) -> Result<VoiceInputStatus, String> {
     // Off the main thread: opening the input device blocks on macOS's one-time microphone
@@ -534,7 +526,7 @@ pub async fn start_dictation(
 }
 
 #[tauri::command]
-pub async fn stop_dictation(state: tauri::State<'_, Arc<Dictation>>) -> Result<String, String> {
+async fn stop_dictation(state: tauri::State<'_, Arc<Dictation>>) -> Result<String, String> {
     let dictation = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || dictation.stop_and_transcribe())
         .await
@@ -542,12 +534,12 @@ pub async fn stop_dictation(state: tauri::State<'_, Arc<Dictation>>) -> Result<S
 }
 
 #[tauri::command]
-pub fn cancel_dictation(state: tauri::State<Arc<Dictation>>) {
+fn cancel_dictation(state: tauri::State<Arc<Dictation>>) {
     state.cancel();
 }
 
 #[tauri::command]
-pub async fn download_dictation_model(
+async fn download_dictation_model(
     app: tauri::AppHandle,
     state: tauri::State<'_, Arc<Dictation>>,
 ) -> Result<VoiceInputStatus, String> {
@@ -563,12 +555,12 @@ pub async fn download_dictation_model(
 }
 
 #[tauri::command]
-pub fn cancel_dictation_model_download(state: tauri::State<Arc<Dictation>>) {
+fn cancel_dictation_model_download(state: tauri::State<Arc<Dictation>>) {
     state.cancel_model_download();
 }
 
 #[tauri::command]
-pub async fn verify_dictation_model(
+async fn verify_dictation_model(
     state: tauri::State<'_, Arc<Dictation>>,
 ) -> Result<VoiceInputStatus, String> {
     let dictation = state.inner().clone();
@@ -581,7 +573,7 @@ pub async fn verify_dictation_model(
 }
 
 #[tauri::command]
-pub fn mark_dictation_test_passed(
+fn mark_dictation_test_passed(
     state: tauri::State<Arc<Dictation>>,
 ) -> Result<VoiceInputStatus, String> {
     state.mark_test_passed()?;
@@ -589,7 +581,7 @@ pub fn mark_dictation_test_passed(
 }
 
 #[tauri::command]
-pub fn delete_dictation_model(state: tauri::State<Arc<Dictation>>) -> Result<VoiceInputStatus, String> {
+fn delete_dictation_model(state: tauri::State<Arc<Dictation>>) -> Result<VoiceInputStatus, String> {
     state.delete_default_model()?;
     Ok(voice_input_status(&state))
 }
@@ -598,11 +590,9 @@ pub fn delete_dictation_model(state: tauri::State<Arc<Dictation>>) -> Result<Voi
 /// this to draw a real input-driven waveform instead of decorative bars (owner catch,
 /// DMG #28 walkthrough).
 #[tauri::command]
-pub fn dictation_level(state: tauri::State<Arc<Dictation>>) -> f32 {
+fn dictation_level(state: tauri::State<Arc<Dictation>>) -> f32 {
     state.input_level()
 }
-
-} // mod stt
 
 fn show_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
@@ -739,6 +729,16 @@ pub fn run() {
             get_keep_awake,
             set_keep_awake,
             start_window_drag,
+            get_dictation_status,
+            start_dictation,
+            stop_dictation,
+            cancel_dictation,
+            download_dictation_model,
+            cancel_dictation_model_download,
+            verify_dictation_model,
+            mark_dictation_test_passed,
+            delete_dictation_model,
+            dictation_level,
             check_for_update,
             download_update,
             clear_pending_update,
@@ -808,7 +808,6 @@ pub fn run() {
             app.manage(PendingUpdate(Mutex::new(None)));
             // Voice recordings are transient; only the explicitly installed local Whisper model
             // lives in the existing application state directory.
-            #[cfg(feature = "stt")]
             app.manage(Arc::new(Dictation::new(state_dir().join("models"))));
 
             // 2. Build the window, injecting the sidecar endpoints before the SPA loads.
