@@ -53,10 +53,13 @@ OpenWorker 是一个开源的 AI 协作伙伴平台，运行在桌面端，支�
 - **Markdown 渲染**: react-markdown + remark-gfm
 - **PDF 渲染**: pdfjs-dist
 - **表格处理**: xlsx
+- **测试框架**: Vitest
 
 ### Rust 组件
 - **桌面外壳**: Tauri 2 (crate: `openworker-desktop`)
 - **语音转文本**: ocw-stt (基于 whisper-rs + cpal)
+  - Rust 版本: 1.77+
+  - whisper-rs: 0.16
 
 ### 主要依赖项
 
@@ -67,7 +70,9 @@ OpenWorker 是一个开源的 AI 协作伙伴平台，运行在桌面端，支�
 - `google-auth>=2.23` — Vertex AI 认证
 - `textual>=1.0` — TUI 框架
 - `fastapi>=0.110`, `uvicorn[standard]>=0.27` — HTTP 服务器
-- `aisuite` — 统一 LLM 访问层 (git pinned)
+- `aisuite` — 统一 LLM 访问层 (git pinned 到 1b4bbf30)
+- `docstring_parser` — 文档字符串解析
+- `pyyaml>=6` — Persona manifest 解析
 - `pydantic>=2` — 数据类验证
 - `mcp>=1.28.1,<2` — MCP 客户端
 - `httpx>=0.27` — HTTP 客户端
@@ -75,7 +80,8 @@ OpenWorker 是一个开源的 AI 协作伙伴平台，运行在桌面端，支�
 - `ddgs>=9` — DuckDuckGo 无密钥搜索
 - `croniter>=2` — cron 调度计算
 - `pypdf>=5`, `pypdfium2>=4` — PDF 处理
-- `pyyaml>=6` — Persona manifest 解析
+- `tzdata` — Windows 时区数据 (仅 win32 平台)
+- `tomli>=2` — Python 3.10 的 TOML 后备解析器 (python_version < 3.11)
 
 #### Python 可选依赖
 - `[dev]`: pytest>=8, pytest-asyncio, httpx — 开发测试
@@ -102,16 +108,29 @@ HIU-WorkSpace/
 │   ├── permissions.py          # 权限引擎
 │   ├── conversations.py        # 对话存储
 │   ├── sessions.py             # 会话管理
+│   ├── agents/                 # 代理定义 (聊天、代码、协作等)
+│   │   ├── base.py             # 代理基类
+│   │   ├── registry.py         # 代理注册中心
+│   │   ├── chat.py             # 聊天代理
+│   │   ├── code.py             # 代码代理
+│   │   ├── cowork.py           # 协作代理
+│   │   └── myhelper.py         # 助手代理
 │   ├── memory/                 # 记忆存储 (SQLite)
 │   ├── providers/              # LLM 提供商实现
 │   │   ├── base.py             # ProviderClient 抽象基类
+│   │   ├── registry.py         # 提供商注册中心
+│   │   ├── router.py           # 提供商路由
+│   │   ├── capabilities.py     # 能力检测
+│   │   ├── matrix.py           # 功能矩阵
+│   │   ├── errors.py           # 错误定义
 │   │   ├── openai_provider.py
+│   │   ├── openai_responses.py # OpenAI Responses API
 │   │   ├── anthropic_provider.py
 │   │   ├── gemini_provider.py
 │   │   ├── bedrock_provider.py
 │   │   ├── vertex_provider.py
 │   │   ├── codex_provider.py
-│   │   └── registry.py / router.py
+│   │   └── codex_auth.py       # Codex 认证
 │   ├── connectors/             # 外部服务连接器
 │   ├── tools/                  # 工具注册 (shell, files, git, search, 等.)
 │   ├── skills/                 # 技能定义
@@ -132,8 +151,9 @@ HIU-WorkSpace/
 │   │   ├── api.ts              # REST/WebSocket API 封装
 │   │   ├── components/         # React 组件
 │   │   ├── connectors/         # 连接器 UI
-│   │   ├── providers/          # 模型提供商设置 UI
+│   │   ├── fonts/              # 字体资源
 │   │   ├── locales/            # i18n 翻译文件
+│   │   ├── providers/          # 模型提供商设置 UI
 │   │   └── types.ts
 │   ├── src-tauri/              # Tauri Rust 代码
 │   │   ├── Cargo.toml
@@ -149,16 +169,25 @@ HIU-WorkSpace/
 │   └── src/lib.rs
 ├── tests/                      # Python 测试套件
 │   ├── conftest.py             # 共享 fixtures (isolated_state_dir, fake_slack)
-│   └── test_*.py               # 测试文件 (~130 个)
+│   └── test_*.py               # 测试文件 (135 个)
 ├── packaging/                  # 打包与发布
+│   ├── .gitignore
 │   ├── build_dmg.sh            # macOS DMG 构建
 │   ├── build_windows.ps1       # Windows MSI/NSIS 构建
 │   ├── setup_dev_env.sh        # 开发环境初始化
-│   └── make_update_manifest.py
+│   ├── make_update_manifest.py # 更新 manifest 生成
+│   ├── openworker-server.spec  # PyInstaller spec
+│   ├── server_entry.py         # 服务器入口
+│   └── dmg-background.*        # DMG 背景图资源
 ├── scripts/                    # 辅助脚本
+│   ├── _corpus_stats.py
+│   ├── build_layered_corpora.py
+│   ├── eval_reviewer.py
+│   └── validate_layered_corpora.py
 ├── docs/                       # 文档与规范
 ├── ui-mocks/                   # UI 设计稿
 ├── reports/                    # 评估报告
+├── coworker.egg-info/          # pip install -e 生成的元数据
 ├── pyproject.toml              # Python 项目配置
 ├── LICENSE                     # MIT 协议
 └── README.md
@@ -200,7 +229,7 @@ npm run dev
 # TypeScript 类型检查
 npx tsc --noEmit
 
-# 单元测试
+# 单元测试 (使用 Vitest)
 npm test
 
 # 端到端测试 (Playwright)
@@ -208,6 +237,9 @@ npm run e2e
 
 # 带 UI 的 e2e 测试
 npm run e2e:ui
+
+# 实时 e2e 测试
+npm run e2e:live
 
 # 生产构建
 npm run build
@@ -258,15 +290,16 @@ powershell packaging/build_windows.ps1
 
 1. **提供商抽象层**: `coworker/providers/base.py` 定义 `ProviderClient` ABC，各提供商实现该接口
 2. **代理引擎**: `TurnEngine` (engine.py) 驱动模型↔工具交互循环，使用 asyncio
-3. **权限引擎**: 多级批准系统 (硬底线、渐进自主权、审计跟踪)
-4. **工具注册**: 工具通过 `ToolRegistry` 注册，支持动态发现
-5. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.coworker/config.toml)
-6. **连接器**: 通过适配器模式集成外部服务 (Slack, GitHub, Gmail, 等.)
-7. **自动化**: cron 驱动的定时任务，支持持久化调度
-8. **MCP 集成**: 兼容 Model Context Protocol，接入外部工具服务器
+3. **代理注册**: `coworker/agents/registry.py` 管理多种专用代理（chat, code, cowork 等）
+4. **权限引擎**: 多级批准系统 (硬底线、渐进自主权、审计跟踪)
+5. **工具注册**: 工具通过 `ToolRegistry` 注册，支持动态发现
+6. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.coworker/config.toml)
+7. **连接器**: 通过适配器模式集成外部服务 (Slack, GitHub, Gmail, 等.)
+8. **自动化**: cron 驱动的定时任务，支持持久化调度
+9. **MCP 集成**: 兼容 Model Context Protocol，接入外部工具服务器
 
 ### 测试约定
-- 测试框架: pytest + pytest-asyncio
+- 测试框架: pytest + pytest-asyncio (Python), Vitest (前端)
 - 异步模式: `asyncio_mode = "auto"` (所有 async test 自动识别)
 - Fixtures: 使用 `conftest.py` 共享 fixtures
 - 状态隔离: 每个测试使用独立的状态目录 (`isolated_state_dir` autouse fixture)
@@ -333,8 +366,9 @@ powershell packaging/build_windows.ps1
 ## 注意事项
 
 - 状态目录: 默认 `~/OpenWorker` (或 `%APPDATA%\coworker`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
+- 临时目录: 测试环境使用 `COWORKER_SCRATCH_BASE` 环境变量隔离会话临时文件
 - 开发令牌: 本地开发通过 `X-OpenWorker-Token` 头部认证
 - 端口配置: 后端 HTTP 默认 8765，前端 Vite 开发服务器固定 1420
 - 国际化: 支持英文 (en) 和中文 (zh)，翻译文件在 `surfaces/gui/src/locales/`
-- Python 版本下限 3.10；使用 `tomli` 后备 tomllib
+- Python 版本下限 3.10；3.10 环境使用 `tomli` 后备 tomllib
 - 测试使用独立状态目录，避免污染开发环境
