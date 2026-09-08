@@ -10,7 +10,7 @@
 | 项 | 内容 |
 |---|---|
 | 文档名称 | 学业工友 CampusWorker 产品需求文档（PRD） |
-| 版本 | **v1.2（已吸收架构师技术评审并统一看板口径，待开发排期）** |
+| 版本 | **v1.3（微修订：五档评分 / tools 白名单 / dev 指针，待开发排期）** |
 | 日期 | 2026-09-08 |
 | 作者 | 许清楚（产品经理） |
 | 技术评审 | 高见远（架构师）—— 评审意见保留在 §13，未删改 |
@@ -23,6 +23,16 @@
 
 > **v1.1 主线**：把 §13 架构师评审中"与代码事实不符"的部分全部吸收进正文，共修订 12 类 A/B 项 + 3 项产品决策。
 > **v1.2 主线**：统一 KY-03 看板口径为自建（消除 v1.1 遗留的双向同步表述），与开发文档 01-系统架构设计 ADR-11 对齐。
+> **v1.3 主线**：配合 dev/05-人设与技能包设计.md（`1dd08bd`）的事实性修正 —— 作文评分改官方五档、manifest `tools` 白名单约束、§6.3 增补 dev/02 实现指针。
+
+#### v1.3 修订（2026-09-08，微修订）
+
+| # | 修订内容 | 章节 |
+|---|---|---|
+| 1 | 作文评分档位更正：**"四档"全部改为"官方五档（14/11/8/5/2 分档）"**，与四六级官方评分档位及 dev/05 §4 的 rubric 对齐。涉及 3 处：§3.1-2 `cet-essay-grading` 描述、§6.3 `attempt.grading_json` 示例的 rubric 字段值、§10.1 T5 缓解措施 | §3.1、§6.3、§10.1 |
+| 2 | §3.1-6 工具集更正：**`ask` / `plan` / `subagent` 是引擎层运行时工具，不在 manifest `tools` 白名单（catalog 仅 6 个合法值）内**；写进 manifest 会抛 `ManifestError` 打断注册表加载（= 启动失败）。改为两类表述：白名单内组合（如 `[files, search, todo]`）进 manifest；`plan`/`ask`/`subagent` 由引擎运行时提供、无需声明。§3.1.1 规范表 `tools` 行同步收紧 | §3.1、§3.1.1 |
+| 3 | §6.3 末尾补实现指针：「实现级字段细化（`degrade_level`、`attribution` 默认 `pending`、`fail_reason` 等 7 项）见 `docs/dev/02-数据库设计.md` §8，以该文档为准」 | §6.3 |
+| 4 | 版本号 v1.2 → **v1.3**；§13.8 补 v1.3 小节 | §0、§13.8 |
 
 #### v1.2 修订（2026-09-08）
 
@@ -341,13 +351,13 @@ OpenWorker 是一个 **Tauri 2 本地优先（local-first）桌面应用**：Pyt
 | # | 已有能力（真实路径） | 现状 | 对学习场景的复用价值 | 新增的学习功能（本 PRD 提出） | 侵入性 |
 |---|---|---|---|---|---|
 | 1 | **Persona 人设系统** `coworker/personas/builtin/`（17 个内置，每个 = `manifest.md` + `skills/`） | 目录式，新增即生效 | 直接映射"AI 考官 / 助教 / 阅卷老师 / 规划师" | **【新增】6 个学习人设目录**：`cet-examiner`（四六级考官）、`cet-grader`（四六级阅卷/写作翻译批改）、`kaoyan-planner`（考研规划师）、`kaoyan-subject-tutor`（考研分科导师）、`cert-instructor`（证书教研员）、`study-companion`（学习陪伴/答疑）。每个仅含 `manifest.md` + `skills/<name>/SKILL.md`。**必须遵守 §3.1.1 人设 manifest 编写规范，否则 6 个会全部隐身** | **零侵入**（新增目录） |
-| 2 | **Skills 技能系统** `coworker/skills/`（base.py, store.py） | **只扫两个落点**：`state_dir()/skills`（`skills/store.py:87`）与 `<workspace>/.coworker/skills`（`:93`、`agent.py:184-188`）；`_base()` 只认 global/project 两档（`:96-107`），**不存在"内置包目录"** | 把批改/精讲/归因固化为**可复用、可一致执行**的方法 | **【新增】7 个技能包，投放到「人设 bundle」落点**（v1.1 修正）：`cet-essay-grading`（作文批改，含四档评分标准）、`cet-translation-grading`（汉译英逐句批改）、`cet-listening-drill`（听力精听/听写）、`mistake-attribution`（错题五分类归因）、`kaoyan-weekly-review`（周报复盘）、`cert-knowledge-tree`（考纲知识点树生成）、`mock-exam-proctor`（计时模考流程）。<br>**落点**：`coworker/personas/builtin/<persona-id>/skills/<name>/SKILL.md`（`registry.py:184-192` 支持 `skills/` 同级目录；`manager.py:5830-5843` 的 `persona_skill_scope()` 会把它作为 `extra_skill_dirs` 注入 `SkillLoader`；`skills/base.py:45-48` 按 `<dir>/<name>/SKILL.md` 发现）<br>**备选**：首次启动播种到 `state_dir()/skills/` | **零侵入**（新增目录，且放在**会被扫描**的位置） |
+| 2 | **Skills 技能系统** `coworker/skills/`（base.py, store.py） | **只扫两个落点**：`state_dir()/skills`（`skills/store.py:87`）与 `<workspace>/.coworker/skills`（`:93`、`agent.py:184-188`）；`_base()` 只认 global/project 两档（`:96-107`），**不存在"内置包目录"** | 把批改/精讲/归因固化为**可复用、可一致执行**的方法 | **【新增】7 个技能包，投放到「人设 bundle」落点**（v1.1 修正）：`cet-essay-grading`（作文批改，含**官方五档评分标准：14/11/8/5/2 分档**）、`cet-translation-grading`（汉译英逐句批改）、`cet-listening-drill`（听力精听/听写）、`mistake-attribution`（错题五分类归因）、`kaoyan-weekly-review`（周报复盘）、`cert-knowledge-tree`（考纲知识点树生成）、`mock-exam-proctor`（计时模考流程）。<br>**落点**：`coworker/personas/builtin/<persona-id>/skills/<name>/SKILL.md`（`registry.py:184-192` 支持 `skills/` 同级目录；`manager.py:5830-5843` 的 `persona_skill_scope()` 会把它作为 `extra_skill_dirs` 注入 `SkillLoader`；`skills/base.py:45-48` 按 `<dir>/<name>/SKILL.md` 发现）<br>**备选**：首次启动播种到 `state_dir()/skills/` | **零侵入**（新增目录，且放在**会被扫描**的位置） |
 
 > **v1.1 修订说明**：v1.0 写的是"新建 `coworker/skills/campus/`"，架构师核验后确认**该目录不会被任何代码扫描，建了是死代码**（§13.2 R9）。已改为投放到人设 bundle。评分标准（rubric）内容本身不变，只是**存放位置**改了。
 | 3 | **Automation 自动化/定时任务** `coworker/automation/`（models.py, scheduler.py, store.py, tools.py，croniter） | 完整 CRUD + 调度 + Run 记录 | 承载"每日复习推送""间隔重复提醒""考前冲刺计划""报名节点提醒" | **【新增】四个自动化模板**（通过既有 automation CRUD 创建）：① 每日复习推送（每日 20:00）② 艾宾浩斯复习队列（每日/隔日，可配）③ 每周进度复盘（每周日 21:00）④ 考试节点 D-30/D-7/D-1 提醒。**不新增调度器，只新增模板定义与创建入口** | **零侵入**（调用既有 API） |
 | 4 | **Memory 记忆存储** `coworker/memory/`（sqlite_store.py → `state_dir()/coworker.db` 的 `memories` 表；tools.py；settings.py） | SQLite + 工具调用 | 承载"薄弱知识点长期记忆""学习档案摘要" | **【复用】** 用于 LLM 侧的语义记忆（如"用户听力篇章弱、分部积分常错"）；**【新增】** 结构化数据另建 `campus.db`（见 §6），**不修改 `memories` 表结构** | 复用 + 新增独立库 |
 | 5 | **多模型 Provider 路由** `coworker/providers/`（openai/anthropic/gemini/bedrock/vertex/codex/**ollama**，router.py, capabilities.py, matrix.py）<br>⚠️ `ModelCapabilities` 仅 5 个字段（tools/vision/pdf/parallel_tool_calls/streaming，`base.py:81-90`），**无 json_mode / structured_output 标记**；`matrix.py` **无 Ollama 条目** | 已有路由；**能力矩阵不含结构化输出标记** | 离线/低成本运行对大学生**极其关键**；可按任务选模型（批改用强模型、出题用便宜模型） | **【复用】** 全部复用。**【新增】** ① `coworker/campus/models.py` 维护**静态推荐清单** `{task → [推荐模型, 最低可用模型]}`（替代做不到的运行时自检）；② UI 明示"该功能建议使用 XX 及以上模型"；③ 结构化输出能力通过 `provider.complete(**{"response_format": {"type":"json_object"}})` **实际试错**判定（Ollama 走 `OpenAIProvider`，`registry.py:197-201`；`openai_provider.py:189-193` 原样透传 `**settings`），失败则去掉该参数重试一次（注意 `openai_provider.py:92-120` 的 `_param_fix_retry` 对未列举参数会 re-raise，必须 try/except） | 复用 + 新增文件 |
-| 6 | **工具集** `coworker/tools/`（files.py, search.py, shell.py, git.py, todo.py, plan.py, ask.py, subagent.py） | 已有 | 资料导入、真题检索、计划拆解 | **【复用】**：`files`（导入/读取 PDF 与笔记）、`search`（联网查报名时间与考纲变动）、`todo`/`plan`（学习计划拆解）、`ask`（定级测评中向用户提问）、`subagent`（多科目并行处理） | 零侵入（复用） |
+| 6 | **工具集** `coworker/tools/`（files.py, search.py, shell.py, git.py, todo.py, plan.py, ask.py, subagent.py）<br>⚠️ **v1.3 更正**：manifest 的 `tools` 白名单（catalog）**仅 6 个合法值**（`files` / `search` / `shell` / `git` / `todo` 等文件系工具）；`ask` / `plan` / `subagent` **不在白名单内** —— 它们是**引擎层运行时工具**，写进 manifest `tools` 字段会抛 `ManifestError` **打断注册表加载（= 启动失败）**，同 §3.1.1 的 `group` 陷阱 | 已有；**manifest 可写的是白名单子集，运行时另有引擎层工具** | 资料导入、真题检索、计划拆解 | **【复用】两类，落点不同**：<br>**① 进 manifest `tools` 字段（白名单内，如 `[files, search, todo]`）**：`files`（导入/读取 PDF 与笔记）、`search`（联网查报名时间与考纲变动）、`todo`（任务清单）<br>**② 引擎层运行时提供，不进 manifest，无需声明即可用**：`plan`（学习计划拆解）、`ask`（定级测评中向用户提问）、`subagent`（多科目并行处理）<br>**红线**：学习人设的 manifest `tools` 字段只写白名单内组合，绝不写 `plan`/`ask`/`subagent`（见 §3.1.1 规范表） | 零侵入（复用） |
 | 7 | ~~**Reviewer 评审器**~~ `coworker/reviewer.py` —— **v1.1 更正：它不是批改器，是"动作安全闸门"**<br>输入签名固定 `review(*, request, history, tool_name, arguments, provenance)`（`reviewer.py:349-357`），**无 rubric 参数**；提示词为模块级硬编码常量（`:287`）；输出 `Verdict` 仅 `verdict`/`reason`/token（`:180-200`）；`parse_verdict` 只接受 `allow/deny/unsure` 三枚举（`:177, 207-229`） | **不可用**于批改；且它是权限链路一部分（`config.py:45-54` 的 Auto-Approve/Shadow 依赖它，`:203` fail-closed） | v1.0 误以为"天然对应 AI 阅卷"——**此判断错误，已推翻** | **【新增】** `coworker/campus/grading.py`：**独立链路，不走 reviewer**。自己组装 messages（system = rubric，user = 题目 + 作答）→ 调 `provider.complete(...)` → 自己 parse JSON → 维度分 / 错误清单 / 示范段落 → 失败重试 1 次 → 降级纯文本 → 落 `attempt.grading_json`。<br>仅**借鉴** reviewer 的工程模式（`reviewer.py:349-396`）：`asyncio.wait_for` 超时、异常兜底不抛、`**settings` 透传、token 计量。<br>**红线：禁止修改 `reviewer.py`**（会污染安全语义，且 `auto_approve_shadow` 会把批改结果写进审计日志） | 新增文件，独立实现（**不再"复用"**） |
 | 8 | **PDF 支持** `coworker/pdf_support.py`、`coworker/attachments.py`<br>⚠️ **扫描件（无文字层）会静默返回空字符串而非报错**（`pdf_support.py:102-104` 文档字符串原文："Scanned PDFs legitimately return `""`"；`:116-119` `text = page.extract_text() or ""`，全空时 chunks 为空） | 有文字层的 PDF 解析可用；**扫描件静默失败**；加密 PDF 能正确报错（`:92-96`） | 真题 PDF、课件、笔记导入解析 | **【复用】** 有文字层 PDF 的抽取。**【新增】** `coworker/campus/library.py`：① 按页切片（pypdf 逐页提取，天然带 `page_no`）② **显式判空**：`if not (text or "").strip(): parse_status = "failed"，reason = "无文字层（疑似扫描件）"` ③ 两级检索（L1 目录路由 / L2 关键词召回）<br>**OCR 不进 V0.x**（Tesseract 需系统二进制、PaddleOCR 300MB+，均不适合 Tauri 打包；若将来做只考虑 RapidOCR）。V0.3 优先评估**视觉模型兜底**（复用既有 `rasterize()` + `FALLBACK_MODES`，`pdf_support.py:33, 164+`，但 `RASTER_MAX_PAGES = 100`） | 复用 + 新增文件（**判空为强制要求**） |
 | 9 | **Teams 看板 + Journal** `coworker/teams/`<br>⚠️ 状态**固定六态** `open/in_progress/blocked/review/done/canceled`（`model.py:16-22`）；`EDGES[DONE] = set()` 即 **`done` 是终态回不去**（`:31-38`）；space **绑定工作区文件夹**（`:79-84`）且无创建 space 的 API | 看板可用，但"备考语义"不匹配 | v1.0 想映射"备考任务看板"——**语义冲突，降级** | **【降级·见 KY-03】** 备考看板**自建**（前端一个四列 CSS Grid + `campus.db` 的 `plan_task.status`），保留 `board_card_id` 字段但 **V0.x 不使用**。**【复用】** journal 记录每日学习日志（这部分仍可用） | 复用 journal；**看板不再依赖 Teams** |
@@ -371,7 +381,7 @@ OpenWorker 是一个 **Tauri 2 本地优先（local-first）桌面应用**：Pyt
 | `team` | **不要填 `worker`** | 会导致 `default_surfaced = False` | `registry.py:211` |
 | `icon` | 只能取 `personaIcon.tsx:19-33` 的 `NAMED` 集合 | ⚠️ 该集合**不含 `book`**（含 `shield`/`clock`/`pencil`/`table`）→ 写 `icon: book` 会**静默回退**成 `sparkle` | `personaIcon.tsx:19-33` |
 | `id` / `name` / `tagline` / `description` | 必填，语义见现有人设 | 缺失会解析失败 | `manifest.py:337` |
-| `tools` | 从既有工具名中选（`code_files, git, search, shell, todo, ...`）；学习场景**不需要** `shell` 的一律不给 | 给多余工具会扩大权限面 | `permissions.py` |
+| `tools` | **只能填 manifest 白名单（catalog）内的 6 个合法值**（如 `[files, search, todo]`）。**禁止写 `plan` / `ask` / `subagent`** —— 它们是引擎层运行时工具，不在白名单内；写错会抛 `ManifestError` **打断注册表加载（= 启动失败）**。学习场景**不需要** `shell` 的一律不给 | 写入白名单外的工具名 → `ManifestError` 打断整个注册表加载；给多余工具会扩大权限面 | `manifest.py` catalog；dev/05-人设与技能包设计.md |
 | `recommended_models` | 填 §3.1-5 静态推荐清单里的模型 id | 填不存在的 id 会走到默认模型 | `manifest.md` 既有字段 |
 
 **6 个学习人设的推荐字段值：**
@@ -1408,7 +1418,7 @@ flowchart LR
   "score": 68.5,
   "max_score": 106.5,
   "grading_json": {
-    "rubric": "四六级作文四档评分",
+    "rubric": "四六级作文官方五档评分（14/11/8/5/2 分档）",
     "parse_level": "L0 | L1 | L2 | L3",   // v1.1 新增：记录本次批改走的是哪级解析（见 §7.7）
     "dimensions": [
       { "name": "内容", "score": 12, "max": 15, "comment": "..." },
@@ -1440,6 +1450,8 @@ flowchart LR
 | `mock_exam` | `profile_id`, `paper_title`, `started_at`, `current_stage`（writing/listening/reading）, `stage_deadline`, `locked_stages`（JSON：已锁定的阶段）, `status`, `estimate_score` |
 | `vocab_item` | `profile_id`, `word`, `phonetic`, `meaning`, `example`, `example_source`（真题/AI）, `freq_rank`, `mastery`（unknown/fuzzy/mastered） |
 | `school_profile` | `profile_id`, `school`, `major`, `degree_type`（学硕/专硕）, `subjects`（JSON：科目与代码）, `enroll_count`, `recommend_ratio`, `past_scores`（JSON）, `books`（JSON）, `note` |
+
+> **实现级字段指针（v1.3）**：本节为产品视角的字段设计；实现级字段细化（`degrade_level`、`attribution` 默认 `pending`、`fail_reason` 等 7 项）见 **`docs/dev/02-数据库设计.md` §8，以该文档为准**。两者不一致时以 dev/02 为实现准绳，PRD 仅保留产品语义定义。
 
 ### 6.4 状态机
 
@@ -1644,7 +1656,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 | T2 | **检索层从零建且中文效果未知**：全项目无任何检索基础设施（无 FTS5、无 embedding，已 grep 确认）；中文无空格分词，FTS5 unicode61 对中文效果差；Compaction **不能**替代（触发阈值 Ollama 上仅 102,400 token，且摘要会丢页码，见 §3.1-10） | 高 —— KY-09 是考研台 P0 | 中 | ① **已改方案**：按页切片 + 两级检索（L1 目录路由 / L2 bigram）；② **V0.0 里程碑先做中文召回 spike**（§8.2），召回重合率不达标不排期；③ 不引入 embedding 依赖；④ Compaction 降级为"单页精讲"等小上下文场景的可选增强 |
 | T3 | **PDF 解析质量**：扫描件（图片型 PDF）无文字层 | 高 —— 考研专业课大量是扫描件 | 中 | ① 既有 `pdf_support.py:102-104` 对扫描件**静默返回空串**（比报错更危险）→ `library.py` **强制判空标 failed** + 提示文案（G-10 验收 3）；② OCR 不进 V0.x（Tesseract 需系统二进制、PaddleOCR 300MB+，均不适合 Tauri 打包）；③ V0.2 优先评估**视觉模型兜底**（复用既有 `rasterize()`，`RASTER_MAX_PAGES=100`，仅适合关键页精读）；④ 若将来做 OCR 只考虑 RapidOCR（~15MB + onnxruntime ~40MB） |
 | T4 | **结构化输出不稳定**：模型不按 JSON schema 返回 | 中 | 高 | ① 提示词固化在技能包中；② 后端做 JSON 修复重试（1 次）；③ 关键字段缺失时降级为纯文本 + 标注；④ 记录失败率作为模型能力评估输入 |
-| T5 | **批改一致性**：同一篇作文两次批改分差大 | 中 —— 直接影响用户信任 | 中 | ① 评分标准写进技能包（四档/分项 rubric）；② 温度设低；③ 输出必须含得分点级证据；④ **分模型承诺**（v1.1）：验收"波动 ≤1 档"只在云端/≥14B 上承诺，7B/8B 改为连批 3 次取中位数 + UI 标注"本地模型评分仅供参考"；⑤ INF-11 评测脚手架持续量测 |
+| T5 | **批改一致性**：同一篇作文两次批改分差大 | 中 —— 直接影响用户信任 | 中 | ① 评分标准写进技能包（**官方五档**/分项 rubric，14/11/8/5/2 分档）；② 温度设低；③ 输出必须含得分点级证据；④ **分模型承诺**（v1.1）：验收"波动 ≤1 档"只在云端/≥14B 上承诺，7B/8B 改为连批 3 次取中位数 + UI 标注"本地模型评分仅供参考"；⑤ INF-11 评测脚手架持续量测 |
 | T6 | **`campus.db` 与既有 `coworker.db` 的并发/锁** | 低 | 低 | 独立文件，各自连接；沿用既有 `check_same_thread=False` + 锁模式 |
 | T7 | **前端改动引入回归**（App.tsx / Sidebar.tsx / SettingsView.tsx 均有追加） | 中 | 中 | ① 改动限制为追加与短路；② 既有测试必须全绿；③ 新增 flag 关闭路径的回归测试（INF-07） |
 | T8 | **`stt` crate 的构建体积与依赖** | 低（不参与构建则无影响） | 低 | 通过 Cargo feature 默认 off；若无法隔离，则至少保证不初始化、不下载模型 |
@@ -2313,6 +2325,15 @@ graph TD
 | 5 | §6.1 存储决策表"任务看板"行：【复用】Teams board →【新增·自建】`plan_task.status` + 前端四列 Grid；`board_card_id` V0.x 不写值、V0.2 评估只读同步；【复用】journal 记录学习日志；补三条语义冲突证据 | §6.1 |
 | 6 | §4.6 差异对照表：KY 行"最依赖的已有能力"中"Teams（看板）"→"Teams（**仅 journal** 记录学习日志；看板已改为自建）" | §4.6 |
 | 7 | 版本号 v1.1 → **v1.2**；§0.0 增补 v1.2 修订行；§11.1 增补决策 **D5** | §0、§11.1 |
+
+#### v1.3 修订（统一五档评分 / tools 白名单 / dev 指针，配合 dev/05 `1dd08bd`）
+
+| # | 修订 | 章节 |
+|---|---|---|
+| 1 | 评分档位更正："四档"→"**官方五档（14/11/8/5/2 分档）**"，共 3 处：§3.1-2 `cet-essay-grading` 描述、§6.3 `attempt.grading_json.rubric` 示例值、§10.1 T5 缓解措施。已 grep 复核全文"四档"零残留（CET-09 验收中"波动 ≤1 档"的"档"指五档制中的档位，语义随之自动校正） | §3.1、§6.3、§10.1 |
+| 2 | §3.1-6 工具集更正：`ask`/`plan`/`subagent` 为**引擎层运行时工具，不在 manifest `tools` 白名单**（catalog 仅 6 个合法值），写入会 `ManifestError` 打断注册表加载（= 启动失败）。改为"白名单内组合进 manifest + 引擎层工具运行时提供"两类表述；§3.1.1 规范表 `tools` 行同步收紧并标注红线 | §3.1、§3.1.1 |
+| 3 | §6.3 末尾补指针：实现级字段细化（`degrade_level`、`attribution` 默认 `pending`、`fail_reason` 等 7 项）以 **`docs/dev/02-数据库设计.md` §8 为准** | §6.3 |
+| 4 | 版本号 v1.2 → **v1.3**；§0.0 变更摘要补 v1.3 行 | §0 |
 
 #### v1.2 后仍存在的未解决风险（产品侧自查，供评审参考）
 
