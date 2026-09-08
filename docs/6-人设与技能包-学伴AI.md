@@ -10,7 +10,7 @@
 
 ## 0. 范围与使用说明
 
-本文档是 T05（三备考人设）与 T06（备考技能包）的**内容层定稿**，供工程师直接落盘使用，不做架构或代码设计。内容边界遵循能力盘点（`capability-audit-2026-09-08.md`）与 PRD v1.2：只覆盖人设 system_prompt 与技能包 SKILL.md 两个配置层，不新增盘点外能力。
+本文档是 T05（三备考人设）与 T06（备考技能包）的**内容层定稿**，供工程师直接落盘使用，不做架构或代码设计。内容边界遵循能力盘点（`1-能力盘点-学伴AI.md`）与 PRD v1.2：只覆盖人设 system_prompt 与技能包 SKILL.md 两个配置层，不新增盘点外能力。
 
 落盘位置（与架构文档 §2.1 一致）：
 
@@ -43,7 +43,6 @@ tools:
   - write_file
   - grep
   - remember
-requires_folder: true
 scheduling: true
 connectors: false
 default_permission_mode: interactive
@@ -94,7 +93,6 @@ tools:
   - write_file
   - grep
   - remember
-requires_folder: true
 scheduling: true
 connectors: false
 default_permission_mode: interactive
@@ -145,7 +143,6 @@ tools:
   - write_file
   - grep
   - remember
-requires_folder: true
 scheduling: true
 connectors: false
 default_permission_mode: interactive
