@@ -201,7 +201,7 @@ describe("SkillsTab", () => {
     expect(screen.getByText("Import a file")).toBeTruthy();
     expect(screen.getByText(/you review before it installs/)).toBeTruthy();
     expect(screen.getByText(/asks before adding it to\s+your skills/)).toBeTruthy();
-    fireEvent.click(screen.getByText("Create with OpenWorker"));
+    fireEvent.click(screen.getByText("Create with HIU WorkSpace"));
     // Straight to the conversation — the composer is where you describe it (§5.2).
     expect(onCreateSkill).toHaveBeenCalledWith("");
     // Settings never drafts: no POST of any kind happened.

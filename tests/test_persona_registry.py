@@ -30,7 +30,7 @@ def test_builtins_present(tmp_path):
 
 
 def test_release_lineup(tmp_path, monkeypatch):
-    # A release build (no flag) offers exactly OpenWorker + the security coworkers;
+    # A release build (no flag) offers exactly HIU WorkSpace + the security coworkers;
     # Code is listed in Settings but disabled + unsurfaced (the recovery path).
     monkeypatch.delenv("OPENWORKER_UNSHIPPED", raising=False)
     reg = _reg(tmp_path)
@@ -87,7 +87,7 @@ def test_sidebar_defaults_to_surfaced_builtins(tmp_path, internal):
 
 def test_code_ships_disabled_but_recoverable(tmp_path):
     reg = _reg(tmp_path)
-    # Code ships disabled + unsurfaced (owner call 2026-08-21): OpenWorker leads the
+    # Code ships disabled + unsurfaced (owner call 2026-08-21): HIU WorkSpace leads the
     # launch, Code stays one checkbox away as the plain work-in-my-repo persona.
     assert reg.is_enabled("code") is False
     assert reg.is_surfaced("code") is False

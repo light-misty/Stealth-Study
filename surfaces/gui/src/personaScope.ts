@@ -6,10 +6,10 @@ export function isProjectScoped(p?: { requires_folder?: boolean }): boolean {
   return p?.requires_folder === true;
 }
 
-// Persona naming: the product is "OpenWorker"; the personas are a "Coworker" family — Coworker
+// Persona naming: the product is "HIU WorkSpace"; the personas are a "Coworker" family — Coworker
 // (general), Code Coworker, Ops Coworker. In lists/chrome we use the SHORT label (Coworker / Code /
 // Ops); the persona detail page uses the FULL family name. Backend names are left untouched (the
-// API + tests keep "OpenWorker" / "Ops Coworker"); this is purely the display layer.
+// API + tests keep "HIU WorkSpace" / "Ops Coworker"); this is purely the display layer.
 
 // Short label for the sidebar + top bar: "Coworker" / "Code" / "Ops" / "Chat".
 export function shortPersonaName(name?: string, id?: string): string {

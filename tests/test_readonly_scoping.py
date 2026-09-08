@@ -2,7 +2,7 @@
 
 `readonly.py` vets what a command DOES — carefully, and fail-closed. It said nothing about
 what a command READS, so a grant the user reads as "stop asking about my project files"
-also covered ~/.aws/credentials, another repository's history, and OpenWorker's own secrets
+also covered ~/.aws/credentials, another repository's history, and HIU WorkSpace's own secrets
 file. The self-protection floor does not cover that: it guards those files against
 modification, not reading.
 """
