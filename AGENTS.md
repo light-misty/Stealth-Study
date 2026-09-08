@@ -25,11 +25,11 @@ You MUST be very thorough in your thinking and comprehensively decompose the pro
 Explicitly write out your entire deliberation process, documenting every intermediate step, considered alternative, and rejected hypothesis to ensure absolutely no assumption is left unchecked.
 """
 
-# OpenWorker 项目指南
+# HIU WorkSpace 项目指南
 
 ## 项目概述
 
-OpenWorker 是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google、Ollama 等），以本地优先的方式执行真实工作。项目代号为 `coworker`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
+HIU WorkSpace 是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google、Ollama 等），以本地优先的方式执行真实工作。项目代号为 `coworker`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
 
 ## 技术栈
 
@@ -56,7 +56,7 @@ OpenWorker 是一个开源的 AI 协作伙伴平台，运行在桌面端，支�
 - **测试框架**: Vitest
 
 ### Rust 组件
-- **桌面外壳**: Tauri 2 (crate: `openworker-desktop`)
+- **桌面外壳**: Tauri 2 (crate: `hiu-workspace-desktop`)
 - **语音转文本**: ocw-stt (基于 whisper-rs + cpal)
   - Rust 版本: 1.77+
   - whisper-rs: 0.16
@@ -102,7 +102,7 @@ HIU-WorkSpace/
 ├── assets/                     # 静态资源
 ├── coworker/                   # Python 后端核心包
 │   ├── __init__.py
-│   ├── cli.py                  # CLI 入口 (openworker TUI)
+│   ├── cli.py                  # CLI 入口 (hiu-workspace TUI)
 │   ├── config.py               # 配置管理 (分层 TOML)
 │   ├── engine.py               # 代理引擎 (TurnEngine)
 │   ├── permissions.py          # 权限引擎
@@ -143,7 +143,7 @@ HIU-WorkSpace/
 │   ├── testing/                # 测试辅助 (fake_slack)
 │   └── server/                 # HTTP 服务器 (FastAPI)
 │       ├── app.py
-│       └── run.py              # 入口: openworker-server
+│       └── run.py              # 入口: hiu-workspace-server
 ├── surfaces/gui/               # 桌面 GUI 应用
 │   ├── src/                    # React 前端源码
 │   │   ├── App.tsx
@@ -176,7 +176,7 @@ HIU-WorkSpace/
 │   ├── build_windows.ps1       # Windows MSI/NSIS 构建
 │   ├── setup_dev_env.sh        # 开发环境初始化
 │   ├── make_update_manifest.py # 更新 manifest 生成
-│   ├── openworker-server.spec  # PyInstaller spec
+│   ├── hiu-workspace-server.spec  # PyInstaller spec
 │   ├── server_entry.py         # 服务器入口
 │   └── dmg-background.*        # DMG 背景图资源
 ├── scripts/                    # 辅助脚本
@@ -210,10 +210,10 @@ bash packaging/setup_dev_env.sh
 pytest tests -q
 
 # 启动本地代理服务器
-.venv\Scripts\openworker-server --cwd <项目路径> --port 8765
+.venv\Scripts\hiu-workspace-server --cwd <项目路径> --port 8765
 
 # 启动 TUI
-.venv\Scripts\openworker
+.venv\Scripts\hiu-workspace
 ```
 
 ### 前端 (GUI)
@@ -344,9 +344,9 @@ powershell packaging/build_windows.ps1
 
 | 命令 | 入口 | 用途 |
 |------|------|------|
-| `openworker` | `coworker.cli:main` | TUI 启动 (默认 code skill) |
-| `openworker-server` | `coworker.server.run:main` | HTTP 服务器启动 |
-| `openworker-connectors` | `coworker.connectors.cli:main` | 连接器管理 CLI |
+| `hiu-workspace` | `coworker.cli:main` | TUI 启动 (默认 code skill) |
+| `hiu-workspace-server` | `coworker.server.run:main` | HTTP 服务器启动 |
+| `hiu-workspace-connectors` | `coworker.connectors.cli:main` | 连接器管理 CLI |
 | `ocw` | `coworker.teams.cli:main` | Teams 功能 (board, journal, MCP) |
 
 ## 安全与治理
@@ -365,9 +365,9 @@ powershell packaging/build_windows.ps1
 
 ## 注意事项
 
-- 状态目录: 默认 `~/OpenWorker` (或 `%APPDATA%\coworker`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
+- 状态目录: 默认 `~/HIUWorkSpace` (或 `%APPDATA%\coworker`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
 - 临时目录: 测试环境使用 `COWORKER_SCRATCH_BASE` 环境变量隔离会话临时文件
-- 开发令牌: 本地开发通过 `X-OpenWorker-Token` 头部认证
+- 开发令牌: 本地开发通过 `X-HIUWorkSpace-Token` 头部认证
 - 端口配置: 后端 HTTP 默认 8765，前端 Vite 开发服务器固定 1420
 - 国际化: 支持英文 (en) 和中文 (zh)，翻译文件在 `surfaces/gui/src/locales/`
 - Python 版本下限 3.10；3.10 环境使用 `tomli` 后备 tomllib
