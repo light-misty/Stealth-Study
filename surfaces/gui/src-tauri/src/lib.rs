@@ -818,6 +818,7 @@ pub fn run() {
                     .title("OpenWorker")
                     .inner_size(1360.0, 900.0)
                     .min_inner_size(980.0, 640.0)
+                    .maximized(true)
                     // Let the WEBVIEW receive OS file drags: Tauri's own drag-drop handler
                     // otherwise intercepts them, so the composer's HTML5 onDrop (attach by
                     // dragging a file in) never fired in the desktop shell — browser dev
