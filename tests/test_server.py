@@ -61,7 +61,7 @@ def test_agents_and_memory_rest(tmp_path):
     client = _client(tmp_path, [])
     agents = client.get("/v1/agents").json()["agents"]
     # The picker lists enabled+surfaced personas. Release lineup (owner 2026-08-21):
-    # OpenWorker + the security bundles; Code ships disabled, Chat is gone, and
+    # HIU WorkSpace + the security bundles; Code ships disabled, Chat is gone, and
     # ships:false personas (teams, ops, design) need OPENWORKER_UNSHIPPED=1.
     names = [a["name"] for a in agents]
     assert names[0] == "cowork"
@@ -597,10 +597,10 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
     assert client.get("/v1/health").json() == {"status": "ok"}
     assert client.get("/v1/sessions").status_code == 401
     assert client.get(
-        "/v1/sessions", headers={"X-OpenWorker-Token": "wrong"}
+        "/v1/sessions", headers={"X-HIUWorkSpace-Token": "wrong"}
     ).status_code == 401
 
-    headers = {"X-OpenWorker-Token": "a" * 64}
+    headers = {"X-HIUWorkSpace-Token": "a" * 64}
     assert client.get("/v1/health", headers=headers).json()[
         "default_workspace"
     ] == str(tmp_path.resolve())
@@ -619,15 +619,15 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
     assert denied.value.code == 1008
 
     with client.websocket_connect(
-        "/ws/session/authed", subprotocols=["openworker", "a" * 64]
+        "/ws/session/authed", subprotocols=["hiu-workspace", "a" * 64]
     ) as ws:
-        assert ws.accepted_subprotocol == "openworker"
+        assert ws.accepted_subprotocol == "hiu-workspace"
         assert ws.receive_json()["type"] == "ready"
 
     with client.websocket_connect(
-        "/ws/events", subprotocols=["openworker", "a" * 64]
+        "/ws/events", subprotocols=["hiu-workspace", "a" * 64]
     ) as ws:
-        assert ws.accepted_subprotocol == "openworker"
+        assert ws.accepted_subprotocol == "hiu-workspace"
 
     # Redirect callbacks remain tokenless, then enforce their own signed state.
     assert client.get(

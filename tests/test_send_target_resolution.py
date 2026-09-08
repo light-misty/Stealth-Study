@@ -98,7 +98,7 @@ def test_channel_name_resolves_to_team_qualified_address(tmp_path, monkeypatch):
             "T1": [
                 {
                     "id": "C9",
-                    "name": "all-openworker",
+                    "name": "all-hiu-workspace",
                     "is_private": False,
                     "is_member": True,
                 }
@@ -108,7 +108,7 @@ def test_channel_name_resolves_to_team_qualified_address(tmp_path, monkeypatch):
     record: list = []
     tool = make_send_message_tool(secrets, senders=_record_sender(record))
 
-    out = tool("slack:#all-openworker", "Hi")
+    out = tool("slack:#all-hiu-workspace", "Hi")
     assert out["ok"] is True
     assert record[0]["chat_id"] == "T1/C9"
     assert (
@@ -117,8 +117,8 @@ def test_channel_name_resolves_to_team_qualified_address(tmp_path, monkeypatch):
 
 
 def test_bare_channel_names_coerce_to_slack(tmp_path, monkeypatch):
-    """The owner's exact transcript: the model sent target='all-openworker' and
-    '#all-openworker' — no 'slack:' prefix — and got 'invalid target'. Bare names
+    """The owner's exact transcript: the model sent target='all-hiu-workspace' and
+    '#all-hiu-workspace' — no 'slack:' prefix — and got 'invalid target'. Bare names
     are Slack-shaped and must resolve."""
     secrets = _secrets_with_team(tmp_path)
     _fake_roster(
@@ -127,7 +127,7 @@ def test_bare_channel_names_coerce_to_slack(tmp_path, monkeypatch):
             "T1": [
                 {
                     "id": "C9",
-                    "name": "all-openworker",
+                    "name": "all-hiu-workspace",
                     "is_private": False,
                     "is_member": True,
                 }
@@ -137,8 +137,8 @@ def test_bare_channel_names_coerce_to_slack(tmp_path, monkeypatch):
     record: list = []
     tool = make_send_message_tool(secrets, senders=_record_sender(record))
 
-    assert tool("all-openworker", "Hi")["ok"] is True
-    assert tool("#all-openworker", "Hi")["ok"] is True
+    assert tool("all-hiu-workspace", "Hi")["ok"] is True
+    assert tool("#all-hiu-workspace", "Hi")["ok"] is True
     assert all(r["chat_id"] == "T1/C9" and r["token"] == "xoxb-t1" for r in record)
 
     # Garbage that is neither an address nor a Slack-shaped name still errors clearly.
@@ -179,7 +179,7 @@ def test_unknown_ambiguous_and_not_member_names_error_actionably(tmp_path, monke
         },
     )
     secrets.delete("slack:team:T2")
-    assert "invite @OpenWorker" in tool("slack:#private-ops", "Hi")["error"]
+    assert "invite @HIU WorkSpace" in tool("slack:#private-ops", "Hi")["error"]
 
 
 def test_send_file_resolves_names_too(tmp_path, monkeypatch):

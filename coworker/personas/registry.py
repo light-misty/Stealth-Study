@@ -146,11 +146,11 @@ class PersonaRegistry:
         # default) leads. Chat is GONE (owner call 2026-08-21; retired-but-listed since
         # 2026-08-11) — stray `persona=chat` session ids resolve to the default via
         # agent()'s unknown-id fallback. Code ships disabled + unsurfaced (same owner
-        # call): OpenWorker is the launch generalist, but Code stays one checkbox away
+        # call): HIU WorkSpace is the launch generalist, but Code stays one checkbox away
         # as the only plain work-in-my-repo persona.
         self._register_builder(
             "cowork",
-            "OpenWorker",
+            "HIU WorkSpace",
             "cowork",
             "Produce a deliverable — research, analysis, scripts",
             cowork_agent,

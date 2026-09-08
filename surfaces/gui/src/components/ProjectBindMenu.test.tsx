@@ -8,7 +8,7 @@ const menuPayload = {
   bound: null,
   derived: { kind: "folder", label: "~/a/b/c/d/notes", full: "/u/a/b/c/d/notes", key: "/u/a/b/c/d/notes" },
   named: [
-    { name: "openworker", key: "/k1" },
+    { name: "hiu-workspace", key: "/k1" },
     { name: "personal-ops", key: "/k2" },
   ],
 };
@@ -34,7 +34,7 @@ describe("ProjectBindMenu", () => {
     render(
       <ProjectBindMenu sessionId="s1" kind="memory" onClose={() => {}} />,
     );
-    await waitFor(() => expect(screen.getByText("openworker")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("hiu-workspace")).toBeTruthy());
     expect(screen.getByText("…/c/d/notes")).toBeTruthy();
     expect(screen.getByText("this folder")).toBeTruthy();
     expect(screen.queryByPlaceholderText("Filter…")).toBeNull();

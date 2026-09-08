@@ -305,7 +305,7 @@ class _BedrockConverseClient(ProviderClient):
             except ImportError as exc:
                 raise RuntimeError(
                     "AWS Bedrock support needs the boto3 package — "
-                    "install with `pip install 'openworker[bedrock]'`."
+                    "install with `pip install 'hiu-workspace[bedrock]'`."
                 ) from exc
             # boto3 has no per-client bearer parameter — it only reads the env var, and
             # prefers bearer auth for Bedrock whenever it's set. The sidecar process is

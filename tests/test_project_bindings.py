@@ -67,16 +67,16 @@ def test_binding_swaps_memory_key(tmp_path):
     _seed_session(manager, "s1", ws)
 
     manager.session_store.names().name_current(
-        "memory", "openworker", str(other.resolve())
+        "memory", "hiu-workspace", str(other.resolve())
     )
     manager.memory_store.add(
         "the real fact", scope=Scope.WORKSPACE, workspace=str(other.resolve())
     )
 
     put = client.put(
-        "/v1/sessions/s1/bindings", json={"kind": "memory", "name": "openworker"}
+        "/v1/sessions/s1/bindings", json={"kind": "memory", "name": "hiu-workspace"}
     ).json()
-    assert put["ok"] and put["bindings"] == {"memory": "openworker"}
+    assert put["ok"] and put["bindings"] == {"memory": "hiu-workspace"}
 
     record = manager.session_store.load("s1")
     key = manager._memory_key_for(record, record.workspace)

@@ -79,7 +79,7 @@ matches today's behavior. It also allows two useful reports:
 - **Remediation report:** remaining differences from recommended secure behavior.
 
 Coverage includes all modes, dedicated writes, shell filesystem escape, credentials,
-environment variables, OpenWorker self-protection, egress, browser metadata, GitHub
+environment variables, HIU WorkSpace self-protection, egress, browser metadata, GitHub
 clone/pull, persistent skills, automations, standing grants, unknown tools, MCP overrides,
 connectors, account binding, destructive actions, and allowlists.
 

@@ -2,7 +2,7 @@
 
 `readonly.py` vets what a command DOES — carefully, and fail-closed. It said nothing about
 what a command READS, so a grant the user reads as "stop asking about my project files"
-also covered ~/.aws/credentials, another repository's history, and OpenWorker's own secrets
+also covered ~/.aws/credentials, another repository's history, and HIU WorkSpace's own secrets
 file. The self-protection floor does not cover that: it guards those files against
 modification, not reading.
 """
@@ -68,7 +68,7 @@ def test_reads_outside_every_root_now_ask(session, command):
     assert not runs(session, command), command
 
 
-def test_openworkers_own_secrets_are_no_longer_readable(session):
+def test_hiu_workspaces_own_secrets_are_no_longer_readable(session):
     # The floor hard-denies WRITES to this file in every mode and cannot be overridden.
     # Reading was never checked, so one click on a convenience button dumped it into the
     # transcript — and from there to the model provider on the next turn.

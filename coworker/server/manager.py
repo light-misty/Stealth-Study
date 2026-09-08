@@ -470,7 +470,7 @@ class SessionManager:
             out.append({"path": path, "name": p.name, "exists": p.is_dir()})
         return out
 
-    DEFAULT_SCRATCH_BASE = "~/OpenWorker"
+    DEFAULT_SCRATCH_BASE = "~/HIUWorkSpace"
 
     def scratch_base(self) -> Path:
         """Common area for per-conversation scratch directories. Configurable via prefs;
@@ -2762,7 +2762,7 @@ class SessionManager:
         }
         # os.walk with in-place pruning, NOT rglob: rglob descends first and filters after,
         # so a home-directory workspace walked into ~/Library and tripped the macOS App Data
-        # TCC prompt ("OpenWorker would like to access data from other apps") on every turn.
+        # TCC prompt ("HIU WorkSpace would like to access data from other apps") on every turn.
         # Pruning here means those directories are never entered at all.
         from ..tools.search import OS_DATA_DIRS
 
@@ -3692,7 +3692,7 @@ class SessionManager:
 
     def set_scratch_base(self, path: str) -> dict[str, Any]:
         """Set + persist the common area where each Cowork conversation's scratch directory is
-        created (default ~/OpenWorker). The raw value is stored so the UI shows it as entered;
+        created (default ~/HIUWorkSpace). The raw value is stored so the UI shows it as entered;
         new conversations use it immediately (existing ones keep their provisioned dir).
         """
         path = (path or "").strip()
@@ -4786,7 +4786,7 @@ class SessionManager:
 
     # -- mention router (§31) ----------------------------------------------------
     async def _route_mention(self, event, ms: MessageSource, subs) -> None:
-        """@OpenWorker tagged in a channel. A subscribed (user-connected) coworker owns the channel
+        """@HIU WorkSpace tagged in a channel. A subscribed (user-connected) coworker owns the channel
         and must answer; otherwise the per-thread coworker session handles it — spawned on the
         first tag, steered by follow-ups (deduped on the thread target)."""
         from ..connectors.base import format_target

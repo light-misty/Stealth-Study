@@ -4,7 +4,7 @@ A dialect is where the board of record LIVES, seen from a client's chair:
 - LocalDialect: this machine's TeamStore/JournalStore, direct SQLite. For the
   standalone/headless case where the caller is the only writer.
 - RemoteDialect: one wire protocol (the `/v1/board` HTTP API) to a board served
-  elsewhere — the running OpenWorker sidecar on this machine, a teammate's machine,
+  elsewhere — the running HIU WorkSpace sidecar on this machine, a teammate's machine,
   or a hosted board service later. Identity rides the token; the server binds it to
   an actor+role and the store enforces authority, so a remote client is safe by
   construction.
@@ -15,7 +15,7 @@ onto its API. They join as MIRRORS instead — one more subscriber with a cursor
 the append-only event log, replaying events outward (decided 2026-08-16). The board
 stays the abstraction and the source of truth.
 
-Every front door — the `team-board` MCP server, the `ocw` CLI, remote OpenWorker
+Every front door — the `team-board` MCP server, the `ocw` CLI, remote HIU WorkSpace
 instances — bottoms out in this one verb surface. Dialect instances are
 identity-bound: one actor per instance, matching the one-identity-per-process shape
 of an external harness.
@@ -302,7 +302,7 @@ class LocalDialect:
 
 
 class RemoteDialect:
-    """The `/v1/board` HTTP client. `base_url` is an OpenWorker sidecar or a hosted
+    """The `/v1/board` HTTP client. `base_url` is an HIU WorkSpace sidecar or a hosted
     board service; the Bearer token carries identity — the server resolves it to an
     actor+role, so this client never states who it is, it proves it."""
 
@@ -544,7 +544,7 @@ def local_dialect(
     db_dir, *, actor: str = "user", role: str = "user"
 ) -> LocalDialect:
     """Open the state dir's stores directly as one bound identity — the headless
-    backing for the CLI and MCP server when no OpenWorker server is running."""
+    backing for the CLI and MCP server when no HIU WorkSpace server is running."""
     from pathlib import Path
 
     from .attachments import AttachmentStore

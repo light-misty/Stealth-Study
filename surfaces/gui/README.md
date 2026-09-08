@@ -1,7 +1,7 @@
 # coworker GUI (React + Tauri)
 
 A thin client of the coworker server (OpenAI-compatible API + WS event/approval stream).
-Same codebase runs in a browser (dev) and as the OpenWorker desktop app.
+Same codebase runs in a browser (dev) and as the HIU WorkSpace desktop app.
 
 ## First time: bootstrap the Python backend
 
@@ -17,7 +17,7 @@ bash packaging/setup_dev_env.sh   # → .venv (server + aisuite)
 1. **Start the server** (needs a model key, e.g. `OPENAI_API_KEY`, in the environment —
    or add one later in the app's Settings), from the repo root:
    ```bash
-   ./.venv/bin/openworker-server --cwd /path/to/your/project --port 8765
+   ./.venv/bin/hiu-workspace-server --cwd /path/to/your/project --port 8765
    ```
 2. **Start the UI:**
    ```bash
@@ -35,7 +35,7 @@ Vite if the server is restarted.
 
 The Tauri shell wraps the same UI and supervises the Python server itself — no separate
 terminal. It needs the Rust toolchain (`rustup`) plus the venv from the bootstrap step;
-in dev it finds the server at `.venv/bin/openworker-server` automatically (a
+in dev it finds the server at `.venv/bin/hiu-workspace-server` automatically (a
 packaged sidecar binary is only produced by the release scripts in `packaging/`).
 
 ```bash

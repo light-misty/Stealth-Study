@@ -18,7 +18,7 @@ from .secrets import state_dir
 def main(argv: Optional[list[str]] = None) -> None:
     cfg = load_config()
     parser = argparse.ArgumentParser(
-        prog="openworker", description="Agent coworker (TUI)."
+        prog="hiu-workspace", description="Agent coworker (TUI)."
     )
     parser.add_argument(
         "skill", nargs="?", default="code", help="skill to launch (default: code)"

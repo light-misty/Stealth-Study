@@ -263,7 +263,7 @@ def _refusal(requested, final):
     [
         "http://169.254.169.254/latest/meta-data/",  # cloud metadata / credentials
         "http://192.168.1.1/admin",  # router admin page
-        "http://127.0.0.1:8765/v1/health",  # OpenWorker's own sidecar
+        "http://127.0.0.1:8765/v1/health",  # HIU WorkSpace's own sidecar
         "http://10.0.0.5/internal",  # private network
     ],
 )
