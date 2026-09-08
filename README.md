@@ -1,10 +1,9 @@
 <h1 align="center">OpenWorker</h1>
 
-<p align="center"><strong><a href="https://openworker.com">openworker.com</a></strong> · <a href="#download">Download</a> · <a href="https://github.com/andrewyng/openworker/issues">Issues</a></p>
+<p align="center"><strong><a href="https://openworker.com">openworker.com</a></strong> · <a href="#download">Download</a> · <a href="https://github.com/light-misty/HIU-WorkSpace/issues">Issues</a></p>
 
-<p align="center"><a href="https://trendshift.io/repositories/91434?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-91434" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/91434/daily" alt="andrewyng%2Fopenworker | Trendshift" width="250" height="55"/></a></p>
 
-> **Beta** - OpenWorker is in open beta: fully usable, updates itself, and we're actively polishing rough edges. [Issues](https://github.com/andrewyng/openworker/issues) welcome.
+> **Beta** - OpenWorker is in open beta: fully usable, updates itself, and we're actively polishing rough edges. [Issues](https://github.com/light-misty/HIU-WorkSpace/issues) welcome.
 
 **AI that gets your everyday tasks done.** OpenWorker is an open-source AI coworker that lives on your desktop and delivers **finished work**, not just chat: your code reviewed for vulnerabilities with fixes ready to go, a polished document, a Slack reply with the numbers, a triaged inbox. It ships **specialist Security coworkers** first — attackers already use AI, and defenders deserve the same leverage, governed.
 
@@ -89,7 +88,7 @@ OpenWorker is local-first. Everything lives on your machine: the agent loop, you
 Prerequisites: Python 3.10+, Node 20+, and (for the desktop shell) the Rust toolchain via [rustup](https://rustup.rs/).
 
 ```shell
-git clone https://github.com/andrewyng/openworker
+git clone https://github.com/light-misty/HIU-WorkSpace.git
 cd openworker
 
 # 1. One-time bootstrap - creates the Python venv at .venv
@@ -134,7 +133,7 @@ OpenWorker was originally developed inside the aisuite repository before moving 
 
 ## Contributing
 
-Contributions and bug reports are welcome - open an [issue](https://github.com/andrewyng/openworker/issues) or a pull request. The app updates itself, so fixes reach installs quickly.
+Contributions and bug reports are welcome - open an [issue](https://github.com/light-misty/HIU-WorkSpace/issues) or a pull request. The app updates itself, so fixes reach installs quickly.
 For any PR, please attach screenshots of what was broken and how it is fixed now. We will shortly add features that you can contribute to.
 Please note that we are actively developing based off a internal list and goal, so we may not approve PRs that add features that are already under-development or deviates from our vision.
 
