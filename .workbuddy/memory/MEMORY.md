@@ -2,8 +2,8 @@
 
 ## 项目性质
 
-HIU-WorkSpace（龙外工作台）是一个**正常的产品研发项目**（非课程作业），基于开源项目 OpenWorker（MIT，上游 `light-misty/HIU-WorkSpace`）二次开发。
-**不代表黑龙江外国语学院官方立场**，无校内对接人，校内无 AI 使用管理办法。
+HIU-WorkSpace 是一个**正常的产品研发项目**（非课程作业），基于开源项目 OpenWorker（MIT，上游 `light-misty/HIU-WorkSpace`）二次开发，重构为**通用大学生 AI 备考学习桌面应用「学伴 AI / StudyBuddy」**（2026-09-08 定位重构，去校名化；HIU 仅作仓库内部代号）。
+**不代表黑龙江外国语学院官方立场**，无校内对接人。
 **团队开发，使用 AI Coding Agent 工具快速开发。**
 
 ## 重要：不要引入作业语境
@@ -27,8 +27,8 @@ HIU-WorkSpace（龙外工作台）是一个**正常的产品研发项目**（非
 - 计算机类场景真正可复用的主资产是 `coworker/agents/code.py`（完整 solo 编码代理，含 code_files/git/search/shell/todo 能力，系统提示含探索优先、最小改动、改完必跑测试、不主动 commit、不记录密钥）。
 - 代码库理解可复用 `coworker/tools/subagent.py` 的 `explore`（只读研究子 Agent，独立上下文）。
 - `coworker/providers/registry.py` 已实现 deepseek / kimi / qwen / zai(GLM) / minimax / xai / mistral / ollama / ark 等，BYOK 无需新增适配。
-- `stt/src/lib.rs` 默认模型 `ggml-base.en.bin` 为**英语专用**，多语种需换模型（口语陪练的前置改造项）。
-- `coworker/personas/manifest.py` 的 `VALID_GROUPS` 仅 `{"general","security"}`；校园人设建议不改上游枚举，用 `hiu-student-*` / `hiu-teacher-*` 等 id 前缀区分，避免上游同步冲突。
+- `stt/src/lib.rs` 默认模型 `ggml-base.en.bin` 为**英语专用**；已拍板不做语音功能，STT 组件与语音入口直接隐藏，无需换模型。
+- `coworker/personas/manifest.py` 的 `VALID_GROUPS` 仅 `{"general","security"}`；备考人设不改上游枚举，用 `xueban-*` id 前缀区分，避免上游同步冲突；禁用 hiu 前缀。
 
 ## 主要交付物
 
