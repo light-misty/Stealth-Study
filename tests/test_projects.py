@@ -83,9 +83,9 @@ class TestProjectNames:
         return ProjectNames(conn, threading.RLock())
 
     def test_name_resolve_roundtrip(self, names):
-        names.name_current("memory", "openworker", "/k1")
-        assert names.resolve("memory", "openworker") == "/k1"
-        assert names.resolve("board", "openworker") is None  # kinds are separate
+        names.name_current("memory", "hiu-workspace", "/k1")
+        assert names.resolve("memory", "hiu-workspace") == "/k1"
+        assert names.resolve("board", "hiu-workspace") is None  # kinds are separate
 
     def test_rename_repoints(self, names):
         names.name_current("memory", "ops", "/k1")
@@ -149,8 +149,8 @@ class TestResolvers:
         conn = sqlite3.connect(tmp_path / "t.db", check_same_thread=False)
         conn.row_factory = sqlite3.Row
         names = ProjectNames(conn, threading.RLock())
-        names.name_current("memory", "openworker", "/the/real/project")
-        key = resolve_memory_key(str(tmp_path), binding="openworker", names=names)
+        names.name_current("memory", "hiu-workspace", "/the/real/project")
+        key = resolve_memory_key(str(tmp_path), binding="hiu-workspace", names=names)
         assert key == "/the/real/project"
 
     def test_derivation_migrates_memory(self, repo, tmp_path):
