@@ -1,7 +1,7 @@
 """Board join tokens — identity for external board clients.
 
 A token binds an ACTOR and a ROLE server-side: an external harness (another agent
-CLI, a headless OpenWorker, the `ocw` CLI from a second machine) presents the token
+CLI, a headless HIU WorkSpace, the `ocw` CLI from a second machine) presents the token
 and the server resolves who it is — the client never states its own identity, and a
 worker token cannot claim to be the lead. Authority then falls to the store, same
 as for in-app agents: the token is identity, the store is the gate.
@@ -23,7 +23,7 @@ from typing import Any, Optional
 
 from .model import Actor, Role
 
-_TOKEN_PREFIX = "owb_"  # OpenWorker board — greppable in configs, meaningless to guess
+_TOKEN_PREFIX = "owb_"  # HIU WorkSpace board — greppable in configs, meaningless to guess
 
 
 class BoardTokens:
