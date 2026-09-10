@@ -1,22 +1,22 @@
-<h1 align="center">OpenWorker</h1>
+<h1 align="center">偷偷学</h1>
 
-<p align="center"><strong><a href="https://openworker.com">openworker.com</a></strong> · <a href="#download">Download</a> · <a href="https://github.com/light-misty/HIU-WorkSpace/issues">Issues</a></p>
+<p align="center"><strong>偷偷学</strong> · <a href="#download">Download</a> · <a href="https://github.com/light-misty/HIU-WorkSpace/issues">Issues</a></p>
 
 
-> **Beta** - OpenWorker is in open beta: fully usable, updates itself, and we're actively polishing rough edges. [Issues](https://github.com/light-misty/HIU-WorkSpace/issues) welcome.
+> **Beta** - 偷偷学 is in open beta: fully usable, updates itself, and we're actively polishing rough edges. [Issues](https://github.com/light-misty/HIU-WorkSpace/issues) welcome.
 
-**AI that gets your everyday tasks done.** OpenWorker is an open-source AI coworker that lives on your desktop and delivers **finished work**, not just chat: your code reviewed for vulnerabilities with fixes ready to go, a polished document, a Slack reply with the numbers, a triaged inbox. It ships **specialist Security coworkers** first — attackers already use AI, and defenders deserve the same leverage, governed.
+**AI that gets your everyday tasks done.** 偷偷学 is an open-source AI coworker that lives on your desktop and delivers **finished work**, not just chat: your code reviewed for vulnerabilities with fixes ready to go, a polished document, a Slack reply with the numbers, a triaged inbox. It ships **specialist Security coworkers** first — attackers already use AI, and defenders deserve the same leverage, governed.
 
 It runs on your machine and doesn't lock you into any model: bring your own API key for OpenAI, Anthropic, Google, or an open-weight provider, or run fully local with Ollama. Your data leaves your machine only through the model and integrations *you* choose. Every action an agent takes is governed and logged — see [Governed by design](#governed-by-design).
 
-[![How OpenWorker works](docs/assets/how-it-works.png)](https://openworker.com)
+![How 偷偷学 works](docs/assets/how-it-works.png)
 
 ## Download
 
-[**⬇ macOS (Apple Silicon)**](https://download.openworker.com/mac)
+**⬇ macOS (Apple Silicon)**
 <sub>macOS 12+ · signed & notarized · auto-updates</sub>
 
-[**⬇ Windows 10/11 (x64)**](https://download.openworker.com/windows)
+**⬇ Windows 10/11 (x64)**
 <sub>builds are not yet code-signed, so SmartScreen will warn; signing is in progress</sub>
 
 Open the app, add a model key (or point it at Ollama), and ask for something real.
@@ -35,7 +35,7 @@ Specialist coworkers arrive with the tools, working style, and check-ins for one
 
 ## How it works
 
-1. Tell OpenWorker the outcome you want - "prepare a customer brief," "untangle my calendar," "draft a report," "check where the release stands across Jira and GitHub."
+1. Tell 偷偷学 the outcome you want - "prepare a customer brief," "untangle my calendar," "draft a report," "check where the release stands across Jira and GitHub."
 2. It breaks the task into steps and works across your desktop, files, and connected apps.
 3. Before anything consequential - sending a message, changing a calendar, running a command - it checks in and you approve or redirect.
 4. You get the finished deliverable, not a to-do list.
@@ -44,7 +44,7 @@ Under the hood:
 
 ```text
 ┌────────────────────────────────────────────────┐
-│              OpenWorker desktop app            │  native shell + GUI
+│              偷偷学 desktop app                │  native shell + GUI
 ├────────────────────────────────────────────────┤
 │           local agent server (Python)          │  engine · tools · connectors - built on aisuite
 ├───────────────┬────────────────┬───────────────┤
@@ -66,7 +66,7 @@ Unattended runs never self-approve: their asks park in an inbox until a human an
 ## What it can do
 
 - **Produce real deliverables** - documents, spreadsheets, reports, and web pages land as files you can open and share.
-- **Work from Slack** - mention `@OpenWorker` in a channel; a session opens on your desktop, the work happens with your tools, and the answer comes back as a thread reply.
+- **Work from Slack** - mention `@偷偷学` in a channel; a session opens on your desktop, the work happens with your tools, and the answer comes back as a thread reply.
 - **Use your everyday tools** - 25+ integrations including GitHub, Slack, Jira, Notion, Linear, HubSpot, Outlook, monday.com, Gmail, and Google Calendar, plus your **terminal and local files**. Any tool reachable over [MCP](https://modelcontextprotocol.io/) plugs in too, with per-tool control.
 - **Run on a schedule** - automations for recurring work: a morning brief, a weekly report, a standing watch over a channel. Runs land in the app with full transcripts.
 - **Ask before acting** - writes, sends, and shell commands are approval-gated, with an optional auto-approve mode that still escalates anything uncertain - see [Governed by design](#governed-by-design).
@@ -81,7 +81,7 @@ A curated model list marks what we've verified for tool-calling work. Adding any
 
 ## Privacy
 
-OpenWorker is local-first. Everything lives on your machine: the agent loop, your conversations, connector tokens, and model keys - all in the app's local secret store. The only cloud piece is a small service that brokers OAuth handshakes for connectors. You can always use the App without signing-in - use the connectors via manually-created credentials/API-keys.
+偷偷学 is local-first. Everything lives on your machine: the agent loop, your conversations, connector tokens, and model keys - all in the app's local secret store. The only cloud piece is a small service that brokers OAuth handshakes for connectors. You can always use the App without signing-in - use the connectors via manually-created credentials/API-keys.
 
 ## Run from source
 
@@ -127,9 +127,7 @@ Tests: `.venv/bin/pytest` (server), `npm test` and `npm run e2e` in `surfaces/gu
 
 ## Built on aisuite
 
-OpenWorker's engine is built on [**aisuite**](https://github.com/andrewyng/aisuite), a lightweight Python library providing a unified chat-completions API across LLM providers and an agents layer with tools, toolkits, and MCP support. If you want to build your own agent harness rather than use ours, start there; this repo is a working reference for what aisuite can carry.
-
-OpenWorker was originally developed inside the aisuite repository before moving to its own home here; thanks to the aisuite contributors whose work it builds on.
+偷偷学的引擎基于 [**aisuite**](https://github.com/andrewyng/aisuite) 构建。
 
 ## Contributing
 

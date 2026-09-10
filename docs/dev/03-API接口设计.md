@@ -18,7 +18,7 @@
 |---|---|
 | Base URL | 与既有 API 同源：`http://127.0.0.1:<sidecar-port>`（前端经 `window.__COWORKER_HTTP__` 注入，`api.ts:8-14` 同款解析） |
 | 路径前缀 | 全部端点挂 `APIRouter(prefix="/v1/campus")`，与既有 180 条 `/v1/*` 路由零冲突 |
-| 鉴权 | 沿用既有 `X-OpenWorker-Token` 头（`server/app.py` 的 `_request_authenticated`）。campus 端点**不加入** `tokenless_paths` 白名单，自动受保护，campus 不自建鉴权 |
+| 鉴权 | 沿用既有 `X-StealthStudy-Token` 头（`server/app.py` 的 `_request_authenticated`）。campus 端点**不加入** `tokenless_paths` 白名单，自动受保护，campus 不自建鉴权 |
 | 方法语义 | GET 读（无副作用）；POST 建/触发动作；PATCH 部分更新（只发变更字段）；DELETE 删。**不使用 PUT**（与既有路由风格一致） |
 | 请求/响应体 | JSON（`Content-Type: application/json`）。资源对象的字段定义**引用 02 文档 §4 的表结构**（`camelCase` 由前端 TS 类型转换，后端保持 snake_case——与既有 `api.ts` 现状一致，前端 hook 层做一次映射） |
 | 时间 | 请求/响应中的时间均为 ISO 8601 UTC 字符串；日期为 `YYYY-MM-DD` |

@@ -1,6 +1,6 @@
 # 学业工友（CampusWorker）— 产品需求文档
 
-> 基于开源项目 **OpenWorker（项目代号 coworker）** 的二次开发 PRD
+> 基于开源项目 **偷偷学（Stealth Study）** 的二次开发 PRD
 > 定位：把一台"给工程师用的多智能体工作台"，**新增**出一条"给大学生用的备考工作台"。
 
 ---
@@ -15,15 +15,16 @@
 | 作者 | 徐名可 |
 | 技术评审 | 高见远（架构师）—— 评审意见保留在 §13，未删改 |
 | 状态 | 已完成技术可行性评审（**Conditional GO**）→ 已按评审修订 → 待开发排期 |
-| 基线代码 | `D:\DeskTop\HIU-WorkSpace`（OpenWorker / coworker，Tauri 2 桌面应用） |
+| 基线代码 | `D:\DeskTop\HIU-WorkSpace`（偷偷学 / coworker，Tauri 2 桌面应用） |
 | 相关文档 | `docs/config.example.toml`、`docs/AUTOMATION-SCHEDULING.md`（项目内已有） |
 | 变更原则 | **只做加法**：新增目录 / 新增表 / 新增文件 / 新增配置项；不删除、不重构既有模块 |
 
 ### 0.0 变更摘要
 
-> **v1.1 主线**：把 §13 架构师评审中"与代码事实不符"的部分全部吸收进正文，共修订 12 类 A/B 项 + 3 项产品决策。
-> **v1.2 主线**：统一 KY-03 看板口径为自建（消除 v1.1 遗留的双向同步表述），与开发文档 01-系统架构设计 ADR-11 对齐。
+> **v1.4 主线（当前阶段）**：产品命名修改 —— 将产品名称从 "OpenWorker / coworker" 统一改为 **"偷偷学"**。该阶段为独立任务阶段，涉及文档层面全部品牌标识的替换（README、PRD、dev 系列文档），为后续功能开发奠定品牌基础。
 > **v1.3 主线**：配合 dev/05-人设与技能包设计.md（`1dd08bd`）的事实性修正 —— 作文评分改官方五档、manifest `tools` 白名单约束、§6.3 增补 dev/02 实现指针。
+> **v1.2 主线**：统一 KY-03 看板口径为自建（消除 v1.1 遗留的双向同步表述），与开发文档 01-系统架构设计 ADR-11 对齐。
+> **v1.1 主线**：把 §13 架构师评审中"与代码事实不符"的部分全部吸收进正文，共修订 12 类 A/B 项 + 3 项产品决策。
 
 #### v1.3 修订（2026-09-08，微修订）
 
@@ -79,9 +80,9 @@
 
 ## 1. 项目背景与重构定位
 
-### 1.1 原项目 OpenWorker 是什么
+### 1.1 原项目 偷偷学（Stealth Study）是什么
 
-OpenWorker 是一个 **Tauri 2 本地优先（local-first）桌面应用**：Python FastAPI 后端 + React 18 / TypeScript / Vite 5 / Tailwind CSS 3 前端，内置 i18next 中英双语与 Vitest 测试。它的核心是"**多智能体协作工作台**"：
+偷偷学（Stealth Study）是一个 **Tauri 2 本地优先（local-first）桌面应用**：Python FastAPI 后端 + React 18 / TypeScript / Vite 5 / Tailwind CSS 3 前端，内置 i18next 中英双语与 Vitest 测试。它的核心是"**多智能体协作工作台**"：
 
 - 用 **Persona（人设）** 定义不同角色的 AI 同事（`coworker/personas/builtin/` 下 17 个内置人设，每个是 `manifest.md` + `skills/`）；
 - 用 **Skills（技能包）** 把可复用的工作方法固化为能力；
@@ -96,7 +97,7 @@ OpenWorker 是一个 **Tauri 2 本地优先（local-first）桌面应用**：Pyt
 
 ### 1.2 为什么它适合被改造成学习应用
 
-| 学习的本质需求 | OpenWorker 已有的对应能力 | 结论 |
+| 学习的本质需求 | 偷偷学已有的对应能力 | 结论 |
 |---|---|---|
 | 需要"老师 / 助教 / 阅卷人"等不同角色 | Persona 人设系统（17 个内置，目录式新增） | **零侵入映射** |
 | 需要"作文批改 / 真题精讲 / 错题归因"等固定方法 | Skills 技能包系统 | **零侵入封装** |
@@ -140,7 +141,7 @@ OpenWorker 是一个 **Tauri 2 本地优先（local-first）桌面应用**：Pyt
 
 ### 1.5 重构前后对比表
 
-| 维度 | 重构前：OpenWorker（coworker） | 重构后：学业工友（CampusWorker） |
+| 维度 | 重构前：偷偷学 | 重构后：学业工友（CampusWorker） |
 |---|---|---|
 | 产品性质 | 通用多智能体工程协作工作台 | 工程工作台（保留）+ 大学生备考工作台（新增） |
 | 目标用户 | 开发者 / 工程团队 | + 大学生（四六级 / 考研 / 证书党） |
@@ -451,7 +452,7 @@ OpenWorker 是一个 **Tauri 2 本地优先（local-first）桌面应用**：Pyt
 **三条论证：**
 
 1. **语义界定：铁律保护的是"功能模块"，不是"入口可见性"。**
-   铁律的意图是**不让二次开发破坏 OpenWorker 已有的能力资产**（Persona / Skills / Automation / Memory / Providers / Tools / Teams / Reviewer / PDF / Compaction / Permissions / Audit）——这些是**下游依赖可复用的能力单元**，删除它们会造成不可逆的能力损失。
+   铁律的意图是**不让二次开发破坏 偷偷学已有的能力资产**（Persona / Skills / Automation / Memory / Providers / Tools / Teams / Reviewer / PDF / Compaction / Permissions / Audit）——这些是**下游依赖可复用的能力单元**，删除它们会造成不可逆的能力损失。
    而"语音输入"和"云登录"在本产品中的属性是**入口型 / 账号型设施**：它们不被任何其他模块依赖，关闭它们**不会导致任何既有能力失效**。用户要求的"关闭并隐藏"，指向的是**用户可感知的入口与可见性**，而非代码资产。
 
 2. **效果等价：在用户可感知层面，"隐藏"与"删除"完全等价。**
@@ -539,7 +540,7 @@ flowchart TD
 - **数据存哪**：**【新增】** 配置 `campus.brand.name` / `campus.brand.subtitle`；不修改既有品牌常量，新增一层覆盖读取。
 - **验收标准**：
   - 启动后窗口标题与侧边栏顶部显示新产品名；
-  - 把 `campus.brand` 清空后，回退到原 OpenWorker 品牌（证明既有逻辑未被破坏）。
+  - 把 `campus.brand` 清空后，回退到原 偷偷学品牌（证明既有逻辑未被破坏）。
 
 #### G2 导航与备考档案切换 【新增】
 
@@ -1818,7 +1819,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 ## 13. 技术可行性评估（架构师评审 · 高见远）
 
 > **评审日期**：2026-09-08
-> **基线代码**：`D:\DeskTop\HIU-WorkSpace`（OpenWorker / coworker）
+> **基线代码**：`D:\DeskTop\HIU-WorkSpace`（偷偷学 / coworker）
 > **评审方法**：逐条到源码中核验，所有结论均给出 `文件路径:行号` 证据。无法确证的地方标注"不确定"。
 > **未修改任何项目源代码**，仅在本 PRD 内追加本节 + 在原文相关处补注【架构师修正】。
 
