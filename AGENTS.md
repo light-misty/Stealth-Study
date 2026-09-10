@@ -1,7 +1,6 @@
-"""
 ## 任务规范
 
-1. 重要：在每次任务开始前，你必须加载 superpowers skill，并严格遵守其规范。
+1. 重要：在每次任务开始前，你必须加载 superpowers skill (本项目中位于".agent\skills\superpowers\SKILL.md")，并严格遵守其规范。
 2. 未经过我的允许，禁止执行 git 暂存、提交、推送。
 3. git-commit 提交信息使用中文，遵循约定式提交信息。
 4. 重要：严令禁止你将自己列为 GitHub 贡献者、共同创作者等。
@@ -16,14 +15,12 @@
 13. 在生成代码时**不要添加注释**。
 14. 在任务过程中禁止使用 emoji。
 15. 本机操作系统为 Windows 11。
-16. 身份专属规则：如果你的名字是 CatPaw (AI)，请你在任务过程中优先使用 powershell 命令，尽量不要使用 bash 命令。
 
 ## Reasoning Effort
 
 Absolute maximum with no shortcuts permitted.
 You MUST be very thorough in your thinking and comprehensively decompose the problem to resolve the root cause, rigorously stress-testing your logic against all potential paths, edge cases, and adversarial scenarios.
 Explicitly write out your entire deliberation process, documenting every intermediate step, considered alternative, and rejected hypothesis to ensure absolutely no assumption is left unchecked.
-"""
 
 # OpenWorker 项目指南
 
