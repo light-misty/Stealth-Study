@@ -14,8 +14,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from coworker.engine import ApprovalOutcome
-from coworker.server.manager import SessionManager
+from ss.engine import ApprovalOutcome
+from ss.server.manager import SessionManager
 
 
 @pytest.fixture

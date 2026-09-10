@@ -9,8 +9,8 @@ walk (rglob descends first and filters after, which is what caused the bug).
 
 import os
 
-from coworker.server.manager import SessionManager
-from coworker.tools.search import OS_DATA_DIRS
+from ss.server.manager import SessionManager
+from ss.tools.search import OS_DATA_DIRS
 
 
 def _ws(tmp_path):

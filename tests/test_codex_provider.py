@@ -16,8 +16,8 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker.providers import codex_auth
-from coworker.providers.codex_auth import (
+from ss.providers import codex_auth
+from ss.providers.codex_auth import (
     CODEX_BASE_URL,
     CodexAuthError,
     CodexSignInRequired,
@@ -26,10 +26,10 @@ from coworker.providers.codex_auth import (
     build_authorize_url,
     create_pkce,
 )
-from coworker.providers.codex_provider import CodexProvider
-from coworker.secrets import SecretStore
-from coworker.server.app import create_app
-from coworker.server.manager import SessionManager
+from ss.providers.codex_provider import CodexProvider
+from ss.secrets import SecretStore
+from ss.server.app import create_app
+from ss.server.manager import SessionManager
 
 ACCOUNT_CLAIM = "https://api.openai.com/auth"
 
@@ -389,7 +389,7 @@ def test_signed_out_provider_raises_typed_error(tmp_path):
 
 
 def test_registry_builds_codex_provider():
-    from coworker.providers.registry import build_provider_client, get_descriptor
+    from ss.providers.registry import build_provider_client, get_descriptor
 
     assert isinstance(build_provider_client("openai-codex", {}, None), CodexProvider)
     d = get_descriptor("openai-codex")
@@ -398,7 +398,7 @@ def test_registry_builds_codex_provider():
 
 
 def test_descriptor_configured_means_tokens_present():
-    from coworker.providers.registry import descriptor_configured, get_descriptor
+    from ss.providers.registry import descriptor_configured, get_descriptor
 
     d = get_descriptor("openai-codex")
     assert not descriptor_configured(d, {})
@@ -406,8 +406,8 @@ def test_descriptor_configured_means_tokens_present():
 
 
 def test_matrix_curates_subscription_models():
-    from coworker.providers.capabilities import capabilities_for
-    from coworker.providers.matrix import models_for_provider
+    from ss.providers.capabilities import capabilities_for
+    from ss.providers.matrix import models_for_provider
 
     assert models_for_provider("openai-codex") == [
         "gpt-5.6-sol",
@@ -570,7 +570,7 @@ def test_request_strips_backend_unsupported_params(tmp_path):
     # max_output_tokens" / "temperature") — which silently killed every autotitle attempt
     # on plan sessions (owner catch 2026-08-24). The provider strips them; the reasoning
     # effort knob still rides.
-    from coworker.secrets import SecretStore
+    from ss.secrets import SecretStore
 
     provider = CodexProvider(secrets=SecretStore(tmp_path / "s.json"))
     kwargs = provider._request_kwargs(

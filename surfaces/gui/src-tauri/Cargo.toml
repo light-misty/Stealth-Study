@@ -1,12 +1,12 @@
 [package]
-name = "openworker-desktop"
+name = "ss-desktop"
 version = "0.1.0"
-description = "OpenWorker desktop shell"
+description = "Stealth Study desktop shell"
 edition = "2021"
 rust-version = "1.77"
 
 [lib]
-name = "openworker_desktop_lib"
+name = "ss_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -14,18 +14,18 @@ from dataclasses import dataclass, replace
 import pytest
 
 from coworker import reviewer as reviewer_mod
-from coworker.engine import ApprovalOutcome, TurnEngine
-from coworker.events import EventType
-from coworker.permissions import Mode, PermissionEngine
-from coworker.providers import (
+from ss.engine import ApprovalOutcome, TurnEngine
+from ss.events import EventType
+from ss.permissions import Mode, PermissionEngine
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from coworker.providers.base import TokenUsage
-from coworker.reviewer import AGENT_DENY_MESSAGE, Reviewer, parse_verdict
-from coworker.tools import ToolRegistry
+from ss.providers.base import TokenUsage
+from ss.reviewer import AGENT_DENY_MESSAGE, Reviewer, parse_verdict
+from ss.tools import ToolRegistry
 
 
 @dataclass
@@ -234,7 +234,7 @@ def test_reviewer_cannot_clear_a_git_hook_write(tmp_path):
 
 
 def test_reviewer_text_collapses_attachments_to_markers():
-    from coworker.attachments import build_user_content, reviewer_text
+    from ss.attachments import build_user_content, reviewer_text
 
     content = build_user_content(
         "clean up this spreadsheet",
@@ -258,7 +258,7 @@ def test_reviewer_text_collapses_attachments_to_markers():
 
 
 def test_reviewer_text_plain_and_edge_shapes():
-    from coworker.attachments import ATTACHED_TEXT_PREFIX, reviewer_text
+    from ss.attachments import ATTACHED_TEXT_PREFIX, reviewer_text
 
     assert reviewer_text("just typed text") == "just typed text"
     assert reviewer_text(None) == ""
@@ -270,7 +270,7 @@ def test_reviewer_text_plain_and_edge_shapes():
 
 
 def test_user_history_request_carries_markers_not_attachment_bodies(tmp_path):
-    from coworker.attachments import build_user_content
+    from ss.attachments import build_user_content
 
     engine, _rows, _approvals = _engine(tmp_path, [])
     engine.messages.append(

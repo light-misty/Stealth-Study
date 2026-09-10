@@ -13,12 +13,12 @@ from dataclasses import dataclass
 import pytest
 
 from coworker import session_facts
-from coworker.engine import TurnEngine
-from coworker.events import EventType
-from coworker.permissions import PermissionEngine
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from coworker.roots import RootDir
-from coworker.tools import ToolRegistry
+from ss.engine import TurnEngine
+from ss.events import EventType
+from ss.permissions import PermissionEngine
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from ss.roots import RootDir
+from ss.tools import ToolRegistry
 
 
 @dataclass

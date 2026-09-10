@@ -8,10 +8,10 @@ connected (auth="none"), so effective-set assertions use subsets, not exact equa
 
 from fastapi.testclient import TestClient
 
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server import create_app
-from coworker.server.manager import SessionManager
-from coworker.sessions import SessionRecord
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server import create_app
+from ss.server.manager import SessionManager
+from ss.sessions import SessionRecord
 
 
 class ScriptedProvider(ProviderClient):
@@ -253,10 +253,10 @@ def test_declared_connector_allowlist_gates_session_tools(tmp_path):
     had browser_read_page in-session, because `connectors: true` exposed EVERY connected
     connector. The grant is now declared ∩ connected — an undeclared connector's tools
     never enter the session, regardless of what the user has connected."""
-    from coworker.agent import build_engine
-    from coworker.agents.base import Agent
-    from coworker.connectors import connect_connector
-    from coworker.secrets import SecretStore
+    from ss.agent import build_engine
+    from ss.agents.base import Agent
+    from ss.connectors import connect_connector
+    from ss.secrets import SecretStore
 
     secrets = SecretStore(tmp_path / "secrets.json")
     for name, fields in (

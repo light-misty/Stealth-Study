@@ -2,9 +2,9 @@
 
 import pytest
 
-from coworker.teams import Actor, AuthorityError, BoardError, Role, TeamStore
-from coworker.teams.dialect import LocalDialect
-from coworker.teams.tools import board_tools
+from ss.teams import Actor, AuthorityError, BoardError, Role, TeamStore
+from ss.teams.dialect import LocalDialect
+from ss.teams.tools import board_tools
 
 USER = Actor(id="user", role=Role.USER)
 LEAD = Actor(id="lead-1", role=Role.LEAD)
@@ -266,7 +266,7 @@ def test_tools_return_errors_instead_of_raising(store):
 
 
 def test_create_item_tool_schema_keeps_the_title_parameter(store):
-    from coworker.tools.registry import ToolRegistry
+    from ss.tools.registry import ToolRegistry
 
     registry = ToolRegistry()
     registry.register_all(board_tools(store, space=SPACE, actor=LEAD))

@@ -12,11 +12,11 @@ import asyncio
 import aisuite as ai
 import pytest
 
-from coworker.automation import Schedule, ScheduledTask, Scheduler, TaskRun, TaskStore
-from coworker.automation.models import grant_entries, rule_entry, rule_parts
-from coworker.automation.tools import scheduling_tools
-from coworker.engine import ApprovalOutcome, PermissionRequest
-from coworker.permissions import Mode, PermissionEngine, standing_rule_candidate
+from ss.automation import Schedule, ScheduledTask, Scheduler, TaskRun, TaskStore
+from ss.automation.models import grant_entries, rule_entry, rule_parts
+from ss.automation.tools import scheduling_tools
+from ss.engine import ApprovalOutcome, PermissionRequest
+from ss.permissions import Mode, PermissionEngine, standing_rule_candidate
 
 
 class _Meta:
@@ -36,7 +36,7 @@ def _task(**kw) -> ScheduledTask:
 
 
 def _provider():
-    from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
+    from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
 
     class _P(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):
@@ -215,7 +215,7 @@ def test_task_for_run_session(tmp_path):
 
 
 async def test_scheduled_approver_parks_and_mints(tmp_path, monkeypatch):
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     ws = tmp_path / "ws"
@@ -269,7 +269,7 @@ async def test_scheduled_approver_parks_and_mints(tmp_path, monkeypatch):
 
 
 async def test_scheduled_approver_name_allows_and_denies(tmp_path, monkeypatch):
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     ws = tmp_path / "ws"
@@ -306,7 +306,7 @@ async def test_scheduled_approver_name_allows_and_denies(tmp_path, monkeypatch):
 
 
 def test_mint_task_rule_validates(tmp_path, monkeypatch):
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     manager = SessionManager(data_dir=tmp_path / "data", provider=_provider())
@@ -337,7 +337,7 @@ def test_mint_task_rule_validates(tmp_path, monkeypatch):
 
 
 def test_get_engine_seeds_run_session_rules(tmp_path, monkeypatch):
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     ws = tmp_path / "ws"
@@ -360,7 +360,7 @@ def test_get_engine_seeds_run_session_rules(tmp_path, monkeypatch):
 
 
 def test_create_automation_grants_and_revoke(tmp_path, monkeypatch):
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     manager = SessionManager(data_dir=tmp_path / "data", provider=_provider())
@@ -465,15 +465,15 @@ async def test_tick_while_run_is_parked_never_redispatches_it(tmp_path):
 
 
 def test_engine_events_carry_standing_context(tmp_path):
-    from coworker.events import EventType
-    from coworker.providers import (
+    from ss.events import EventType
+    from ss.providers import (
         AssistantTurn,
         ModelCapabilities,
         ProviderClient,
         ToolCall,
     )
-    from coworker.engine import TurnEngine
-    from coworker.tools import ToolRegistry
+    from ss.engine import TurnEngine
+    from ss.tools import ToolRegistry
 
     def send_message(target: str, text: str):
         return {"ok": True}

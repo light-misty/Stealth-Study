@@ -1,4 +1,4 @@
-"""Persona registry — the installed personas + their lifecycle state.
+﻿"""Persona registry — the installed personas + their lifecycle state.
 
 Unifies two sources behind one `id → Agent` resolver: the core surfaces (Cowork / Code)
 wrap their existing agent builders (exact prompts preserved), and markdown manifests
@@ -146,11 +146,11 @@ class PersonaRegistry:
         # default) leads. Chat is GONE (owner call 2026-08-21; retired-but-listed since
         # 2026-08-11) — stray `persona=chat` session ids resolve to the default via
         # agent()'s unknown-id fallback. Code ships disabled + unsurfaced (same owner
-        # call): OpenWorker is the launch generalist, but Code stays one checkbox away
+        # call): StealthStudy is the launch generalist, but Code stays one checkbox away
         # as the only plain work-in-my-repo persona.
         self._register_builder(
             "cowork",
-            "OpenWorker",
+            "StealthStudy",
             "cowork",
             "Produce a deliverable — research, analysis, scripts",
             cowork_agent,

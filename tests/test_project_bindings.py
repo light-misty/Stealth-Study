@@ -7,10 +7,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from coworker.memory.base import Scope
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server import SessionManager, create_app
-from coworker.sessions import SessionRecord
+from ss.memory.base import Scope
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server import SessionManager, create_app
+from ss.sessions import SessionRecord
 
 
 class _StubProvider(ProviderClient):

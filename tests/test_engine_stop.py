@@ -8,17 +8,17 @@ from __future__ import annotations
 import asyncio
 import time
 
-from coworker.engine import ApprovalOutcome, TurnEngine
-from coworker.events import EventType
-from coworker.permissions import PermissionEngine
-from coworker.providers import (
+from ss.engine import ApprovalOutcome, TurnEngine
+from ss.events import EventType
+from ss.permissions import PermissionEngine
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     StreamChunk,
     ToolCall,
 )
-from coworker.tools import ToolRegistry
+from ss.tools import ToolRegistry
 
 
 class EndlessStreamProvider(ProviderClient):

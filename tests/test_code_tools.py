@@ -11,10 +11,10 @@ from types import SimpleNamespace
 
 import pytest
 
-from coworker.tools.files import file_tools
-from coworker.tools.git import git_tools
-from coworker.tools.search import _py_grep, search_tools
-from coworker.web.fetch import _html_to_text, make_web_fetch_tool
+from ss.tools.files import file_tools
+from ss.tools.git import git_tools
+from ss.tools.search import _py_grep, search_tools
+from ss.web.fetch import _html_to_text, make_web_fetch_tool
 
 
 # -- grep ----------------------------------------------------------------------
@@ -42,7 +42,7 @@ def test_grep_finds_matches_and_respects_glob(tmp_path):
 
 
 def test_ripgrep_uses_the_same_ignored_dirs_as_the_python_fallback(tmp_path, monkeypatch):
-    import coworker.tools.search as search
+    import ss.tools.search as search
 
     commands = []
     monkeypatch.setattr(search.shutil, "which", lambda name: "rg")
@@ -155,8 +155,8 @@ def test_html_to_text_strips_scripts_and_tags():
 
 # -- Code agent wiring ---------------------------------------------------------
 def test_code_agent_has_grep_and_git_log_not_search_files(tmp_path):
-    from coworker.agents.base import AgentContext
-    from coworker.agents.code import code_agent
+    from ss.agents.base import AgentContext
+    from ss.agents.code import code_agent
 
     ctx = AgentContext(workspace=tmp_path, executor=None, todo=None)
     names = {getattr(t, "__name__", "") for t in code_agent().build_tools(ctx)}
@@ -167,8 +167,8 @@ def test_code_agent_has_grep_and_git_log_not_search_files(tmp_path):
 
 
 def test_cowork_has_grep_not_search_files(tmp_path):
-    from coworker.agents.base import AgentContext
-    from coworker.agents.cowork import cowork_tool_factory
+    from ss.agents.base import AgentContext
+    from ss.agents.cowork import cowork_tool_factory
 
     names = {
         getattr(t, "__name__", "")

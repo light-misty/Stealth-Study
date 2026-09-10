@@ -11,17 +11,17 @@ from pathlib import Path
 
 import pytest
 
-from coworker.connections import (
+from ss.connections import (
     PersonaConnectionStore,
     SessionConnectionStore,
     effective,
 )
-from coworker.connectors.base import MessageEvent, SessionSource
-from coworker.personas import registry as persona_registry
-from coworker.personas.manifest import load_manifest_file
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server.manager import SessionManager
-from coworker.sessions import SessionRecord
+from ss.connectors.base import MessageEvent, SessionSource
+from ss.personas import registry as persona_registry
+from ss.personas.manifest import load_manifest_file
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server.manager import SessionManager
+from ss.sessions import SessionRecord
 
 
 @pytest.fixture(autouse=True)

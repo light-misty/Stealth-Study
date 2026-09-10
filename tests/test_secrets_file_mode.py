@@ -13,7 +13,7 @@ import sys
 import pytest
 
 from coworker import secrets as secrets_mod
-from coworker.secrets import SecretStore, write_private_text
+from ss.secrets import SecretStore, write_private_text
 
 posix_only = pytest.mark.skipif(
     sys.platform == "win32", reason="POSIX mode bits; Windows uses the icacls ACL path"

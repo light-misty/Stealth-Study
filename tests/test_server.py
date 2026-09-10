@@ -5,14 +5,14 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker.providers import (
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from coworker.server import SessionManager, create_app
-from coworker.sessions import SessionRecord
+from ss.server import SessionManager, create_app
+from ss.sessions import SessionRecord
 
 
 class ScriptedProvider(ProviderClient):
@@ -61,7 +61,7 @@ def test_agents_and_memory_rest(tmp_path):
     client = _client(tmp_path, [])
     agents = client.get("/v1/agents").json()["agents"]
     # The picker lists enabled+surfaced personas. Release lineup (owner 2026-08-21):
-    # OpenWorker + the security bundles; Code ships disabled, Chat is gone, and
+    # StealthStudy + the security bundles; Code ships disabled, Chat is gone, and
     # ships:false personas (teams, ops, design) need OPENWORKER_UNSHIPPED=1.
     names = [a["name"] for a in agents]
     assert names[0] == "cowork"
@@ -353,8 +353,8 @@ def test_ws_simple_turn(tmp_path):
 
 
 def test_ws_rejects_oversized_message(tmp_path):
-    from coworker.server import app as app_mod
-    from coworker.attachments import MAX_ATTACHMENTS
+    from ss.server import app as app_mod
+    from ss.attachments import MAX_ATTACHMENTS
 
     client = _client(tmp_path, [_text("should not run")])
     with client.websocket_connect("/ws/session/big") as ws:
@@ -461,7 +461,7 @@ def test_ws_allows_only_one_inflight_turn_per_session(tmp_path):
 
 
 def test_ws_rate_limits_inbound_frames(tmp_path):
-    from coworker.server import app as app_mod
+    from ss.server import app as app_mod
     from starlette.websockets import WebSocketDisconnect
 
     client = _client(tmp_path, [])
@@ -480,7 +480,7 @@ def test_server_sets_explicit_websocket_frame_limit(tmp_path, monkeypatch):
     import sys
     from types import SimpleNamespace
 
-    from coworker.server import run as server_run
+    from ss.server import run as server_run
 
     seen = {}
     fake_app = object()
@@ -503,7 +503,7 @@ def test_server_sets_explicit_websocket_frame_limit(tmp_path, monkeypatch):
 def test_standalone_server_token_file_is_user_only(tmp_path, monkeypatch):
     import os
 
-    from coworker.server import run as server_run
+    from ss.server import run as server_run
 
     monkeypatch.delenv("COWORKER_API_TOKEN", raising=False)
     path = server_run._ensure_api_token(9876)
@@ -587,7 +587,7 @@ def test_ws_allows_webview_origin(tmp_path):
 
 
 def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
-    from coworker.mcp.config import global_mcp_path
+    from ss.mcp.config import global_mcp_path
     from starlette.websockets import WebSocketDisconnect as WSD
 
     monkeypatch.setenv("COWORKER_API_TOKEN", "a" * 64)
@@ -597,10 +597,10 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
     assert client.get("/v1/health").json() == {"status": "ok"}
     assert client.get("/v1/sessions").status_code == 401
     assert client.get(
-        "/v1/sessions", headers={"X-OpenWorker-Token": "wrong"}
+        "/v1/sessions", headers={"X-SS-Token": "wrong"}
     ).status_code == 401
 
-    headers = {"X-OpenWorker-Token": "a" * 64}
+    headers = {"X-SS-Token": "a" * 64}
     assert client.get("/v1/health", headers=headers).json()[
         "default_workspace"
     ] == str(tmp_path.resolve())
@@ -771,7 +771,7 @@ def test_workspace_command_trust_controls_live_engine(tmp_path):
 def test_recent_workspaces_exclude_scratch_dirs(tmp_path):
     # Scratch dirs get touched like any workspace, but must never show up as
     # "recent projects" in the folder gate (owner call, 2026-07-03).
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     proj = tmp_path / "real-project"
     proj.mkdir()
@@ -790,8 +790,8 @@ def test_delete_session_removes_its_scratch_dir_only(tmp_path):
     # 2026-07-03) — but NEVER a real project folder the user picked.
     from pathlib import Path
 
-    from coworker.server.manager import SessionManager
-    from coworker.sessions import SessionRecord
+    from ss.server.manager import SessionManager
+    from ss.sessions import SessionRecord
 
     mgr = SessionManager(workspace=tmp_path, provider=ScriptedProvider([]))
     mgr._prefs["scratch_base"] = str(tmp_path / "scratch")
@@ -1094,7 +1094,7 @@ def test_mcp_connect_route_flags_authorizing_immediately(tmp_path, monkeypatch):
     synchronously (and only for known servers, so nothing wedges)."""
     import asyncio
 
-    from coworker.server import SessionManager
+    from ss.server import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path / "data")
     monkeypatch.setattr(
@@ -1152,7 +1152,7 @@ def test_set_mode_persists_notice_once_then_markers(tmp_path):
 
 
 def test_connect_banners_a_session_already_in_auto_approve(tmp_path):
-    from coworker.permissions import Mode
+    from ss.permissions import Mode
 
     manager = SessionManager(
         workspace=tmp_path,

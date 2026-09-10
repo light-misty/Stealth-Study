@@ -6,8 +6,8 @@ load() must skip it and return the recoverable history, not raise on every open.
 
 from __future__ import annotations
 
-from coworker.conversations import ConversationStore
-from coworker.sessions import SessionRecord
+from ss.conversations import ConversationStore
+from ss.sessions import SessionRecord
 
 
 def _seed(store: ConversationStore, sid: str, n: int) -> None:

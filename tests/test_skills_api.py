@@ -14,8 +14,8 @@ import zipfile
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
-from coworker.server import SessionManager, create_app
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
+from ss.server import SessionManager, create_app
 
 
 class ScriptedProvider(ProviderClient):
@@ -271,8 +271,8 @@ def test_engine_catalog_respects_settings_disable(tmp_path):
     )
     client.patch("/v1/skills/hidden", json={"enabled": False})
 
-    from coworker.agent import build_engine
-    from coworker.agents.chat import chat_agent
+    from ss.agent import build_engine
+    from ss.agents.chat import chat_agent
 
     engine = build_engine(
         agent=chat_agent(),  # workspace-free agent (persona retired; builder remains)

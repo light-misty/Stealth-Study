@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker.server import SessionManager, create_app
+from ss.server import SessionManager, create_app
 
 
 def _allow_managed_state(state: str = "s") -> None:

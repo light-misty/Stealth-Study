@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 import pytest_asyncio
 
-from coworker.testing.fake_slack import FakeSlack
+from ss.testing.fake_slack import FakeSlack
 
 
 @pytest.fixture(autouse=True)

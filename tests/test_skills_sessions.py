@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.skills import (
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.skills import (
     SessionSkillStore,
     SkillLoader,
     SkillStore,
@@ -20,7 +20,7 @@ from coworker.skills import (
     skill_catalog_text,
     skill_tools,
 )
-from coworker.server.manager import SessionManager
+from ss.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):
@@ -130,7 +130,7 @@ def test_workspace_without_skills_dir_is_fine(manager, tmp_path):
 
 
 def test_empty_catalog_is_safe(tmp_path):
-    from coworker.tools.registry import ToolRegistry
+    from ss.tools.registry import ToolRegistry
 
     loader = SkillLoader([tmp_path / "nowhere"])
     assert skill_catalog_text(loader) == ""
@@ -148,8 +148,8 @@ def test_live_load_skill_semantics(manager):
     · load_skill consults live state per call (create-after-build loadable; a Settings
       disable applies to RUNNING sessions; delete ≡ disable to the model);
     · the ONLY thing that persists is what a conversation already loaded (history)."""
-    from coworker.agent import build_engine
-    from coworker.agents.chat import chat_agent
+    from ss.agent import build_engine
+    from ss.agents.chat import chat_agent
 
     _skill(manager.skill_store.global_dir, "early", body="early body")
     engine = build_engine(
@@ -197,8 +197,8 @@ def test_disable_countermand_for_loaded_skills(manager):
     history are not. Recomputed fresh: re-enabling clears it; unloaded skills never get one."""
     import json as _json
 
-    from coworker.agent import build_engine
-    from coworker.agents.chat import chat_agent
+    from ss.agent import build_engine
+    from ss.agents.chat import chat_agent
 
     _skill(manager.skill_store.global_dir, "used-one", body="used body")
     _skill(manager.skill_store.global_dir, "unused-one", body="never loaded")

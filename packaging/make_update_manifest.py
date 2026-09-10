@@ -34,9 +34,9 @@ import sys
 
 # stable asset name -> Tauri platform key
 ARTIFACTS = {
-    "OpenWorker-macos-arm64.app.tar.gz": "darwin-aarch64",
-    "OpenWorker-macos-x64.app.tar.gz": "darwin-x86_64",
-    "OpenWorker-windows-setup.exe": "windows-x86_64",
+    "StealthStudy-macos-arm64.app.tar.gz": "darwin-aarch64",
+    "StealthStudy-macos-x64.app.tar.gz": "darwin-x86_64",
+    "StealthStudy-windows-setup.exe": "windows-x86_64",
 }
 
 

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 import pytest
 
-from coworker.automation import (
+from ss.automation import (
     Schedule,
     ScheduledTask,
     Scheduler,
@@ -20,7 +20,7 @@ from coworker.automation import (
     TaskStore,
     compute_next_run,
 )
-from coworker.automation.tools import scheduling_tools
+from ss.automation.tools import scheduling_tools
 
 
 def _task(**kw) -> ScheduledTask:
@@ -254,8 +254,8 @@ def test_update_and_delete_tools(tmp_path):
 
 # -- run persists as a continuable session -------------------------------------
 async def test_scheduled_run_persists_continuable_session(tmp_path, monkeypatch):
-    from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
-    from coworker.server.manager import SessionManager, _last_assistant_text
+    from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
+    from ss.server.manager import SessionManager, _last_assistant_text
 
     class ScriptedProvider(ProviderClient):
         def __init__(self, turns):
@@ -303,12 +303,12 @@ def test_task_engine_has_no_scheduling_tools(tmp_path, monkeypatch):
     """A scheduled run executes its instructions — it must not be able to (re)schedule. With
     instructions like 'every day at 5:32pm, prepare…', an agent holding create_scheduled_task
     creates another automation instead of doing the task."""
-    from coworker.providers import (
+    from ss.providers import (
         AssistantTurn as _AT,
         ModelCapabilities,
         ProviderClient,
     )
-    from coworker.server import SessionManager
+    from ss.server import SessionManager
 
     class _Provider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):
@@ -332,8 +332,8 @@ def test_task_engine_has_no_scheduling_tools(tmp_path, monkeypatch):
 
 
 async def test_manual_run_prepare_and_finalize(tmp_path, monkeypatch):
-    from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
-    from coworker.server.manager import SessionManager
+    from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
+    from ss.server.manager import SessionManager
 
     class ScriptedProvider(ProviderClient):
         def __init__(self, turns):
@@ -383,8 +383,8 @@ async def test_manual_run_prepare_and_finalize(tmp_path, monkeypatch):
 def test_automations_rest(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from coworker.server.app import create_app
-    from coworker.server.manager import SessionManager
+    from ss.server.app import create_app
+    from ss.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     manager = SessionManager(data_dir=tmp_path / "data")
@@ -414,7 +414,7 @@ def test_unseen_runs_counted_and_cleared_by_mark_seen(tmp_path, monkeypatch):
     unseen_failed keyed to the NEWEST unseen run; mark_automation_seen clears them
     and later runs count fresh."""
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from coworker.server.manager import SessionManager
+    from ss.server.manager import SessionManager
 
     manager = SessionManager(data_dir=tmp_path / "data")
     t = manager.task_store.save(_task())
@@ -441,8 +441,8 @@ def test_unseen_runs_counted_and_cleared_by_mark_seen(tmp_path, monkeypatch):
 async def test_scheduled_run_broadcasts_run_started_event(tmp_path, monkeypatch):
     """UX-026: the moment a scheduled run starts, every /ws/events socket hears
     automation_run_started (the top-right toast). Dead sockets drop silently."""
-    from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
-    from coworker.server.manager import SessionManager
+    from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
+    from ss.server.manager import SessionManager
 
     class ScriptedProvider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):

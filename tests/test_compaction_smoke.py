@@ -8,9 +8,9 @@ import json
 
 import asyncio
 
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
-from coworker.providers.base import TokenUsage
-from coworker.server.manager import SessionManager
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
+from ss.providers.base import TokenUsage
+from ss.server.manager import SessionManager
 
 BULK = "analysis paragraph " * 400  # ~7.6k chars (~1.9k tokens) per turn → triggers by turn 2
 

@@ -15,8 +15,8 @@ import os
 
 import pytest
 
-from coworker.conversations import ConversationStore
-from coworker.sessions import SessionRecord
+from ss.conversations import ConversationStore
+from ss.sessions import SessionRecord
 
 
 def _rec(sid: str, n: int) -> SessionRecord:
@@ -41,7 +41,7 @@ def test_shrink_rewrite_preserves_history_when_write_crashes(tmp_path, monkeypat
     # first line. A non-atomic in-place open(..., "w") truncates the real file at open() and
     # the crash then erases the history; an atomic tmp-then-replace leaves the original
     # untouched because the swap never happens.
-    import coworker.conversations as conv
+    import ss.conversations as conv
 
     real_open = open
     writes = {"n": 0}

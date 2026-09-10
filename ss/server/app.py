@@ -1,4 +1,4 @@
-"""FastAPI app — OpenAI-compatible endpoint + WS session API + REST.
+﻿"""FastAPI app — OpenAI-compatible endpoint + WS session API + REST.
 
 The control plane every surface (GUI/IDE/messaging) rides on. The WS carries the engine
 event stream and the approval channel; `/v1/chat/completions` is the OpenAI-compatible
@@ -98,7 +98,7 @@ def _browser_page(
     return (
         "<!doctype html><html><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        f"<title>{_html.escape(title)} — OpenWorker</title><style>"
+        f"<title>{_html.escape(title)} — StealthStudy</title><style>"
         ":root{--paper:#f6f5f2;--panel:#fff;--line:#e4e2dc;--ink:#2c2c2a;--muted:#6f6e68;"
         "--faint:#a3a19a;--accent:#3670b2;--ok:#2e7d4f;--ok-soft:#e3f2e9;--bad:#b3423a;"
         "--bad-soft:#f8e7e5}"
@@ -130,9 +130,9 @@ def _browser_page(
         "padding:7px 10px;margin-top:12px;text-align:left;word-break:break-word}"
         ".foot{font-size:10.5px;color:var(--faint)}"
         "</style></head><body>"
-        '<div class="card"><div class="mark"><i></i>OpenWorker</div>'
+        '<div class="card"><div class="mark"><i></i>StealthStudy</div>'
         f"{icon}<h1>{_html.escape(title)}</h1><p>{_html.escape(detail)}</p>{err}</div>"
-        '<div class="foot">Served locally by OpenWorker on your Mac</div>'
+        '<div class="foot">Served locally by StealthStudy on your Mac</div>'
         "</body></html>"
     )
 
@@ -147,7 +147,7 @@ def _connector_title(name: str) -> str:
 
 _CONNECT_FAILED_DETAIL = (
     "Something went wrong finishing this connection. "
-    "Close this tab and try again from OpenWorker."
+    "Close this tab and try again from StealthStudy."
 )
 
 from ..attachments import (
@@ -194,7 +194,7 @@ def create_app(manager: SessionManager) -> FastAPI:
     }
 
     def _request_authenticated(request: Request) -> bool:
-        provided = request.headers.get("x-openworker-token", "")
+        provided = request.headers.get("x-ss-token", "")
         return bool(
             api_token
             and provided
@@ -227,7 +227,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         ):
             return await call_next(request)
         return JSONResponse(
-            {"error": "missing or invalid OpenWorker sidecar token"},
+            {"error": "missing or invalid StealthStudy sidecar token"},
             status_code=401,
         )
 
@@ -1249,7 +1249,7 @@ def create_app(manager: SessionManager) -> FastAPI:
             return HTMLResponse(
                 _browser_page(
                     "Sign-in failed",
-                    "The service reported an error. Return to OpenWorker and try again.",
+                    "The service reported an error. Return to StealthStudy and try again.",
                     ok=False,
                     error=error,
                 ),
@@ -1259,7 +1259,7 @@ def create_app(manager: SessionManager) -> FastAPI:
             return HTMLResponse(
                 _browser_page(
                     "Nothing waiting for this sign-in",
-                    "The sign-in may have timed out. Return to OpenWorker and start it again.",
+                    "The sign-in may have timed out. Return to StealthStudy and start it again.",
                     ok=False,
                 ),
                 status_code=400,
@@ -1267,7 +1267,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         return HTMLResponse(
             _browser_page(
                 "Connected",
-                "Sign-in complete. You can close this tab and return to OpenWorker.",
+                "Sign-in complete. You can close this tab and return to StealthStudy.",
                 ok=True,
             )
         )
@@ -1485,7 +1485,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         action = str((body or {}).get("action", "")).strip()
         return await manager.resolve_unauthorized(name, item_id, action)
 
-    # -- OpenWorker Cloud: sign-in + managed one-click connect ---------------
+    # -- StealthStudy Cloud: sign-in + managed one-click connect ---------------
     # All optional: the app is fully functional signed out (manual token paste
     # stays available for every connector, before and after sign-in).
 
@@ -1535,7 +1535,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         from ..config import load_config
 
         signin_failed_detail = (
-            "Close this tab and try signing in again from OpenWorker."
+            "Close this tab and try signing in again from StealthStudy."
         )
         if error:
             return HTMLResponse(
@@ -1576,8 +1576,8 @@ def create_app(manager: SessionManager) -> FastAPI:
         return HTMLResponse(
             _browser_page(
                 "Signed in",
-                "You're signed in to OpenWorker Cloud. "
-                "You can close this tab and return to OpenWorker.",
+                "You're signed in to StealthStudy Cloud. "
+                "You can close this tab and return to StealthStudy.",
             )
         )
 
@@ -1668,7 +1668,7 @@ def create_app(manager: SessionManager) -> FastAPI:
             return HTMLResponse(
                 _browser_page(
                     "GitHub connected",
-                    "You can close this tab and return to OpenWorker.",
+                    "You can close this tab and return to StealthStudy.",
                     connector="github",
                 )
             )
@@ -1731,7 +1731,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         return HTMLResponse(
             _browser_page(
                 f"{_connector_title(connector)} connected",
-                "You can close this tab and return to OpenWorker.",
+                "You can close this tab and return to StealthStudy.",
                 connector=connector,
             )
         )
@@ -2055,7 +2055,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         if not _origin_allowed(ws.headers.get("origin")):
             await ws.close(code=1008)
             return
-        await ws.accept(subprotocol="openworker" if api_token else None)
+        await ws.accept(subprotocol="StealthStudy" if api_token else None)
         agent = ws.query_params.get("agent") or "code"
 
         # All four interactive prompts (approval / question / directory / plan) are parked as Inbox
@@ -2530,7 +2530,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         if engine.permissions.mode is Mode.AUTO_APPROVE and not any(
             m.get("kind") == "mode_notice" for m in engine.messages
         ):
-            from coworker.permissions import AUTO_APPROVE_NOTICE
+            from ss.permissions import AUTO_APPROVE_NOTICE
 
             engine._append_notice(
                 "mode_notice", AUTO_APPROVE_NOTICE, title="Auto-approve is on."
@@ -2665,7 +2665,7 @@ def create_app(manager: SessionManager) -> FastAPI:
                             # session enters Auto-Approve, a one-line marker otherwise.
                             # Server-authored + persisted, so reloads show it in place
                             # exactly once instead of re-announcing on every restart.
-                            from coworker.permissions import (
+                            from ss.permissions import (
                                 AUTO_APPROVE_NOTICE,
                                 MODE_LABELS,
                             )
@@ -2835,7 +2835,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         if not _origin_allowed(ws.headers.get("origin")):
             await ws.close(code=1008)
             return
-        await ws.accept(subprotocol="openworker" if api_token else None)
+        await ws.accept(subprotocol="StealthStudy" if api_token else None)
         manager.register_event_client(ws.send_json)
         try:
             while True:

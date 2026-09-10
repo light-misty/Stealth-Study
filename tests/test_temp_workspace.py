@@ -9,10 +9,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server import create_app
-from coworker.server.manager import SessionManager
-from coworker.sessions import SessionRecord
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server import create_app
+from ss.server.manager import SessionManager
+from ss.sessions import SessionRecord
 
 
 class ScriptedProvider(ProviderClient):

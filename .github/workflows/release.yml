@@ -183,7 +183,7 @@ jobs:
             python3 packaging/make_update_manifest.py \
               --version "${TAG#v}" --tag "$TAG" --repo "$GITHUB_REPOSITORY" \
               --dist dist --out dist/latest.json \
-              --notes "OpenWorker ${TAG#v}"
+              --notes "Stealth Study ${TAG#v}"
           else
             echo "::warning::no updater signatures in dist/ — release ships WITHOUT auto-update manifest"
           fi

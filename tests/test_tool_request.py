@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import pytest
 
-from coworker.engine import EventType, TurnEngine
-from coworker.permissions import Mode, PermissionEngine
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from coworker.tools import ToolRegistry
+from ss.engine import EventType, TurnEngine
+from ss.permissions import Mode, PermissionEngine
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from ss.tools import ToolRegistry
 
 
 class ScriptedProvider(ProviderClient):

@@ -6,10 +6,10 @@ import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker.connectors.base import MessageEvent, SessionSource
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server import create_app
-from coworker.server.manager import SessionManager
+from ss.connectors.base import MessageEvent, SessionSource
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server import create_app
+from ss.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):

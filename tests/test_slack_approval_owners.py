@@ -7,12 +7,12 @@ import asyncio
 import httpx
 from fastapi.testclient import TestClient
 
-from coworker.connectors import ConnectorSettings, Gateway, TeamAuth
-from coworker.connectors.base import InteractionEvent, MessageEvent, SessionSource
-from coworker.interactions import encode
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server import create_app
-from coworker.server.manager import SessionManager
+from ss.connectors import ConnectorSettings, Gateway, TeamAuth
+from ss.connectors.base import InteractionEvent, MessageEvent, SessionSource
+from ss.interactions import encode
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server import create_app
+from ss.server.manager import SessionManager
 
 
 class NoTurnsProvider(ProviderClient):

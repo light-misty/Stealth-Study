@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from coworker.agent import build_engine
-from coworker.agents import AgentContext, chat_agent, code_agent, get_agent
-from coworker.providers import ModelCapabilities
-from coworker.skills import SkillLoader, skill_catalog_text, skill_tools
-from coworker.tools import ToolRegistry
-from coworker.tools.shell import LocalExecutor
-from coworker.tools.todo import TodoList
+from ss.agent import build_engine
+from ss.agents import AgentContext, chat_agent, code_agent, get_agent
+from ss.providers import ModelCapabilities
+from ss.skills import SkillLoader, skill_catalog_text, skill_tools
+from ss.tools import ToolRegistry
+from ss.tools.shell import LocalExecutor
+from ss.tools.todo import TodoList
 
 
 class _Stub:

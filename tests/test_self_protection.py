@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from coworker.permissions import Mode, PermissionEngine, protected_paths
-from coworker.secrets import state_dir
+from ss.permissions import Mode, PermissionEngine, protected_paths
+from ss.secrets import state_dir
 
 ALL_MODES = [Mode.DISCUSS, Mode.PLAN, Mode.INTERACTIVE, Mode.CUSTOM, Mode.AUTO_APPROVE, Mode.BYPASS_APPROVALS]
 

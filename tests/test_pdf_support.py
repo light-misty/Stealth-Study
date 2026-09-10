@@ -10,8 +10,8 @@ import zlib
 import pytest
 
 from coworker import pdf_support
-from coworker.providers.base import ModelCapabilities
-from coworker.providers.capabilities import capabilities_for
+from ss.providers.base import ModelCapabilities
+from ss.providers.capabilities import capabilities_for
 
 
 def _blank_pdf_url(pages: int = 3) -> str:

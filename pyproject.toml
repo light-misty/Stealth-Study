@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "coworker"
+name = "ss"
 version = "0.0.0"
-description = "Agent coworker platform — provider-agnostic agentic coworker runtime"
+description = "Stealth Study — provider-agnostic agentic study runtime"
 requires-python = ">=3.10"
 dependencies = [
     "openai>=1.0",
@@ -50,19 +50,19 @@ browser = ["playwright>=1.44"]
 bedrock = ["boto3>=1.34"]
 
 [project.scripts]
-openworker = "coworker.cli:main"
-openworker-server = "coworker.server.run:main"
-openworker-connectors = "coworker.connectors.cli:main"
+openworker = "ss.cli:main"
+openworker-server = "ss.server.run:main"
+openworker-connectors = "ss.connectors.cli:main"
 # The board as an open surface (OPE-100): `ocw board …` / `ocw journal …`,
 # including `ocw board mcp` — the stdio MCP server external harnesses attach to.
-ocw = "coworker.teams.cli:main"
+ocw = "ss.teams.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["coworker*"]
+include = ["ss*"]
 
 [tool.setuptools.package-data]
-coworker = [
+ss = [
     "personas/builtin/*.md",
     "personas/builtin/*/manifest.md",
     "personas/builtin/*/skills/*/SKILL.md",

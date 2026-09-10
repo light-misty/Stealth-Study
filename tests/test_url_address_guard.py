@@ -9,8 +9,8 @@ import socket
 
 import pytest
 
-from coworker.web import guard
-from coworker.web.fetch import make_web_fetch_tool
+from ss.web import guard
+from ss.web.fetch import make_web_fetch_tool
 
 
 def _resolves_to(monkeypatch, ip: str):
@@ -238,7 +238,7 @@ def test_web_fetch_still_rejects_non_http_schemes():
 def test_browser_open_url_is_guarded_and_never_launches(monkeypatch):
     """The Playwright browser_open_url is approval gated, but the address guard still
     refuses a blocked URL before the browser is touched (defense in depth)."""
-    from coworker.connectors.browser_automation import make_browser_automation_tools
+    from ss.connectors.browser_automation import make_browser_automation_tools
 
     open_url = {t.__name__: t for t in make_browser_automation_tools()}["browser_open_url"]
     out = open_url("http://169.254.169.254/latest/meta-data/")
@@ -253,7 +253,7 @@ def test_browser_open_url_is_guarded_and_never_launches(monkeypatch):
 
 
 def _refusal(requested, final):
-    from coworker.connectors.browser_automation import redirect_refusal
+    from ss.connectors.browser_automation import redirect_refusal
 
     return redirect_refusal(requested, final)
 
@@ -307,7 +307,7 @@ class _FakePage:
 
 
 def _open_url_with(monkeypatch, page):
-    from coworker.connectors import browser_automation as ba
+    from ss.connectors import browser_automation as ba
 
     monkeypatch.setattr(ba._BROWSER, "call", lambda _action, fn: fn(page))
     tools = {t.__name__: t for t in ba.make_browser_automation_tools()}

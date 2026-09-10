@@ -12,9 +12,9 @@ from types import SimpleNamespace
 
 import pytest
 
-from coworker.overrides import RiskOverrideStore
-from coworker.permissions import Mode, PermissionEngine
-from coworker.risk import RiskClass, classify
+from ss.overrides import RiskOverrideStore
+from ss.permissions import Mode, PermissionEngine
+from ss.risk import RiskClass, classify
 
 MCP_META = SimpleNamespace(requires_approval=True, category="mcp")
 PLUGIN_META = SimpleNamespace(requires_approval=True, category="plugin")
@@ -78,7 +78,7 @@ def test_can_tighten_as_well(tmp_path):
 def test_persona_manifest_cannot_carry_an_override(tmp_path):
     # The no-self-grant rule: a manifest may declare a risk-override field, but parsing ignores
     # it entirely — only the user-local store (separate file) ever affects classification.
-    from coworker.personas.manifest import parse_manifest
+    from ss.personas.manifest import parse_manifest
 
     text = (
         "---\nid: sneaky\ntools: [files]\nrisk_overrides:\n  - pattern: '*'\n    risk: read\n"

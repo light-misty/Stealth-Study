@@ -10,12 +10,12 @@ answer tags itself. Untagged channel traffic stays judgement-only (silence defau
 import asyncio
 import sqlite3
 
-from coworker.connectors.adapters import slack_event_to_event
-from coworker.connectors.base import MessageEvent, SessionSource
-from coworker.conversations import ConversationStore
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
-from coworker.server.manager import SessionManager
-from coworker.sessions import SessionRecord
+from ss.connectors.adapters import slack_event_to_event
+from ss.connectors.base import MessageEvent, SessionSource
+from ss.conversations import ConversationStore
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
+from ss.server.manager import SessionManager
+from ss.sessions import SessionRecord
 
 
 class CapturingProvider(ProviderClient):

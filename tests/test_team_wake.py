@@ -3,11 +3,11 @@ the registry + budget gate, pre-spawn at staffing, and digests."""
 
 import pytest
 
-from coworker.personas.loading import capability_set
-from coworker.personas.manifest import ManifestError, parse_manifest
-from coworker.server.manager import SessionManager
-from coworker.teams import Actor, Role, TeamStore
-from coworker.teams.registry import TeamRegistry, TeamWorker
+from ss.personas.loading import capability_set
+from ss.personas.manifest import ManifestError, parse_manifest
+from ss.server.manager import SessionManager
+from ss.teams import Actor, Role, TeamStore
+from ss.teams.registry import TeamRegistry, TeamWorker
 
 USER = Actor(id="user", role=Role.USER)
 LEAD = Actor(id="lead-1", role=Role.LEAD)
@@ -127,7 +127,7 @@ def manager(tmp_path, monkeypatch):
 
 
 def test_create_team_fails_closed_on_solo_personas(manager, tmp_path):
-    from coworker.sessions import SessionRecord
+    from ss.sessions import SessionRecord
 
     manager.session_store.save(
         SessionRecord(
@@ -148,8 +148,8 @@ def test_create_team_fails_closed_on_solo_personas(manager, tmp_path):
 
 
 def test_create_team_prespawns_worker_sessions(manager, monkeypatch):
-    from coworker.agents.base import Agent
-    from coworker.sessions import SessionRecord
+    from ss.agents.base import Agent
+    from ss.sessions import SessionRecord
 
     worker_agent = Agent(
         name="swe-worker", title="SWE", system_prompt="p", team="worker"
@@ -192,9 +192,9 @@ def test_create_team_prespawns_worker_sessions(manager, monkeypatch):
 
 
 def test_staleness_digest_is_role_scoped(manager, monkeypatch):
-    from coworker.agents.base import Agent
-    from coworker.sessions import SessionRecord
-    from coworker.teams.model import space_for_workspace
+    from ss.agents.base import Agent
+    from ss.sessions import SessionRecord
+    from ss.teams.model import space_for_workspace
 
     # no team role → no digest (bare wake)
     assert manager.team_staleness_digest("nobody") == ""
@@ -239,8 +239,8 @@ def test_team_options_lists_only_enabled_workers(manager):
 
 
 def test_turn_saves_never_detach_a_worker_from_its_team(manager, monkeypatch):
-    from coworker.agents.base import Agent
-    from coworker.sessions import SessionRecord
+    from ss.agents.base import Agent
+    from ss.sessions import SessionRecord
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
     monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)
@@ -276,7 +276,7 @@ def test_turn_saves_never_detach_a_worker_from_its_team(manager, monkeypatch):
 # ------------------------------------------------------------------- chat (OPE-99)
 
 def test_chat_groups_mentions_and_wake_reads(tmp_path):
-    from coworker.teams.chat import ChatStore
+    from ss.teams.chat import ChatStore
 
     chat = ChatStore(tmp_path / "chat.db")
     group = chat.create_group(
@@ -307,8 +307,8 @@ def test_chat_groups_mentions_and_wake_reads(tmp_path):
 
 
 def test_create_team_uses_callnames_and_creates_the_chat_group(manager, monkeypatch):
-    from coworker.agents.base import Agent
-    from coworker.sessions import SessionRecord
+    from ss.agents.base import Agent
+    from ss.sessions import SessionRecord
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
     monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)
@@ -347,7 +347,7 @@ def test_digest_clamps_long_comments_and_carries_structured_rows(manager):
     """Hand-off essays live on the board; the wake message carries a head, the
     sidecar carries UI rows (owner ruling 2026-08-16 — the digest was arriving
     as a wall of text)."""
-    from coworker.teams.registry import Team
+    from ss.teams.registry import Team
 
     space = str(manager.default_workspace)
     lead = Actor(id="lead-1", role=Role.LEAD)
@@ -390,7 +390,7 @@ def test_item_detail_timeline_and_blocker_fact(manager):
         space, worker, item["id"], "blocked", comment="need the staging tfvars"
     )
     # session with this workspace → the board space resolves
-    from coworker.sessions import SessionRecord
+    from ss.sessions import SessionRecord
 
     manager.session_store.save(
         SessionRecord(
@@ -414,9 +414,9 @@ def test_item_detail_timeline_and_blocker_fact(manager):
 
 
 def test_session_attachment_read_is_scoped_to_its_board(manager):
-    from coworker.sessions import SessionRecord
-    from coworker.teams import BoardError
-    from coworker.teams.attachments import stored_name
+    from ss.sessions import SessionRecord
+    from ss.teams import BoardError
+    from ss.teams.attachments import stored_name
 
     space = str(manager.default_workspace)
     manager.session_store.save(
@@ -446,9 +446,9 @@ def test_session_attachment_read_is_scoped_to_its_board(manager):
 def test_session_attachment_route_uses_the_session_board(manager, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from coworker.server.app import create_app
-    from coworker.sessions import SessionRecord
-    from coworker.teams.attachments import stored_name
+    from ss.server.app import create_app
+    from ss.sessions import SessionRecord
+    from ss.teams.attachments import stored_name
 
     monkeypatch.delenv("COWORKER_API_TOKEN", raising=False)
     space = str(manager.default_workspace)
@@ -558,9 +558,9 @@ def test_cancel_reaches_the_assignee_through_the_feed(store):
 def test_lead_backstop_fires_only_for_forgotten_timers(manager, monkeypatch):
     import time as _time
 
-    from coworker.agents.base import Agent
-    from coworker.sessions import SessionRecord
-    from coworker.teams.model import space_for_workspace
+    from ss.agents.base import Agent
+    from ss.sessions import SessionRecord
+    from ss.teams.model import space_for_workspace
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
     monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)

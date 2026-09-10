@@ -1,4 +1,4 @@
-"""CLI entry point. `coworker` launches the TUI; `coworker code` boots the code skill."""
+﻿"""CLI entry point. `coworker` launches the TUI; `coworker code` boots the code skill."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from .secrets import state_dir
 def main(argv: Optional[list[str]] = None) -> None:
     cfg = load_config()
     parser = argparse.ArgumentParser(
-        prog="openworker", description="Agent coworker (TUI)."
+        prog="openworker", description="Stealth Study (TUI)."
     )
     parser.add_argument(
         "skill", nargs="?", default="code", help="skill to launch (default: code)"

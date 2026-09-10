@@ -27,16 +27,16 @@ import time
 
 from fastapi.testclient import TestClient
 
-from coworker.interactions import decode
-from coworker.providers import (
+from ss.interactions import decode
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from coworker.server import create_app
-from coworker.server.manager import SessionManager
-from coworker.sessions import SessionRecord
+from ss.server import create_app
+from ss.server.manager import SessionManager
+from ss.sessions import SessionRecord
 
 SID = "incident"
 CHANNEL = "C_OPS"

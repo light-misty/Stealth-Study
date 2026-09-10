@@ -9,9 +9,9 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-from coworker.mcp.config import MCPServerDef
-from coworker.mcp.tools import build_callables
-from coworker.tools.registry import ToolRegistry
+from ss.mcp.config import MCPServerDef
+from ss.mcp.tools import build_callables
+from ss.tools.registry import ToolRegistry
 
 
 def _tool(name: str) -> SimpleNamespace:

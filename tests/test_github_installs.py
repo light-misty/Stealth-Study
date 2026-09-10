@@ -15,13 +15,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from coworker import cloud
-from coworker.connectors import github_installs
-from coworker.connectors.base import MessageEvent
-from coworker.connectors.config import is_authorized, load_settings
-from coworker.connectors.github_relay import GitHubRelayAdapter, split_thread
-from coworker.connectors.relay_client import RelayHub, SlackRelayAdapter
-from coworker.secrets import SecretStore
-from coworker.server import SessionManager, create_app
+from ss.connectors import github_installs
+from ss.connectors.base import MessageEvent
+from ss.connectors.config import is_authorized, load_settings
+from ss.connectors.github_relay import GitHubRelayAdapter, split_thread
+from ss.connectors.relay_client import RelayHub, SlackRelayAdapter
+from ss.secrets import SecretStore
+from ss.server import SessionManager, create_app
 
 
 @pytest.fixture(autouse=True)
@@ -364,7 +364,7 @@ def _stub_broker_mint(monkeypatch, tokens: list[str]):
 
 def test_token_client_caches_and_force_remints(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from coworker.config import load_config
+    from ss.config import load_config
 
     secrets = SecretStore()
     calls = _stub_broker_mint(monkeypatch, ["ghs_first", "ghs_second"])
@@ -386,7 +386,7 @@ def test_token_client_caches_and_force_remints(tmp_path, monkeypatch):
 
 
 def _capture_requests(monkeypatch):
-    from coworker.connectors import integration_tools
+    from ss.connectors import integration_tools
 
     seen: list[dict] = []
 
@@ -399,7 +399,7 @@ def _capture_requests(monkeypatch):
 
 
 def _tool(secrets, name):
-    from coworker.connectors.integration_tools import make_integration_tools
+    from ss.connectors.integration_tools import make_integration_tools
 
     tools = make_integration_tools(secrets)
     return next(t for t in tools if t.__name__ == name)
@@ -442,7 +442,7 @@ def test_managed_tools_use_minted_token_by_owner(tmp_path, monkeypatch):
 
 def test_managed_401_reminted_once(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from coworker.connectors import integration_tools
+    from ss.connectors import integration_tools
 
     secrets = SecretStore()
     github_installs.managed_connect_install(secrets, _install_form("101"))
@@ -472,7 +472,7 @@ def test_review_event_validated(tmp_path, monkeypatch):
 
 def test_list_commits_filters_and_trims(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from coworker.connectors import integration_tools
+    from ss.connectors import integration_tools
 
     secrets = SecretStore()
     secrets.put("github:default", {"type": "token", "token": "ghp_x"})
@@ -543,8 +543,8 @@ def _origin(tmp_path):
 
 
 def _clone_tools(secrets, tmp_path):
-    from coworker.connectors.integration_tools import make_integration_tools
-    from coworker.roots import RootDir
+    from ss.connectors.integration_tools import make_integration_tools
+    from ss.roots import RootDir
 
     granted = tmp_path / "granted"
     granted.mkdir(exist_ok=True)
@@ -596,7 +596,7 @@ def test_clone_refuses_paths_outside_granted_roots(tmp_path, monkeypatch, _origi
     assert not (tmp_path / "elsewhere").exists()
 
     # and with no writable root at all → a clear error, no filesystem writes
-    from coworker.connectors.integration_tools import make_integration_tools
+    from ss.connectors.integration_tools import make_integration_tools
 
     bare_tools = {t.__name__: t for t in make_integration_tools(secrets, roots=[])}
     out = bare_tools["github_clone"]("acme", "site")

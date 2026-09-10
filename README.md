@@ -89,7 +89,7 @@ Prerequisites: Python 3.10+, Node 20+, and (for the desktop shell) the Rust tool
 
 ```shell
 git clone https://github.com/light-misty/HIU-WorkSpace.git
-cd openworker
+cd HIU-WorkSpace
 
 # 1. One-time bootstrap - creates the Python venv at .venv
 #    (on Windows, run from Git Bash or WSL)
@@ -118,7 +118,7 @@ Tests: `.venv/bin/pytest` (server), `npm test` and `npm run e2e` in `surfaces/gu
 
 | Directory | What's in it |
 |---|---|
-| `coworker/` | Python backend - agent engine, model providers, connectors, MCP client, memory, automations |
+| `ss/` | Python backend - agent engine, model providers, connectors, MCP client, memory, automations |
 | `surfaces/gui/` | Desktop app - React UI + Tauri shell that supervises the server |
 | `stt/` | Speech-to-text sidecar (Rust) for voice input |
 | `packaging/` | Installer builds (macOS DMG, Windows), auto-update manifest, dev bootstrap |

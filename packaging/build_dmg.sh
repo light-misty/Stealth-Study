@@ -3,7 +3,7 @@
 #
 #   1. PyInstaller-bundle the server into a standalone onedir folder (no venv at runtime).
 #   2. Stage it at binaries/sidecar/ for Tauri's `resources` slot (+ sign its Mach-Os).
-#   3. `tauri build --bundles app` → OpenWorker.app (resources are copied in).
+#   3. `tauri build --bundles app` → Stealth Study.app (resources are copied in).
 #   4. Wrap the .app in a compressed .dmg via hdiutil (reliable + headless; Tauri's own
 #      bundle_dmg.sh uses Finder AppleScript and fails in non-interactive sessions).
 #
@@ -33,7 +33,7 @@
 # OCW_SKIP_NOTARIZE=1 to sign but skip the slow notary round-trip. Neither is distributable.
 #
 # Experimental (use-at-your-own-risk) connectors are EXCLUDED from this build by default —
-# the spec strips coworker.connectors.experimental. Self-builders can opt in with:
+# the spec strips ss.connectors.experimental. Self-builders can opt in with:
 #   COWORKER_EXPERIMENTAL=1 ./build_dmg.sh
 # VENV PREREQS (a fresh worktree's venv, discovered the hard way 2026-08-21):
 #   .venv/bin/pip install -e ".[dev,messaging,browser,bedrock]" pyinstaller typer
@@ -44,7 +44,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PLATFORM="$(cd "$HERE/.." && pwd)"
 GUI="$PLATFORM/surfaces/gui"
-APP="OpenWorker"
+APP="Stealth Study"
 # Single source of truth for the version: tauri.conf.json (also stamps the bundle).
 VERSION="$(node -p "require('$GUI/src-tauri/tauri.conf.json').version")"
 TRIPLE="$(rustc -vV | sed -n 's/host: //p')"   # e.g. aarch64-apple-darwin

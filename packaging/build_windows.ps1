@@ -1,13 +1,13 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-  Build the Coworker Windows desktop app + NSIS (.exe) and MSI installers.
+  Build the Stealth Study Windows desktop app + NSIS (.exe) and MSI installers.
 
 .DESCRIPTION
   The Windows counterpart to build_dmg.sh:
     1. PyInstaller-bundle the server into a standalone onedir folder (no venv at runtime).
     2. Stage it at binaries\sidecar\ for Tauri's `resources` slot.
-    3. `tauri build --bundles nsis,msi` -> Coworker NSIS setup .exe + .msi (resources copied in).
+    3. `tauri build --bundles nsis,msi` -> Stealth Study NSIS setup .exe + .msi (resources copied in).
 
   Prerequisites (see the toolchain notes in the PR/plan):
     - Rust (rustup) with the x86_64-pc-windows-msvc target + the MSVC C++ build tools (link.exe).
@@ -21,7 +21,7 @@
   Authenticode signing is a later step.
 
   Experimental (use-at-your-own-risk) connectors are EXCLUDED from this build by default —
-  the spec strips coworker.connectors.experimental. Self-builders can opt in with:
+  the spec strips ss.connectors.experimental. Self-builders can opt in with:
     $env:COWORKER_EXPERIMENTAL = "1"; .\build_windows.ps1
 #>
 [CmdletBinding()]

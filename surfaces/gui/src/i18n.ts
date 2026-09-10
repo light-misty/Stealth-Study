@@ -11,7 +11,7 @@ import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
 import zh from "./locales/zh.json";
 
-const STORAGE_KEY = "openworker.lang";
+const STORAGE_KEY = "ss.lang";
 
 export const SUPPORTED_LANGS = ["en", "zh"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];

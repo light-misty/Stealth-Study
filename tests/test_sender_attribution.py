@@ -4,11 +4,11 @@ Identity = the managed install's authed_user (plumbed broker → form-POST → t
 profile), name resolved once via users.info and cached. Attribution never blocks a
 send; manual installs (no authed_user) and DMs stay bare."""
 
-from coworker.connectors import attribution
-from coworker.connectors.base import SendResult
-from coworker.connectors.setup import managed_connect_slack_install
-from coworker.connectors.tools import make_send_file_tool, make_send_message_tool
-from coworker.secrets import SecretStore
+from ss.connectors import attribution
+from ss.connectors.base import SendResult
+from ss.connectors.setup import managed_connect_slack_install
+from ss.connectors.tools import make_send_file_tool, make_send_message_tool
+from ss.secrets import SecretStore
 
 
 def _secrets(tmp_path, **team_extra) -> SecretStore:

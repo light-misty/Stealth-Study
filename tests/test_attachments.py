@@ -15,7 +15,7 @@ import zlib
 
 import pytest
 
-from coworker.attachments import build_user_content, content_to_text
+from ss.attachments import build_user_content, content_to_text
 
 
 # -- a tiny solid-color PNG (stdlib) so tests need no fixtures -------------------
@@ -96,9 +96,9 @@ def test_content_to_text_flattens_parts():
 
 # -- (2) the assumption: image reaches the provider unmodified ------------------
 async def test_image_reaches_provider_unmodified():
-    from coworker.agents.chat import chat_agent
-    from coworker.agent import build_engine
-    from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient
+    from ss.agents.chat import chat_agent
+    from ss.agent import build_engine
+    from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
 
     class Spy(ProviderClient):
         def __init__(self):
@@ -131,8 +131,8 @@ async def test_image_reaches_provider_unmodified():
 
 # -- (3) persistence of list-content messages ----------------------------------
 def test_list_content_message_persists_and_titles(tmp_path):
-    from coworker.conversations import ConversationStore, title_from
-    from coworker.sessions import SessionRecord
+    from ss.conversations import ConversationStore, title_from
+    from ss.sessions import SessionRecord
 
     url = _data_url(0, 128, 0)
     msgs = [
@@ -165,8 +165,8 @@ def test_list_content_message_persists_and_titles(tmp_path):
     reason="opt-in: real OpenAI vision call (set COWORKER_LIVE_VISION=1)",
 )
 def test_live_vision_model_reads_image():
-    from coworker.providers import OpenAIProvider
-    from coworker.secrets import SecretStore
+    from ss.providers import OpenAIProvider
+    from ss.secrets import SecretStore
 
     provider = OpenAIProvider(default_model="gpt-4o", secrets=SecretStore())
     content = build_user_content(
@@ -191,7 +191,7 @@ def test_pdf_attachment_becomes_file_part():
 
 
 def test_pdf_attachment_invalid_or_oversized_skipped():
-    from coworker.attachments import MAX_PDF_CHARS
+    from ss.attachments import MAX_PDF_CHARS
 
     bad = [
         {"kind": "pdf", "name": "x.pdf", "data_url": "data:image/png;base64,zz"},

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from coworker.personas.registry import PersonaRegistry
+from ss.personas.registry import PersonaRegistry
 
 ROSTER = ("appsec-worker", "secrets-worker", "posture-worker")
 

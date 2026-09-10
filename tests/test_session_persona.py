@@ -6,8 +6,8 @@ practice — ``get_engine`` always rebuilds from it). Pin = ``pinned`` flag; ren
 
 from __future__ import annotations
 
-from coworker.conversations import ConversationStore
-from coworker.sessions import SessionRecord
+from ss.conversations import ConversationStore
+from ss.sessions import SessionRecord
 
 
 def _store(tmp_path) -> ConversationStore:

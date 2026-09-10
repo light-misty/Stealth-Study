@@ -14,10 +14,10 @@ import time
 
 import pytest
 
-from coworker.connectors import gmail_accounts
-from coworker.connectors.integration_tools import make_integration_tools
-from coworker.connectors.setup import connector_list, disconnect_connector
-from coworker.secrets import SecretStore
+from ss.connectors import gmail_accounts
+from ss.connectors.integration_tools import make_integration_tools
+from ss.connectors.setup import connector_list, disconnect_connector
+from ss.secrets import SecretStore
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ def test_full_disconnect_drops_every_account(secrets):
 
 def _fake_gmail(monkeypatch, responses: dict[str, dict]):
     """Route _request by URL suffix; records the bearer token used."""
-    from coworker.connectors import integration_tools
+    from ss.connectors import integration_tools
 
     calls: list[tuple[str, str]] = []
 

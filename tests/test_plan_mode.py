@@ -5,17 +5,17 @@ from __future__ import annotations
 import asyncio
 
 import aisuite as ai
-from coworker.engine import TurnEngine
-from coworker.events import EventType
-from coworker.permissions import Mode, PermissionEngine
-from coworker.providers import (
+from ss.engine import TurnEngine
+from ss.events import EventType
+from ss.permissions import Mode, PermissionEngine
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from coworker.tools import ToolRegistry
-from coworker.tools.plan import propose_plan_tool
+from ss.tools import ToolRegistry
+from ss.tools.plan import propose_plan_tool
 
 
 def _text_turn(text):
@@ -156,8 +156,8 @@ class _Stub:
 
 
 def test_build_engine_plan_mode_wiring(tmp_path):
-    from coworker.agent import build_engine
-    from coworker.agents import code_agent
+    from ss.agent import build_engine
+    from ss.agents import code_agent
 
     engine = build_engine(
         agent=code_agent(), workspace=tmp_path, provider=_Stub(), mode=Mode.PLAN
@@ -173,8 +173,8 @@ def test_build_engine_plan_mode_wiring(tmp_path):
 
 
 def test_build_engine_interactive_registers_tool_without_reminder(tmp_path):
-    from coworker.agent import build_engine
-    from coworker.agents import code_agent
+    from ss.agent import build_engine
+    from ss.agents import code_agent
 
     # The tool is always registered (the GUI can flip a live session into plan mode via
     # set_mode), but the per-turn reminder only appears while actually planning.
@@ -218,8 +218,8 @@ def test_propose_plan_in_discuss_mode_says_describe_instead(tmp_path):
 
 
 def test_build_engine_discuss_reminder_not_plan_contract(tmp_path):
-    from coworker.agent import build_engine
-    from coworker.agents import code_agent
+    from ss.agent import build_engine
+    from ss.agents import code_agent
 
     engine = build_engine(
         agent=code_agent(), workspace=tmp_path, provider=_Stub(), mode=Mode.DISCUSS

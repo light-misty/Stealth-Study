@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from coworker import provenance as prov
-from coworker.provenance import DOWNLOADED, WRITTEN, SessionFiles
+from ss.provenance import DOWNLOADED, WRITTEN, SessionFiles
 
 
 @pytest.fixture()

@@ -4,7 +4,7 @@ import sqlite3
 
 import pytest
 
-from coworker.teams import Actor, ChainError, Role, TeamStore
+from ss.teams import Actor, ChainError, Role, TeamStore
 
 USER = Actor(id="user", role=Role.USER)
 LEAD = Actor(id="lead-1", role=Role.LEAD, persona="swe-lead")

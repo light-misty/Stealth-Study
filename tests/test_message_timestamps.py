@@ -12,16 +12,16 @@ import time
 import aisuite as ai
 from fastapi.testclient import TestClient
 
-from coworker.engine import TurnEngine
-from coworker.permissions import PermissionEngine
-from coworker.providers import (
+from ss.engine import TurnEngine
+from ss.permissions import PermissionEngine
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from coworker.server import SessionManager, create_app
-from coworker.tools import ToolRegistry
+from ss.server import SessionManager, create_app
+from ss.tools import ToolRegistry
 
 
 class CapturingProvider(ProviderClient):
@@ -124,8 +124,8 @@ def test_provider_adapters_drop_ts():
     """Defense in depth: the native Anthropic/Gemini payload builders rebuild messages
     from role/content, so a `ts` that somehow slipped past the engine strip still never
     reaches the wire."""
-    from coworker.providers.anthropic_provider import convert_messages as to_anthropic
-    from coworker.providers.gemini_provider import convert_messages as to_gemini
+    from ss.providers.anthropic_provider import convert_messages as to_anthropic
+    from ss.providers.gemini_provider import convert_messages as to_gemini
 
     history = [
         {"role": "system", "content": "be brief"},

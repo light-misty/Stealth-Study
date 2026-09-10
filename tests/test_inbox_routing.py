@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from coworker.inbox import InboxStore
-from coworker.inbox_routing import (
+from ss.inbox import InboxStore
+from ss.inbox_routing import (
     DEFAULT_INBOX,
     InboxRouting,
     deliver,

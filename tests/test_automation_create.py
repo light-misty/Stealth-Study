@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from coworker.server.manager import SessionManager
+from ss.server.manager import SessionManager
 
 
 def _manager(tmp_path, monkeypatch) -> SessionManager:

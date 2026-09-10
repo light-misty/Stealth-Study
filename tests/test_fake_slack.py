@@ -12,11 +12,11 @@ import re
 
 import httpx
 
-from coworker.connectors.adapters import SlackAdapter
-from coworker.connectors.base import InteractionEvent, MessageEvent
-from coworker.connectors.config import ConnectorSettings
-from coworker.connectors.gateway import Gateway
-from coworker.interactions import Button
+from ss.connectors.adapters import SlackAdapter
+from ss.connectors.base import InteractionEvent, MessageEvent
+from ss.connectors.config import ConnectorSettings
+from ss.connectors.gateway import Gateway
+from ss.interactions import Button
 
 
 def _allow_all() -> dict[str, ConnectorSettings]:

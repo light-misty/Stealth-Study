@@ -13,10 +13,10 @@ import json
 
 import pytest
 
-from coworker.engine import EventType, TurnEngine, _MANGLED_PREVIEW_CHARS
-from coworker.permissions import Mode, PermissionEngine
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from coworker.tools import ToolRegistry
+from ss.engine import EventType, TurnEngine, _MANGLED_PREVIEW_CHARS
+from ss.permissions import Mode, PermissionEngine
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from ss.tools import ToolRegistry
 
 
 class MangledProvider(ProviderClient):

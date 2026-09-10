@@ -31,10 +31,10 @@ const BTN_ACCENT =
   "text-[13px] px-3 py-2 rounded-lg bg-accent text-white shrink-0 disabled:opacity-40";
 const CHIP = "text-[11px] px-1.5 py-0.5 rounded border border-line text-muted";
 
-type Source = "all" | "openworker" | "team";
+type Source = "all" | "stealthstudy" | "team";
 
 function sourceOf(p: GalleryPersona): Exclude<Source, "all"> {
-  return p.publisher === "OpenWorker" ? "openworker" : "team";
+  return p.publisher === "StealthStudy" ? "stealthstudy" : "team";
 }
 
 function ConnectorChip({ name }: { name: string }) {
@@ -146,7 +146,7 @@ export function GalleryModal({
         {(
           [
             ["all", t("gallery.filter_all")],
-            ["openworker", t("gallery.filter_brand")],
+            ["stealthstudy", t("gallery.filter_brand")],
             ["team", t("gallery.filter_team")],
           ] as [Source, string][]
         ).map(([key, label]) => (

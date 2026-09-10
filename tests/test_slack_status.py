@@ -12,9 +12,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker.connectors.base import SendResult
-from coworker.connectors.relay_client import SlackRelayAdapter
-from coworker.server import SessionManager, create_app
+from ss.connectors.base import SendResult
+from ss.connectors.relay_client import SlackRelayAdapter
+from ss.server import SessionManager, create_app
 
 
 @pytest.fixture
@@ -173,7 +173,7 @@ async def test_adapter_connect_failure_records_last_error():
 
 
 async def test_send_error_marks_token_dead_and_recovers(monkeypatch):
-    from coworker.connectors import relay_client
+    from ss.connectors import relay_client
 
     results = iter(
         [SendResult(False, error="invalid_auth"), SendResult(True, message_id="ts")]
@@ -188,7 +188,7 @@ async def test_send_error_marks_token_dead_and_recovers(monkeypatch):
 
 
 async def test_non_token_send_error_does_not_flag_token(monkeypatch):
-    from coworker.connectors import relay_client
+    from ss.connectors import relay_client
 
     monkeypatch.setattr(
         relay_client,

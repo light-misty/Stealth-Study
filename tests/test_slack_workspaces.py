@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from coworker import cloud
-from coworker.server import SessionManager, create_app
+from ss.server import SessionManager, create_app
 
 
 @pytest.fixture
@@ -43,7 +43,7 @@ def _install_form(team_id: str) -> dict:
 
 def _no_cloud(monkeypatch):
     """The cloud row delete is best-effort HTTP; record instead of calling out."""
-    import coworker.cloud as cloud
+    import ss.cloud as cloud
 
     calls: list[str] = []
     monkeypatch.setattr(
@@ -123,7 +123,7 @@ def test_last_disconnect_never_resurrects_manual_creds(client, monkeypatch):
     default = client.manager.secrets.get("slack:default")
     assert default["bot_token"] == "xoxb-manual"  # creds kept for a manual re-enable
     assert default["enabled"] is False and "mode" not in default
-    from coworker.connectors import load_settings
+    from ss.connectors import load_settings
 
     assert load_settings(client.manager.secrets)["slack"].enabled is False
 

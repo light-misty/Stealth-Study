@@ -1,6 +1,6 @@
 {
   "boot": {
-    "starting": "正在启动 OpenWorker…",
+    "starting": "正在启动…",
     "restoring": "正在恢复你的会话…"
   },
   "common": {

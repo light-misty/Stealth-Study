@@ -1,4 +1,4 @@
-"""Browser OAuth for remote MCP servers (OAuth 2.1 + PKCE + Dynamic Client Registration).
+﻿"""Browser OAuth for remote MCP servers (OAuth 2.1 + PKCE + Dynamic Client Registration).
 
 The official SDK's `OAuthClientProvider` drives the whole spec flow — protected-resource
 metadata discovery, DCR, PKCE, token refresh — as an httpx auth plugged into the
@@ -37,7 +37,7 @@ CALLBACK_PATH = "/mcp/oauth/callback"
 # How long the connect waits for the user to finish the browser sign-in.
 FLOW_TIMEOUT_SECONDS = 300
 
-CLIENT_NAME = "OpenWorker"
+CLIENT_NAME = "StealthStudy"
 
 
 def redirect_base() -> str:

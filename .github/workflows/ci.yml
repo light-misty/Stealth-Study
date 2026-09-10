@@ -1,4 +1,4 @@
-# App CI — the coworker Python suite, the GUI unit tests, and the hermetic
+# App CI — the ss Python suite, the GUI unit tests, and the hermetic
 # Playwright e2e suite (mocked /v1 + WS; no model or network needed).
 
 name: CI

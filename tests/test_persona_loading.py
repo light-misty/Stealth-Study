@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from coworker.personas.loading import consent_summary
-from coworker.personas.manifest import ManifestError, parse_manifest
-from coworker.personas.registry import PersonaRegistry
+from ss.personas.loading import consent_summary
+from ss.personas.manifest import ManifestError, parse_manifest
+from ss.personas.registry import PersonaRegistry
 
 THIRD_PARTY = """---
 id: acme-ops

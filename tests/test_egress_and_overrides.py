@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from coworker.permissions import Mode, PermissionEngine, write_paths
-from coworker.risk import RiskClass, classify
+from ss.permissions import Mode, PermissionEngine, write_paths
+from ss.risk import RiskClass, classify
 
 
 # -- egress classification ------------------------------------------------------
@@ -144,7 +144,7 @@ _CATALOG_EGRESS_IN_DISGUISE = ("browser_open_url",)
 
 
 def test_disguised_catalog_writes_gate():
-    from coworker.connectors.tool_defs import approval_for_tool
+    from ss.connectors.tool_defs import approval_for_tool
 
     for name in _CATALOG_WRITES_IN_DISGUISE:
         assert approval_for_tool(name) is True, name
@@ -173,7 +173,7 @@ def test_override_cannot_relax_a_catalog_write(tmp_path):
 
 
 def test_catalog_reads_stay_relaxed_and_unprompted(tmp_path):
-    from coworker.connectors.tool_defs import approval_for_tool
+    from ss.connectors.tool_defs import approval_for_tool
 
     for name in ("browser_read_page", "email_search", "github_get_issue"):
         assert approval_for_tool(name) is False, name
@@ -242,7 +242,7 @@ _ENRICHMENT = [
 
 @pytest.mark.parametrize("tool,args", _ENRICHMENT)
 def test_enrichment_lookups_classify_as_egress(tool, args):
-    from coworker.connectors.tool_defs import approval_for_tool
+    from ss.connectors.tool_defs import approval_for_tool
 
     assert classify(tool) is RiskClass.EGRESS, tool
     # The catalog label agrees with the gate, so the UI and the engine cannot drift apart.

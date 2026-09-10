@@ -12,10 +12,10 @@ import time
 
 import pytest
 
-from coworker.connectors import gcal_accounts
-from coworker.connectors.integration_tools import make_integration_tools
-from coworker.connectors.setup import connector_list, disconnect_connector
-from coworker.secrets import SecretStore
+from ss.connectors import gcal_accounts
+from ss.connectors.integration_tools import make_integration_tools
+from ss.connectors.setup import connector_list, disconnect_connector
+from ss.secrets import SecretStore
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def _tool(secrets, name: str):
 
 def _fake_gcal(monkeypatch, responses: dict[str, dict]):
     """Route _request by URL suffix; records (method, url, bearer, body)."""
-    from coworker.connectors import integration_tools
+    from ss.connectors import integration_tools
 
     calls: list[tuple[str, str, str, dict | None]] = []
 

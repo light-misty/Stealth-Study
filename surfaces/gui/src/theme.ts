@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 
 export type ThemePref = "light" | "dark" | "auto";
 
-const KEY = "openwork-theme";
-const PREF_EVENT = "openwork:theme-pref";
+const KEY = "ss-theme";
+const PREF_EVENT = "ss:theme-pref";
 const media = window.matchMedia?.("(prefers-color-scheme: dark)");
 
 export function getThemePref(): ThemePref {

@@ -34,7 +34,7 @@ const SETTINGS = {
   experimental_connectors: false,
   surfaces: { cowork: true, chat: false, code: true },
   nav_layout: "grouped",
-  scratch_base: "~/OpenWorker",
+  scratch_base: "~/StealthStudy",
   secrets_path: "/Users/test/.config/coworker/secrets.json",
   sessions_peek: 5,
   // Token savings (PDF attachments): 2-page limit keeps the composer threshold test's
@@ -63,7 +63,7 @@ const SETTINGS = {
 const PERSONAS = {
   internal: true,
   personas: [
-    { id: "cowork", name: "OpenWorker", icon: "cowork", tagline: "Produce a deliverable — research, analysis, scripts", requires_folder: false, builtin: true, tools: ["files", "search"], enabled: true, surfaced: true, default: true, ships: true, group: "general" },
+    { id: "cowork", name: "StealthStudy", icon: "cowork", tagline: "Produce a deliverable — research, analysis, scripts", requires_folder: false, builtin: true, tools: ["files", "search"], enabled: true, surfaced: true, default: true, ships: true, group: "general" },
     { id: "code", name: "Code", icon: "code", tagline: "Work in a codebase — files, git, shell", requires_folder: true, builtin: true, tools: ["code_files", "git"], enabled: false, surfaced: false, default: false, ships: true, group: "general" },
     { id: "security", name: "Security Coworker", icon: "shield", tagline: "Find and fix security issues — scan, triage, PR", requires_folder: true, builtin: true, tools: ["code_files", "git", "shell"], enabled: true, surfaced: true, default: false, ships: true, group: "security" },
     { id: "ops", name: "Ops Coworker", icon: "wrench", tagline: "Operate and investigate — runbooks, logs, infrastructure", requires_folder: false, builtin: true, tools: ["files", "shell"], enabled: true, surfaced: true, default: false, ships: false, group: "general" },
@@ -77,7 +77,7 @@ const PERSONAS = {
 const PINNED_SESSION = {
   session_id: "pinned-cowork-1",
   title: "Draft the launch note",
-  workspace: "/Users/test/OpenWorker/launch-note",
+  workspace: "/Users/test/StealthStudy/launch-note",
   agent: "cowork",
   model: "anthropic:claude-opus-4-8",
   mode: "interactive",
@@ -114,7 +114,7 @@ const EXTRA_SESSIONS = Array.from({ length: 7 }, (_, i) => ({
 const OPS_SESSION = {
   session_id: "ops-1",
   title: "Ops triage",
-  workspace: "/Users/test/OpenWorker/ops-triage",
+  workspace: "/Users/test/StealthStudy/ops-triage",
   agent: "ops",
   model: "anthropic:claude-opus-4-8",
   mode: "interactive",
@@ -250,7 +250,7 @@ const GALLERY_PERSONAS = [
     description: "A sales-focused coworker.",
     family: "knowledge",
     workspace: "deliverable",
-    publisher: "OpenWorker",
+    publisher: "StealthStudy",
     recommended_connectors: ["hubspot", "gmail"],
     risk_summary: "Declarative manifest; no executable code.",
     featured: true,
@@ -264,7 +264,7 @@ const GALLERY_PERSONAS = [
     description: "A recruiting coworker.",
     family: "knowledge",
     workspace: "deliverable",
-    publisher: "OpenWorker",
+    publisher: "StealthStudy",
     recommended_connectors: ["gmail"],
     risk_summary: "Declarative manifest; no executable code.",
     featured: false,
@@ -275,7 +275,7 @@ const GALLERY_PERSONAS = [
 // `default_connections` as arrays, so these must be present (not the catch-all {}).
 const PERSONA_DETAIL = {
   id: "cowork",
-  name: "OpenWorker",
+  name: "StealthStudy",
   icon: "cowork",
   tagline: "Produce a deliverable — research, analysis, scripts",
   description: "",
@@ -353,7 +353,7 @@ const AUTOMATION_RUNS = [
   },
 ];
 
-const PRIMARY_ROOT = { path: "/Users/test/OpenWorker/launch-note", writable: true, label: "scratch", primary: true, exists: true };
+const PRIMARY_ROOT = { path: "/Users/test/StealthStudy/launch-note", writable: true, label: "scratch", primary: true, exists: true };
 const baseName = (p: string) => p.split("/").filter(Boolean).pop() || p;
 
 const PROVIDERS = [
@@ -645,7 +645,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
   };
   const boardPayload = () =>
     boardItems.length
-      ? { space: "/Users/test/OpenWorker/launch-note", name: "launch-note", items: boardItems }
+      ? { space: "/Users/test/StealthStudy/launch-note", name: "launch-note", items: boardItems }
       : { space: null, name: "", items: [] };
 
   // Fresh cloud sign-in state per test (module state outlives a page).
@@ -734,7 +734,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
             source: {
               connector: "board",
               kind: "channel",
-              channel_id: "/Users/test/OpenWorker/launch-note",
+              channel_id: "/Users/test/StealthStudy/launch-note",
               channel_name: "Team board",
               sender_id: "board",
               sender_name: "Board",
@@ -1002,7 +1002,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
           if (!lead) {
             lead = {
               session_id: sid,
-              workspace: "/Users/test/OpenWorker/launch-note",
+              workspace: "/Users/test/StealthStudy/launch-note",
               agent: "cowork",
               model: "m",
               mode: "interactive",
@@ -1029,7 +1029,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
             sessions.push({
               session_id: `sess-${actor}`,
               title: actor,
-              workspace: "/Users/test/OpenWorker/launch-note",
+              workspace: "/Users/test/StealthStudy/launch-note",
               agent: persona,
               model: "m",
               mode: "interactive",
@@ -1333,7 +1333,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
         artifacts: [
           {
             path: "reports/security-review.html",
-            abs_path: "/Users/test/OpenWorker/launch-note/reports/security-review.html",
+            abs_path: "/Users/test/StealthStudy/launch-note/reports/security-review.html",
             name: "security-review.html",
             kind: "html",
             size: 2048,

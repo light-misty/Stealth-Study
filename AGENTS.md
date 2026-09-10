@@ -22,11 +22,11 @@ Absolute maximum with no shortcuts permitted.
 You MUST be very thorough in your thinking and comprehensively decompose the problem to resolve the root cause, rigorously stress-testing your logic against all potential paths, edge cases, and adversarial scenarios.
 Explicitly write out your entire deliberation process, documenting every intermediate step, considered alternative, and rejected hypothesis to ensure absolutely no assumption is left unchecked.
 
-# OpenWorker 项目指南
+# 偷偷学项目指南
 
 ## 项目概述
 
-OpenWorker 是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google、Ollama 等），以本地优先的方式执行真实工作。项目代号为 `coworker`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
+偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google、Ollama 等），以本地优先的方式执行真实工作。项目代号为 `ss`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
 
 ## 技术栈
 
@@ -97,7 +97,7 @@ HIU-WorkSpace/
 │   └── release.yml             # 发布流程
 ├── .venv/                      # Python 虚拟环境
 ├── assets/                     # 静态资源
-├── coworker/                   # Python 后端核心包
+├── ss/                   # Python 后端核心包
 │   ├── __init__.py
 │   ├── cli.py                  # CLI 入口 (openworker TUI)
 │   ├── config.py               # 配置管理 (分层 TOML)
@@ -184,7 +184,7 @@ HIU-WorkSpace/
 ├── docs/                       # 文档与规范
 ├── ui-mocks/                   # UI 设计稿
 ├── reports/                    # 评估报告
-├── coworker.egg-info/          # pip install -e 生成的元数据
+├── ss.egg-info/          # pip install -e 生成的元数据
 ├── pyproject.toml              # Python 项目配置
 ├── LICENSE                     # MIT 协议
 └── README.md
@@ -285,9 +285,9 @@ powershell packaging/build_windows.ps1
 
 ### 架构模式
 
-1. **提供商抽象层**: `coworker/providers/base.py` 定义 `ProviderClient` ABC，各提供商实现该接口
+1. **提供商抽象层**: `ss/providers/base.py` 定义 `ProviderClient` ABC，各提供商实现该接口
 2. **代理引擎**: `TurnEngine` (engine.py) 驱动模型↔工具交互循环，使用 asyncio
-3. **代理注册**: `coworker/agents/registry.py` 管理多种专用代理（chat, code, cowork 等）
+3. **代理注册**: `ss/agents/registry.py` 管理多种专用代理（chat, code, cowork 等）
 4. **权限引擎**: 多级批准系统 (硬底线、渐进自主权、审计跟踪)
 5. **工具注册**: 工具通过 `ToolRegistry` 注册，支持动态发现
 6. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.coworker/config.toml)
@@ -341,10 +341,10 @@ powershell packaging/build_windows.ps1
 
 | 命令 | 入口 | 用途 |
 |------|------|------|
-| `openworker` | `coworker.cli:main` | TUI 启动 (默认 code skill) |
-| `openworker-server` | `coworker.server.run:main` | HTTP 服务器启动 |
-| `openworker-connectors` | `coworker.connectors.cli:main` | 连接器管理 CLI |
-| `ocw` | `coworker.teams.cli:main` | Teams 功能 (board, journal, MCP) |
+| `openworker` | `ss.cli:main` | TUI 启动 (默认 code skill) |
+| `openworker-server` | `ss.server.run:main` | HTTP 服务器启动 |
+| `openworker-connectors` | `ss.connectors.cli:main` | 连接器管理 CLI |
+| `ocw` | `ss.teams.cli:main` | Teams 功能 (board, journal, MCP) |
 
 ## 安全与治理
 
@@ -362,7 +362,7 @@ powershell packaging/build_windows.ps1
 
 ## 注意事项
 
-- 状态目录: 默认 `~/OpenWorker` (或 `%APPDATA%\coworker`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
+- 状态目录: 默认 `~/偷偷学` (或 `%APPDATA%\ss`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
 - 临时目录: 测试环境使用 `COWORKER_SCRATCH_BASE` 环境变量隔离会话临时文件
 - 开发令牌: 本地开发通过 `X-OpenWorker-Token` 头部认证
 - 端口配置: 后端 HTTP 默认 8765，前端 Vite 开发服务器固定 1420

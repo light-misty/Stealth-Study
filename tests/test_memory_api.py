@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from coworker.memory.settings import MAX_USER_RULES_CHARS
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server import SessionManager, create_app
+from ss.memory.settings import MAX_USER_RULES_CHARS
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server import SessionManager, create_app
 
 
 class _StubProvider(ProviderClient):

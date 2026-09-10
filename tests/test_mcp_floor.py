@@ -13,8 +13,8 @@ import json
 
 import pytest
 
-from coworker.permissions import Mode, PermissionEngine
-from coworker.risk import RiskClass, classify
+from ss.permissions import Mode, PermissionEngine
+from ss.risk import RiskClass, classify
 
 
 class Meta:
@@ -90,7 +90,7 @@ def test_the_name_coincidence_no_longer_matters():
 
 # -- the override loader refuses what classify would silently ignore ---------------
 def test_explicit_mcp_loosening_rules_are_rejected_at_load(tmp_path):
-    from coworker.overrides import RiskOverrideStore
+    from ss.overrides import RiskOverrideStore
 
     path = tmp_path / "risk_overrides.json"
     path.write_text(

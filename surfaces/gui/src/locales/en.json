@@ -1,6 +1,6 @@
 {
   "boot": {
-    "starting": "Starting OpenWorker…",
+    "starting": "Starting…",
     "restoring": "Restoring your session…"
   },
   "common": {

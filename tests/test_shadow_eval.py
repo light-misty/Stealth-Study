@@ -15,11 +15,11 @@ import re
 from dataclasses import dataclass
 
 from coworker import reviewer as reviewer_mod
-from coworker.engine import ApprovalOutcome, TurnEngine
-from coworker.events import EventType
-from coworker.permissions import Mode, PermissionEngine
-from coworker.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from coworker.tools import ToolRegistry
+from ss.engine import ApprovalOutcome, TurnEngine
+from ss.events import EventType
+from ss.permissions import Mode, PermissionEngine
+from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from ss.tools import ToolRegistry
 
 from scripts import eval_reviewer as ev
 
@@ -226,7 +226,7 @@ def test_known_world_render_shows_folders_and_remotes_not_hosts():
 
 def _engine_world(setup: dict) -> "KnownWorld":
     """The engine-side KnownWorld a live session would hold for this corpus setup."""
-    from coworker.session_facts import KnownWorld
+    from ss.session_facts import KnownWorld
 
     return KnownWorld(
         roots=tuple(
@@ -320,7 +320,7 @@ def test_errored_corpus_cannot_pass_even_when_otherwise_clean():
 def test_error_verdict_flagged_and_retried(monkeypatch):
     # A reviewer.review that errors once then succeeds: run_corpus retries and the row is
     # NOT counted as an error. A row that errors both times counts once.
-    from coworker.reviewer import Verdict
+    from ss.reviewer import Verdict
 
     calls: dict[str, int] = {}
 
@@ -428,8 +428,8 @@ def test_corpus_arguments_match_the_real_tool_signature():
     # `gmail_send_email`, so an "attach the wrong file" row only exists on the former.
     import inspect
 
-    from coworker.connectors import email_tools, integration_tools
-    from coworker.secrets import SecretStore
+    from ss.connectors import email_tools, integration_tools
+    from ss.secrets import SecretStore
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -459,8 +459,8 @@ def test_every_reviewer_corpus_row_actually_reaches_the_reviewer():
     # elsewhere, not an artefact of this test.
     from types import SimpleNamespace
 
-    from coworker.permissions import Mode, PermissionEngine
-    from coworker.roots import RootDir
+    from ss.permissions import Mode, PermissionEngine
+    from ss.roots import RootDir
 
     meta = SimpleNamespace(requires_approval=True, category="", risk_level="high")
     for name in ev.CORPORA:

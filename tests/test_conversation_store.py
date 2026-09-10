@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from coworker.conversations import ConversationStore, is_safe_session_id
-from coworker.sessions import SessionRecord
+from ss.conversations import ConversationStore, is_safe_session_id
+from ss.sessions import SessionRecord
 
 
 def test_is_safe_session_id():

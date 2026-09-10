@@ -7,17 +7,17 @@ import threading
 import time
 
 import aisuite as ai
-from coworker.engine import ApprovalOutcome, PermissionRequest, TurnEngine
-from coworker.events import EventType
-from coworker.permissions import PermissionEngine
-from coworker.providers import (
+from ss.engine import ApprovalOutcome, PermissionRequest, TurnEngine
+from ss.events import EventType
+from ss.permissions import PermissionEngine
+from ss.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     StreamChunk,
     ToolCall,
 )
-from coworker.tools import ToolRegistry
+from ss.tools import ToolRegistry
 
 
 def _text_turn(text):

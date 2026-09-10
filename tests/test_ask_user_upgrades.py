@@ -6,10 +6,10 @@ untouched by all of it."""
 import asyncio
 import json
 
-from coworker.inbox import InboxItem, InboxStore
-from coworker.interactions import buttons_for, decode
-from coworker.server.manager import SessionManager
-from coworker.tools.ask import (
+from ss.inbox import InboxItem, InboxStore
+from ss.interactions import buttons_for, decode
+from ss.server.manager import SessionManager
+from ss.tools.ask import (
     MAX_GROUPED_QUESTIONS,
     answer_result,
     ask_user_tool,

@@ -8,9 +8,9 @@ manifest's `mcp:` list scopes the persona's sessions to those raw MCP servers.
 
 from __future__ import annotations
 
-from coworker.providers import ModelCapabilities, ProviderClient
-from coworker.server.manager import SessionManager
-from coworker.sessions import SessionRecord
+from ss.providers import ModelCapabilities, ProviderClient
+from ss.server.manager import SessionManager
+from ss.sessions import SessionRecord
 
 MANIFEST = """---
 id: sec-review
