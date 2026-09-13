@@ -1,0 +1,126 @@
+{
+  "corpus_version": 1,
+  "built_at": "2026-09-13T22:34:04+0800",
+  "source": {
+    "id": "cet-prompt-hub",
+    "title": "ZhaoyuanLiu23/CET-Prompt-Hub — CET-4/6 sample essays",
+    "repo_url": "https://github.com/ZhaoyuanLiu23/CET-Prompt-Hub",
+    "license": "MIT",
+    "license_url": "https://github.com/ZhaoyuanLiu23/CET-Prompt-Hub/blob/main/LICENSE",
+    "raw_base": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/",
+    "revision": "main"
+  },
+  "groups": [
+    {
+      "group_id": "adversity-cet4",
+      "topic": "adversity",
+      "level": "cet4",
+      "source_file": "essays/adversity_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/adversity_cet4.pdf",
+      "sha256": "03ff08be81c5251b91d249bef6a3d33b2da4f58f489ce51f3821cc8f16d1b98b",
+      "essay_count": 3
+    },
+    {
+      "group_id": "adversity-cet6",
+      "topic": "adversity",
+      "level": "cet6",
+      "source_file": "essays/adversity_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/adversity_cet6.pdf",
+      "sha256": "6a1a0919c6d2aba5f78d31e88558463cd3f6e210cd1f183134284b719b2fe0c0",
+      "essay_count": 3
+    },
+    {
+      "group_id": "collaboration-cet4",
+      "topic": "collaboration",
+      "level": "cet4",
+      "source_file": "essays/collaboration_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/collaboration_cet4.pdf",
+      "sha256": "34daa2df1b59ae7315e6eb12e29bef358ea1eebedebf1ccd47a21fffc63983ef",
+      "essay_count": 3
+    },
+    {
+      "group_id": "collaboration-cet6",
+      "topic": "collaboration",
+      "level": "cet6",
+      "source_file": "essays/collaboration_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/collaboration_cet6.pdf",
+      "sha256": "6d688ec2ce3748a5fa46093effde70f7bbd6eb56d6232ec9b36aa07532c009cf",
+      "essay_count": 3
+    },
+    {
+      "group_id": "courage-cet4",
+      "topic": "courage",
+      "level": "cet4",
+      "source_file": "essays/courage_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/courage_cet4.pdf",
+      "sha256": "ef9af226004798f1bc29dcbbe151618c5a6e8d6bdb6dd79c5580f956a65a3937",
+      "essay_count": 3
+    },
+    {
+      "group_id": "courage-cet6",
+      "topic": "courage",
+      "level": "cet6",
+      "source_file": "essays/courage_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/courage_cet6.pdf",
+      "sha256": "a573fa3b342e542c4849b01ae3cf5290a152dfcd52733ce665daf63ddee3c1e1",
+      "essay_count": 3
+    },
+    {
+      "group_id": "innovation-cet4",
+      "topic": "innovation",
+      "level": "cet4",
+      "source_file": "essays/innovation_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/innovation_cet4.pdf",
+      "sha256": "9219551301e57972273fbd0d0e616b531247355ed09d68c610ad462aa93c4f3f",
+      "essay_count": 3
+    },
+    {
+      "group_id": "innovation-cet6",
+      "topic": "innovation",
+      "level": "cet6",
+      "source_file": "essays/innovation_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/innovation_cet6.pdf",
+      "sha256": "06cc11ce24339fcb990ff2f41ca7532aaa6c62fe27678a253e49b6058cb7c50f",
+      "essay_count": 3
+    },
+    {
+      "group_id": "perseverance-cet4",
+      "topic": "perseverance",
+      "level": "cet4",
+      "source_file": "essays/perseverance_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/perseverance_cet4.pdf",
+      "sha256": "137879bb7b06ae78010ae6cb789856fa39f039d0ae126f4e9ba8494e296513b3",
+      "essay_count": 3
+    },
+    {
+      "group_id": "perseverance-cet6",
+      "topic": "perseverance",
+      "level": "cet6",
+      "source_file": "essays/perseverance_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/perseverance_cet6.pdf",
+      "sha256": "96d8741d15a2f36a6a948b05c6d4434024dec7b3c86f561492ac539fa01772b8",
+      "essay_count": 3
+    }
+  ],
+  "essay_count": 20,
+  "paired_count": 10,
+  "solo_count": 10,
+  "levels": [
+    "cet4",
+    "cet6"
+  ],
+  "policy": {
+    "redistributable": true,
+    "basis": "上游仓库 MIT 许可；语料为英文范文正文，含中文注释已在归一化中剥离，中文标题保留在 section 字段用于溯源",
+    "not_official_prompts": "prompt 字段取上游话题声明原文，非官方考试 Directions",
+    "stated_word_count_note": "上游 PDF 的『总词数』标注与朴素词数统计口径不同，以 extracted_word_count 为准，两者差异不作质量判据"
+  },
+  "applied_repairs": {
+    "outcomes b ased on": 1,
+    "hardships a nd providing": 1,
+    "agreement o n every": 1,
+    "costs for co llective benefit": 1,
+    "courage is paralyze d.": 1,
+    "his bagless vacuum cleane r.": 1
+  }
+}
