@@ -7,7 +7,7 @@
 
 **AI that gets your everyday tasks done.** 偷偷学 is an open-source AI coworker that lives on your desktop and delivers **finished work**, not just chat: your code reviewed for vulnerabilities with fixes ready to go, a polished document, a Slack reply with the numbers, a triaged inbox. It ships **specialist Security coworkers** first — attackers already use AI, and defenders deserve the same leverage, governed.
 
-It runs on your machine and doesn't lock you into any model: bring your own API key for OpenAI, Anthropic, Google, or an open-weight provider, or run fully local with Ollama. Your data leaves your machine only through the model and integrations *you* choose. Every action an agent takes is governed and logged — see [Governed by design](#governed-by-design).
+It runs on your machine and doesn't lock you into any model: bring your own API key for OpenAI, Anthropic, Google, or an open-weight provider. Your data stays on your machine — it leaves only through the model and integrations *you* choose. Every action an agent takes is governed and logged — see [Governed by design](#governed-by-design).
 
 ![How 偷偷学 works](docs/assets/how-it-works.png)
 
@@ -19,7 +19,7 @@ It runs on your machine and doesn't lock you into any model: bring your own API 
 **⬇ Windows 10/11 (x64)**
 <sub>builds are not yet code-signed, so SmartScreen will warn; signing is in progress</sub>
 
-Open the app, add a model key (or point it at Ollama), and ask for something real.
+Open the app, add a model key, and ask for something real.
 
 ## Use cases
 
@@ -75,13 +75,13 @@ Unattended runs never self-approve: their asks park in an inbox until a human an
 
 Model access is yours: pick a provider, paste your key, switch anytime. Supported out of the box:
 
-**OpenAI · Anthropic · Google Gemini · BytePlus Ark · Volcengine Ark Agent Plan · Inkling (Thinking Machines) · GLM (Z.ai) · DeepSeek · Kimi (Moonshot) · Qwen · MiniMax · Mistral · Grok (xAI)** - plus open-weight models via **Together** and **Fireworks**, and fully local models via **Ollama**.
+**OpenAI · Anthropic · Google Gemini · BytePlus Ark · Volcengine Ark Agent Plan · Inkling (Thinking Machines) · GLM (Z.ai) · DeepSeek · Kimi (Moonshot) · Qwen · MiniMax · Mistral · Grok (xAI)** - plus open-weight models via **Together** and **Fireworks**.
 
 A curated model list marks what we've verified for tool-calling work. Adding any model string works at your own risk.
 
 ## Privacy
 
-偷偷学 is local-first. Everything lives on your machine: the agent loop, your conversations, connector tokens, and model keys - all in the app's local secret store. The only cloud piece is a small service that brokers OAuth handshakes for connectors. You can always use the App without signing-in - use the connectors via manually-created credentials/API-keys.
+偷偷学 keeps your data on your machine. Everything lives locally: the agent loop, your conversations, connector tokens, and model keys - all in the app's local secret store. The only cloud piece is a small service that brokers OAuth handshakes for connectors, and model calls go to the provider you configure with your own API key. You can always use the App without signing-in - use the connectors via manually-created credentials/API-keys.
 
 ## Run from source
 

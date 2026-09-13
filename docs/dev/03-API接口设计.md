@@ -24,7 +24,7 @@
 | 时间 | 请求/响应中的时间均为 ISO 8601 UTC 字符串；日期为 `YYYY-MM-DD` |
 | 分页 | 列表端点统一 `?page=1&page_size=50`，响应含 `{"items": [...], "total": n, "page": p, "page_size": s}`。错题本/题库/批改历史适用 |
 | 幂等 | POST 幂等键：导入/创建类端点接受可选 `Idempotency-Key` 头，重复提交返回首次结果（防资料重复导入） |
-| AI 超时 | 涉及模型调用的端点统一超时 **60s（云端）/ 120s（Ollama）**，超时返回 `504` + `MODEL_TIMEOUT`，不无限等待（PRD §7.1 "超时 + 可中断"） |
+| AI 超时 | 涉及模型调用的端点统一超时 **60s**（长任务可放宽至 120s），超时返回 `504` + `MODEL_TIMEOUT`，不无限等待（PRD §7.1 "超时 + 可中断"） |
 
 **错误响应体（统一格式）**：FastAPI `HTTPException` 的 `detail` 允许传 dict，campus 全部用它返回结构化错误，与既有路由（detail 为字符串）向后兼容：
 
@@ -88,8 +88,8 @@ app.include_router(build_campus_router(manager))
 | A6 | `GET /v1/campus/app-state` | — | `{active_profile_id?, settings}` | — | G-03/G-09 |
 | A7 | `PATCH /v1/campus/app-state` | `{active_profile_id?}`, `{settings?}`（每日时长/推送时间/间隔强度/三类任务模型） | 同 A6 | `PROFILE_NOT_FOUND` | G-09 |
 | A8 | `GET /v1/campus/capabilities` | — | `{current_model, tasks: [{task, recommended, minimum, supported: bool, reason}]}`（静态推荐清单判定，ADR-06） | — | G-03 自检卡/§7.1 |
-| A9 | `GET /v1/campus/privacy` | — | `{data_dir, library_dir, db_size_bytes, offline_mode, model_endpoints[]}` | — | G-03 隐私面板 |
-| A10 | `PATCH /v1/campus/privacy` | `{offline_mode: bool}` | 同 A9 | — | G-03 离线开关 |
+| A9 | `GET /v1/campus/privacy` | — | `{data_dir, library_dir, db_size_bytes, model_endpoints[]}` | — | G-03 隐私面板 |
+| A10 | `DELETE /v1/campus/privacy/data` | — | `{cleared: true, freed_bytes}` | — | G-03 一键清除本地数据 |
 
 ### 4.2 资料库与按页问答（G-07/G-10/G-11、KY-09/KY-10）
 
@@ -122,12 +122,12 @@ app.include_router(build_campus_router(manager))
   "dimensions": [{ "name": "内容", "score": 12, "max": 15, "comment": "…" }],
   "errors": [{ "original": "I thinks", "suggestion": "I think", "type": "主谓一致", "offset": 12 }],
   "model_answer_outline": "…",
-  "model_used": "ollama:qwen2.5:7b",
+  "model_used": "openai:gpt-5.5",
   "notice": null
 }
 ```
 
-`degrade_level∈{0,1,2,3}`；≥1 时 `notice` 必须非空（如"本地模型评分仅供参考"，PRD v1.1 B 类①），前端强渲染。
+`degrade_level∈{0,1,2,3}`；≥1 时 `notice` 必须非空（如"评分仅供参考（弱模型或解析降级时）"，PRD v1.1 B 类①），前端强渲染。
 
 ### 4.4 错题本与复习队列（G-16/G-17、CERT-08/09、CET-05）
 
@@ -220,7 +220,7 @@ app.include_router(build_campus_router(manager))
 |---|---|---|
 | G-01 品牌 | 无独立端点 | 纯前端 + 配置覆盖（04 文档） |
 | G-02/03 | A1–A6 | 导航与档案 |
-| G-04 隐私 | A8–A10 | 自检卡 + 离线模式 |
+| G-04 隐私 | A8–A10 | 自检卡 + 一键清除本地数据 |
 | G-05/06/07（减法） | 无后端端点 | 纯前端 flags 短路（04 文档 §4）；后端语音/登录接口保持原样不调用 |
 | G-08 i18n | 无端点 | 静态资源 |
 | G-09 设置 | A6–A7 | |

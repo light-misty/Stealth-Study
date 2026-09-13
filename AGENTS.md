@@ -26,7 +26,7 @@ Explicitly write out your entire deliberation process, documenting every interme
 
 ## 项目概述
 
-偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google、Ollama 等），以本地优先的方式执行真实工作。项目代号为 `ss`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
+偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google 等），数据默认留在本机、模型统一通过云端 API Key 调用。项目代号为 `ss`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
 
 ## 技术栈
 
