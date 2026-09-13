@@ -2648,17 +2648,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ss-stt"
-version = "0.1.0"
-dependencies = [
- "cpal",
- "serde",
- "sha2",
- "ureq",
- "whisper-rs",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2669,22 +2658,6 @@ name = "openssl-probe"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
-
-[[package]]
-name = "ss-desktop"
-version = "0.1.0"
-dependencies = [
- "ss-stt",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-dialog",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "uuid",
-]
 
 [[package]]
 name = "option-ext"
@@ -3713,6 +3686,33 @@ dependencies = [
  "gobject-sys",
  "libc",
  "system-deps",
+]
+
+[[package]]
+name = "ss-desktop"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ss-stt",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-dialog",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "uuid",
+]
+
+[[package]]
+name = "ss-stt"
+version = "0.1.0"
+dependencies = [
+ "cpal",
+ "serde",
+ "sha2",
+ "ureq",
+ "whisper-rs",
 ]
 
 [[package]]
