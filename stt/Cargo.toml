@@ -1,5 +1,5 @@
 [package]
-name = "ocw-stt"
+name = "ss-stt"
 version = "0.1.0"
 description = "Local, offline speech-to-text engine for Stealth Study hosts"
 edition = "2021"

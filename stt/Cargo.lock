@@ -733,7 +733,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ocw-stt"
+name = "ss-stt"
 version = "0.1.0"
 dependencies = [
  "cpal",

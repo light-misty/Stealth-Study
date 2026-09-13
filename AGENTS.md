@@ -53,8 +53,8 @@ Explicitly write out your entire deliberation process, documenting every interme
 - **测试框架**: Vitest
 
 ### Rust 组件
-- **桌面外壳**: Tauri 2 (crate: `openworker-desktop`)
-- **语音转文本**: ocw-stt (基于 whisper-rs + cpal)
+- **桌面外壳**: Tauri 2 (crate: `ss-desktop`)
+- **语音转文本**: `ss-stt` (基于 whisper-rs + cpal)
   - Rust 版本: 1.77+
   - whisper-rs: 0.16
 
@@ -364,7 +364,7 @@ powershell packaging/build_windows.ps1
 
 - 状态目录: 默认 `~/偷偷学` (或 `%APPDATA%\ss`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
 - 临时目录: 测试环境使用 `COWORKER_SCRATCH_BASE` 环境变量隔离会话临时文件
-- 开发令牌: 本地开发通过 `X-OpenWorker-Token` 头部认证
+- 开发令牌: 本地开发通过 `X-SS-Token` 头部认证
 - 端口配置: 后端 HTTP 默认 8765，前端 Vite 开发服务器固定 1420
 - 国际化: 支持英文 (en) 和中文 (zh)，翻译文件在 `surfaces/gui/src/locales/`
 - Python 版本下限 3.10；3.10 环境使用 `tomli` 后备 tomllib

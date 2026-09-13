@@ -20,7 +20,7 @@ use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use ocw_stt::{Dictation, DownloadProgress};
+use ss_stt::{Dictation, DownloadProgress};
 use serde::Serialize;
 use tauri::{
     menu::{Menu, MenuItem},
@@ -397,7 +397,7 @@ fn start_window_drag(window: tauri::WebviewWindow) -> bool {
 }
 
 // -- local dictation ---------------------------------------------------------------------------
-// The actual microphone/model code lives in the Tauri-free `ocw-stt` crate. This shell owns the
+// The actual microphone/model code lives in the Tauri-free `ss-stt` crate. This shell owns the
 // macOS permission prompt and translates the reusable API into React-friendly Tauri commands.
 
 #[derive(Clone, Serialize)]

@@ -41,7 +41,7 @@
 位置：`coworker/server/app.py` 的 `create_app()` 内，**`app = FastAPI(title="coworker", version="0.0.0", lifespan=lifespan)`（`:187`）之后、`tokenless_paths` 定义之前**：
 
 ```python
-# --- CampusWorker 备考台路由（PRD v1.1 / dev-01 ADR-07）：单点挂载，随 include_router 完成初始化 ---
+# --- StealthStudy 备考台路由（PRD v1.1 / dev-01 ADR-07）：单点挂载，随 include_router 完成初始化 ---
 from ..campus.routes import build_campus_router
 app.include_router(build_campus_router(manager))
 ```

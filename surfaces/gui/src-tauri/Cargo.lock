@@ -2648,7 +2648,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ocw-stt"
+name = "ss-stt"
 version = "0.1.0"
 dependencies = [
  "cpal",
@@ -2671,10 +2671,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c87def4c32ab89d880effc9e097653c8da5d6ef28e6b539d313baaacfbafcbe"
 
 [[package]]
-name = "openworker-desktop"
+name = "ss-desktop"
 version = "0.1.0"
 dependencies = [
- "ocw-stt",
+ "ss-stt",
  "serde",
  "serde_json",
  "tauri",

@@ -500,7 +500,7 @@ fn build_stream(
     samples: Arc<Mutex<Vec<f32>>>,
 ) -> Result<Stream, String> {
     let channels = config.channels as usize;
-    let on_error = |error| eprintln!("[ocw-stt] microphone stream error: {error}");
+    let on_error = |error| eprintln!("[ss-stt] microphone stream error: {error}");
     match sample_format {
         SampleFormat::F32 => device
             .build_input_stream(
@@ -644,7 +644,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let dir = std::env::temp_dir().join(format!("ocw-stt-readiness-{unique}"));
+        let dir = std::env::temp_dir().join(format!("ss-stt-readiness-{unique}"));
         fs::create_dir_all(&dir).unwrap();
         let model = dir.join(DEFAULT_MODEL_FILE);
         fs::File::create(&model)
