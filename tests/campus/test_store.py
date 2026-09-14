@@ -408,3 +408,35 @@ def test_close_is_idempotent(db_path: Path) -> None:
     instance = store.CampusStore(db_path)
     instance.close()
     instance.close()
+
+
+def test_document_text_is_not_capped_like_conversation_attachments(store_under_test) -> None:
+    from ss import attachments
+
+    oversized = "知" * (attachments.MAX_TEXT_CHARS + 50_000)
+    store_under_test.insert(
+        "source_doc",
+        {
+            "id": "d1",
+            "profile_id": "p1",
+            "title": "775 页教材",
+            "file_path": "library/p1/d1/book.pdf",
+            "char_count": len(oversized),
+            "parse_status": "ready",
+            "imported_at": "2026-09-14T00:00:00Z",
+        },
+    )
+    store_under_test.insert(
+        "doc_chunk",
+        {"id": "c1", "doc_id": "d1", "profile_id": "p1", "page_no": 1, "content": oversized},
+    )
+
+    assert store_under_test.get("doc_chunk", "c1")["content"] == oversized
+    assert store_under_test.get("source_doc", "d1")["char_count"] == len(oversized)
+    assert len(oversized) > attachments.MAX_TEXT_CHARS
+
+
+def test_store_does_not_inherit_the_attachment_text_cap() -> None:
+    source = Path(store.__file__).read_text(encoding="utf-8")
+    assert "attachments" not in source
+    assert "MAX_TEXT_CHARS" not in source
