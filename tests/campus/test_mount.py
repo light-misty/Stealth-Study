@@ -1,0 +1,143 @@
+"""Intrusion point #9: the two-line campus mount inside `create_app()` (01 §6, 03 §2).
+
+T06 is allowed exactly one change to an existing backend file. These tests hold that budget
+literally: the patch is the documented pair of lines, it sits immediately after
+`app = FastAPI(...)`, it adds nothing else, and it neither breaks the sidecar token middleware
+nor turns a bad database into a silently degraded startup (03 §2-4).
+"""
+
+from __future__ import annotations
+
+import sqlite3
+import subprocess
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+from ss import secrets
+from ss.campus import store
+
+ROOT = Path(__file__).resolve().parents[2]
+APP_PY = ROOT / "ss" / "server" / "app.py"
+CAMPUS_PREFIX = "/v1/campus"
+HEALTH_PATH = f"{CAMPUS_PREFIX}/health"
+
+ANCHOR = "app = FastAPI("
+MOUNT_IMPORT = "from ..campus.routes import build_campus_router"
+MOUNT_CALL = "app.include_router(build_campus_router(manager))"
+
+BASE_CANDIDATES = (
+    "main",
+    "refs/heads/main",
+    "refs/remotes/origin/main",
+    "refs/remotes/Stealth-Study/main",
+)
+
+
+def _git(*args: str) -> str:
+    result = subprocess.run(
+        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=False
+    )
+    return result.stdout if result.returncode == 0 else ""
+
+
+def _base_revision() -> str | None:
+    for candidate in BASE_CANDIDATES:
+        resolved = _git("rev-parse", "--verify", "--quiet", f"{candidate}^{{commit}}").strip()
+        if resolved:
+            return resolved
+    return None
+
+
+def _on_the_base_revision(base: str) -> bool:
+    return _git("rev-parse", "HEAD").strip() == base
+
+
+@pytest.fixture()
+def app_source() -> list[str]:
+    return APP_PY.read_text(encoding="utf-8").splitlines()
+
+
+def test_the_mount_sits_immediately_after_the_app_is_created(app_source: list[str]) -> None:
+    anchors = [index for index, line in enumerate(app_source) if line.strip().startswith(ANCHOR)]
+    assert len(anchors) == 1
+    at = anchors[0]
+    assert app_source[at + 1].strip() == MOUNT_IMPORT
+    assert app_source[at + 2].strip() == MOUNT_CALL
+
+
+def test_the_mount_is_the_only_router_include_in_the_file(app_source: list[str]) -> None:
+    includes = [line for line in app_source if "include_router(" in line]
+    assert includes == [f"    {MOUNT_CALL}"]
+    assert sum(line.count("build_campus_router") for line in app_source) == 2
+
+
+def test_no_other_backend_module_changed_against_the_base_revision() -> None:
+    base = _base_revision()
+    if base is None or _on_the_base_revision(base):
+        pytest.skip("no base revision to compare against from this checkout")
+    status = _git("diff", "--name-status", base, "--", "ss/")
+    touched = [line for line in status.splitlines() if line[:1] in {"M", "D", "R"}]
+    assert touched == ["M\tss/server/app.py"]
+
+
+def test_app_py_keeps_its_two_line_budget_against_the_base_revision() -> None:
+    base = _base_revision()
+    if base is None or _on_the_base_revision(base):
+        pytest.skip("no base revision to compare against from this checkout")
+    numstat = _git("diff", "--numstat", base, "--", "ss/server/app.py").strip()
+    assert numstat == "2\t0\tss/server/app.py"
+
+
+def test_create_app_serves_the_campus_health_endpoint_behind_the_sidecar_token(
+    monkeypatch, tmp_path: Path
+) -> None:
+    from ss.server.app import create_app
+    from ss.server.manager import SessionManager
+
+    token = "t06-sidecar-token"
+    monkeypatch.setenv("COWORKER_API_TOKEN", token)
+    client = TestClient(create_app(SessionManager(data_dir=tmp_path / "data")))
+
+    assert client.get(HEALTH_PATH).status_code == 401
+    assert client.get(HEALTH_PATH, headers={"x-ss-token": "wrong"}).status_code == 401
+    authorized = client.get(HEALTH_PATH, headers={"x-ss-token": token})
+    assert authorized.status_code == 200
+    assert authorized.json()["status"] == "ok"
+
+
+def test_create_app_leaves_the_existing_endpoints_alone(
+    monkeypatch, tmp_path: Path
+) -> None:
+    from ss.server.app import create_app
+    from ss.server.manager import SessionManager
+
+    token = "t06-sidecar-token"
+    monkeypatch.setenv("COWORKER_API_TOKEN", token)
+    client = TestClient(create_app(SessionManager(data_dir=tmp_path / "data")))
+    headers = {"x-ss-token": token}
+
+    for path in ("/v1/health", "/v1/sessions", "/v1/settings", "/v1/automations"):
+        assert client.get(path, headers=headers).status_code == 200
+
+
+def test_create_app_fails_to_start_when_the_campus_database_is_newer(tmp_path: Path) -> None:
+    from ss.server.app import create_app
+    from ss.server.manager import SessionManager
+
+    database = secrets.state_dir() / "campus.db"
+    database.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(database)
+    try:
+        connection.execute(store.SCHEMA_META_DDL)
+        connection.execute(
+            "INSERT INTO schema_meta (key, version, applied_at) VALUES (?, ?, ?)",
+            (store.SCHEMA_VERSION_KEY, store.CURRENT_SCHEMA_VERSION + 1, "2026-09-14T00:00:00Z"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(store.SchemaVersionError):
+        create_app(SessionManager(data_dir=tmp_path / "data"))
