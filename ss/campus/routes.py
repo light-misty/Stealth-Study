@@ -11,6 +11,10 @@ table, and `campus_error()` / `raise_campus_error()` turn a code into the docume
 `{"detail": {"code", "message", "retryable"}}` (03 §1). Endpoints never invent a status or a
 bare string; a code that is not in the table is a programming error and raises `KeyError`
 instead of silently returning something plausible.
+
+`build_campus_router()` is the factory the mount calls, so it is also where campus is
+initialised: constructing it opens `campus.db` (running the migration at mount time, 02 §3.4)
+and an unmigratable database aborts application startup rather than serving a half-built API.
 """
 
 from __future__ import annotations
@@ -18,7 +22,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping, NoReturn, Optional
 
-from fastapi import HTTPException
+from fastapi import APIRouter, HTTPException
+
+from . import tracks
+from .store import CampusStore
 
 CAMPUS_PREFIX = "/v1/campus"
 
@@ -117,3 +124,28 @@ def raise_campus_error(
 ) -> NoReturn:
     """Raise the structured error for `code`."""
     raise campus_error(code, message, status=status, **extra)
+
+
+def build_campus_router(manager: Any) -> APIRouter:
+    """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
+
+    `manager` is the sidecar `SessionManager` the documented mount passes in; campus only
+    needs it for the automation templates of T13, and holding campus state must never touch
+    the kernel's own stores (01 §4.3).
+
+    Opening the router opens `campus.db`, so the migration of 02 §3.4 runs here: a schema
+    written by a newer application raises `SchemaVersionError` and stops startup.
+    """
+    campus_store = CampusStore()
+    router = APIRouter(prefix=CAMPUS_PREFIX, tags=["campus"])
+
+    @router.get("/health")
+    def campus_health() -> dict[str, Any]:
+        """Liveness plus the schema version the running database is actually on."""
+        return {
+            "status": "ok",
+            "schema_version": campus_store.current_version(),
+            "tracks": list(tracks.TRACK_IDS),
+        }
+
+    return router
