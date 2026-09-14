@@ -9,7 +9,7 @@ import zlib
 
 import pytest
 
-from coworker import pdf_support
+from ss import pdf_support
 from ss.providers.base import ModelCapabilities
 from ss.providers.capabilities import capabilities_for
 

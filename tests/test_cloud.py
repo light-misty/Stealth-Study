@@ -13,7 +13,7 @@ import urllib.parse
 
 import pytest
 
-from coworker import cloud
+from ss import cloud
 from ss.config import Config
 from ss.connectors.setup import (
     connect_connector,

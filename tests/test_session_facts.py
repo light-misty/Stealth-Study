@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from coworker import session_facts
+from ss import session_facts
 from ss.engine import TurnEngine
 from ss.events import EventType
 from ss.permissions import PermissionEngine

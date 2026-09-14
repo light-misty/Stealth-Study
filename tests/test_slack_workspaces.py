@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker import cloud
+from ss import cloud
 from ss.server import SessionManager, create_app
 
 

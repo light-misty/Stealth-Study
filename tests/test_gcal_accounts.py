@@ -223,7 +223,7 @@ def test_write_tools_require_approval(secrets):
 
 
 def test_account_profile_refreshes_in_place(secrets, monkeypatch):
-    from coworker import cloud
+    from ss import cloud
 
     secrets.put(
         cloud.CLOUD_AUTH_PROFILE, {"access_token": "jwt", "expires": time.time() + 3600}

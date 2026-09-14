@@ -13,7 +13,7 @@ from dataclasses import dataclass, replace
 
 import pytest
 
-from coworker import reviewer as reviewer_mod
+from ss import reviewer as reviewer_mod
 from ss.engine import ApprovalOutcome, TurnEngine
 from ss.events import EventType
 from ss.permissions import Mode, PermissionEngine

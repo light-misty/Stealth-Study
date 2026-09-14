@@ -14,7 +14,7 @@ import json
 import pytest
 from fastapi.testclient import TestClient
 
-from coworker import cloud
+from ss import cloud
 from ss.connectors import github_installs
 from ss.connectors.base import MessageEvent
 from ss.connectors.config import is_authorized, load_settings

@@ -124,7 +124,7 @@ def test_load_settings_from_secretstore(tmp_path, monkeypatch):
         "telegram:default", {"type": "token", "bot_token": "T", "allowed_users": ["u1"]}
     )
     settings = __import__(
-        "coworker.connectors.config", fromlist=["load_settings"]
+        "ss.connectors.config", fromlist=["load_settings"]
     ).load_settings(secrets)
     assert settings["telegram"].enabled is True
     assert settings["telegram"].allowed_users == {"u1"}
@@ -136,7 +136,7 @@ def test_load_settings_env_allowlist(tmp_path, monkeypatch):
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put("telegram:default", {"bot_token": "T"})
     settings = __import__(
-        "coworker.connectors.config", fromlist=["load_settings"]
+        "ss.connectors.config", fromlist=["load_settings"]
     ).load_settings(secrets)
     assert settings["telegram"].allowed_users == {"a", "b", "c"}
 

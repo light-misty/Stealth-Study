@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from coworker import provenance as prov
+from ss import provenance as prov
 from ss.provenance import DOWNLOADED, WRITTEN, SessionFiles
 
 

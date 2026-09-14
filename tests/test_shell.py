@@ -59,7 +59,7 @@ def test_managed_bin_dir_is_on_path_from_spawn(tmp_path, monkeypatch):
     stable bin dir goes on PATH at spawn, before anything exists in it."""
     import os as _os
 
-    from coworker import toolchain
+    from ss import toolchain
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     ex = LocalExecutor(cwd=tmp_path, default_timeout=10)

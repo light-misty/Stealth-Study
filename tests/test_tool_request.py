@@ -71,7 +71,7 @@ async def test_emits_tool_requested_and_reports_install(tmp_path):
 async def test_declining_tells_the_agent_to_fall_back_openly(tmp_path, monkeypatch):
     """A refusal must not read as 'check done'. The tool result has to push the agent
     toward a disclosed fallback, which is the whole point of the contract."""
-    from coworker import toolchain
+    from ss import toolchain
 
     # Truly absent — otherwise the decline-time re-check (below) would find the dev
     # machine's real gitleaks and turn this into the user-provided-copy path.
@@ -96,7 +96,7 @@ async def test_decline_recheck_finds_a_copy_the_user_installed_themselves(tmp_pa
     """The card says "or install it yourself and continue" — that has to be real. A user
     who brews the tool while the prompt is up and clicks Continue has PROVIDED the tool;
     the agent must be handed their copy's path, not a refusal."""
-    from coworker import toolchain
+    from ss import toolchain
 
     monkeypatch.setattr(toolchain, "resolve", lambda name: "/opt/homebrew/bin/gitleaks")
 
@@ -119,7 +119,7 @@ async def test_event_tells_the_truth_about_installability(tmp_path, monkeypatch)
     """Owner-hit 2026-08-14: the card offered Install for a tool with no pinned build —
     the surface guessed because the event said nothing. The event must carry the
     registry's verdict for catalog tools."""
-    from coworker import toolchain
+    from ss import toolchain
 
     monkeypatch.setattr(toolchain, "_platform_key", lambda: "darwin_arm64")
 
@@ -139,7 +139,7 @@ async def test_non_catalog_tool_gets_no_card_and_a_shell_steer(tmp_path, monkeyp
     """Owner-hit 2026-08-20: agents routed ordinary brew/pip installs through the
     install card, which could only fail AFTER the user approved. A non-catalog name
     must produce NO prompt at all — just a result steering the agent to the shell."""
-    from coworker import toolchain
+    from ss import toolchain
 
     monkeypatch.setattr(toolchain, "_platform_key", lambda: "darwin_arm64")
     called = []

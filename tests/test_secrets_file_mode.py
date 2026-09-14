@@ -12,7 +12,7 @@ import sys
 
 import pytest
 
-from coworker import secrets as secrets_mod
+from ss import secrets as secrets_mod
 from ss.secrets import SecretStore, write_private_text
 
 posix_only = pytest.mark.skipif(
