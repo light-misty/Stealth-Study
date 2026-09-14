@@ -20,6 +20,7 @@ import {
   type ProviderInfo,
 } from "../api";
 import { CloudSignInInline, CloudStatusPending } from "./connectors/CloudSignIn";
+import { showLogin } from "../flags";
 import { ModelChecklist } from "./ModelChecklist";
 import { ProviderCards, ProviderForm, useProviderSetup } from "../providers/ProviderSetup";
 
@@ -552,13 +553,13 @@ export function ConnectSetup({
             <button className={BTN_ACCENT} onClick={oneClick} disabled={waiting}>
               {waiting ? t("manage.check_browser") : t("manage.connect_one_click", { title: c.title })}
             </button>
-          ) : cloud ? (
+          ) : cloud && showLogin() ? (
             <CloudSignInInline
               blurb={t("manage.signin_unlocks", { title: c.title })}
             />
           ) : (
-            // Status unknown (fetch pending/failed): never show the sign-in ask to a
-            // possibly-signed-in user (FB-013); the host keeps polling.
+            // Status unknown (fetch pending/failed) — or cloud sign-in off (G-06):
+            // never show the sign-in ask to a possibly-signed-in user (FB-013).
             <CloudStatusPending />
           )}
           {!c.managed_paused && cloud?.signed_in && (

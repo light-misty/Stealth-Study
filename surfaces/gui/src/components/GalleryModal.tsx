@@ -15,6 +15,7 @@ import { BrandIcon } from "./brandIcons";
 import { Icon } from "./Icon";
 import { Markdown } from "./Markdown";
 import { PersonaHero } from "./PersonaHero";
+import { showLogin } from "../flags";
 
 // The Persona Gallery, as a screen-sized modal over Settings ▸ Personas (the catalog
 // wants room the inline section never had; installs finish back on the Personas page,
@@ -406,7 +407,7 @@ export function GalleryModal({
                 </div>
               ))}
             </div>
-          ) : cloud && !cloud.signed_in ? (
+          ) : cloud && !cloud.signed_in && showLogin() ? (
             <div className={CARD + " p-5 flex items-center gap-4"} data-testid="gallery-signin">
               <div className="min-w-0 flex-1">
                 <div className="font-semibold text-[14px] mb-1">{t("gallery.signin_title")}</div>

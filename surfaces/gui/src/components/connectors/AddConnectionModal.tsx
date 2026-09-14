@@ -12,6 +12,7 @@ import { ConnectorBadge } from "../../connectors/ConnectorIcon";
 import { ConnectSetup } from "../ManageTabs";
 import { CloudSignInInline, CloudStatusPending } from "./CloudSignIn";
 import { PILL_ACCENT, PILL_LINE, TAG_ACCENT } from "./ui";
+import { showLogin } from "../../flags";
 
 // The ONE place a connection gets added (UX-DECISIONS §21): the detail page's header
 // button (or the list's Connect pill) opens this sheet. Connectors with two connect
@@ -200,7 +201,7 @@ function GenericOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null
         >
           {waiting ? tt("cloud.check_browser") : tt("modal.connect_title", { title: c.title })}
         </button>
-      ) : cloud ? (
+      ) : cloud && showLogin() ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />
@@ -232,7 +233,7 @@ function SlackOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null }
         <button className={PILL_ACCENT + " w-full !py-2"} data-testid="modal-add-to-slack" onClick={go} disabled={waiting}>
           {waiting ? tt("cloud.check_browser") : tt("modal.add_to_slack")}
         </button>
-      ) : cloud ? (
+      ) : cloud && showLogin() ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />
@@ -267,7 +268,7 @@ function GithubOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null 
         <button className={PILL_ACCENT + " w-full !py-2"} data-testid="modal-install-github-app" onClick={() => go()} disabled={waiting}>
           {waiting ? tt("cloud.check_browser") : tt("modal.connect_github")}
         </button>
-      ) : cloud ? (
+      ) : cloud && showLogin() ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />
@@ -323,7 +324,7 @@ function HubSpotOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null
         <button className={PILL_ACCENT + " w-full !py-2"} data-testid="modal-connect-hubspot" onClick={go} disabled={waiting}>
           {waiting ? tt("cloud.check_browser") : tt("modal.connect_hubspot")}
         </button>
-      ) : cloud ? (
+      ) : cloud && showLogin() ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />

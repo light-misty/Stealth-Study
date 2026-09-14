@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { announceCloudChanged, cloudLogin, waitForCloudSignIn } from "../../api";
+import { showLogin } from "../../flags";
 
 // The signed-out state of every one-click pane: a REAL sign-in button, not a
 // hint pointing at another page. Sign-in completes in the system browser; this
@@ -8,7 +9,15 @@ import { announceCloudChanged, cloudLogin, waitForCloudSignIn } from "../../api"
 // even poll-less hosts (the Sources rail's inline pane) re-render signed in —
 // relying on "some other section's 5s poll" left the rail stuck on the prompt
 // (FB-013).
+//
+// G-06: with cloud sign-in off this renders nothing — the connector panes fall
+// through to their Manual path, which works without an account.
 export function CloudSignInInline({ blurb }: { blurb?: string }) {
+  if (!showLogin()) return null;
+  return <CloudSignInButton blurb={blurb} />;
+}
+
+function CloudSignInButton({ blurb }: { blurb?: string }) {
   const { t } = useTranslation();
   const [waiting, setWaiting] = useState(false);
   const cancelRef = useRef<(() => void) | null>(null);

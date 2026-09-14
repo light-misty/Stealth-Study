@@ -14,6 +14,7 @@ import {
 } from "../api";
 import { openExternal } from "../tauri";
 import { PROVIDER_LOGOS, providerRank } from "./logos";
+import { showLogin } from "../flags";
 
 // The provider gallery ⇄ key form, shared by Onboarding step 1 (§39) and
 // Settings ▸ Models (UX-021) so the two can never drift apart visually. The hook
@@ -523,7 +524,7 @@ export function ProviderForm({
       </div>
       {info?.blurb && <p className="text-[12px] text-faint mt-1">{info.blurb}</p>}
 
-      {info?.auth === "oauth" && <OAuthSignIn info={info} tp={tp} onChanged={ps.refreshProviders} />}
+      {info?.auth === "oauth" && showLogin() && <OAuthSignIn info={info} tp={tp} onChanged={ps.refreshProviders} />}
 
       {fieldsAll
         .filter(

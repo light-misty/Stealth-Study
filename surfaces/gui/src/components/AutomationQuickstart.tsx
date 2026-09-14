@@ -14,6 +14,7 @@ import {
 import { ConnectorBadge } from "../connectors/ConnectorIcon";
 import { ChannelPicker } from "./SubscriptionsChip";
 import { SelectMenu } from "./SelectMenu";
+import { showLogin } from "../flags";
 
 // The Automations quickstart (UX-DECISIONS §29): ONE template system. The former onboarding
 // recipe step (§24's role recipes) merged into the page's "Start from a template" grid — every
@@ -429,7 +430,7 @@ export function AutomationQuickstart({
             );
           })}
 
-          {pendingConn && !cloud?.signed_in && (
+          {pendingConn && !cloud?.signed_in && showLogin() && (
             <div
               className="bg-accentSoft/50 rounded-xl px-4 py-3 mt-3 text-[13px] text-muted"
               data-testid="ob-cloudpane"
