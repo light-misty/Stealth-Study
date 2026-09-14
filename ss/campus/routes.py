@@ -15,19 +15,28 @@ instead of silently returning something plausible.
 `build_campus_router()` is the factory the mount calls, so it is also where campus is
 initialised: constructing it opens `campus.db` (running the migration at mount time, 02 §3.4)
 and an unmigratable database aborts application startup rather than serving a half-built API.
+
+`ProfileGuard` is the cross-cutting `profile_id` rule of 07 §4 T06: it resolves the profile a
+request acts on from the path, query string, JSON body or form, and refuses unknown and
+read-only profiles (`PROFILE_REQUIRED` / `PROFILE_NOT_FOUND` / `PROFILE_READ_ONLY`). Endpoints
+declare `Depends(guard.get_profile)` and receive an `ExamProfile`; they never accept a raw
+`profile_id` string and query with it.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any, Mapping, NoReturn, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from . import tracks
+from . import models, tracks
 from .store import CampusStore
 
 CAMPUS_PREFIX = "/v1/campus"
+PROFILE_ID_PARAM = "profile_id"
+PROFILE_PATH_PARAM = "pid"
 
 
 @dataclass(frozen=True)
@@ -124,6 +133,89 @@ def raise_campus_error(
 ) -> NoReturn:
     """Raise the structured error for `code`."""
     raise campus_error(code, message, status=status, **extra)
+
+
+class ProfileGuard:
+    """Resolve and validate the `profile_id` a profile-scoped request acts on.
+
+    One instance lives inside the mounted router, so every endpoint of every group shares the
+    same resolution order and the same refusals. The four accepted carriers cover the request
+    shapes 03 §4 uses: `{pid}` path parameters (A3-A5), the `profile_id` query parameter
+    (list endpoints such as B2/D1/E2), JSON bodies (C1/E5/F10) and multipart forms (B1).
+    """
+
+    def __init__(self, campus_store: CampusStore) -> None:
+        self._store = campus_store
+
+    def _clean(self, value: Any) -> Optional[str]:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
+
+    async def _payload_profile_id(self, request: Request) -> Optional[str]:
+        """Read `profile_id` from the request body, treating anything odd as absent."""
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                payload = json.loads(await request.body() or b"{}")
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return None
+            if not isinstance(payload, dict):
+                return None
+            return payload.get(PROFILE_ID_PARAM)
+        if "form" in content_type:
+            try:
+                form = await request.form()
+            except Exception:
+                return None
+            return form.get(PROFILE_ID_PARAM)
+        return None
+
+    async def requested_profile_id(self, request: Request) -> Optional[str]:
+        """The profile id the request carries, or `None` when it carries none.
+
+        Order matters only for pathological requests that carry two values; the path
+        parameter is the most specific carrier and therefore wins.
+        """
+        candidates = (
+            request.path_params.get(PROFILE_PATH_PARAM),
+            request.path_params.get(PROFILE_ID_PARAM),
+            request.query_params.get(PROFILE_ID_PARAM),
+            await self._payload_profile_id(request),
+        )
+        for candidate in candidates:
+            cleaned = self._clean(candidate)
+            if cleaned:
+                return cleaned
+        return None
+
+    def load(self, profile_id: str) -> models.ExamProfile:
+        """The stored profile, or `PROFILE_NOT_FOUND`.
+
+        This single primary-key read is the only query a forged `profile_id` costs (08 §4 P-2).
+        """
+        row = self._store.get("exam_profile", profile_id)
+        if row is None:
+            raise_campus_error("PROFILE_NOT_FOUND", f"档案不存在：{profile_id}")
+        return models.ExamProfile.from_row(row)
+
+    async def get_profile(self, request: Request) -> models.ExamProfile:
+        """Dependency for every endpoint that reads profile-owned data."""
+        profile_id = await self.requested_profile_id(request)
+        if not profile_id:
+            raise_campus_error("PROFILE_REQUIRED")
+        return self.load(profile_id)
+
+    async def get_writable_profile(self, request: Request) -> models.ExamProfile:
+        """Dependency for every endpoint that writes profile-owned data.
+
+        Only a `finished` profile is refused: 02 §7.2 keeps `active` and `archived` reversible,
+        so treating archive as read-only would make restoring a profile impossible.
+        """
+        profile = await self.get_profile(request)
+        if profile.status == models.ProfileStatus.FINISHED.value:
+            raise_campus_error("PROFILE_READ_ONLY", f"档案已结课，拒绝写入：{profile.id}")
+        return profile
 
 
 def build_campus_router(manager: Any) -> APIRouter:
