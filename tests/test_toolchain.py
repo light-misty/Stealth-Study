@@ -9,10 +9,11 @@ from __future__ import annotations
 import hashlib
 import os
 import stat
+import sys
 
 import pytest
 
-from coworker import toolchain
+from ss import toolchain
 
 
 def _make_exe(path, body: str = "#!/bin/sh\necho hi\n"):
@@ -22,6 +23,7 @@ def _make_exe(path, body: str = "#!/bin/sh\necho hi\n"):
     return path
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="PATH-based tool lookup relies on Unix shebang/PATHEXT")
 def test_resolve_prefers_path(tmp_path, monkeypatch):
     on_path = _make_exe(tmp_path / "bin" / "semgrep")
     monkeypatch.setenv("PATH", str(tmp_path / "bin"))
@@ -37,6 +39,7 @@ def test_resolve_finds_tools_launchd_path_cannot_see(tmp_path, monkeypatch):
     assert toolchain.resolve("gitleaks") == str(gitleaks.resolve())
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="PATH-based tool lookup relies on Unix shebang/PATHEXT")
 def test_resolve_returns_absolute_path(tmp_path, monkeypatch):
     """Callers must be able to invoke without depending on PATH at all."""
     _make_exe(tmp_path / "bin" / "trivy")
@@ -44,6 +47,7 @@ def test_resolve_returns_absolute_path(tmp_path, monkeypatch):
     assert os.path.isabs(toolchain.resolve("trivy") or "")
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="PATH-based tool lookup relies on Unix shebang/PATHEXT")
 def test_missing_reports_only_absent_tools(tmp_path, monkeypatch):
     _make_exe(tmp_path / "bin" / "gitleaks")
     monkeypatch.setenv("PATH", str(tmp_path / "bin"))
@@ -114,6 +118,7 @@ def test_install_refuses_a_tampered_download(tmp_path, monkeypatch):
     )
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Symlinks on Windows require elevated privileges")
 def test_install_writes_a_verified_binary(tmp_path, monkeypatch):
     payload = b"#!/bin/sh\necho scanned\n"
     digest = hashlib.sha256(payload).hexdigest()

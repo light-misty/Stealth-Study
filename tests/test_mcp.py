@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -259,6 +260,7 @@ def test_rest_crud(tmp_path, monkeypatch):
 # -- failure surfacing (drill 2026-08-20: silent startup crashes) ----------------
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Uses /bin/sh - Unix-only command")
 @pytest.mark.asyncio
 async def test_stdio_startup_crash_captures_stderr_tail(tmp_path, monkeypatch):
     """A stdio server that dies before initialize leaves its stderr tail behind."""
@@ -277,6 +279,7 @@ async def test_stdio_startup_crash_captures_stderr_tail(tmp_path, monkeypatch):
     assert tail is not None and "usage: doomed --flag" in tail
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Uses /bin/sh - Unix-only command")
 @pytest.mark.asyncio
 async def test_prepare_records_failure_status_and_session_notice(
     tmp_path, monkeypatch
@@ -317,6 +320,7 @@ async def test_prepare_records_failure_status_and_session_notice(
 # -- explicit connect (UX-033: add → Test → fix, without opening a session) ------
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Uses /bin/sh - Unix-only command")
 @pytest.mark.asyncio
 async def test_connect_mcp_failure_includes_stderr_tail(tmp_path, monkeypatch):
     """The Test button's connect path reports the same stderr evidence as the
@@ -515,7 +519,7 @@ async def test_session_notice_fires_once_per_failure_episode(tmp_path, monkeypat
         name="flaky", transport="stdio", url=None, auth=None, enabled=True, include_tools=None, exclude_tools=None, requires_approval=True
     )
     monkeypatch.setattr(
-        "coworker.server.manager.load_mcp_servers", lambda *a, **k: [server]
+        "ss.server.manager.load_mcp_servers", lambda *a, **k: [server]
     )
 
     fail_with: list[str] = ["boom one"]
@@ -560,7 +564,7 @@ async def test_notice_dedupe_survives_restart(tmp_path, monkeypatch):
         name="flaky", transport="stdio", url=None, auth=None, enabled=True, include_tools=None, exclude_tools=None, requires_approval=True
     )
     monkeypatch.setattr(
-        "coworker.server.manager.load_mcp_servers", lambda *a, **k: [server]
+        "ss.server.manager.load_mcp_servers", lambda *a, **k: [server]
     )
 
     async def ensure(s, **kw):
@@ -594,7 +598,7 @@ async def test_notice_dedupe_ignores_per_process_noise(tmp_path, monkeypatch):
         name="flaky", transport="stdio", url=None, auth=None, enabled=True, include_tools=None, exclude_tools=None, requires_approval=True
     )
     monkeypatch.setattr(
-        "coworker.server.manager.load_mcp_servers", lambda *a, **k: [server]
+        "ss.server.manager.load_mcp_servers", lambda *a, **k: [server]
     )
 
     errors = ["credential process <function f at 0x102ab40f0> pid 84121"]

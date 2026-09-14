@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+import pytest
 
 from ss.config import load_config
 
@@ -64,6 +67,7 @@ def test_trusted_workspace_adds_its_command_allowances_only(tmp_path):
     assert cfg.auto_allow == ["write_file"]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Unix file permission mode test")
 def test_workspace_trust_is_canonical_and_user_owned(tmp_path):
     from ss.workspace_trust import WorkspaceTrustStore
 

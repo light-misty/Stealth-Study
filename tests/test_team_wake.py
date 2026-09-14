@@ -155,7 +155,7 @@ def test_create_team_prespawns_worker_sessions(manager, monkeypatch):
         name="swe-worker", title="SWE", system_prompt="p", team="worker"
     )
     monkeypatch.setattr(
-        "coworker.server.manager.get_agent", lambda name: worker_agent
+        "ss.server.manager.get_agent", lambda name: worker_agent
     )
     manager.session_store.save(
         SessionRecord(
@@ -200,7 +200,7 @@ def test_staleness_digest_is_role_scoped(manager, monkeypatch):
     assert manager.team_staleness_digest("nobody") == ""
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",
@@ -243,7 +243,7 @@ def test_turn_saves_never_detach_a_worker_from_its_team(manager, monkeypatch):
     from ss.sessions import SessionRecord
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",
@@ -311,7 +311,7 @@ def test_create_team_uses_callnames_and_creates_the_chat_group(manager, monkeypa
     from ss.sessions import SessionRecord
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",
@@ -563,7 +563,7 @@ def test_lead_backstop_fires_only_for_forgotten_timers(manager, monkeypatch):
     from ss.teams.model import space_for_workspace
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("coworker.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",

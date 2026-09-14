@@ -10,7 +10,7 @@ from ss.server import SessionManager, create_app
 
 
 def _allow_managed_state(state: str = "s") -> None:
-    from coworker import cloud
+    from ss import cloud
 
     cloud._pending_managed_states[state] = cloud._now()
 
@@ -62,7 +62,7 @@ def test_oauth_callback_writes_profile_and_returns_page(client):
     assert resp.status_code == 200
     # §30: the loopback page is a branded card, Title-cased connector name.
     assert "Gmail connected" in resp.text
-    assert "Served locally by OpenWorker" in resp.text
+    assert "Served locally by StealthStudy" in resp.text
 
     # Multi-account: the callback lands in gmail:account:<email>; gmail:default
     # is just the default pointer.
@@ -146,7 +146,7 @@ You are the Sales Coworker."""
 def _stub_gallery(monkeypatch, markdown=SALES_MANIFEST, *, hash_ok=True):
     import hashlib
 
-    from coworker import cloud
+    from ss import cloud
 
     digest = "sha256:" + hashlib.sha256(markdown.encode()).hexdigest()
     manifest = {
@@ -182,7 +182,7 @@ def test_gallery_install_rejects_hash_mismatch(client, monkeypatch):
 
 
 def test_gallery_install_requires_sign_in(client, monkeypatch):
-    from coworker import cloud
+    from ss import cloud
 
     monkeypatch.setattr(cloud, "gallery_manifest", lambda s, c, slug: None)
     body = client.post("/v1/personas/install", json={"gallery_slug": "sales"}).json()

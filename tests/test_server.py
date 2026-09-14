@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import pytest
 from fastapi.testclient import TestClient
 
@@ -500,6 +501,7 @@ def test_server_sets_explicit_websocket_frame_limit(tmp_path, monkeypatch):
     assert seen["ws_max_size"] == server_run._WS_MAX_FRAME_BYTES
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Unix file permission mode test")
 def test_standalone_server_token_file_is_user_only(tmp_path, monkeypatch):
     import os
 
@@ -619,15 +621,15 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
     assert denied.value.code == 1008
 
     with client.websocket_connect(
-        "/ws/session/authed", subprotocols=["openworker", "a" * 64]
+        "/ws/session/authed", subprotocols=["StealthStudy", "a" * 64]
     ) as ws:
-        assert ws.accepted_subprotocol == "openworker"
+        assert ws.accepted_subprotocol == "StealthStudy"
         assert ws.receive_json()["type"] == "ready"
 
     with client.websocket_connect(
-        "/ws/events", subprotocols=["openworker", "a" * 64]
+        "/ws/events", subprotocols=["StealthStudy", "a" * 64]
     ) as ws:
-        assert ws.accepted_subprotocol == "openworker"
+        assert ws.accepted_subprotocol == "StealthStudy"
 
     # Redirect callbacks remain tokenless, then enforce their own signed state.
     assert client.get(
@@ -708,6 +710,7 @@ def test_open_and_recent_workspaces(tmp_path):
     assert any(w["path"] == str(proj.resolve()) for w in recents)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows file locking prevents rename on open files")
 def test_workspace_command_trust_controls_live_engine(tmp_path):
     from urllib.parse import quote
 
@@ -1098,14 +1101,14 @@ def test_mcp_connect_route_flags_authorizing_immediately(tmp_path, monkeypatch):
 
     mgr = SessionManager(data_dir=tmp_path / "data")
     monkeypatch.setattr(
-        "coworker.server.manager.read_global", lambda: {"sales-db": {"command": "x"}}
+        "ss.server.manager.read_global", lambda: {"sales-db": {"command": "x"}}
     )
     mgr.begin_mcp_connect("sales-db")
     assert "sales-db" in mgr._mcp_authorizing
     mgr.begin_mcp_connect("nope")
     assert "nope" not in mgr._mcp_authorizing
     # An unmatched name clears the flag instead of wedging "Testing…" forever.
-    monkeypatch.setattr("coworker.server.manager.load_mcp_servers", lambda *a, **k: [])
+    monkeypatch.setattr("ss.server.manager.load_mcp_servers", lambda *a, **k: [])
     res = asyncio.run(mgr.connect_mcp("sales-db"))
     assert not res["ok"] and "sales-db" not in mgr._mcp_authorizing
 

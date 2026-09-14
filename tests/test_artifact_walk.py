@@ -34,7 +34,7 @@ def test_os_data_dirs_are_not_traversed(tmp_path, monkeypatch):
             walked.append(dirpath)
             yield dirpath, dirs, files
 
-    monkeypatch.setattr("coworker.server.manager.os.walk", spy)
+    monkeypatch.setattr("ss.server.manager.os.walk", spy)
     m = SessionManager(data_dir=tmp_path / "data", workspace=str(ws))
     names = [a["name"] for a in m.list_artifacts("s1")]
 

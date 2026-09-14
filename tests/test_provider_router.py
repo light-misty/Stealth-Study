@@ -101,7 +101,7 @@ def _patch_build(monkeypatch):
         state["latest"][name] = rec
         return rec
 
-    monkeypatch.setattr("coworker.providers.router.build_provider_client", fake_build)
+    monkeypatch.setattr("ss.providers.router.build_provider_client", fake_build)
     return state
 
 

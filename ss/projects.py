@@ -70,8 +70,8 @@ def project_label(key: str, *, home: Optional[str] = None) -> dict[str, Any]:
     shown = key
     if shown == h:
         shown = "~"
-    elif shown.startswith(h + "/"):
-        shown = "~" + shown[len(h):]
+    elif shown.startswith(h + "/") or shown.startswith(h + "\\"):
+        shown = "~" + shown[len(h):].replace("\\", "/")
     return {
         "kind": "git" if is_git else "folder",
         "label": p.name if is_git else shown,
