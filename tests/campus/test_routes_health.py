@@ -74,6 +74,11 @@ def test_health_reports_the_three_declared_tracks(client: TestClient) -> None:
     assert body["tracks"] == list(tracks.TRACK_IDS)
 
 
+def test_health_is_read_only(client: TestClient) -> None:
+    response = client.post(f"{routes.CAMPUS_PREFIX}/health")
+    assert response.status_code == 405
+
+
 def test_mounting_the_router_creates_the_campus_database(campus_db_path: Path) -> None:
     assert not campus_db_path.exists()
     routes.build_campus_router(object())

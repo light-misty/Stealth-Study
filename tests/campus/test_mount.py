@@ -141,3 +141,28 @@ def test_create_app_fails_to_start_when_the_campus_database_is_newer(tmp_path: P
 
     with pytest.raises(store.SchemaVersionError):
         create_app(SessionManager(data_dir=tmp_path / "data"))
+
+
+def test_the_sidecar_entry_point_serves_the_campus_health_endpoint(tmp_path: Path) -> None:
+    from ss.config import load_config
+    from ss.server.run import build_app
+
+    config = load_config()
+    client = TestClient(build_app(str(tmp_path / "workspace"), config.model, config.mode))
+
+    response = client.get(HEALTH_PATH)
+    assert response.status_code == 200
+    assert response.json() == {
+        "status": "ok",
+        "schema_version": store.CURRENT_SCHEMA_VERSION,
+        "tracks": ["cet", "kaoyan", "cert"],
+    }
+
+
+def test_the_campus_routes_are_published_in_the_openapi_schema(tmp_path: Path) -> None:
+    from ss.server.app import create_app
+    from ss.server.manager import SessionManager
+
+    schema = create_app(SessionManager(data_dir=tmp_path / "data")).openapi()
+    assert HEALTH_PATH in schema["paths"]
+    assert schema["paths"][HEALTH_PATH]["get"]["tags"] == ["campus"]
