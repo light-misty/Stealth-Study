@@ -380,6 +380,144 @@ def test_route_sections_ignores_blank_questions():
     assert picked == []
 
 
+MODEL_TOC = [
+    {"section_title": "第 7 章 树", "page_no": 130, "depth": 0},
+    {"section_title": "7.5 AVL 树", "page_no": 152, "depth": 1},
+    {"section_title": "第 6 章 哈希表", "page_no": 111, "depth": 0},
+]
+
+
+def test_build_router_prompt_lists_toc_with_pages():
+    prompt = sp.build_router_prompt(MODEL_TOC, "AVL 树怎么保持平衡", 10)
+    assert "第 7 章 树（p.130）" in prompt
+    assert "7.5 AVL 树（p.152）" in prompt
+    assert "问题：AVL 树怎么保持平衡" in prompt
+    assert "最多 3 行" in prompt
+
+
+def test_build_router_prompt_caps_lines_and_puts_shallow_entries_first():
+    toc = [{"section_title": f"{i}. 小节", "page_no": i, "depth": 1} for i in range(1, 12)]
+    toc.append({"section_title": "第 1 章 甲", "page_no": 1, "depth": 0})
+    listed = [
+        line for line in sp.build_router_prompt(toc, "q", 5).splitlines() if "（p." in line
+    ]
+    assert len(listed) == 5
+    assert listed[0].startswith("第 1 章 甲")
+
+
+def test_parse_router_reply_maps_lines_to_toc_entries():
+    picked = sp.parse_router_reply("7.5 AVL 树\n第 6 章 哈希表", MODEL_TOC)
+    assert [p["section_title"] for p in picked] == ["7.5 AVL 树", "第 6 章 哈希表"]
+
+
+def test_parse_router_reply_strips_list_numbering():
+    picked = sp.parse_router_reply("1. 7.5 AVL 树\n2、第 6 章 哈希表", MODEL_TOC)
+    assert [p["section_title"] for p in picked] == ["7.5 AVL 树", "第 6 章 哈希表"]
+
+
+def test_parse_router_reply_ignores_blank_and_over_short_lines():
+    assert sp.parse_router_reply("\n-\n树\n", MODEL_TOC) == []
+
+
+def test_parse_router_reply_dedupes_and_caps_at_three():
+    picked = sp.parse_router_reply(
+        "7.5 AVL 树\nAVL 树\n第 6 章 哈希表\n第 7 章 树\n第 7 章 树", MODEL_TOC
+    )
+    assert len(picked) <= sp.ROUTER_MAX_SECTIONS
+    assert len({p["section_title"] for p in picked}) == len(picked)
+
+
+def test_parse_router_reply_returns_empty_when_nothing_matches():
+    assert sp.parse_router_reply("完全无关的章节名", MODEL_TOC) == []
+
+
+def test_cache_key_is_deterministic_and_input_sensitive():
+    first = sp.cache_key("d", "q", "m", 10, 20)
+    assert first == sp.cache_key("d", "q", "m", 10, 20)
+    assert first != sp.cache_key("d", "q2", "m", 10, 20)
+
+
+def test_cache_roundtrip(tmp_path):
+    path = tmp_path / "cache.json"
+    assert sp.load_cache(path) == {}
+    sp.save_cache(path, {"k": "v"})
+    assert sp.load_cache(path) == {"k": "v"}
+    sp.save_cache(None, {"ignored": True})
+
+
+def test_retrieve_model_router_falls_back_to_keyword_on_error(monkeypatch):
+    def boom(*args, **kwargs):
+        raise RuntimeError("模型不可用")
+
+    monkeypatch.setattr(sp, "chat_completion", boom)
+    chunks = [dict(c, section_title="哈希冲突") for c in _chunks()]
+    toc = [{"section_title": "哈希冲突", "page_no": 1, "depth": 0}]
+    stats = {"errors": 0, "cache_hits": 0}
+    outcome = sp.retrieve(
+        chunks,
+        toc,
+        3,
+        "哈希冲突的处理办法",
+        6,
+        "model",
+        "text",
+        model_cfg={
+            "cache": {},
+            "stats": stats,
+            "base_url": "https://example.invalid/v1",
+            "api_key": "k",
+            "model": "m",
+            "max_toc_lines": 10,
+            "max_tokens": 8,
+            "timeout": 1,
+        },
+    )
+    assert outcome["used_retrieval"] == "keyword"
+    assert outcome["router"] == "model_error"
+    assert outcome["model_reply"] == ""
+    assert stats["errors"] == 1
+
+
+def test_retrieve_model_router_uses_cached_reply(monkeypatch):
+    monkeypatch.setattr(
+        sp,
+        "route_sections_model",
+        lambda toc, query, doc_id, cfg: (
+            [{"section_title": "哈希冲突", "page_no": 1, "depth": 0}],
+            "model_cache",
+            "哈希冲突",
+        ),
+    )
+    chunks = [dict(c, section_title="哈希冲突") for c in _chunks()]
+    toc = [{"section_title": "哈希冲突", "page_no": 1, "depth": 0}]
+    outcome = sp.retrieve(
+        chunks,
+        toc,
+        3,
+        "哈希冲突的处理办法",
+        6,
+        "model",
+        "text",
+        model_cfg={"cache": {}, "stats": {"cache_hits": 0}},
+    )
+    assert outcome["used_retrieval"] == "toc_route"
+    assert outcome["model_reply"] == "哈希冲突"
+
+
+def test_build_qa_prompt_marks_page_and_sets_instructions():
+    chunks = [{"page_no": 3, "content": "临界资源是一次仅允许一个进程访问的资源"}]
+    prompt = sp.build_qa_prompt("讲义.pdf", chunks, "什么是临界资源", 5000)
+    assert "[讲义.pdf p.3]" in prompt
+    assert "问题：什么是临界资源" in prompt
+    assert "标注 [p.X]" in prompt
+
+
+def test_build_qa_prompt_respects_budget():
+    chunks = [{"page_no": i, "content": "字" * 400} for i in range(1, 10)]
+    prompt = sp.build_qa_prompt("d.pdf", chunks, "q", 1000)
+    assert len(prompt) <= 1000 + len("[d.pdf p.1] ")
+
+
 # --- 关键词召回与三级检索 -------------------------------------------------------
 
 

@@ -21,13 +21,17 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
+import os
 import pathlib
 import re
 import sys
 import time
 import unicodedata
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 
 MAX_EXTRACT_CHARS = 200_000
@@ -39,8 +43,18 @@ DEFAULT_TOP_K = 6
 QA_CHAR_BUDGET = 12_000
 L1_MIN_TITLED_RATIO = 0.5
 ROUTER_MAX_SECTIONS = 3
+MIN_ROUTER_TITLE_CHARS = 4
 TOC_PAGE_SCAN_LIMIT = 40
 REPEAT_MIN_PAGES = 3
+
+DEFAULT_MODEL = "deepseek-chat"
+DEFAULT_MODEL_BASE_URL = "https://api.deepseek.com/v1"
+DEFAULT_MODEL_MAX_TOC_LINES = 200
+DEFAULT_MODEL_MAX_TOKENS = 120
+DEFAULT_QA_MAX_TOKENS = 512
+DEFAULT_MODEL_TIMEOUT = 60
+MODEL_RETRIES = 2
+MODEL_RETRY_SLEEP = 3
 
 SPEC_HEADING = re.compile(
     r"^\s*(第[一二三四五六七八九十\d]+[章讲部分节]|Chapter|章节编号\s+\S)"
@@ -467,6 +481,120 @@ def keyword_recall(
     return scored[:top_k]
 
 
+def build_router_prompt(toc: list[dict], query: str, max_lines: int) -> str:
+    ordered = sorted(toc, key=lambda e: (int(e.get("depth") or 0), e["page_no"]))
+    lines = [f"{e['section_title']}（p.{e['page_no']}）" for e in ordered[:max_lines]]
+    return (
+        "你是检索路由器。以下是资料目录（章节名 → 起始页）：\n"
+        + "\n".join(lines)
+        + f"\n问题：{query}\n"
+        "只输出与回答该问题最相关的章节名，每行一个，最多 3 行，不要输出其他内容。"
+    )
+
+
+def parse_router_reply(text: str, toc: list[dict]) -> list[dict]:
+    picked: list[dict] = []
+    for raw in (text or "").splitlines():
+        line = re.sub(r"[（(]\s*p\.\s*\d+\s*[)）]\s*$", "", raw.strip()).strip()
+        if len(normalize_title(line)) < 2:
+            continue
+        best = None
+        best_len = 0
+        for entry in toc:
+            if entry in picked:
+                continue
+            title = normalize_title(entry["section_title"])
+            if len(title) < MIN_ROUTER_TITLE_CHARS:
+                continue
+            if title_matches(entry["section_title"], line) and len(title) > best_len:
+                best, best_len = entry, len(title)
+        if best is not None:
+            picked.append(best)
+        if len(picked) >= ROUTER_MAX_SECTIONS:
+            break
+    return picked
+
+
+def cache_key(doc_id: str, query: str, model: str, max_lines: int, max_tokens: int) -> str:
+    raw = f"{doc_id}\n{query}\n{model}\n{max_lines}\n{max_tokens}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def load_cache(path) -> dict:
+    if not path:
+        return {}
+    path = pathlib.Path(path)
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def save_cache(path, cache: dict) -> None:
+    if not path:
+        return
+    target = pathlib.Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def chat_completion(
+    base_url: str, api_key: str, model: str, prompt: str, max_tokens: int, timeout: int
+) -> tuple[str, dict]:
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0,
+        "max_tokens": max_tokens,
+        "stream": False,
+    }
+    request = urllib.request.Request(
+        base_url.rstrip("/") + "/chat/completions",
+        data=json.dumps(body).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+    )
+    last = None
+    for attempt in range(MODEL_RETRIES + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.load(response)
+            text = (payload.get("choices") or [{}])[0].get("message", {}).get("content") or ""
+            return text, payload.get("usage") or {}
+        except Exception as exc:
+            last = exc
+            if attempt < MODEL_RETRIES:
+                time.sleep(MODEL_RETRY_SLEEP)
+    raise RuntimeError(f"模型调用失败（重试 {MODEL_RETRIES} 次后）：{type(last).__name__}: {last}")
+
+
+def route_sections_model(
+    toc: list[dict], query: str, doc_id: str, cfg: dict
+) -> tuple[list[dict], str, str]:
+    if not toc:
+        return [], "empty_toc", ""
+    key = cache_key(doc_id, query, cfg["model"], cfg["max_toc_lines"], cfg["max_tokens"])
+    if key in cfg["cache"]:
+        cfg["stats"]["cache_hits"] += 1
+        return parse_router_reply(cfg["cache"][key], toc), "model_cache", cfg["cache"][key]
+    prompt = build_router_prompt(toc, query, cfg["max_toc_lines"])
+    try:
+        text, usage = chat_completion(
+            cfg["base_url"], cfg["api_key"], cfg["model"], prompt, cfg["max_tokens"], cfg["timeout"]
+        )
+    except Exception as exc:
+        cfg["stats"]["errors"] += 1
+        print(f"[warn] 模型路由失败，降级 L2：{doc_id} / {query[:24]}…：{exc}", file=sys.stderr)
+        return [], "model_error", ""
+    cfg["cache"][key] = text
+    cfg["stats"]["calls"] += 1
+    cfg["stats"]["input_tokens"] += int(usage.get("prompt_tokens") or 0)
+    cfg["stats"]["output_tokens"] += int(usage.get("completion_tokens") or 0)
+    return parse_router_reply(text, toc), "model", text
+
+
 def retrieve(
     chunks: list[dict],
     toc: list[dict],
@@ -478,13 +606,22 @@ def retrieve(
     recorded: list[str] | None = None,
     oracle_pages: set[int] | None = None,
     force_l2: bool = False,
+    doc_id: str = "",
+    model_cfg: dict | None = None,
 ) -> dict:
     gate = len(toc) > 0 if toc_source == "outline" else titled_ratio(chunks) >= L1_MIN_TITLED_RATIO
     selected: list[dict] = []
+    model_reply = ""
+    why = router_mode
     if gate and not force_l2:
-        selected, why = route_sections(
-            toc, query, router_mode, recorded, last_page=last_page, oracle_pages=oracle_pages
-        )
+        if router_mode == "model":
+            selected, why, model_reply = route_sections_model(
+                toc, query, doc_id, model_cfg or {"cache": {}, "stats": {}}
+            )
+        else:
+            selected, why = route_sections(
+                toc, query, router_mode, recorded, last_page=last_page, oracle_pages=oracle_pages
+            )
         if selected:
             picked = {normalize_title(e["section_title"]) for e in selected}
             pages: set[int] = set()
@@ -497,6 +634,7 @@ def retrieve(
                     "used_retrieval": "toc_route",
                     "selected_sections": [e["section_title"] for e in selected],
                     "router": why,
+                    "model_reply": model_reply,
                     "l1_gate_passed": True,
                     "l1_span_pages": sorted(pages),
                     "chunks": hits,
@@ -505,7 +643,8 @@ def retrieve(
     return {
         "used_retrieval": "keyword",
         "selected_sections": [e["section_title"] for e in selected],
-        "router": router_mode,
+        "router": why,
+        "model_reply": model_reply,
         "l1_gate_passed": gate,
         "l1_span_pages": [],
         "chunks": hits,
@@ -523,6 +662,94 @@ def qa_context(chunks: list[dict], budget: int = QA_CHAR_BUDGET) -> str:
     return "\n\n".join(parts)
 
 
+def build_qa_prompt(doc_name: str, chunks: list[dict], question: str, budget: int) -> str:
+    parts, used = [], 0
+    for chunk in chunks:
+        block = f"[{doc_name} p.{chunk['page_no']}] {chunk['content'][:CHUNK_MAX_CHARS]}"
+        if used + len(block) > budget:
+            break
+        parts.append(block)
+        used += len(block)
+    return (
+        "以下是从资料中检索到的片段：\n"
+        + "\n\n".join(parts)
+        + f"\n\n问题：{question}\n"
+        "只依据给定片段回答；片段不足以回答时明确说明；引用片段时标注 [p.X]"
+    )
+
+
+def run_qa_smoke(
+    questions: list[dict],
+    docs: dict[str, dict],
+    cfg: dict,
+    qids: list[str],
+    budget: int,
+    top_k: int,
+    router_mode: str,
+    toc_source: str,
+    force_l2: bool,
+) -> list[dict]:
+    by_id = {question["qid"]: question for question in questions}
+    results = []
+    for qid in qids:
+        question = by_id.get(qid)
+        doc = docs.get(question["doc_id"]) if question else None
+        if not question or not doc or doc["extract"].status != "ready" or not doc["chunks"]:
+            results.append({"qid": qid, "error": "问题或文档不可用"})
+            continue
+        outcome = retrieve(
+            doc["chunks"],
+            doc["toc"],
+            doc["extract"].total_pages,
+            question["question"],
+            top_k,
+            router_mode,
+            toc_source,
+            question.get("router_pick_agent"),
+            set(question.get("expected_pages") or []),
+            force_l2,
+            question["doc_id"],
+            cfg,
+        )
+        if not outcome["chunks"]:
+            results.append({"qid": qid, "error": "检索无结果"})
+            continue
+        key = cache_key(
+            f"qa:{qid}", question["question"], cfg["model"], budget, cfg["qa_max_tokens"]
+        )
+        if key in cfg["cache"]:
+            cached = cfg["cache"][key]
+            cfg["stats"]["cache_hits"] += 1
+            results.append({**cached, "cached": True})
+            continue
+        prompt = build_qa_prompt(doc["file"], outcome["chunks"], question["question"], budget)
+        try:
+            answer, usage = chat_completion(
+                cfg["base_url"], cfg["api_key"], cfg["model"], prompt, cfg["qa_max_tokens"], cfg["timeout"]
+            )
+        except Exception as exc:
+            cfg["stats"]["errors"] += 1
+            results.append({"qid": qid, "error": f"{type(exc).__name__}: {exc}"})
+            continue
+        cfg["stats"]["calls"] += 1
+        cfg["stats"]["input_tokens"] += int(usage.get("prompt_tokens") or 0)
+        cfg["stats"]["output_tokens"] += int(usage.get("completion_tokens") or 0)
+        record = {
+            "qid": qid,
+            "doc_id": question["doc_id"],
+            "question": question["question"],
+            "answer": answer,
+            "citations": sorted({int(m) for m in re.findall(r"\[p\.(\d+)\]", answer)}),
+            "expected_pages": question.get("expected_pages"),
+            "retrieved_pages": [c["page_no"] for c in outcome["chunks"]],
+            "used_retrieval": outcome["used_retrieval"],
+            "usage": usage,
+        }
+        cfg["cache"][key] = record
+        results.append(record)
+    return results
+
+
 def evaluate_questions(
     questions: list[dict],
     docs: dict[str, dict],
@@ -530,6 +757,7 @@ def evaluate_questions(
     router_mode: str,
     toc_source: str,
     force_l2: bool = False,
+    model_cfg: dict | None = None,
 ) -> dict:
     results = []
     for question in questions:
@@ -548,6 +776,8 @@ def evaluate_questions(
             question.get("router_pick_agent"),
             set(question.get("expected_pages") or []),
             force_l2,
+            question["doc_id"],
+            model_cfg,
         )
         pages = [c["page_no"] for c in outcome["chunks"]]
         expected_pages = set(question.get("expected_pages") or [])
@@ -569,6 +799,8 @@ def evaluate_questions(
                 "used_retrieval": outcome["used_retrieval"],
                 "l1_gate_passed": outcome["l1_gate_passed"],
                 "selected_sections": outcome["selected_sections"],
+                "router": outcome["router"],
+                "model_reply": outcome.get("model_reply", ""),
                 "l1_hit": l1_hit,
                 "l1_reachable": l1_reachable,
                 "expected_pages": sorted(expected_pages),
@@ -696,6 +928,7 @@ def run(args) -> dict:
             "elapsed_ms": extract.elapsed_ms,
         }
         manifest_docs.append(entry)
+    model_cfg = build_model_cfg(args)
     evaluation = evaluate_questions(
         questions_file["questions"],
         docs,
@@ -703,7 +936,22 @@ def run(args) -> dict:
         args.router,
         args.toc_source,
         args.force_l2,
+        model_cfg,
     )
+    qa_smoke = []
+    if args.qa_smoke_qids:
+        qa_smoke = run_qa_smoke(
+            questions_file["questions"],
+            docs,
+            model_cfg,
+            [q.strip() for q in args.qa_smoke_qids.split(",") if q.strip()],
+            args.qa_budget,
+            args.top_k,
+            args.router,
+            args.toc_source,
+            args.force_l2,
+        )
+    save_cache(model_cfg.get("cache_path"), model_cfg.get("cache") or {})
     truncated = [
         {
             "doc_id": d["doc_id"],
@@ -725,6 +973,32 @@ def run(args) -> dict:
         "documents": manifest_docs,
         "truncated_documents": truncated,
         "evaluation": evaluation,
+        "model": {
+            "name": model_cfg.get("model"),
+            "base_url": model_cfg.get("base_url"),
+            "max_toc_lines": model_cfg.get("max_toc_lines"),
+            "max_tokens": model_cfg.get("max_tokens"),
+            "qa_max_tokens": model_cfg.get("qa_max_tokens"),
+            "timeout": model_cfg.get("timeout"),
+            "stats": model_cfg.get("stats"),
+        },
+        "qa_smoke": qa_smoke,
+    }
+
+
+def build_model_cfg(args) -> dict:
+    api_key = args.api_key or os.environ.get("DEEPSEEK_API_KEY") or ""
+    return {
+        "api_key": api_key,
+        "base_url": args.model_base_url,
+        "model": args.model,
+        "max_toc_lines": args.model_max_toc_lines,
+        "max_tokens": args.model_max_tokens,
+        "qa_max_tokens": args.qa_max_tokens,
+        "timeout": args.model_timeout,
+        "cache": load_cache(pathlib.Path(args.model_cache) if args.model_cache else None),
+        "cache_path": args.model_cache,
+        "stats": {"calls": 0, "input_tokens": 0, "output_tokens": 0, "errors": 0, "cache_hits": 0},
     }
 
 
@@ -805,6 +1079,37 @@ def markdown_report(payload: dict) -> str:
                 ans="Y" if r["answerable"] else "N",
             )
         )
+    model = payload.get("model")
+    if model:
+        stats = model.get("stats") or {}
+        lines.append("\n**模型路由**：")
+        lines.append(
+            f"- 模型 {model.get('name')}（base_url {model.get('base_url')}），目录上限 {model.get('max_toc_lines')} 行，"
+            f"路由 max_tokens {model.get('max_tokens')}"
+        )
+        lines.append(
+            f"- 调用 {stats.get('calls', 0)} 次（缓存命中 {stats.get('cache_hits', 0)}），"
+            f"输入 {stats.get('input_tokens', 0)} token / 输出 {stats.get('output_tokens', 0)} token，失败 {stats.get('errors', 0)} 次"
+        )
+        replies = [
+            (r.get("qid"), r.get("router"), r.get("model_reply"))
+            for r in payload["evaluation"]["questions"]
+            if r.get("model_reply")
+        ]
+        for qid, why, reply in replies:
+            flat = " / ".join(part.strip() for part in reply.splitlines() if part.strip())
+            lines.append(f"- {qid}（{why}）：{flat[:180]}")
+    if payload.get("qa_smoke"):
+        lines.append("\n**QA 冒烟（检索片段喂模型作答，验证 06 §5.3 引用契约）**：")
+        for item in payload["qa_smoke"]:
+            if item.get("error"):
+                lines.append(f"- {item['qid']}：失败 {item['error']}")
+                continue
+            usage = item.get("usage") or {}
+            lines.append(
+                f"- {item['qid']}（{item['used_retrieval']}，片段页 {item['retrieved_pages']}，"
+                f"引用页 {item['citations']}，{usage.get('total_tokens', '?')} token）：{item['answer'][:200]}"
+            )
     return "\n".join(lines)
 
 
@@ -816,10 +1121,26 @@ def main(argv=None) -> int:
     parser.add_argument("--profile", choices=sorted(HEADING_PROFILES), default="spec")
     parser.add_argument("--toc-source", choices=["text", "outline"], default="text")
     parser.add_argument("--outline-max-depth", type=int, default=1)
-    parser.add_argument("--router", choices=["heuristic", "agent", "oracle"], default="heuristic")
+    parser.add_argument("--router", choices=["heuristic", "agent", "oracle", "model"], default="heuristic")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
     parser.add_argument("--force-l2", action="store_true")
+    parser.add_argument("--api-key", default=os.environ.get("DEEPSEEK_API_KEY", ""))
+    parser.add_argument("--model", default=os.environ.get("DEEPSEEK_MODEL", DEFAULT_MODEL))
+    parser.add_argument(
+        "--model-base-url", default=os.environ.get("DEEPSEEK_BASE_URL", DEFAULT_MODEL_BASE_URL)
+    )
+    parser.add_argument("--model-max-toc-lines", type=int, default=DEFAULT_MODEL_MAX_TOC_LINES)
+    parser.add_argument("--model-max-tokens", type=int, default=DEFAULT_MODEL_MAX_TOKENS)
+    parser.add_argument("--qa-max-tokens", type=int, default=DEFAULT_QA_MAX_TOKENS)
+    parser.add_argument("--model-timeout", type=int, default=DEFAULT_MODEL_TIMEOUT)
+    parser.add_argument("--model-cache", default=None)
+    parser.add_argument("--qa-smoke-qids", default="")
+    parser.add_argument("--qa-budget", type=int, default=3000)
     args = parser.parse_args(argv)
+
+    if args.router == "model" or args.qa_smoke_qids:
+        if not (args.api_key or os.environ.get("DEEPSEEK_API_KEY")):
+            parser.error("该配置需要模型凭据：设置 DEEPSEEK_API_KEY 或 --api-key")
 
     payload = run(args)
     out_dir = pathlib.Path(args.out)
@@ -827,6 +1148,10 @@ def main(argv=None) -> int:
     stamp = f"{args.profile}_{args.toc_source}_d{args.outline_max_depth}_{args.router}_k{args.top_k}"
     if args.force_l2:
         stamp += "_l2only"
+    if args.router == "model":
+        stamp += f"_{args.model}"
+    if args.qa_smoke_qids:
+        stamp += "_qa"
     (out_dir / f"spike_pdf_results_{stamp}.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
     )
