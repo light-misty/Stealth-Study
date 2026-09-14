@@ -15,6 +15,7 @@ L2 逐维度拆分 → L3 弃结构化（返回 raw_text）。`response_format` 
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from dataclasses import dataclass, field
@@ -405,3 +406,395 @@ def parse_scoring_points_l0(payload: dict) -> Tuple[bool, dict, List[str], Optio
     if payload.get("model_answer_outline") is not None:
         data["model_answer_outline"] = payload["model_answer_outline"]
     return (not flags), data, flags, None
+
+
+# ---------------------------------------------------------------------------
+# 翻译 L0（JSON）校验
+# ---------------------------------------------------------------------------
+
+
+def parse_translation_l0(payload: dict) -> Tuple[bool, dict, List[str], Optional[str]]:
+    """翻译 L0：整段定档（band 0-15）+ 逐句问题类型（白名单 `TRANSLATION_ERROR_TYPES`）。"""
+    flags: List[str] = []
+    band = payload.get("band")
+    if not isinstance(band, int) or isinstance(band, bool) or not (
+        TRANSLATION_BAND_MIN <= band <= TRANSLATION_BAND_MAX
+    ):
+        return False, {}, ["schema_violation:band_out_of_whitelist"], "schema_violation"
+    errors = payload.get("errors", [])
+    if not isinstance(errors, list):
+        return False, {}, ["schema_violation:errors_missing"], "schema_violation"
+    for index, item in enumerate(errors):
+        if not isinstance(item, dict) or item.get("type") not in TRANSLATION_ERROR_TYPES:
+            return False, {}, [f"schema_violation:error_{index}_type_unknown"], "schema_violation"
+    data: dict = {
+        "band": band,
+        "dimension_scores": {},
+        "errors": errors,
+        "upgraded_demo": payload.get("upgraded_demo"),
+        "model_answer_outline": payload.get("model_answer_outline"),
+    }
+    return (not flags), data, flags, None
+
+
+# ---------------------------------------------------------------------------
+# 数据类与 kind 分组
+# ---------------------------------------------------------------------------
+
+ESSAY_KINDS = frozenset({"essay"})
+TRANSLATION_KINDS = frozenset({"translation"})
+SCORING_KINDS = frozenset({"short_answer", "essay_material", "lesson_plan", "practical"})
+
+# 降级提示（03 §4.3：`degrade_level>=1` 时 `notice` 必须非空），前端强渲染。
+DEGRADE_NOTICE = "评分仅供参考（弱模型或解析降级时）"
+
+
+@dataclass
+class GradeRequest:
+    profile_id: str
+    track_type: str
+    kind: str
+    question: str
+    answer: str
+    rubric_id: Optional[str] = None
+    custom_rubric: Optional[str] = None
+    subject: Optional[str] = None
+
+
+@dataclass
+class GradeResult:
+    ok: bool
+    degrade_level: int
+    model_used: str
+    band: Optional[int] = None
+    dimension_scores: dict = field(default_factory=dict)
+    errors: list = field(default_factory=list)
+    scoring_points: list = field(default_factory=list)
+    upgraded_demo: Optional[str] = None
+    model_answer_outline: Optional[str] = None
+    raw_text: Optional[str] = None
+    usage: Optional[dict] = None
+    fail_reason: Optional[str] = None
+    notice: Optional[str] = None
+    degrade_trace: list = field(default_factory=list)
+    calls: int = 0
+    retries: int = 0
+    schema_flags: list = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# prompt 组装（按 kind 选 rubric；`custom_rubric` 非空时覆盖 rubric 全文，06 §3.5）
+# ---------------------------------------------------------------------------
+
+_RUBRIC_BAND_TABLE = re.compile(r"^\| 档位 \|.*?(?=\n\n)", re.S | re.M)
+_RUBRIC_DIMENSIONS = re.compile(r"^分项维度.*?(?=\n\n)", re.S | re.M)
+_RUBRIC_ERROR_TYPES = re.compile(r"^错误类型枚举.*?(?=\n\n)", re.S | re.M)
+
+TRANS_L0_SCHEMA = (
+    '{"band": <0-15>, "errors": [{"fragment": "...", "suggestion": "", '
+    '"type": "<翻译问题类型>"}], "upgraded_demo": "..."}'
+)
+TRANS_L1_TEMPLATE_ROWS = ["档位：<0-15>"]
+TRANS_L1_TEMPLATE_ROWS += [
+    f"错误{i}：<原文片段> || <问题类型>" for i in range(1, MAX_ERROR_ROWS + 1)
+]
+TRANS_L1_TEMPLATE_ROWS.append("升格示范：<一段改写>")
+TRANS_L1_TEMPLATE = "\n".join(TRANS_L1_TEMPLATE_ROWS)
+
+
+def _rubric_text(req: GradeRequest, default: str) -> str:
+    custom = (req.custom_rubric or "").strip()
+    return custom if custom else default
+
+
+def rubric_section(pattern: re.Pattern[str]) -> str:
+    match = pattern.search(CET_ESSAY_RUBRIC)
+    return match.group(0).strip() if match else ""
+
+
+def build_l0_messages(req: GradeRequest) -> list[dict]:
+    system = (
+        f"{_rubric_text(req, CET_ESSAY_RUBRIC)}\n\n"
+        f"你只能输出一个 JSON 对象，schema：\n{L0_SCHEMA}\n\n"
+        "只输出一个 JSON 对象，不要任何其他文字。"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"题目：{req.question}\n学生作文：{req.answer}"},
+    ]
+
+
+def build_l1_messages(req: GradeRequest) -> list[dict]:
+    system = (
+        f"{_rubric_text(req, CET_ESSAY_RUBRIC)}\n\n"
+        "按下面的行式模板逐行填空，不要增删行，不要输出任何其他文字：\n"
+        f"{L1_TEMPLATE}"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"题目：{req.question}\n学生作文：{req.answer}"},
+    ]
+
+
+def build_l2_messages(round_no: int, req: GradeRequest) -> list[dict]:
+    table = rubric_section(_RUBRIC_BAND_TABLE)
+    dims = rubric_section(_RUBRIC_DIMENSIONS)
+    errors = rubric_section(_RUBRIC_ERROR_TYPES)
+    if round_no == 0:
+        section = table
+        instruction = (
+            "只做一件事：给这篇作文定档。\n"
+            "输出两行：第一行 `结论：<档位分值>`（取 0/2/5/8/11/14），第二行 `依据：<一句话>`。"
+        )
+    elif round_no == 1:
+        section = dims
+        instruction = (
+            "只做一件事：按内容/结构/语言三维给分，各 0-5 分。\n"
+            "输出两行：第一行 `结论：<内容分>,<结构分>,<语言分>`，第二行 `依据：<一句话>`。"
+        )
+    else:
+        section = errors
+        instruction = (
+            "只做一件事：列出这篇作文的语言错误，每行一条，格式为 `原片段 || 修改建议 || 类型`，"
+            f"最多 {MAX_ERROR_ROWS} 行，类型只能取上述枚举值。输出两行：第一行 `结论：见下列清单`，"
+            "后续每行一条错误。"
+        )
+    system = f"{section}\n\n{instruction}\n只输出要求的内容，不要任何其他文字。"
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"题目：{req.question}\n学生作文：{req.answer}"},
+    ]
+
+
+def build_translation_l0_messages(req: GradeRequest) -> list[dict]:
+    system = (
+        f"{_rubric_text(req, CET_TRANSLATION_RUBRIC)}\n\n"
+        f"你只能输出一个 JSON 对象，schema：\n{TRANS_L0_SCHEMA}\n\n"
+        "只输出一个 JSON 对象，不要任何其他文字。"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"题目：{req.question}\n学生作答：{req.answer}"},
+    ]
+
+
+def build_translation_l1_messages(req: GradeRequest) -> list[dict]:
+    system = (
+        f"{_rubric_text(req, CET_TRANSLATION_RUBRIC)}\n\n"
+        "按下面的行式模板逐行填空，不要增删行，不要输出任何其他文字：\n"
+        f"{TRANS_L1_TEMPLATE}"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"题目：{req.question}\n学生作答：{req.answer}"},
+    ]
+
+
+def build_scoring_l0_messages(req: GradeRequest) -> list[dict]:
+    system = (
+        f"{_rubric_text(req, CERT_SCORING_POINTS_SPEC)}\n\n"
+        "只输出一个 JSON 对象，不要任何其他文字。"
+    )
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"题目：{req.question}\n学生作答：{req.answer}"},
+    ]
+
+
+# ---------------------------------------------------------------------------
+# GradingEngine：四级降级（06 §3）
+# ---------------------------------------------------------------------------
+
+
+class GradingEngine:
+    """结构化批改引擎（06 §2.2）。
+
+    `provider.complete` 是阻塞式（`providers/base.py:109-117`），`grade()` 用
+    `asyncio.to_thread` 包裹，与 engine 既有模式一致（06 §1.1「同步请求 + 线程内完成」）。
+    降级只能由输出解析失败驱动，`response_format` 只是 L0 加分项（ADR-06 / 06 §2.3）。
+    """
+
+    def __init__(
+        self,
+        provider: Any,
+        model_picker: Callable[[str, str], Tuple[str, str]],
+        *,
+        start_level: int = DEFAULT_GRADING_START_LEVEL,
+        call_budget: int = CALL_BUDGET,
+        timeout_s: int = PROVIDER_TIMEOUT_S,
+        temperature: int = TEMPERATURE,
+    ):
+        self._provider = provider
+        self._picker = model_picker
+        self.start_level = start_level
+        self.call_budget = call_budget
+        self.timeout_s = timeout_s
+        self.temperature = temperature
+
+    async def grade(self, req: GradeRequest) -> GradeResult:
+        return await asyncio.to_thread(self._grade_sync, req)
+
+    # ---- 单次模型调用（含 response_format 去参重试，06 §2.3） ----
+
+    def _call(self, model: str, messages: list[dict], use_response_format: bool) -> Tuple[str, int]:
+        settings: dict[str, Any] = {"temperature": self.temperature, "timeout": self.timeout_s}
+        if use_response_format:
+            settings["response_format"] = {"type": "json_object"}
+        try:
+            turn = self._provider.complete(model=model, messages=messages, **settings)
+            return (turn.text or ""), 0
+        except Exception as exc:
+            if not use_response_format:
+                raise
+            try:
+                turn = self._provider.complete(
+                    model=model,
+                    messages=messages,
+                    temperature=self.temperature,
+                    timeout=self.timeout_s,
+                )
+                return (turn.text or ""), 1
+            except Exception:
+                raise exc
+
+    def _attempt(
+        self,
+        model: str,
+        messages: list[dict],
+        use_response_format: bool,
+        state: dict,
+        trace: list,
+    ) -> Optional[str]:
+        state["calls"] += 1
+        if state["calls"] > self.call_budget:
+            return None
+        try:
+            text, used = self._call(model, messages, use_response_format)
+            state["retries"] += used
+            return text
+        except Exception as exc:
+            name = type(exc).__name__
+            if "timeout" in name.lower() or "timeout" in str(exc).lower():
+                state["timeout_seen"] = True
+            trace.append({"level": "provider", "ok": False, "reason": f"provider_error:{name}", "schema_flags": []})
+            return None
+
+    def _parse_level(self, kind: str, level: int, text: str) -> Tuple[bool, dict, list, Optional[str]]:
+        if level == 0:
+            data, reason = extract_json(text)
+            if data is None:
+                return False, {}, [], reason or "json_invalid"
+            if kind in SCORING_KINDS:
+                return parse_scoring_points_l0(data)
+            if kind in TRANSLATION_KINDS:
+                return parse_translation_l0(data)
+            return parse_l0(data)
+        if level == 1:
+            if kind in TRANSLATION_KINDS:
+                return parse_translation_l1(text)
+            return parse_l1(text)
+        raise ValueError(f"no L{level} parser for kind={kind!r}")
+
+    def _build_prompt(self, level: int, req: GradeRequest, round_no: int = 0) -> list[dict]:
+        if req.kind in SCORING_KINDS:
+            return build_scoring_l0_messages(req)
+        if req.kind in TRANSLATION_KINDS:
+            if level == 0:
+                return build_translation_l0_messages(req)
+            return build_translation_l1_messages(req)
+        if level == 0:
+            return build_l0_messages(req)
+        if level == 1:
+            return build_l1_messages(req)
+        return build_l2_messages(round_no, req)
+
+    def _levels(self, kind: str) -> Tuple[int, ...]:
+        if kind in SCORING_KINDS:
+            return (0,)
+        if kind in TRANSLATION_KINDS:
+            return (0, 1)
+        return (0, 1, 2)
+
+    def _result(
+        self,
+        req: GradeRequest,
+        model: str,
+        level: int,
+        data: Optional[dict],
+        trace: list,
+        schema_flags: list,
+        state: dict,
+        *,
+        ok: bool = True,
+        fail_reason: Optional[str] = None,
+        raw_text: Optional[str] = None,
+    ) -> GradeResult:
+        del req
+        result = GradeResult(
+            ok=ok,
+            degrade_level=level,
+            model_used=model,
+            raw_text=raw_text,
+            fail_reason=fail_reason,
+            degrade_trace=list(trace),
+            calls=state["calls"],
+            retries=state["retries"],
+            schema_flags=list(schema_flags),
+        )
+        if data:
+            result.band = data.get("band")
+            result.dimension_scores = data.get("dimension_scores") or {}
+            result.errors = data.get("errors") or []
+            result.scoring_points = data.get("scoring_points") or []
+            result.upgraded_demo = data.get("upgraded_demo")
+            result.model_answer_outline = data.get("model_answer_outline")
+        if level >= 1:
+            result.notice = DEGRADE_NOTICE
+        return result
+
+    def _grade_sync(self, req: GradeRequest) -> GradeResult:
+        model, _fallback = self._picker(req.kind, req.track_type)
+        trace: list = []
+        raw: dict[str, str] = {}
+        flags_all: list = []
+        state: dict = {"calls": 0, "retries": 0, "timeout_seen": False}
+
+        for level in self._levels(req.kind):
+            if level < self.start_level:
+                continue
+            if level == 2:
+                rounds: list = []
+                for round_no in range(3):
+                    text = self._attempt(
+                        model, self._build_prompt(2, req, round_no), False, state, trace
+                    )
+                    if text is None:
+                        break
+                    rounds.append(text)
+                    raw[f"l2_r{round_no}"] = text
+                ok, data, schema_flags, reason = parse_l2_rounds(rounds)
+                trace.append(
+                    {"level": 2, "rounds_completed": len(rounds), "ok": ok, "reason": reason, "schema_flags": schema_flags}
+                )
+                flags_all.extend(schema_flags)
+                if ok:
+                    return self._result(req, model, 2, data, trace, flags_all, state)
+                continue
+
+            text = self._attempt(model, self._build_prompt(level, req), level == 0, state, trace)
+            if text is None:
+                continue
+            raw[f"l{level}"] = text
+            ok, data, schema_flags, reason = self._parse_level(req.kind, level, text)
+            trace.append({"level": level, "ok": ok, "reason": reason, "schema_flags": schema_flags})
+            flags_all.extend(schema_flags)
+            if ok:
+                return self._result(req, model, level, data, trace, flags_all, state)
+
+        fallback = raw.get("l2_r2") or raw.get("l1") or raw.get("l0") or None
+        if fallback and fallback.strip():
+            return self._result(req, model, 3, None, trace, flags_all, state, raw_text=fallback)
+        fail_reason = "MODEL_TIMEOUT" if state["timeout_seen"] else "MODEL_EMPTY"
+        return self._result(
+            req, model, 3, None, trace, flags_all, state, ok=False, fail_reason=fail_reason
+        )
