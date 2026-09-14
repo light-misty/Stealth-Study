@@ -12,6 +12,7 @@ import {
 import { ConnectorBadge } from "../connectors/ConnectorIcon";
 import { ProviderCards, ProviderForm, useProviderSetup } from "../providers/ProviderSetup";
 import { Spinner } from "./AutomationQuickstart";
+import { showLogin } from "../flags";
 
 // First-run onboarding (UX-DECISIONS §24 → §29 → §39): model → your tools → go.
 // §39 (owner design, 2026-07-18): step 1 is a PROVIDER GALLERY — 13 real brand
@@ -235,8 +236,9 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
 
             {/* The band is PINNED outside the scroll area and its slot never moves: the ask
                 pre-sign-in, a green congrats after — zero layout shift at the moment the user
-                returns from the browser (§41). */}
-            {!cloud?.signed_in ? (
+                returns from the browser (§41). G-06: the whole band is gated on showLogin()
+                — with cloud sign-in off there is no ask, and the skip footer carries step 1. */}
+            {showLogin() && (!cloud?.signed_in ? (
               <div className="mt-3.5 rounded-xl border border-line bg-paper px-4 py-3 flex items-center gap-3.5 shrink-0">
                 <span className="flex-1 text-[13px] text-muted leading-snug">
                   <span className="block text-[13px] font-semibold text-ink mb-0.5">
@@ -290,11 +292,11 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
                   {t("onboarding.signed_in_desc")}
                 </span>
               </div>
-            )}
+            ))}
 
             {/* One footer button, one slot: quiet skip pre-sign-in, black Next after. */}
             <div className="flex items-center mt-3.5">
-              {cloud?.signed_in ? (
+              {cloud?.signed_in && showLogin() ? (
                 <button
                   className="ml-auto px-6 py-2 rounded-full bg-ink text-panel text-[13px] shrink-0"
                   onClick={() => setStep(2)}
