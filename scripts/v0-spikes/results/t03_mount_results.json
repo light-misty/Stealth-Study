@@ -1,0 +1,32 @@
+{
+  "spike": "T03-include-router-mount",
+  "all_pass": true,
+  "checks": {
+    "preflight_git_clean": true,
+    "server_started": true,
+    "campus_health_no_token_401": true,
+    "campus_health_wrong_token_401": true,
+    "campus_health_with_token_200": true,
+    "existing_v1_sessions_200": true,
+    "existing_v1_settings_200": true,
+    "existing_v1_automations_200": true,
+    "graceful_exit_no_traceback": true,
+    "coworker_db_mtime_unchanged": true,
+    "restore_git_diff_zero": true
+  },
+  "details": {
+    "preflight_git_clean": "",
+    "server_started": "returncode=None",
+    "campus_health_no_token_401": 401,
+    "campus_health_wrong_token_401": 401,
+    "campus_health_with_token_200": 200,
+    "existing_v1_sessions_200": 200,
+    "existing_v1_settings_200": 200,
+    "existing_v1_automations_200": 200,
+    "graceful_exit_no_traceback": "returncode=0 err=",
+    "coworker_db_mtime_unchanged": "before=1789279130.514677 after=1789279130.514677",
+    "restore_git_diff_zero": ""
+  },
+  "isolated_state_dir": "C:\\Users\\a1926\\AppData\\Local\\Temp\\t03-spike-state-mvoui_6y",
+  "real_state_db": "C:\\Users\\a1926\\AppData\\Roaming\\coworker\\coworker.db"
+}
