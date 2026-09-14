@@ -1,0 +1,131 @@
+{
+  "grid": {
+    "mimo-v2.5-pro|l0_plain": {
+      "model": "mimo-v2.5-pro",
+      "condition": "l0_plain",
+      "samples": 20,
+      "degrade_distribution": {
+        "0": 20,
+        "1": 0,
+        "2": 0,
+        "3": 0
+      },
+      "l0_success_rate": 1.0,
+      "l0_l1_success_rate": 1.0,
+      "l3_count": 0,
+      "fail_count": 0,
+      "schema_flags": {},
+      "calls_total": 20,
+      "calls_max": 1,
+      "calls_budget_ok": true,
+      "band_histogram": {
+        "14": 18,
+        "11": 2
+      },
+      "response_format_rejected": 0,
+      "response_format_accepted": null
+    },
+    "mimo-v2.5-pro|l0_response_format": {
+      "model": "mimo-v2.5-pro",
+      "condition": "l0_response_format",
+      "samples": 20,
+      "degrade_distribution": {
+        "0": 19,
+        "1": 0,
+        "2": 1,
+        "3": 0
+      },
+      "l0_success_rate": 0.95,
+      "l0_l1_success_rate": 0.95,
+      "l3_count": 0,
+      "fail_count": 0,
+      "schema_flags": {
+        "schema_violation:dimension_scores_missing": 1,
+        "schema_violation:error_2_type_unknown": 1
+      },
+      "calls_total": 24,
+      "calls_max": 5,
+      "calls_budget_ok": true,
+      "band_histogram": {
+        "14": 20
+      },
+      "response_format_rejected": 0,
+      "response_format_accepted": 20
+    },
+    "mimo-v2.5|l0_plain": {
+      "model": "mimo-v2.5",
+      "condition": "l0_plain",
+      "samples": 20,
+      "degrade_distribution": {
+        "0": 20,
+        "1": 0,
+        "2": 0,
+        "3": 0
+      },
+      "l0_success_rate": 1.0,
+      "l0_l1_success_rate": 1.0,
+      "l3_count": 0,
+      "fail_count": 0,
+      "schema_flags": {},
+      "calls_total": 20,
+      "calls_max": 1,
+      "calls_budget_ok": true,
+      "band_histogram": {
+        "14": 19,
+        "11": 1
+      },
+      "response_format_rejected": 0,
+      "response_format_accepted": null
+    },
+    "mimo-v2.5|l0_response_format": {
+      "model": "mimo-v2.5",
+      "condition": "l0_response_format",
+      "samples": 20,
+      "degrade_distribution": {
+        "0": 20,
+        "1": 0,
+        "2": 0,
+        "3": 0
+      },
+      "l0_success_rate": 1.0,
+      "l0_l1_success_rate": 1.0,
+      "l3_count": 0,
+      "fail_count": 0,
+      "schema_flags": {},
+      "calls_total": 20,
+      "calls_max": 1,
+      "calls_budget_ok": true,
+      "band_histogram": {
+        "14": 19,
+        "11": 1
+      },
+      "response_format_rejected": 0,
+      "response_format_accepted": 20
+    }
+  },
+  "pooled_by_model": {
+    "mimo-v2.5-pro": {
+      "samples": 40,
+      "degrade_distribution": {
+        "0": 39,
+        "1": 0,
+        "2": 1,
+        "3": 0
+      },
+      "l0_success_rate": 0.975,
+      "l0_l1_success_rate": 0.975
+    },
+    "mimo-v2.5": {
+      "samples": 40,
+      "degrade_distribution": {
+        "0": 40,
+        "1": 0,
+        "2": 0,
+        "3": 0
+      },
+      "l0_success_rate": 1.0,
+      "l0_l1_success_rate": 1.0
+    }
+  },
+  "total_cells": 80
+}

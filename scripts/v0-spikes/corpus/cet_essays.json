@@ -1,0 +1,499 @@
+{
+  "corpus_version": 1,
+  "built_at": "2026-09-13T22:34:04+0800",
+  "source_id": "cet-prompt-hub",
+  "source_license": "MIT",
+  "source_url": "https://github.com/ZhaoyuanLiu23/CET-Prompt-Hub",
+  "essays": [
+    {
+      "essay_id": "E01",
+      "group_id": "adversity-cet4",
+      "role_group": "paired",
+      "track": "cet4",
+      "topic": "adversity",
+      "prompt": "话题：adversity（adversity-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Resilience as a Recoverable Muscle",
+      "essay": "Adversity is an inevitable companion of any ambitious endeavor. However, the critical differentiator between those who ultimately succeed and those who collapse is not the absence of hardship but the capacity for resilience—the ability to bounce back stronger. Resilience functions like a muscle that can be trained and fortified through deliberate practice. Research on post-traumatic growth reveals that many individuals emerge from crises with enhanced strength, deeper relationships, and renewed purpose. They do not deny pain but process it constructively. For students, failing an exam or receiving harsh criticism can serve as a wake-up call rather than a verdict. By reframing setbacks as feedback, they develop coping strategies and emotional regulation. Consequently, we should deliberately expose ourselves to manageable challenges, gradually expanding our comfort zones. Each successfully navigated adversity thickens our psychological armor. Resilience transforms victimhood into agency. Remember: the oak that withstands storms grows deepest roots.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 148,
+      "stated_word_count": 171,
+      "source_file": "essays/adversity_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/adversity_cet4.pdf",
+      "sha256": "03ff08be81c5251b91d249bef6a3d33b2da4f58f489ce51f3821cc8f16d1b98b",
+      "reference": {
+        "text": "Just as IQ measures intelligence and EQ measures emotional competence, Adversity Quotient (AQ) gauges one's capacity to endure and grow through hardship. Students can deliberately raise their AQ through small, daily practices that simulate manageable stress. For instance, voluntarily tackling a difficult subject before receiving instruction, presenting in front of critical audiences, or taking on leadership roles in ambiguous situations all build adversity tolerance. The key is progressive overload—starting with mildly uncomfortable tasks and gradually increasing difficulty. Each successful coping episode rewires neural pathways, reinforcing confidence and reducing fear of future setbacks. Universities should integrate AQ-building activities into orientation and extracurricular programming. However, the ultimate responsibility lies with each student. By reframing obstacles as opportunities for training, they convert passive suffering into active mastery. Resilience is not a fixed trait but an ever-developing skill. Embrace adversity today; it will forge your unshakeable tomorrow.",
+        "role": "same_topic_reference",
+        "source_file": "essays/adversity_cet4.pdf",
+        "sha256": "03ff08be81c5251b91d249bef6a3d33b2da4f58f489ce51f3821cc8f16d1b98b",
+        "section_title": "Building Adversity Quotient in Daily Student Life",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E02",
+      "group_id": "adversity-cet4",
+      "role_group": "solo",
+      "track": "cet4",
+      "topic": "adversity",
+      "prompt": "话题：adversity（adversity-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Turning Setbacks into Stepping Stones",
+      "essay": "The difference between a setback and a stepping stone lies entirely in one's interpretive lens. Pessimists view failure as permanent and pervasive, while resilient individuals perceive it as temporary and specific. This cognitive reframing dramatically affects subsequent behavior and outcomes. Take the case of numerous entrepreneurs whose initial ventures crashed disastrously. Rather than internalizing defeat, they dissected mistakes, extracted lessons, and pivoted strategies. J.K. Rowling, rejected by twelve publishers, used each rejection letter as fuel for refinement, not as evidence of incompetence. Similarly, athletes who miss crucial shots but continue practicing convert disappointment into determination. Students facing academic adversity should adopt this growth mindset. A low grade in one subject does not forecast lifelong mediocrity. By analyzing weak points systematically, seeking targeted help, and adjusting study habits, they can transform failure into a diagnostic tool. Adversity, when leveraged wisely, becomes the most effective teacher.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 145,
+      "stated_word_count": 171,
+      "source_file": "essays/adversity_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/adversity_cet4.pdf",
+      "sha256": "03ff08be81c5251b91d249bef6a3d33b2da4f58f489ce51f3821cc8f16d1b98b",
+      "reference": null
+    },
+    {
+      "essay_id": "E03",
+      "group_id": "adversity-cet6",
+      "role_group": "paired",
+      "track": "cet6",
+      "topic": "adversity",
+      "prompt": "话题：adversity（adversity-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "逆境锻造真正的韧性（正面论证）",
+      "essay": "Contrary to popular belief, setbacks are not antithetical to success but constitutive of it. From my perspective, adversity fertilizes resilience by compelling individuals to confront limitations and transcend perceived boundaries. To substantiate, J.K. Rowling — once a destitute single mother — transmuted her rejections from twelve publishers into the meteoric success of Harry Potter, underscoring that hardship often unlocks latent creativity. Furthermore, Frederick Douglass, born into bondage, taught himself to read and write clandestinely, eventually becoming a leading abolitionist. His trajectory proves that systemic oppression can be overcome through unquenchable thirst for liberation. Consequently, embracing setbacks as stepping stones forges antifragility — the capacity to grow stronger from disorder. In summary, comfort breeds fragility, while hardship forges excellence. Thus, we should reframe failures as diagnostic data rather than verdicts, for resilience is the art of harvesting wisdom from wreckage.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 137,
+      "stated_word_count": null,
+      "source_file": "essays/adversity_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/adversity_cet6.pdf",
+      "sha256": "6a1a0919c6d2aba5f78d31e88558463cd3f6e210cd1f183134284b719b2fe0c0",
+      "reference": {
+        "text": "Contemporary self-help culture incessantly preaches that \"what doesn't kill you makes you stronger\" — a maxim that conveniently ignores empirical exceptions. I contend that extreme adversity — trauma, abuse, chronic poverty — more often cripples than strengthens, and glorifying it compounds suffering with guilt. To ground this argument in evidence, longitudinal studies consistently demonstrate that childhood trauma predicts higher rates of depres sion, PTSD, and substance abuse decades later. The notion that trauma inevitably yields post-traumatic growth is a statistical artifact — only a minority exhibit such resilience, often contingent on extraordinary external support. Furthermore, pressuring individuals to find meaning in their suffering risks invalidating their legitimate pain and hindering recovery. Therefore, perpetuating the myth that adversity automatically builds character is not only unscientific but also cruel. In summary, we should retire the simplistic slogan that \"hardship builds character.\" Thus, instead of exhorting sufferers to be grateful for their struggles, we ought to offer unconditional support and work to eliminate preventable adversi ties. Compassion, not romanticization, is the proper response to human suffering.",
+        "role": "same_topic_reference",
+        "source_file": "essays/adversity_cet6.pdf",
+        "sha256": "6a1a0919c6d2aba5f78d31e88558463cd3f6e210cd1f183134284b719b2fe0c0",
+        "section_title": "过度赞美逆境可能造成伤害（批判角度）",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E04",
+      "group_id": "adversity-cet6",
+      "role_group": "solo",
+      "track": "cet6",
+      "topic": "adversity",
+      "prompt": "话题：adversity（adversity-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "逆境并非对所有人都有益（辩证角度）",
+      "essay": "While adversity can build character, it disproportionately harms those without adequate support systems. I argue that romanticizing struggle ignores structural inequalities and places undue blame on individuals for circumstances beyond their control. To elaborate, two individuals facing identical setbacks may experience drastically different outcomes based on access to financial cushions, mentorship, and psychological counseling. Consider a first-generation college student who fails an exam versus a peer from a privileged background — the former may face permanent derailment, while the latter receives tutoring and encouragement. Therefore, blanket praise for resilience risks victim-blaming — implying that failure to thrive reflects insufficient grit rather than insufficient resources. In summary, adversity is a teacher, but a brutal and unequal one. Thus, societies should focus on reducing unnecessary hardships and providing safety nets, rather than exalting suffering as intrinsically virtuous. Wisdom lies in distinguishing growth-fostering challenges from destructive deprivation.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 142,
+      "stated_word_count": null,
+      "source_file": "essays/adversity_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/adversity_cet6.pdf",
+      "sha256": "6a1a0919c6d2aba5f78d31e88558463cd3f6e210cd1f183134284b719b2fe0c0",
+      "reference": null
+    },
+    {
+      "essay_id": "E05",
+      "group_id": "collaboration-cet4",
+      "role_group": "paired",
+      "track": "cet4",
+      "topic": "collaboration",
+      "prompt": "话题：collaboration（collaboration-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Synergy Unleashes Superior Outcomes",
+      "essay": "Teamwork is far more than the mere aggregation of individual contributions; it generates synergy where the collective output surpasses the sum of its parts. Effective collaborators communicate transparently, leverage diverse strengths, and resolve conflicts constructively, thereby achieving what lone efforts cannot. Consider surgical teams in operating rooms, where seamless coordination between surgeons, anesthesiologists, and nurses directly determines patient survival. A single brilliant surgeon without cooperative support would risk catastrophic outcomes. Similarly, software development relies on agile teams that integrate programming, design, and testing expertise continuously. Therefore, educational projects should deliberately cultivate collaborative competencies. Group assignments, peer evaluations, and interdisciplinary challenges train students to appreciate interdependence. When we replace competition with cooperation, we unlock collective intelligence and accomplish breakthroughs previously deemed impossible.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 121,
+      "stated_word_count": 161,
+      "source_file": "essays/collaboration_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/collaboration_cet4.pdf",
+      "sha256": "34daa2df1b59ae7315e6eb12e29bef358ea1eebedebf1ccd47a21fffc63983ef",
+      "reference": {
+        "text": "An effective team does not demand absolute conformity; instead, it strikes a delicate equilibrium between individual initiative and collective cohesion. Overemphasis on group harmony may suppress creative dissent, whereas excessive individualism undermines coordinated action. In student project teams, members should first clarify shared goals and then allocate autonomy for each person to explore specialized subtasks. Regular checkpoints enable integration of diverse findings without micromanagement. This hybrid model allows introverts to contribute through written documentation while extroverts energize discussions. Ultimately, the team's output reflects both individual excellence and collaborative synthesis. To achieve this balance, we must cultivate mutual accountability and celebrate both solo breakthroughs and joint achievements. Teamwork, when optimized, becomes not a constraint but a multiplier of personal capabilities. Every student should therefore embrace collaboration as a learnable skill that amplifies rather than diminishes individual agency.",
+        "role": "same_topic_reference",
+        "source_file": "essays/collaboration_cet4.pdf",
+        "sha256": "34daa2df1b59ae7315e6eb12e29bef358ea1eebedebf1ccd47a21fffc63983ef",
+        "section_title": "Balancing Individual Initiative and Team Cohesion",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E06",
+      "group_id": "collaboration-cet4",
+      "role_group": "solo",
+      "track": "cet4",
+      "topic": "collaboration",
+      "prompt": "话题：collaboration（collaboration-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "The Power of Psychological Safety in Teams",
+      "essay": "Many team failures originate not from lack of talent but from absence of psychological safety. In high-performing groups, members feel secure to voice dissenting opinions, admit mistakes, and propose unconventional ideas without fear of humiliation. This climate of trust dramatically enhances collective problem-solving. Google's Project Aristotle famously identified psychological safety as the single most critical factor differentiating successful teams from mediocre ones. When individuals hesitate to speak up due to fear of criticism, valuable insights remain buried, and errors go unreported until they escalate. Conversely, teams where vulnerability is respected exhibit higher learning rates and innovation outputs. Thus, leaders must model humility by openly acknowledging their own fallibility. Additionally, establishing norms like equitable speaking time and appreciative inquiry fosters inclusion. Collaboration transcends mere task coordination; it thrives on mutual respect and emotional safety. Only then can a team's collective genius fully flourish.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 142,
+      "stated_word_count": 165,
+      "source_file": "essays/collaboration_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/collaboration_cet4.pdf",
+      "sha256": "34daa2df1b59ae7315e6eb12e29bef358ea1eebedebf1ccd47a21fffc63983ef",
+      "reference": null
+    },
+    {
+      "essay_id": "E07",
+      "group_id": "collaboration-cet6",
+      "role_group": "paired",
+      "track": "cet6",
+      "topic": "collaboration",
+      "prompt": "话题：collaboration（collaboration-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "协同胜过单打独斗（正面论证）",
+      "essay": "Complex contemporary challenges defy unilateral solutions, rendering collaboration indispensable. From my perspective, collective intelligence systematically outperforms the aggregate of individual efforts, especially when tasks transcend any single person's cognitive bandwidth. To illustrate, the triumph of Apollo 13's safe return hinged on the collective ingenuity of mission control and astronauts — proving that hierarchical coordination trumps individual heroics in crises. Furthermore, diverse perspectives collide to neutralize unconscious biases and generate robust solutions that no homogeneous group could conceive. Consequently, interdependent tasks force reciprocal accountability, amplifying group resilience. In summary, lone geniuses pale before well-structured teams when complexity escalates. Thus, organizations should engineer collaborative infrastructures and cultivate psychological safety, for synergy transforms fragmented efforts into coherent power.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 114,
+      "stated_word_count": null,
+      "source_file": "essays/collaboration_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/collaboration_cet6.pdf",
+      "sha256": "6d688ec2ce3748a5fa46093effde70f7bbd6eb56d6232ec9b36aa07532c009cf",
+      "reference": {
+        "text": "Not all collaboration is beneficial; dysfunctional teams can produce worse outcomes than individuals working alone. I contend that forced coordination without genuine interdependence engenders process losses that outweigh any potential gains. Consider the phenomenon of social loafing, where individuals exert less effort in groups than alone — a well-documented tendency corroborated by decades of organizational psychology research. Moreover, coordination costs — including scheduling meetings, resolving conflicts, and navigating bureaucracy — can consume the majority of a team's energy, leaving little for substantive work. Therefore, unnecessary collaboration inflicts hidden burdens: diffused responsibility, evaluation apprehension, and suppressed innovation. In summary, collaboration is a tool, not a panacea. Thus, organizations must discriminate between tasks that truly require collective input and those better delegated to competent individuals. Wisdom lies in knowing when to collaborate and when to stay out of each other's way.",
+        "role": "same_topic_reference",
+        "source_file": "essays/collaboration_cet6.pdf",
+        "sha256": "6d688ec2ce3748a5fa46093effde70f7bbd6eb56d6232ec9b36aa07532c009cf",
+        "section_title": "虚假的团队合作比单干更糟（批判角度）",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E08",
+      "group_id": "collaboration-cet6",
+      "role_group": "solo",
+      "track": "cet6",
+      "topic": "collaboration",
+      "prompt": "话题：collaboration（collaboration-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "团队合作需要平衡个体与集体（辩证角度）",
+      "essay": "While collaboration amplifies capabilities, excessive conformity can suppress individual creativity and foster groupthink. I argue that optimal teams strike a delicate balance between harnessing collective wisdom and preserving autonomous contribution. To elaborate, the Manhattan Project — mobilizing thousands of scientists across disciplines — succeeded precisely because it allowed exceptional individuals like Oppenheimer and Fermi to exercise discretion within a coordinated framework. Conversely, teams that demand unanimous agreement on every trivial decision suffer from analysis paralysis and stifled initiative. Hence, effective collaboration requires psychological safety where dissent is valued, not sanctioned. In conclusion, mediocre teams enforce harmony; great teams orchestrate productive friction. Therefore, leaders should encourage respectful disagreement and design interdependencies that leverage diverse strengths without crushing individual agency.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 116,
+      "stated_word_count": null,
+      "source_file": "essays/collaboration_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/collaboration_cet6.pdf",
+      "sha256": "6d688ec2ce3748a5fa46093effde70f7bbd6eb56d6232ec9b36aa07532c009cf",
+      "reference": null
+    },
+    {
+      "essay_id": "E09",
+      "group_id": "courage-cet4",
+      "role_group": "paired",
+      "track": "cet4",
+      "topic": "courage",
+      "prompt": "话题：courage（courage-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Moral Courage in the Face of Injustice",
+      "essay": "Courage transcends physical bravery; moral courage—the willingness to stand up for ethical principles despite personal risk—is equally vital. Individuals who speak out against wrongdoing, defend the vulnerable, or report misconduct demonstrate true responsibility. Without such courage, injustice proliferates silently. Consider whistleblowers who expose corporate fraud or institutional corruption. They often face retaliation, ostracism, or career ruin, yet their actions safeguard public interest and uphold justice. In academic settings, students who refuse to cheat or who report plagiarism exhibit analogous integrity. These acts may seem small, but they collectively reinforce ethical norms. Therefore, educational institutions should nurture moral courage through case discussions and role modeling. Responsibility is not abstract; it manifests in daily choices. When we cultivate the audacity to do right even when inconvenient, we become architects of a more just society. Each courageous decision strengthens the collective conscience.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 141,
+      "stated_word_count": 165,
+      "source_file": "essays/courage_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/courage_cet4.pdf",
+      "sha256": "ef9af226004798f1bc29dcbbe151618c5a6e8d6bdb6dd79c5580f956a65a3937",
+      "reference": {
+        "text": "Leadership devoid of responsibility becomes tyranny, while responsibility without courage yields paralysis. Authentic leadership demands both: the audacity to make difficult decisions and the accountability to own their consequences. Responsible leaders prioritize collective welfare over personal popularity. In campus organizations, a student president might need to cancel a beloved event due to budget constraints, facing unpopularity yet acting for long-term sustainability. Such decisions require nerve—the willingness to withstand criticism. Simultaneously, responsible leaders actively solicit feedback, transparently explain reasoning, and adjust course when evidence demands. This combination fosters trust and respect. Therefore, aspiring leaders should deliberately practice courageous responsibility. Start by speaking up for marginalized voices in group discussions. Gradually take on roles where trade-offs are inevitable. Remember: cowardice masquerading as consensus-building harms more than overt conflict. True leadership embraces uncomfortable choices with integrity, thereby earning genuine followership.",
+        "role": "same_topic_reference",
+        "source_file": "essays/courage_cet4.pdf",
+        "sha256": "ef9af226004798f1bc29dcbbe151618c5a6e8d6bdb6dd79c5580f956a65a3937",
+        "section_title": "The Interplay of Courage and Responsible Leadership",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E10",
+      "group_id": "courage-cet4",
+      "role_group": "solo",
+      "track": "cet4",
+      "topic": "courage",
+      "prompt": "话题：courage（courage-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Taking Responsibility for One’s Own Learning",
+      "essay": "A mature student understands that genuine learning demands personal responsibility, not passive attendance. Waiting for teachers to transmit knowledge rarely yields deep understanding. Instead, proactive individuals formulate study plans, seek clarifying questions, and leverage diverse resources independently. When confronted with academic difficulties, responsible learners resist blaming external factors such as poor instruction or heavy workloads. They introspect, adjust strategies, and persist through challenges. This ownership mentality transforms obstacles into growth opportunities. For example, instead of complaining about a tough assignment, a responsible student would break it down, consult references, and request specific guidance. Cultivating this trait early yields lifelong dividends. Universities can facilitate by providing scaffolding, but ultimate accountability rests on the learner. Taking charge of one's educational journey is an act of intellectual courage—the courage to admit ignorance, to ask for help, and to commit to continuous improvement.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 140,
+      "stated_word_count": 166,
+      "source_file": "essays/courage_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/courage_cet4.pdf",
+      "sha256": "ef9af226004798f1bc29dcbbe151618c5a6e8d6bdb6dd79c5580f956a65a3937",
+      "reference": null
+    },
+    {
+      "essay_id": "E11",
+      "group_id": "courage-cet6",
+      "role_group": "paired",
+      "track": "cet6",
+      "topic": "courage",
+      "prompt": "话题：courage（courage-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "道德勇气驱动社会变革（正面论证）",
+      "essay": "Moral cowardice — silencing dissenting voices for expediency — erodes social fabric. From my perspective, genuine courage is not the absence of fear but the triumph over it, and such fortitude constitutes the engine of progressive change. To exemplify, Rosa Parks' defiant refusal to relinquish her bus seat catalyzed the Civil Rights Movement, demonstrating that a singular act of conscience can ripple into sweeping social transformation. Her courage inspired countless others to withstand persecution and mobilize for justice. Therefore, authentic responsibility requires bearing personal costs for collective benefit — a principle that separates heroes from bystanders. In summary, silence in the face of injustice implicitly endorses it. Thus, each individual bears a civic duty to speak truth to power, irrespective of consequences. Only by mustering moral courage can we rectify systemic wrongs and forge a more equitable society.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 135,
+      "stated_word_count": null,
+      "source_file": "essays/courage_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/courage_cet6.pdf",
+      "sha256": "a573fa3b342e542c4849b01ae3cf5290a152dfcd52733ce665daf63ddee3c1e1",
+      "reference": {
+        "text": "Contemporary discourse often romanticizes courage and responsibility while downplaying their steep costs. I contend that authentic responsibility entails accepting unpleasant consequences — including social ostracism, financial loss, or even physical peril. Consider the case of Edward Snowden, who disclosed classified surveillance programs at immense personal sacrifice. Whether one applauds or condemns his actions, his example underscores that whistleblowing — a quintessential act of responsibility — frequently results in professional ruin and legal persecution. Similarly, everyday heroes — those who report corruption within their organizations — often face retaliation rather than reward. Therefore, societies that genuinely value responsibility must institutionalize protections for those who bear costs for the common good. In summary, glorifying responsibility without shielding its practitioners is hypocritical. Thus, we must move beyond abstract praise and establish robust safeguards — whistleblower protection laws, legal aid, and public recognition — to ensure that responsibility does not become a one-way ticket to ruin. Only then can we expect conscientious individuals to step forward.",
+        "role": "same_topic_reference",
+        "source_file": "essays/courage_cet6.pdf",
+        "sha256": "a573fa3b342e542c4849b01ae3cf5290a152dfcd52733ce665daf63ddee3c1e1",
+        "section_title": "担当需要承担责任后果（批判角度）",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E12",
+      "group_id": "courage-cet6",
+      "role_group": "solo",
+      "track": "cet6",
+      "topic": "courage",
+      "prompt": "话题：courage（courage-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "勇气需要智慧与审慎（辩证角度）",
+      "essay": "While reckless bravery invites disaster and timorous vacillation forfeits opportunities, genuine courage occupies a middle ground. I argue that effective courage entails calculated risk-taking — the capacity to assess consequences before acting decisively. To illustrate, Sophie Scholl, a member of the White Rose resistance, distributed anti-Nazi leaflets with meticulous planning to maximize impact while minimizing detection. Her courage was not impulsive but strategic — weighing risks against moral imperatives. Conversely, foolhardy acts that ignore context often backfire, undermining the very cause they purport to serve. Therefore, wisdom instructs us to distinguish between productive daring and counterproductive rashness. In conclusion, courage without prudence is blind; prudence without courage is paralyzed. Thus, we ought to cultivate deliberative courage — the ability to act boldly after thoughtful evaluation. Only then can we confront adversity efficaciously.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 129,
+      "stated_word_count": null,
+      "source_file": "essays/courage_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/courage_cet6.pdf",
+      "sha256": "a573fa3b342e542c4849b01ae3cf5290a152dfcd52733ce665daf63ddee3c1e1",
+      "reference": null
+    },
+    {
+      "essay_id": "E13",
+      "group_id": "innovation-cet4",
+      "role_group": "paired",
+      "track": "cet4",
+      "topic": "innovation",
+      "prompt": "话题：innovation（innovation-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Innovation Drives Societal Progress",
+      "essay": "In an era of rapid transformation, innovation has become the fundamental engine driving societal advancement. Those who dare to challenge conventional wisdom and venture beyond established boundaries frequently achieve groundbreaking breakthroughs. Without creative thinking, human civilization would stagnate in repetitive cycles. Consider how digital payment systems revolutionized commerce, rendering traditional cash transactions increasingly obsolete. This disruptive innovation did not emerge from incremental improvements but from a radical re-imagination of financial exchange. Forward-thinking individuals who embrace experimentation and tolerate failure are precisely those who reshape our world. Consequently, educational institutions should encourage curiosity and reward unconventional solutions. Innovation is not an exclusive gift but a cultivable mindset. By fostering an atmosphere that celebrates trial and error, we can unleash collective creativity and propel continuous breakthroughs.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 124,
+      "stated_word_count": 157,
+      "source_file": "essays/innovation_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/innovation_cet4.pdf",
+      "sha256": "9219551301e57972273fbd0d0e616b531247355ed09d68c610ad462aa93c4f3f",
+      "reference": {
+        "text": "Students often perceive innovation as relevant only to scientists or inventors. In truth, creative thinking can be systematically cultivated within everyday academic routines. By questioning assumptions, connecting disparate disciplines, and practicing divergent problem-solving, any student can sharpen their innovative capacity. For example, instead of memorizing formulas mechanically, a learner might explore historical contexts or alternative derivations. This approach not only deepens comprehension but also stimulates original connections. Engaging in brainstorming sessions without premature judgment further nurtures creative fluency. Small acts like keeping an idea journal or redesigning a study space can unlock unexpected insights. Thus, universities should embed design thinking workshops into curricula. More importantly, students themselves should consciously embrace curiosity as a habit. Innovation is not a mysterious talent but a disciplined practice. When we integrate creative exercises into daily life, breakthrough thinking becomes second nature.",
+        "role": "same_topic_reference",
+        "source_file": "essays/innovation_cet4.pdf",
+        "sha256": "9219551301e57972273fbd0d0e616b531247355ed09d68c610ad462aa93c4f3f",
+        "section_title": "Cultivating Innovative Thinking in Daily Student Life",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E14",
+      "group_id": "innovation-cet4",
+      "role_group": "solo",
+      "track": "cet4",
+      "topic": "innovation",
+      "prompt": "话题：innovation（innovation-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Embracing Failure as a Stepping Stone to Breakthrough",
+      "essay": "A pervasive misconception holds that failure should be avoided at all costs. Conversely, history demonstrates that most significant innovations emerge from a series of failed experiments. Visionaries who embrace failure as instructive feedback rather than defeat often achieve the most remarkable breakthroughs. Take the development of penicillin, which Alexander Fleming discovered accidentally after a contaminated experiment was almost discarded. His willingness to investigate an unexpected outcome, rather than dismissing it as a mistake, revolutionized medicine. Similarly, modern entrepreneurs celebrate rapid prototyping and swift iteration because each failure eliminates one unworkable path. Therefore, we should reframe our perspective on failure. To foster innovation, we must create psychological safety that tolerates well-intentioned risk-taking. Breakthroughs rarely emerge from comfort zones but from courageous leaps into the unknown, accompanied by resilience to learn from every stumble.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 132,
+      "stated_word_count": 167,
+      "source_file": "essays/innovation_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/innovation_cet4.pdf",
+      "sha256": "9219551301e57972273fbd0d0e616b531247355ed09d68c610ad462aa93c4f3f",
+      "reference": null
+    },
+    {
+      "essay_id": "E15",
+      "group_id": "innovation-cet6",
+      "role_group": "paired",
+      "track": "cet6",
+      "topic": "innovation",
+      "prompt": "话题：innovation（innovation-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "颠覆式创新的本质（正面论证）",
+      "essay": "Genuine innovation seldom emerges from conformity but rather from audacious departure from conventional paradigms. From my perspective, breakthroughs necessitate a willingness to abandon ingrained assumptions and embrace heterodox approaches. To exemplify, Steve Jobs revolutionized multiple industries by seamlessly integrating technology with liberal arts — a synergy that defied siloed thinking. His insistence on intersection between design and functionality reconfigured consumer expectations globally. Consequently, fostering a culture that tolerates calculated risks catalyzes epoch-making breakthroughs. In summary, progress demands that we venture beyond accepted boundaries and champion unconventional ideation. Thus, organizations ought to incentivize exploration over exploitation, for paradigm shifts originate from the courage to differ.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 103,
+      "stated_word_count": null,
+      "source_file": "essays/innovation_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/innovation_cet6.pdf",
+      "sha256": "06cc11ce24339fcb990ff2f41ca7532aaa6c62fe27678a253e49b6058cb7c50f",
+      "reference": {
+        "text": "Prevailing narratives of innovation spotlight triumphs while conveniently overlooking the graveyard of abandoned prototypes. I contend that a genuine innovative ecosystem must institutionalize permission to fail — without which audacious endeavors remain stillborn. To substantiate, James Dyson endured 5,126 failed prototypes before perfecting his bagless vacuum cleaner. His persistence was enabled by an environment that did not stigmatize failure but reframed it as data. Conversely, organizations that penalize setbacks inevitably produce incremental improvements at best, never radical innovation. Therefore, psychological safety — the shared belief that one can take risks without retribution — is the unsung hero behind most disruptive successes. In summary, fetishizing success while demonizing failure strangles innovation at birth. Thus, leaders must celebrate intelligent failures — those that yield actionable insights — and extinguish only reckless or repetitive errors. Only then can we unlock collective ingenuity.",
+        "role": "same_topic_reference",
+        "source_file": "essays/innovation_cet6.pdf",
+        "sha256": "06cc11ce24339fcb990ff2f41ca7532aaa6c62fe27678a253e49b6058cb7c50f",
+        "section_title": "创新需要容忍失败（批判角度）",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E16",
+      "group_id": "innovation-cet6",
+      "role_group": "solo",
+      "track": "cet6",
+      "topic": "innovation",
+      "prompt": "话题：innovation（innovation-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "创新需要跨界融合（辩证角度）",
+      "essay": "While specialization enhances depth, insular expertise often stifles creativity. I argue that genuine novelty frequently arises from the convergence of disparate fields — a principle exemplified by numerous groundbreaking discoveries. Consider the ascendance of bioinformatics, which merged biology with computer science to decipher the human genome. Similarly, Leonardo da Vinci — artist, anatomist, engineer — transcended disciplinary boundaries, producing inventions centuries ahead of his time. Hence, cultivating T-shaped expertise — deep in one domain, broad across many — unlocks transformative potential. In conclusion, innovation thrives at the intersections of knowledge silos. Therefore, educational institutions should encourage interdisciplinary exposure rather than rigid compartmentalization, for the most profound breakthroughs defy categorization.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 104,
+      "stated_word_count": null,
+      "source_file": "essays/innovation_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/innovation_cet6.pdf",
+      "sha256": "06cc11ce24339fcb990ff2f41ca7532aaa6c62fe27678a253e49b6058cb7c50f",
+      "reference": null
+    },
+    {
+      "essay_id": "E17",
+      "group_id": "perseverance-cet4",
+      "role_group": "paired",
+      "track": "cet4",
+      "topic": "perseverance",
+      "prompt": "话题：perseverance（perseverance-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Perseverance as the Cornerstone of Success",
+      "essay": "In contemporary society, perseverance is widely extolled as the cornerstone of any significant achievement. Those who unremittingly pursue their long-term objectives, even when confronted with formidable setbacks, eventually transform their aspirations into tangible realities. Without such grit, even the most brilliant talents may fade into mediocrity. Consider J.K. Rowling, whose unwavering dedication enabled her to persevere through numerous rejections from publishers before her Harry Potter series illuminated the literary world. It is precisely at moments of frustration that persistence discriminates the triumphant from the quitters. By embracing difficulties as stepping stones rather than obstacles, individuals can foster resilience and ultimately harvest the fruits of relentless effort. Therefore, we ought to consciously cultivate this quality in daily endeavors. Persistence is not merely a beneficial trait but the very engine that propels us toward our utmost potential.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 136,
+      "stated_word_count": 158,
+      "source_file": "essays/perseverance_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/perseverance_cet4.pdf",
+      "sha256": "137879bb7b06ae78010ae6cb789856fa39f039d0ae126f4e9ba8494e296513b3",
+      "reference": {
+        "text": "Many individuals underestimate the power of small, daily acts of persistence. In reality, consistent incremental efforts often accumulate into monumental achievements over time. Those who practice perseverance on a micro-scale, such as studying a language for thirty minutes each day, eventually surpass intermittent sprinters. For instance, a student who writes merely two hundred words per day will complete a substantial thesis within months. This principle applies universally, from physical training to musical mastery. The key lies not in occasional grand gestures but in the unwavering repetition of disciplined actions. To enrich student life effectively, we should establish manageable routines and adhere to them faithfully. Persistence, even in modest doses, breeds proficiency and confidence. Ultimately, the compound effect of daily grit transforms ordinary individuals into extraordinary achievers.",
+        "role": "same_topic_reference",
+        "source_file": "essays/perseverance_cet4.pdf",
+        "sha256": "137879bb7b06ae78010ae6cb789856fa39f039d0ae126f4e9ba8494e296513b3",
+        "section_title": "Small Acts of Persistence Yield Great Results",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E18",
+      "group_id": "perseverance-cet4",
+      "role_group": "solo",
+      "track": "cet4",
+      "topic": "perseverance",
+      "prompt": "话题：perseverance（perseverance-cet4）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "Grit Outlasts Talent",
+      "essay": "It is commonly assumed that innate talent guarantees success. Nevertheless, accumulating evidence suggests that grit consistently overpowers raw ability in the long run. Tenacious individuals who refuse to surrender in the face of repeated failures ultimately accomplish what sheer brilliance cannot achieve alone. A telling example comes from Thomas Edison, whose ten thousand failed experiments did not deter him from inventing the practical light bulb. Had he abandoned his goal after the first thousand trials, humanity would have been deprived of this revolutionary innovation. Hence, the capacity to endure persistent frustration is what truly forges extraordinary outcomes. In conclusion, we should embed perseverance into our daily routines, whether in academic pursuits or personal growth. Only by persistently sharpening our grit can we unlock doors that talent alone cannot open.",
+      "word_limit": {
+        "min": 120,
+        "max": 180
+      },
+      "extracted_word_count": 129,
+      "stated_word_count": 146,
+      "source_file": "essays/perseverance_cet4.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/perseverance_cet4.pdf",
+      "sha256": "137879bb7b06ae78010ae6cb789856fa39f039d0ae126f4e9ba8494e296513b3",
+      "reference": null
+    },
+    {
+      "essay_id": "E19",
+      "group_id": "perseverance-cet6",
+      "role_group": "paired",
+      "track": "cet6",
+      "topic": "perseverance",
+      "prompt": "话题：perseverance（perseverance-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "坚持是成功的关键（正面论证）",
+      "essay": "Paradoxically, the quintessential trait of most trailblazers is not innate talent but tenacious perseverance. From my perspective, unyielding dedication constitutes the cornerstone of any noteworthy achievement, for momentary brilliance pales before sustained effort. To begin with, setbacks are inevitable on the path to mastery; however, only those who embrace failures as stepping stones can forge resilience. Thomas Edison's relentless endeavor — enduring over 10,000 futile attempts before perfecting the light bulb — exemplifies this truth. Consequently, quitting forecloses any chance of success, whereas perseverance keeps possibilities alive. In summary, aspiring individuals must internalize that talent without grit is barren. Therefore, we ought to summon our courage and persist relentlessly, for progress ultimately rewards the tenacious.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 112,
+      "stated_word_count": null,
+      "source_file": "essays/perseverance_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/perseverance_cet6.pdf",
+      "sha256": "96d8741d15a2f36a6a948b05c6d4434024dec7b3c86f561492ac539fa01772b8",
+      "reference": {
+        "text": "Prevailing discourse overwhelmingly glorifies persistence, yet blind adherence to failing courses can inflict substantial losses. I contend that discriminating between fruitful perseverance and detrimental obstinacy is paramount. Consider the cautionary tale of Kodak, which persisted in championing analog photography despite the unequivocal rise of digital alternatives. This misguided tenacity precipitated the company's bankruptcy, underscoring that untimely persistence can be as pernicious as quitting. Therefore, sunk cost fallacy — the irrational tendency to continue because of past investments — often traps even savvy decision-makers. In summary, wisdom lies not in relentless tenacity but in the courage to pivot or terminate when evidence mounts against a chosen path. Thus, we ought to periodically audit our endeavors and muster the humility to acknowledge when persistence becomes self-defeating.",
+        "role": "same_topic_reference",
+        "source_file": "essays/perseverance_cet6.pdf",
+        "sha256": "96d8741d15a2f36a6a948b05c6d4434024dec7b3c86f561492ac539fa01772b8",
+        "section_title": "坚持可能带来负面后果（批判角度）",
+        "note": "同话题另一篇范文，作为人工对照参考"
+      }
+    },
+    {
+      "essay_id": "E20",
+      "group_id": "perseverance-cet6",
+      "role_group": "solo",
+      "track": "cet6",
+      "topic": "perseverance",
+      "prompt": "话题：perseverance（perseverance-cet6）",
+      "prompt_kind": "source_topic_verbatim",
+      "title": "坚持需要策略与智慧（辩证角度）",
+      "essay": "While conventional wisdom lauds unwavering persistence, indiscriminate perseverance can degenerate into stubborn foolishness. From my standpoint, efficacious perseverance entails periodic reassessment and strategic adaptation. To illustrate, quintessential successes often mask numerous abandoned paths. Walt Disney was fired from a newspaper for \"lacking imagination\" — yet he reconfigured his trajectory instead of blindly repeating the same tactics. Therefore, tenacity coupled with reflexivity — the capacity to learn from failure and pivot — distinguishes visionaries from dogmatists. In conclusion, discerning individuals strike a delicate balance between grit and flexibility. Thus, we ought to persist strategically — embracing feedback and abandoning inefficacious approaches without relinquishing the ultimate goal.",
+      "word_limit": {
+        "min": 150,
+        "max": 200
+      },
+      "extracted_word_count": 101,
+      "stated_word_count": null,
+      "source_file": "essays/perseverance_cet6.pdf",
+      "source_url": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/essays/perseverance_cet6.pdf",
+      "sha256": "96d8741d15a2f36a6a948b05c6d4434024dec7b3c86f561492ac539fa01772b8",
+      "reference": null
+    }
+  ]
+}
