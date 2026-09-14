@@ -7,4 +7,5 @@ build/
 dist/
 .coverage
 .workbuddy/
-scripts/v0-spikes/corpus/.cache/
+scripts/v0-spikes/corpus/
+scripts/v0-spikes/out/

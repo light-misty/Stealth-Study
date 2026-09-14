@@ -1,0 +1,585 @@
+{
+  "version": 1,
+  "generated_by": "T02 SPIKE-2 语料与评估集",
+  "criteria": "docs/dev/07-开发任务分解.md T02 + docs/dev/08-测试与验收方案.md §3.2",
+  "documents": [
+    {
+      "doc_id": "jc_hello_algo",
+      "file": "jc_hello_algo.pdf",
+      "class": "textbook",
+      "source": "https://github.com/krahets/hello-algo releases 1.3.0 / hello-algo_1.3.0_zh_python.pdf",
+      "notes": "有 PDF 书签（干净：第 N 章 + N.N 两级）且有目录页（物理 p5-7）。正文每页带运行页眉“第 N 章 … www.hello-algo.com k”。ground_truth_toc 仅列已索引范围内（p<=279）的章节。",
+      "ground_truth_toc": [
+        {
+          "section_title": "第 0 章 前言",
+          "page_no": 8
+        },
+        {
+          "section_title": "第 1 章 初识算法",
+          "page_no": 17
+        },
+        {
+          "section_title": "第 2 章 复杂度分析",
+          "page_no": 24
+        },
+        {
+          "section_title": "第 3 章 数据结构",
+          "page_no": 55
+        },
+        {
+          "section_title": "第 4 章 数组与链表",
+          "page_no": 70
+        },
+        {
+          "section_title": "第 5 章 栈与队列",
+          "page_no": 91
+        },
+        {
+          "section_title": "第 6 章 哈希表",
+          "page_no": 111
+        },
+        {
+          "section_title": "第 7 章 树",
+          "page_no": 130
+        },
+        {
+          "section_title": "第 8 章 堆",
+          "page_no": 163
+        },
+        {
+          "section_title": "第 9 章 图",
+          "page_no": 177
+        },
+        {
+          "section_title": "第 10 章 搜索",
+          "page_no": 194
+        },
+        {
+          "section_title": "第 11 章 排序",
+          "page_no": 210
+        },
+        {
+          "section_title": "第 12 章 分治",
+          "page_no": 241
+        },
+        {
+          "section_title": "第 13 章 回溯",
+          "page_no": 257
+        }
+      ]
+    },
+    {
+      "doc_id": "jc_docker",
+      "file": "jc_docker.pdf",
+      "class": "textbook",
+      "source": "https://github.com/yeasy/docker_practice releases v1.11.0 / docker_practice-v1.11.0.pdf",
+      "notes": "有 PDF 书签但层级语义混乱（一级条目同时含章与节，标题重复拼接如“第一章 Docker 简介第一章 Docker 简介”）。ground_truth_toc 仅列已索引范围内（p<=345）的章。",
+      "ground_truth_toc": [
+        {
+          "section_title": "第一章 Docker 简介",
+          "page_no": 29
+        },
+        {
+          "section_title": "第二章 基本概念",
+          "page_no": 46
+        },
+        {
+          "section_title": "第三章 安装 Docker",
+          "page_no": 71
+        },
+        {
+          "section_title": "第四章 使用镜像",
+          "page_no": 112
+        },
+        {
+          "section_title": "第五章 操作容器",
+          "page_no": 153
+        },
+        {
+          "section_title": "第六章 访问仓库",
+          "page_no": 191
+        },
+        {
+          "section_title": "第七章 Dockerfile 指令详解",
+          "page_no": 212
+        },
+        {
+          "section_title": "第八章 数据管理",
+          "page_no": 315
+        },
+        {
+          "section_title": "第九章 网络配置",
+          "page_no": 337
+        }
+      ]
+    },
+    {
+      "doc_id": "jy_xitike",
+      "file": "jy_xitike.pdf",
+      "class": "handout",
+      "source": "https://github.com/PKUanonym/REKCARC-TSC-UHT 大三下/数值分析/hw/习题课/第三次习题课课件.pdf",
+      "notes": "无 PDF 书签、无目录页。每页行首为“第X章N题”式的题目定位标题。",
+      "ground_truth_toc": [
+        {
+          "section_title": "第五章8题",
+          "page_no": 2
+        },
+        {
+          "section_title": "第五章11题",
+          "page_no": 3
+        },
+        {
+          "section_title": "第五章16题",
+          "page_no": 6
+        },
+        {
+          "section_title": "第六章3题",
+          "page_no": 10
+        },
+        {
+          "section_title": "第六章4题",
+          "page_no": 11
+        },
+        {
+          "section_title": "第六章6题",
+          "page_no": 12
+        },
+        {
+          "section_title": "第六章8题",
+          "page_no": 15
+        },
+        {
+          "section_title": "第六章9题",
+          "page_no": 19
+        },
+        {
+          "section_title": "第六章11题",
+          "page_no": 22
+        },
+        {
+          "section_title": "第六章12题",
+          "page_no": 26
+        },
+        {
+          "section_title": "第六章13题",
+          "page_no": 29
+        },
+        {
+          "section_title": "第六章15题",
+          "page_no": 32
+        },
+        {
+          "section_title": "第六章16题",
+          "page_no": 34
+        },
+        {
+          "section_title": "第六章17题",
+          "page_no": 36
+        },
+        {
+          "section_title": "第六章19题",
+          "page_no": 37
+        },
+        {
+          "section_title": "第六章20题",
+          "page_no": 41
+        },
+        {
+          "section_title": "第七章1题",
+          "page_no": 43
+        },
+        {
+          "section_title": "第七章2题",
+          "page_no": 46
+        },
+        {
+          "section_title": "第七章4题",
+          "page_no": 48
+        },
+        {
+          "section_title": "第七章6题",
+          "page_no": 49
+        },
+        {
+          "section_title": "第七章7题",
+          "page_no": 50
+        },
+        {
+          "section_title": "第七章8题",
+          "page_no": 52
+        },
+        {
+          "section_title": "第七章11题",
+          "page_no": 53
+        },
+        {
+          "section_title": "第七章13题",
+          "page_no": 55
+        },
+        {
+          "section_title": "第八章2题",
+          "page_no": 57
+        },
+        {
+          "section_title": "第八章3题",
+          "page_no": 58
+        },
+        {
+          "section_title": "第八章4题",
+          "page_no": 60
+        },
+        {
+          "section_title": "第八章8题",
+          "page_no": 61
+        },
+        {
+          "section_title": "第八章11题",
+          "page_no": 64
+        },
+        {
+          "section_title": "第八章13题",
+          "page_no": 67
+        }
+      ]
+    },
+    {
+      "doc_id": "jy_os_ch2",
+      "file": "jy_os_ch2.pdf",
+      "class": "handout",
+      "source": "https://github.com/iamxiatian/course_os pdf/ch2.pdf",
+      "notes": "无 PDF 书签（仅 10 条深层链接）、无“目录”标题页（p2 为本章小节列表页）。标题形态为编号式“2.x 标题”，无“第X章”。",
+      "ground_truth_toc": [
+        {
+          "section_title": "2.1 进程的基本概念",
+          "page_no": 3
+        },
+        {
+          "section_title": "2.2 进程控制",
+          "page_no": 25
+        },
+        {
+          "section_title": "2.3 进程同步",
+          "page_no": 38
+        },
+        {
+          "section_title": "2.4 经典进程同步问题",
+          "page_no": 56
+        },
+        {
+          "section_title": "2.5 管程机制",
+          "page_no": 91
+        },
+        {
+          "section_title": "2.6 进程通信",
+          "page_no": 97
+        },
+        {
+          "section_title": "2.7 线程",
+          "page_no": 106
+        }
+      ]
+    },
+    {
+      "doc_id": "scan_fubian",
+      "file": "scan_fubian.pdf",
+      "class": "scan",
+      "source": "https://github.com/PKUanonym/REKCARC-TSC-UHT 大二上/复变函数引论/exam/杨大伯/笔记/复变笔记by马玉冰(处理后).pdf",
+      "notes": "影印件：57 页全为图像，零文字层，无目录可言；书签 57 条。",
+      "ground_truth_toc": []
+    }
+  ],
+  "questions": [
+    {
+      "qid": "S01",
+      "kind": "section",
+      "doc_id": "jc_hello_algo",
+      "question": "AVL 树在删除节点之后为什么会退化成链表？AVL 树是怎么避免这种情况的？",
+      "expected_sections": [
+        "第 7 章 树",
+        "7.5   AVL 树 *"
+      ],
+      "expected_pages": [
+        152,
+        153
+      ],
+      "answer_key": "删除/插入后 BST 可能退化为链表使复杂度从 O(log n) 劣化为 O(n)；AVL 树通过节点高度与旋转维持平衡，保证 O(log n)。",
+      "answerable": true,
+      "answer_evidence": "命中 p152/153（7.5 AVL 树：删除后退化与 AVL 保持 O(log n)）。"
+    },
+    {
+      "qid": "S02",
+      "kind": "section",
+      "doc_id": "jc_hello_algo",
+      "question": "二叉搜索树的查找和插入分别是怎么实现的？",
+      "expected_sections": [
+        "第 7 章 树",
+        "7.4   二叉搜索树"
+      ],
+      "expected_pages": [
+        144,
+        146
+      ],
+      "answer_key": "查找：从根节点出发按“左子树 < 根 < 右子树”逐层比较，最坏 O(log n)；插入：先查找到越过叶节点的位置，再在该位置新建节点。",
+      "answerable": true,
+      "answer_evidence": "命中 p144（7.4 二叉搜索树定义）与 p146（查找/插入实现）。"
+    },
+    {
+      "qid": "S03",
+      "kind": "section",
+      "doc_id": "jc_hello_algo",
+      "question": "哈希冲突有哪些解决思路？链式地址具体是怎么做的？",
+      "expected_sections": [
+        "第 6 章 哈希表",
+        "6.2   哈希冲突"
+      ],
+      "expected_pages": [
+        117,
+        118
+      ],
+      "answer_key": "改良数据结构（链式地址、开放寻址）与必要时扩容；链式地址把每个桶变成链表，冲突的键值对挂在同一链表上，查询/添加/删除都先经哈希函数定位桶再遍历链表。",
+      "answerable": true,
+      "answer_evidence": "命中 p117（6.2 哈希冲突：链式地址）与 p118（开放寻址）。"
+    },
+    {
+      "qid": "S04",
+      "kind": "section",
+      "doc_id": "jc_hello_algo",
+      "question": "数组和链表在内存使用和增删效率上有什么区别？",
+      "expected_sections": [
+        "第 4 章 数组与链表",
+        "4.2   链表"
+      ],
+      "expected_pages": [
+        76,
+        77
+      ],
+      "answer_key": "数组需要连续内存、插入删除要移动大量元素、长度不可变且可能浪费空间；链表节点分散在内存、靠指针相连，增删灵活但需要额外指针空间。",
+      "answerable": true,
+      "answer_evidence": "命中 p76（数组局限与链表引入）。"
+    },
+    {
+      "qid": "S05",
+      "kind": "section",
+      "doc_id": "jc_hello_algo",
+      "question": "时间复杂度是怎么估算出来的？为什么不能直接用运行时间衡量？",
+      "expected_sections": [
+        "第 2 章 复杂度分析",
+        "2.3   时间复杂度"
+      ],
+      "expected_pages": [
+        34,
+        35
+      ],
+      "answer_key": "直接统计运行时间需要固定硬件/语言/环境并对每类操作计时，不可移植；时间复杂度统计操作数量随数据规模 n 的增长趋势来刻画效率。",
+      "answerable": true,
+      "answer_evidence": "命中 p35（2.3 时间复杂度估算动机）。"
+    },
+    {
+      "qid": "S06",
+      "kind": "section",
+      "doc_id": "jc_docker",
+      "question": "容器和虚拟机在隔离机制上的核心区别是什么？",
+      "expected_sections": [
+        "2.2 容器2.2 容器",
+        "第二章 基本概念第二章 基本概念"
+      ],
+      "expected_pages": [
+        55,
+        56
+      ],
+      "answer_key": "容器共享宿主机内核，靠命名空间与 cgroups 隔离进程/网络/文件系统；虚拟机自带 Guest OS 与硬件虚拟化，隔离更彻底但更重。",
+      "answerable": true,
+      "answer_evidence": "命中 p55/56（2.2.3 容器 vs 虚拟机：核心区别）。"
+    },
+    {
+      "qid": "S07",
+      "kind": "section",
+      "doc_id": "jc_docker",
+      "question": "docker run 的 -i 和 -t 参数分别起什么作用？",
+      "expected_sections": [
+        "5.1 启动5.1 启动",
+        "第五章 操作容器第五章 操作容器"
+      ],
+      "expected_pages": [
+        155
+      ],
+      "answer_key": "-i 保持标准输入打开，允许输入；-t 分配伪终端提供终端界面；-it 组合使用获得交互式终端。",
+      "answerable": true,
+      "answer_evidence": "命中 p155（docker run -i/-t 参数表）。"
+    },
+    {
+      "qid": "S08",
+      "kind": "section",
+      "doc_id": "jc_docker",
+      "question": "CMD 指令的 exec 格式和 shell 格式有什么区别？各自适合什么场景？",
+      "expected_sections": [
+        "7.4 CMD 容器启动命令7.4 CMD 容器启动命令",
+        "第七章 Dockerfile 指令详解第七章 Dockerfile 指令详解"
+      ],
+      "expected_pages": [
+        234,
+        235
+      ],
+      "answer_key": "exec 格式直接执行指定程序、成为 PID 1、能正确接收 SIGTERM 信号且不经 shell 解析，推荐使用；shell 格式会被包装成 sh -c，可用变量展开/管道等 shell 特性，但主进程是 sh 导致信号无法正确传递给应用。",
+      "answerable": true,
+      "answer_evidence": "命中 p235（7.4.3 exec 格式 vs shell 格式）。"
+    },
+    {
+      "qid": "S09",
+      "kind": "section",
+      "doc_id": "jc_docker",
+      "question": "怎么把本地镜像推送到 Docker Hub？推送之前需要做什么？",
+      "expected_sections": [
+        "6.1 Docker Hub6.1 Docker Hub",
+        "第六章 访问仓库第六章 访问仓库"
+      ],
+      "expected_pages": [
+        194
+      ],
+      "answer_key": "先 docker login 登录（CI 环境推荐 --username 与 --password-stdin），再用 docker tag 把本地镜像标记为 username/镜像名:标签，最后 docker push。",
+      "answerable": false,
+      "answer_evidence": "top6 为 p67/127/70/133/128/132（镜像构建与删除），未召回到 p194 的 docker login/tag/push。"
+    },
+    {
+      "qid": "S10",
+      "kind": "section",
+      "doc_id": "jc_docker",
+      "question": "数据卷为什么能让数据在容器删除后仍然保留？它有哪些特性？",
+      "expected_sections": [
+        "8.1 数据卷8.1 数据卷",
+        "第八章 数据管理第八章 数据管理"
+      ],
+      "expected_pages": [
+        316,
+        317
+      ],
+      "answer_key": "容器 writable 层随容器删除而丢失，数据卷生命周期独立于容器；特性包括持久化、可被多个容器共享、修改即时生效、不打包进镜像、绕过 UnionFS 性能更好。",
+      "answerable": true,
+      "answer_evidence": "命中 p316（8.1 数据卷特性）与 p317（数据卷 vs 容器存储层）。"
+    },
+    {
+      "qid": "K01",
+      "kind": "keyword",
+      "doc_id": "jc_hello_algo",
+      "question": "二叉树的数组表示里，父节点索引与左右子节点索引之间的映射公式是什么？",
+      "expected_pages": [
+        140,
+        141
+      ],
+      "answer_key": "索引 i 的左子节点为 2i+1，右子节点为 2i+2（层序遍历顺序存储）。",
+      "answerable": true,
+      "answer_evidence": "命中 p140/141（层序存储映射公式 2i+1 / 2i+2）。"
+    },
+    {
+      "qid": "K02",
+      "kind": "keyword",
+      "doc_id": "jc_hello_algo",
+      "question": "链式地址哈希表的查询、添加、删除三种操作要怎么做？",
+      "expected_pages": [
+        117,
+        118
+      ],
+      "answer_key": "查询：哈希函数得到桶索引后遍历链表比对 key；添加：把新键值对节点加入链表；删除：定位桶后遍历链表找到目标节点并删除。",
+      "answerable": true,
+      "answer_evidence": "命中 p117/118（链式地址的查询/添加/删除）。"
+    },
+    {
+      "qid": "K03",
+      "kind": "keyword",
+      "doc_id": "jc_hello_algo",
+      "question": "AVL 树里节点高度是怎么定义的？叶节点和空节点的高度分别是多少？",
+      "expected_pages": [
+        153
+      ],
+      "answer_key": "节点高度是从该节点到它最远叶节点的距离（经过的边数）；叶节点高度为 0，空节点高度为 -1。",
+      "answerable": true,
+      "answer_evidence": "命中 p153（节点高度定义：叶节点 0、空节点 -1）。"
+    },
+    {
+      "qid": "K04",
+      "kind": "keyword",
+      "doc_id": "jc_docker",
+      "question": "Docker Hub 对匿名用户和免费账户的镜像拉取限制分别是多少？",
+      "expected_pages": [
+        194
+      ],
+      "answer_key": "anonymous 未登录用户每 6 小时 100 次请求；免费已登录账户每 6 小时 200 次请求。",
+      "answerable": false,
+      "answer_evidence": "top6 为 p67/70/76/75，未召回到 p194 的匿名/免费账户拉取限制表。"
+    },
+    {
+      "qid": "K05",
+      "kind": "keyword",
+      "doc_id": "jc_docker",
+      "question": "怎么用命令行在 Docker Hub 上搜索镜像并拉取到本地？",
+      "expected_pages": [
+        193
+      ],
+      "answer_key": "docker search 查找镜像（关注 OFFICIAL 标记为 [OK] 的镜像），docker pull 拉取，例如 docker pull nginx:alpine。",
+      "answerable": false,
+      "answer_evidence": "命中 p113 仅覆盖 docker pull 与镜像命名，答案要点中的 docker search 缺失。"
+    },
+    {
+      "qid": "K06",
+      "kind": "keyword",
+      "doc_id": "jc_docker",
+      "question": "docker run 完整流程中，本地没有镜像时会做什么？",
+      "expected_pages": [
+        156
+      ],
+      "answer_key": "先检查本地是否存在该镜像；不存在则从 Registry 下载，然后基于镜像的只读层创建容器并添加一层可读写层。",
+      "answerable": true,
+      "answer_evidence": "命中 p155/156（docker run 完整流程：检查本地镜像 → 下载 → 创建容器）。"
+    },
+    {
+      "qid": "K07",
+      "kind": "keyword",
+      "doc_id": "jc_docker",
+      "question": "shell 格式的 CMD 指令实际会被 Docker 包装成什么命令执行？",
+      "expected_pages": [
+        234
+      ],
+      "answer_key": "会被包装为 sh -c，例如 CMD echo $HOME 实际执行 CMD [\"sh\", \"-c\", \"echo $HOME\"]。",
+      "answerable": false,
+      "answer_evidence": "命中 p212-214 为 docker build 与 RUN，未召回到 p234 的 CMD shell 格式包装为 sh -c。"
+    },
+    {
+      "qid": "K08",
+      "kind": "keyword",
+      "doc_id": "jy_xitike",
+      "question": "用 Householder 变换把矩阵做正交三角化的计算步骤是什么？",
+      "expected_pages": [
+        2
+      ],
+      "answer_key": "取 Householder 向量 v1 = a1 + σ1 e1，用 H1 = I − 2 v vᵀ/(vᵀv) 消去第一列对角线以下元素，再对子矩阵重复得到 v2、H2，最终 R = H2 H1 A。",
+      "answerable": true,
+      "answer_evidence": "命中 p2（Householder 变换正交三角化的 v、H、R 计算步骤）。"
+    },
+    {
+      "qid": "K09",
+      "kind": "keyword",
+      "doc_id": "jy_os_ch2",
+      "question": "什么是临界资源？为什么进程必须互斥地访问它？",
+      "expected_pages": [
+        39
+      ],
+      "answer_key": "临界资源是一次仅允许一个进程访问的资源（如打印机）；若没有互斥访问就会引起结果不可再现性，因此需要互斥地访问临界资源。",
+      "answerable": true,
+      "answer_evidence": "命中 p39（临界资源定义与不可再现性、需互斥访问）。"
+    },
+    {
+      "qid": "K10",
+      "kind": "keyword",
+      "doc_id": "jy_os_ch2",
+      "question": "生产者—消费者问题里 empty、full、mutex 三个信号量的初值和作用分别是什么？",
+      "expected_pages": [
+        58,
+        60
+      ],
+      "answer_key": "empty 表示空缓冲区数量、初值 n；full 表示满缓冲区数量、初值 0；mutex 用于诸进程互斥访问缓冲区、初值 1。",
+      "answerable": true,
+      "answer_evidence": "命中 p58/59/60（empty/full/mutex 信号量初值与作用）。"
+    }
+  ],
+  "answer_judgement_config": "profile=spec / toc_source=outline / router=heuristic / top_k=6（主口径）下的 top6 检索上下文；判定人：本次实现所用模型（离线人工复核）；QA（严过关）需按 08 §3.2 复签。"
+}
