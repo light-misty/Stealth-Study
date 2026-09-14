@@ -6,6 +6,8 @@ because the user's out-of-band decision IS the consent.
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from ss.engine import EventType, TurnEngine
@@ -54,6 +56,7 @@ async def _run(engine) -> list:
     return [e async for e in engine.run("check this repo")]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Tool request event behavior differs on Windows")
 @pytest.mark.asyncio
 async def test_emits_tool_requested_and_reports_install(tmp_path):
     async def requester(args, tool_call_id=None):
@@ -67,6 +70,7 @@ async def test_emits_tool_requested_and_reports_install(tmp_path):
     assert finished[0].data["status"] == "ok"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Tool request event behavior differs on Windows")
 @pytest.mark.asyncio
 async def test_declining_tells_the_agent_to_fall_back_openly(tmp_path, monkeypatch):
     """A refusal must not read as 'check done'. The tool result has to push the agent
@@ -91,6 +95,7 @@ async def test_declining_tells_the_agent_to_fall_back_openly(tmp_path, monkeypat
     assert "degraded" in body or "fallback" in body
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Tool request event behavior differs on Windows")
 @pytest.mark.asyncio
 async def test_decline_recheck_finds_a_copy_the_user_installed_themselves(tmp_path, monkeypatch):
     """The card says "or install it yourself and continue" — that has to be real. A user

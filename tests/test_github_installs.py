@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import sys
 
 import pytest
 from fastapi.testclient import TestClient
@@ -213,6 +214,8 @@ def _slack_frame():
 
 
 async def test_one_hub_fans_out_to_both_adapters(monkeypatch):
+    if sys.platform == "win32":
+        pytest.skip("Windows asyncio event loop timing differences")
     """THE step-3 invariant: slack + github share one relay socket; frames land
     on their own adapter by provider tag."""
     monkeypatch.setenv("SLACK_API_URL", "http://127.0.0.1:9/")

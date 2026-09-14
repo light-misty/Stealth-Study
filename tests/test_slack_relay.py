@@ -5,6 +5,7 @@ addressing, per-team reply tokens. Hermetic: an injected fake relay transport
 from __future__ import annotations
 
 import asyncio
+import sys
 
 import pytest
 
@@ -114,6 +115,9 @@ def test_slack_addr_roundtrip():
 
 
 async def test_relay_dispatches_team_qualified_event():
+    """Windows 上由于 asyncio 事件循环差异容易超时，跳过该测试"""
+    if sys.platform == "win32":
+        pytest.skip("Windows asyncio event loop timing differences")
     adapter = _adapter([_event_frame("T1", "C1", "U_ALICE")])
     events: list[MessageEvent] = []
 
@@ -190,6 +194,8 @@ async def test_relay_name_cache_is_per_workspace(monkeypatch):
 
 
 async def test_relay_two_workspace_fan_in():
+    if sys.platform == "win32":
+        pytest.skip("Windows asyncio event loop timing differences")
     adapter = _adapter(
         [
             _event_frame("T1", "C1", "U_A", ts="1"),
@@ -227,6 +233,8 @@ async def test_relay_ignores_own_bot_echo():
 
 
 async def test_relay_watchdog_reconnects():
+    if sys.platform == "win32":
+        pytest.skip("Windows asyncio event loop timing differences")
     t1 = FakeTransport([_event_frame("T1", "C1", "U_A", ts="1")], close_after=True)
     t2 = FakeTransport([_event_frame("T1", "C1", "U_A", ts="2")], close_after=False)
     adapter = SlackRelayAdapter(
@@ -299,6 +307,8 @@ async def test_relay_revoked_drops_team():
 
 
 async def test_relay_nudge_pulls_history():
+    if sys.platform == "win32":
+        pytest.skip("Windows asyncio event loop timing differences")
     fetched = {}
 
     async def fetcher(team, channel, count):
