@@ -25,7 +25,7 @@ def _load(module_name: str, relative_path: str):
 
 
 sp = _load("spike_pdf", "scripts/v0-spikes/spike_pdf.py")
-fc = _load("fetch_corpus", "scripts/v0-spikes/fetch_corpus.py")
+fc = _load("fetch_pdf_corpus", "scripts/v0-spikes/fetch_pdf_corpus.py")
 
 QUESTIONS_PATH = ROOT / "scripts" / "v0-spikes" / "spike_pdf_questions.json"
 

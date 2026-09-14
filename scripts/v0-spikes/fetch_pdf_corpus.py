@@ -6,7 +6,7 @@
 语料仅落 scripts/v0-spikes/corpus/（.gitignore 排除），不入库、不再分发。
 
 用法：
-  python scripts/v0-spikes/fetch_corpus.py --dest scripts/v0-spikes/corpus
+  python scripts/v0-spikes/fetch_pdf_corpus.py --dest scripts/v0-spikes/corpus
 """
 
 from __future__ import annotations
