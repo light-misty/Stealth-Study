@@ -52,7 +52,7 @@ class ErrorSpec:
 ERROR_SPECS: Mapping[str, ErrorSpec] = {
     "PROFILE_REQUIRED": ErrorSpec(400, False, "缺少档案参数 profile_id"),
     "PROFILE_NOT_FOUND": ErrorSpec(404, False, "档案不存在"),
-    "PROFILE_READ_ONLY": ErrorSpec(409, False, "档案已归档或结课，拒绝写入"),
+    "PROFILE_READ_ONLY": ErrorSpec(409, False, "档案已结课，拒绝写入"),
     "FORBIDDEN_PROFILE": ErrorSpec(403, False, "该资源不属于当前档案"),
     "DUPLICATE_TITLE": ErrorSpec(409, False, "同名档案已存在"),
     "DUPLICATE_NODE": ErrorSpec(409, False, "同类型考试节点已存在"),
