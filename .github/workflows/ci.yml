@@ -1,5 +1,7 @@
 # App CI — the ss Python suite, the GUI unit tests, and the hermetic
 # Playwright e2e suite (mocked /v1 + WS; no model or network needed).
+#
+# 仅支持 Windows 平台；macOS/Linux CI 已禁用（保留代码，不运行）。
 
 name: CI
 
@@ -21,7 +23,7 @@ on:
 
 jobs:
   pytest:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -35,7 +37,7 @@ jobs:
         run: pytest tests -q
 
   gui-unit:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -54,7 +56,7 @@ jobs:
         run: npm test
 
   gui-e2e:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

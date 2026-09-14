@@ -256,11 +256,11 @@ cargo build --release
 
 ### 桌面安装包构建
 ```powershell
-# macOS DMG (在 macOS 上运行)
-bash packaging/build_dmg.sh
-
 # Windows MSI + NSIS (在 Windows 上运行)
 powershell packaging/build_windows.ps1
+
+# macOS DMG —— 已禁用（保留代码，不运行 CI）
+# bash packaging/build_dmg.sh
 ```
 
 ## 编码约定
@@ -308,26 +308,28 @@ powershell packaging/build_windows.ps1
 ### CI (`.github/workflows/ci.yml`)
 触发条件: `push`, `pull_request`
 
- Jobs:
+仅支持 Windows 平台；macOS/Linux CI 已禁用。
+
+Jobs:
 - **pytest**: Python 后端测试
-  - 运行环境: ubuntu-latest, Python 3.12
+  - 运行环境: windows-latest, Python 3.12
   - 安装: `pip install -e ".[messaging,dev,bedrock]"`
   - 执行: `pytest tests -q`
 - **gui-unit**: GUI 单元测试
-  - 运行环境: ubuntu-latest, Node 20
+  - 运行环境: windows-latest, Node 20
   - 执行: `npm ci` → `npx tsc --noEmit` → `npm test`
 - **gui-e2e**: GUI 端到端测试
-  - 运行环境: ubuntu-latest, Node 20
+  - 运行环境: windows-latest, Node 20
   - 安装 Playwright Chromium
   - 执行: `npm run e2e`
 
 ### Release (`.github/workflows/release.yml`)
 触发条件: tag push `v*` / `app-v*`, `workflow_dispatch`
 
- Jobs:
-- **build**: 跨平台构建
-  - macOS arm64 (Apple Silicon)
-  - macOS x64 (Intel, macos-15-intel)
+仅支持 Windows 平台；macOS 构建已禁用（保留代码在 build_dmg.sh 中，不运行 CI）。
+
+Jobs:
+- **build**: Windows 构建
   - Windows (msi + NSIS exe)
   - 使用 PyInstaller 打包 Python sidecar
   - Tauri 构建应用外壳
