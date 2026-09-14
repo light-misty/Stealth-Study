@@ -6,6 +6,18 @@ name: CI
 on:
   pull_request:
     branches: [main, master]
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+      - "**/*.txt"
+      - "**/*.rst"
+      - "**/*.png"
+      - "**/*.jpg"
+      - "**/*.jpeg"
+      - "**/*.gif"
+      - "**/*.svg"
+      - "LICENSE*"
+      - "assets/**"
 
 jobs:
   pytest:
