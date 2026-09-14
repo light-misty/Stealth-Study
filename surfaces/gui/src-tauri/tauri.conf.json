@@ -18,7 +18,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "windows",
+    "targets": ["msi", "nsis"],
     "publisher": "StealthStudy",
     "icon": [
       "icons/32x32.png",
