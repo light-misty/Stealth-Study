@@ -383,7 +383,11 @@ class CampusStore:
         self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA journal_mode=WAL").fetchone()
-        self.migrate()
+        try:
+            self.migrate()
+        except Exception:
+            self._conn.close()
+            raise
 
     def __enter__(self) -> "CampusStore":
         return self
