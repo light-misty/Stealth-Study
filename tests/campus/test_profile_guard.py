@@ -1,4 +1,4 @@
-"""The profile_id guard (07 §4 T06 验收②, 08 §4 P-1/P-2/P-4).
+"""The profile_id guard (07 §4 T06 验收②, 08 §4 P-1/P-2/P-3/P-4).
 
 `profile_id` is the one cross-cutting parameter of the whole campus API: 03 §4 states it is a
 common parameter of nearly every endpoint, and 07 §4 T06 requires that no endpoint ever takes
@@ -7,6 +7,8 @@ production `ProfileGuard` and the requests it answers:
 
 * P-1 — a request without `profile_id` is refused, never answered with an empty result.
 * P-2 — a forged `profile_id` is refused after exactly one existence probe.
+* P-3 — a sub-resource that belongs to another profile is refused as `FORBIDDEN_PROFILE`,
+  with the scoped `WHERE profile_id = ?` read as the only way the row is ever loaded.
 * P-4 — a `finished` profile still reads, and refuses every write.
 
 08 §4 asks for the cases to be parametrised over the endpoint groups A/B/C/D/E/F/I of 03 §4.
@@ -35,53 +37,74 @@ FORGED_ID = "nonexistent-uuid"
 
 PROFILE_GROUPS = ("A", "B", "C", "D", "E", "F", "G", "H", "I")
 
+SCOPED_SUBRESOURCES: dict[str, str] = {
+    "attempt": "ATTEMPT_NOT_FOUND",
+    "source_doc": "DOC_NOT_FOUND",
+    "question_bank_item": "QUESTION_NOT_FOUND",
+    "knowledge_point": "POINT_NOT_FOUND",
+    "mock_exam": "MOCK_NOT_FOUND",
+    "assessment": "ASSESSMENT_NOT_FOUND",
+    "review_queue": "RQ_NOT_FOUND",
+}
+
+SCOPED_SEED: dict[str, dict[str, str]] = {
+    "attempt": {
+        "track_type": models.TrackType.CET.value,
+        "subject": models.Subject.WRITING.value,
+        "user_answer": "I thinks it is good.",
+    },
+    "source_doc": {
+        "title": "六级讲义",
+        "file_path": "library/notes.pdf",
+        "imported_at": "2026-09-14T00:00:00Z",
+    },
+    "question_bank_item": {"subject": models.Subject.READING.value, "stem": "选词填空"},
+    "knowledge_point": {"title": "定语从句"},
+    "mock_exam": {"paper_title": "2026 年 6 月六级真题", "started_at": "2026-09-14T00:00:00Z"},
+    "assessment": {"started_at": "2026-09-14T00:00:00Z"},
+    "review_queue": {
+        "item_type": models.ReviewItemType.VOCAB.value,
+        "item_id": "vocab-1",
+        "due_at": "2026-09-15T00:00:00Z",
+    },
+}
+
 
 class CountingStore(store.CampusStore):
     """A store that records the primary-key reads the guard performs."""
 
     def __init__(self, path: Path) -> None:
         super().__init__(path)
-        self.reads: list[tuple[str, str]] = []
+        self.reads: list[tuple] = []
 
     def get(self, table: str, row_id: str):
         self.reads.append((table, row_id))
         return super().get(table, row_id)
 
     def get_scoped(self, table: str, row_id: str, profile_id: str):
-        self.reads.append((table, row_id))
+        self.reads.append((table, row_id, profile_id))
         return super().get_scoped(table, row_id, profile_id)
 
 
 @pytest.fixture()
 def campus_store() -> CountingStore:
     instance = CountingStore(secrets.state_dir() / "campus.db")
-    instance.insert(
-        "exam_profile",
-        {
-            "id": ACTIVE_ID,
-            "track_type": models.TrackType.CET.value,
-            "title": "六级 12 月",
-            "status": models.ProfileStatus.ACTIVE.value,
-        },
-    )
-    instance.insert(
-        "exam_profile",
-        {
-            "id": FINISHED_ID,
-            "track_type": models.TrackType.CET.value,
-            "title": "已结课的档案",
-            "status": models.ProfileStatus.FINISHED.value,
-        },
-    )
-    instance.insert(
-        "exam_profile",
-        {
-            "id": ARCHIVED_ID,
-            "track_type": models.TrackType.CET.value,
-            "title": "已归档的档案",
-            "status": models.ProfileStatus.ARCHIVED.value,
-        },
-    )
+    for profile_id, status, title in (
+        (ACTIVE_ID, models.ProfileStatus.ACTIVE.value, "六级 12 月"),
+        (FINISHED_ID, models.ProfileStatus.FINISHED.value, "已结课的档案"),
+        (ARCHIVED_ID, models.ProfileStatus.ARCHIVED.value, "已归档的档案"),
+    ):
+        instance.insert(
+            "exam_profile",
+            {
+                "id": profile_id,
+                "track_type": models.TrackType.CET.value,
+                "title": title,
+                "status": status,
+            },
+        )
+    for table, columns in SCOPED_SEED.items():
+        instance.insert(table, {"id": f"{table}-1", "profile_id": ACTIVE_ID, **columns})
     try:
         yield instance
     finally:
@@ -111,6 +134,19 @@ def _write_handler(guard: routes.ProfileGuard, group: str) -> Callable:
     return handler
 
 
+def _scoped_handler(guard: routes.ProfileGuard, table: str) -> Callable:
+    def handler(
+        row_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> dict[str, str]:
+        row = guard.scoped_row(
+            table, row_id, profile.id, missing_code=SCOPED_SUBRESOURCES[table]
+        )
+        return {"table": table, "row_id": row.id, "profile_id": profile.id}
+
+    handler.__name__ = f"probe_scoped_{table}"
+    return handler
+
+
 def _probe_router(guard: routes.ProfileGuard) -> APIRouter:
     router = APIRouter()
     for group in PROFILE_GROUPS:
@@ -120,6 +156,10 @@ def _probe_router(guard: routes.ProfileGuard) -> APIRouter:
         )
         router.add_api_route(
             f"/probe/{slug}/write", _write_handler(guard, group), methods=["POST"]
+        )
+    for table in SCOPED_SUBRESOURCES:
+        router.add_api_route(
+            f"/probe/scoped/{table}/{{row_id}}", _scoped_handler(guard, table), methods=["GET"]
         )
     return router
 
@@ -328,3 +368,60 @@ def test_an_unparsable_form_is_reported_as_a_missing_profile(client: TestClient)
     )
     assert response.status_code == 400
     assert _detail(response)["code"] == "PROFILE_REQUIRED"
+
+
+@pytest.mark.parametrize("table", sorted(SCOPED_SUBRESOURCES))
+def test_p3_another_profiles_sub_resource_is_forbidden(client: TestClient, table: str) -> None:
+    response = client.get(
+        f"{routes.CAMPUS_PREFIX}/probe/scoped/{table}/{table}-1",
+        params={"profile_id": ARCHIVED_ID},
+    )
+    assert response.status_code == 403
+    assert _detail(response)["code"] == "FORBIDDEN_PROFILE"
+
+
+@pytest.mark.parametrize("table", sorted(SCOPED_SUBRESOURCES))
+def test_p3_the_sub_resource_is_only_ever_loaded_with_the_profile_filter(
+    client: TestClient, campus_store: CountingStore, table: str
+) -> None:
+    campus_store.reads.clear()
+    client.get(
+        f"{routes.CAMPUS_PREFIX}/probe/scoped/{table}/{table}-1",
+        params={"profile_id": ARCHIVED_ID},
+    )
+    assert campus_store.reads == [
+        ("exam_profile", ARCHIVED_ID),
+        (table, f"{table}-1", ARCHIVED_ID),
+        (table, f"{table}-1"),
+    ]
+
+
+@pytest.mark.parametrize("table", sorted(SCOPED_SUBRESOURCES))
+def test_p3_a_missing_sub_resource_reports_its_own_not_found_code(
+    client: TestClient, table: str
+) -> None:
+    response = client.get(
+        f"{routes.CAMPUS_PREFIX}/probe/scoped/{table}/does-not-exist",
+        params={"profile_id": ACTIVE_ID},
+    )
+    assert response.status_code == 404
+    assert _detail(response)["code"] == SCOPED_SUBRESOURCES[table]
+
+
+@pytest.mark.parametrize("table", sorted(SCOPED_SUBRESOURCES))
+def test_p3_the_own_sub_resource_is_returned(client: TestClient, table: str) -> None:
+    response = client.get(
+        f"{routes.CAMPUS_PREFIX}/probe/scoped/{table}/{table}-1",
+        params={"profile_id": ACTIVE_ID},
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "table": table,
+        "row_id": f"{table}-1",
+        "profile_id": ACTIVE_ID,
+    }
+
+
+def test_scoped_row_rejects_an_unknown_not_found_code(guard: routes.ProfileGuard) -> None:
+    with pytest.raises(KeyError):
+        guard.scoped_row("attempt", "does-not-exist", ACTIVE_ID, missing_code="NOT_A_CODE")

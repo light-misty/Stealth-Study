@@ -20,7 +20,8 @@ and an unmigratable database aborts application startup rather than serving a ha
 request acts on from the path, query string, JSON body or form, and refuses unknown and
 read-only profiles (`PROFILE_REQUIRED` / `PROFILE_NOT_FOUND` / `PROFILE_READ_ONLY`). Endpoints
 declare `Depends(guard.get_profile)` and receive an `ExamProfile`; they never accept a raw
-`profile_id` string and query with it.
+`profile_id` string and query with it. `scoped_row()` is the sub-resource half of the same
+rule: a row owned by another profile is refused as `FORBIDDEN_PROFILE`.
 """
 
 from __future__ import annotations
@@ -216,6 +217,24 @@ class ProfileGuard:
         if profile.status == models.ProfileStatus.FINISHED.value:
             raise_campus_error("PROFILE_READ_ONLY", f"档案已结课，拒绝写入：{profile.id}")
         return profile
+
+    def scoped_row(self, table: str, row_id: str, profile_id: str, *, missing_code: str) -> Any:
+        """Load a sub-resource row, refusing one that belongs to another profile.
+
+        The scoped read (`WHERE id = ? AND profile_id = ?` — the data-layer half of the double
+        insurance described in 01 §3) is the only way the row is ever loaded, so another
+        profile's row yields nothing and becomes `FORBIDDEN_PROFILE` (08 §4 P-3). The unscoped
+        existence probe that follows only chooses between `FORBIDDEN_PROFILE` and the group's
+        own `missing_code`: 03 §6 defines both families (`ATTEMPT_NOT_FOUND`, `DOC_NOT_FOUND`,
+        ...), so collapsing "absent" into the cross-profile refusal would leave them
+        unreachable.
+        """
+        row = self._store.get_scoped(table, row_id, profile_id)
+        if row is None:
+            if self._store.get(table, row_id) is not None:
+                raise_campus_error("FORBIDDEN_PROFILE", f"{table} 不属于当前档案：{row_id}")
+            raise_campus_error(missing_code, f"{table} 不存在：{row_id}")
+        return models.ROW_MODELS[table].from_row(row)
 
 
 def build_campus_router(manager: Any) -> APIRouter:
