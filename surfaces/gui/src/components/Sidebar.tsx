@@ -27,6 +27,7 @@ import { Icon, type IconName } from "./Icon";
 import { personaGlyph } from "./personaIcon";
 import { SearchModal } from "./SearchModal";
 import { baseName } from "../paths";
+import { showLogin } from "../flags";
 
 // Session surfaces shown as accordions, in display order. The surfaced personas drive this list
 // (so third-party / Ops personas appear); the hardcoded set is the fallback before personas load.
@@ -1171,7 +1172,7 @@ export function Sidebar(props: Props) {
                   >
                     {accountEmail}
                   </div>
-                ) : (
+                ) : showLogin() ? (
                   <>
                     <div className="px-3 py-1.5 text-[11px] text-faint border-b border-line">
                       {t("sidebar.not_signed_in")}
@@ -1195,7 +1196,7 @@ export function Sidebar(props: Props) {
                       <Icon name="plug" size={15} className="shrink-0" /> {t("sidebar.sign_in")}
                     </button>
                   </>
-                )}
+                ) : null}
                 {appMenuItem(
                   "inbox",
                   t("nav.inbox"),
@@ -1214,7 +1215,7 @@ export function Sidebar(props: Props) {
                 )}
                 {/* No Automations here — the sidebar's top nav already carries it. */}
                 {appMenuItem("audit", t("nav.activity"), props.onOpenAudit, props.auditActive)}
-                {cloud?.signed_in && (
+                {cloud?.signed_in && showLogin() && (
                   <>
                     <div className="h-px bg-line my-1 mx-2" />
                     {appMenuItem("signOut", t("sidebar.sign_out"), async () => {
@@ -1253,7 +1254,11 @@ export function Sidebar(props: Props) {
               {cloud?.signed_in ? accountName.slice(0, 1).toUpperCase() : "?"}
             </span>
             <span className={"truncate " + (cloud?.signed_in ? "" : "text-muted")}>
-              {cloud?.signed_in ? accountName : t("sidebar.not_signed_in_row")}
+              {cloud?.signed_in
+                ? accountName
+                : showLogin()
+                  ? t("sidebar.not_signed_in_row")
+                  : t("sidebar.local_workspace")}
             </span>
             {cloud?.signed_in && (
               <span
