@@ -1490,11 +1490,37 @@ def create_app(manager: SessionManager) -> FastAPI:
     # -- StealthStudy Cloud: sign-in + managed one-click connect ---------------
     # All optional: the app is fully functional signed out (manual token paste
     # stays available for every connector, before and after sign-in).
+    #
+    # G-06: cloud sign-in is OFF for StealthStudy. `campus.login_enabled` (config.toml)
+    # is the single server-side switch — until it is set to true, the sign-in, sign-out
+    # and callback routes refuse with 403 and `status` reports signed-out, so no client
+    # can start a browser sign-in flow. Set `[campus] login_enabled = true` to restore.
+
+    def _login_disabled() -> bool:
+        from ..campus.config import load_campus_config
+
+        return not load_campus_config().login_enabled
+
+    def _login_refused() -> JSONResponse:
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error": "signin_disabled",
+                "detail": "Cloud sign-in is disabled in this build.",
+            },
+        )
 
     @app.get("/v1/cloud/status")
     def cloud_status() -> dict[str, Any]:
         from .. import cloud
 
+        if _login_disabled():
+            return {
+                "signed_in": False,
+                "account": "",
+                "user_id": "",
+                "telemetry_enabled": False,
+            }
         return {
             **cloud.status(manager.secrets),
             "telemetry_enabled": cloud.telemetry_enabled(manager.secrets),
@@ -1511,7 +1537,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         )
 
     @app.post("/v1/cloud/login")
-    def cloud_login() -> dict[str, Any]:
+    def cloud_login() -> Any:
         """Start browser sign-in. The sidecar opens the system browser itself
         (works identically under Tauri and plain-browser dev)."""
         import webbrowser
@@ -1519,19 +1545,31 @@ def create_app(manager: SessionManager) -> FastAPI:
         from .. import cloud
         from ..config import load_config
 
+        if _login_disabled():
+            return _login_refused()
         out = cloud.begin_login(load_config())
         webbrowser.open(out["authorize_url"])
         return {"ok": True, "authorize_url": out["authorize_url"]}
 
     @app.post("/v1/cloud/logout")
-    def cloud_logout() -> dict[str, Any]:
+    def cloud_logout() -> Any:
         from .. import cloud
 
+        if _login_disabled():
+            return _login_refused()
         return cloud.logout(manager.secrets)
 
     @app.get("/auth/callback")
     async def cloud_auth_callback(code: str = "", state: str = "", error: str = ""):
         from fastapi.responses import HTMLResponse
+
+        if _login_disabled():
+            return HTMLResponse(
+                "<html><body><h1>Sign-in disabled</h1>"
+                "<p>Close this tab — cloud sign-in is disabled in this build.</p>"
+                "</body></html>",
+                status_code=403,
+            )
 
         from .. import cloud
         from ..config import load_config

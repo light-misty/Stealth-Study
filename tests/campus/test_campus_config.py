@@ -172,6 +172,33 @@ def test_blank_default_profile_id_is_treated_as_unset(tmp_path: Path) -> None:
     assert any("default_profile_id" in warning for warning in cfg.warnings)
 
 
+def test_login_enabled_defaults_to_false_when_absent(tmp_path: Path) -> None:
+    path = write_toml(tmp_path, "[campus]\ndaily_minutes = 60\n")
+    cfg = campus_config.load_campus_config(path)
+    assert cfg.login_enabled is False
+    assert cfg.warnings == ()
+
+
+def test_login_enabled_reads_a_real_boolean(tmp_path: Path) -> None:
+    path = write_toml(tmp_path, "[campus]\nlogin_enabled = true\n")
+    cfg = campus_config.load_campus_config(path)
+    assert cfg.login_enabled is True
+    assert cfg.warnings == ()
+
+
+@pytest.mark.parametrize("raw", ['"false"', '"true"', "1", "0", '"1"', "[false]"])
+def test_login_enabled_rejects_non_booleans(tmp_path: Path, raw: str) -> None:
+    path = write_toml(tmp_path, f"[campus]\nlogin_enabled = {raw}\n")
+    cfg = campus_config.load_campus_config(path)
+    assert cfg.login_enabled is False
+    assert any("login_enabled" in warning for warning in cfg.warnings)
+
+
+def test_login_enabled_default_constant_is_off() -> None:
+    assert campus_config.DEFAULT_LOGIN_ENABLED is False
+    assert campus_config.CampusConfig().login_enabled is False
+
+
 def test_resolve_task_model_prefers_the_configured_override(tmp_path: Path) -> None:
     cfg = campus_config.CampusConfig(task_models={"grading": "deepseek:deepseek-v4-pro"})
     assert cfg.resolve_task_model("grading") == "deepseek:deepseek-v4-pro"

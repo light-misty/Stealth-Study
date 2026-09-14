@@ -31,6 +31,7 @@ DEFAULT_DAILY_MINUTES = 60
 DEFAULT_PUSH_TIME = "20:00"
 DEFAULT_REVIEW_INTENSITY = ReviewIntensity.STANDARD.value
 DEFAULT_GRADING_START_LEVEL = 0
+DEFAULT_LOGIN_ENABLED = False
 MIN_DAILY_MINUTES = 1
 MAX_DAILY_MINUTES = 1440
 MAX_GRADING_START_LEVEL = 3
@@ -55,6 +56,7 @@ class CampusConfig:
     review_intensity: str = DEFAULT_REVIEW_INTENSITY
     default_profile_id: Optional[str] = None
     grading_start_level: int = DEFAULT_GRADING_START_LEVEL
+    login_enabled: bool = DEFAULT_LOGIN_ENABLED
     task_models: Mapping[str, str] = field(default_factory=dict)
     warnings: tuple[str, ...] = ()
 
@@ -139,6 +141,17 @@ def _default_profile_id(value: Any, warnings: list[str]) -> Optional[str]:
     return value.strip()
 
 
+def _login_enabled(value: Any, warnings: list[str]) -> bool:
+    """G-06: cloud sign-in is off by default; this is the single server-side escape hatch.
+
+    Only a real TOML boolean turns it back on — strings avoid the `"false"`-is-truthy trap.
+    """
+    if not isinstance(value, bool):
+        warnings.append(f"campus.login_enabled: expected a boolean, got {value!r}")
+        return DEFAULT_LOGIN_ENABLED
+    return value
+
+
 def _task_models(value: Any, warnings: list[str]) -> dict[str, str]:
     table = _read_table(value, "models", warnings)
     tasks = {task.value for task in CampusTask}
@@ -191,6 +204,9 @@ def load_campus_config(path: Optional[Path] = None) -> CampusConfig:
             _grading_start_level,
             DEFAULT_GRADING_START_LEVEL,
             warnings,
+        ),
+        login_enabled=_pick(
+            campus, "login_enabled", _login_enabled, DEFAULT_LOGIN_ENABLED, warnings
         ),
         task_models=_pick(campus, "models", _task_models, {}, warnings),
         warnings=tuple(warnings),

@@ -22,3 +22,9 @@ auto_allow = ["write_file", "replace_in_file", "apply_patch", "apply_unified_dif
 # Server (openworker-server) bind address.
 host = "127.0.0.1"
 port = 8765
+
+# StealthStudy cloud sign-in (G-06). OFF by default: no sign-in UI is rendered, and the
+# server refuses /v1/cloud/login, /v1/cloud/logout and /auth/callback. Set to true only
+# to restore the upstream one-click managed-connector flow; it is not a product login.
+[campus]
+login_enabled = false
