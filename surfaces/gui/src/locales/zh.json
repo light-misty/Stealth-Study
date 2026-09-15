@@ -93,6 +93,12 @@
       "dimensions": "分项得分",
       "errors": "错误清单",
       "model_outline": "范文要点",
+      "rubric": "评分标准",
+      "suggestion": "修改建议",
+      "locate": "定位原文",
+      "add_to_mistake": "加入错题本",
+      "no_errors": "本次未检出错误",
+      "model_used": "批改模型",
       "degrade_notice_1": "弱模型批改，结果仅供参考",
       "degrade_notice_2": "批改降级，结果仅供参考",
       "degrade_notice_3": "多次解析失败，结果仅供参考"

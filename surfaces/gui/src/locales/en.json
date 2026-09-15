@@ -94,6 +94,12 @@
       "dimensions": "Dimension scores",
       "errors": "Error list",
       "model_outline": "Model answer outline",
+      "rubric": "Rubric",
+      "suggestion": "Suggestion",
+      "locate": "Locate in text",
+      "add_to_mistake": "Add to mistake book",
+      "no_errors": "Nothing flagged this time",
+      "model_used": "Graded by",
       "degrade_notice_1": "Graded by a weaker model — for reference only",
       "degrade_notice_2": "Grading degraded — for reference only",
       "degrade_notice_3": "Repeated parse failures — for reference only"
