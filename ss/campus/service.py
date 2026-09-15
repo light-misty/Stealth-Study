@@ -19,7 +19,10 @@ Three rules from 01 §2.1/§3 are structural here:
 
 from __future__ import annotations
 
+import csv
+import io
 import json
+import re
 import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -66,6 +69,50 @@ PROFILE_MUTABLE_FIELDS: tuple[str, ...] = (
 
 JSON_PROFILE_FIELDS: frozenset[str] = frozenset({"subjects"})
 
+QUESTION_FIELDS: tuple[str, ...] = (
+    "subject",
+    "stem",
+    "qtype",
+    "point_id",
+    "options",
+    "answer",
+    "answer_meta",
+    "max_score",
+    "difficulty",
+    "source",
+    "doc_id",
+)
+
+JSON_QUESTION_FIELDS: frozenset[str] = frozenset({"options", "answer_meta"})
+
+QUESTION_REQUIRED_FIELDS: tuple[str, ...] = ("stem", "subject")
+
+MIN_DIFFICULTY = 1
+MAX_DIFFICULTY = 5
+
+_QUESTION_LABELS: Mapping[str, str] = {
+    "题干": "stem",
+    "stem": "stem",
+    "科目": "subject",
+    "subject": "subject",
+    "题型": "qtype",
+    "类型": "qtype",
+    "qtype": "qtype",
+    "选项": "options",
+    "options": "options",
+    "答案": "answer",
+    "answer": "answer",
+    "分值": "max_score",
+    "满分": "max_score",
+    "max_score": "max_score",
+    "难度": "difficulty",
+    "difficulty": "difficulty",
+}
+
+_LABEL_LINE = re.compile(r"^\s*([^\s：:]{1,12})\s*[：:]\s*(.*)$")
+_OPTION_PART = re.compile(r"^\s*([A-Za-z]{1,3})\s*[.、)．]\s*(\S.*)$")
+_OPTION_SEPARATOR = re.compile(r"[|｜]")
+
 
 class CampusError(Exception):
     """A business failure carrying one documented code, its message and any extra detail.
@@ -105,6 +152,157 @@ def profile_payload(profile: models.ExamProfile) -> dict[str, Any]:
     for name in JSON_PROFILE_FIELDS:
         payload[name] = _decode(payload.get(name), [])
     return payload
+
+
+def question_payload(question: models.QuestionBankItem) -> dict[str, Any]:
+    """One question with its JSON columns decoded (`options`, `answer_meta`)."""
+    payload = asdict(question)
+    for name in JSON_QUESTION_FIELDS:
+        payload[name] = _decode(payload.get(name), None)
+    return payload
+
+
+def parse_questions(fmt: str, content: str) -> list[dict[str, Any]]:
+    """Parse an E1 payload into validated question dictionaries (03 §4.5 E1).
+
+    Two shapes are accepted, both addressed by the same label vocabulary so the UI can offer one
+    template per format:
+
+    * `md` — one block of `标签：值` lines per question (full-width or ASCII colon), blocks
+      separated by a blank line or a `#` heading, values single-line. The required labels are
+      `题干` and `科目`; `类型` defaults to `single` and `分值` to 1. `选项` is `A.内容` items
+      joined by `|`.
+    * `csv` — a header row using those same labels, then one question per row.
+
+    English aliases (`stem`, `subject`, `qtype`, `options`, `answer`, `max_score`, `difficulty`)
+    are accepted alongside the Chinese ones. Nothing is dropped silently: an unparsable line, an
+    unknown label, a missing required value or an out-of-range value raises `PARSE_ERROR` with
+    the physical line number, and the whole payload is validated before anything is stored.
+    """
+    if not isinstance(content, str) or not content.strip():
+        raise CampusError("PARSE_ERROR", "导入内容为空", line=1)
+    if fmt == "md":
+        questions = _parse_markdown_questions(content)
+    elif fmt == "csv":
+        questions = _parse_csv_questions(content)
+    else:
+        raise CampusError("PARSE_ERROR", f"不支持的内容格式：{fmt}", line=1)
+    if not questions:
+        raise CampusError("PARSE_ERROR", "未解析到任何题目", line=1)
+    return questions
+
+
+def _parse_markdown_questions(content: str) -> list[dict[str, Any]]:
+    questions: list[dict[str, Any]] = []
+    fields: dict[str, Any] = {}
+    block_line = 1
+    for number, raw in enumerate(content.splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            if fields:
+                questions.append(_normalize_question(fields, block_line))
+                fields = {}
+            continue
+        match = _LABEL_LINE.match(line)
+        label = _QUESTION_LABELS.get(match.group(1)) if match else None
+        if label is None:
+            raise CampusError("PARSE_ERROR", f"第 {number} 行不是「标签：值」形式", line=number)
+        if label in fields:
+            raise CampusError("PARSE_ERROR", f"第 {number} 行字段重复：{match.group(1)}", line=number)
+        if not fields:
+            block_line = number
+        fields[label] = match.group(2).strip()
+    if fields:
+        questions.append(_normalize_question(fields, block_line))
+    return questions
+
+
+def _parse_csv_questions(content: str) -> list[dict[str, Any]]:
+    reader = csv.reader(io.StringIO(content))
+    header = next(reader, None)
+    if not header:
+        raise CampusError("PARSE_ERROR", "导入内容为空", line=1)
+    columns = [_QUESTION_LABELS.get(cell.strip()) for cell in header]
+    if any(column is None for column in columns):
+        raise CampusError("PARSE_ERROR", "第 1 行表头含未知字段", line=1)
+    if len(set(columns)) != len(columns):
+        raise CampusError("PARSE_ERROR", "第 1 行表头字段重复", line=1)
+    for required in QUESTION_REQUIRED_FIELDS:
+        if required not in columns:
+            raise CampusError("PARSE_ERROR", f"第 1 行表头缺少必填字段：{required}", line=1)
+    questions: list[dict[str, Any]] = []
+    for row in reader:
+        line = reader.line_num
+        if not any(cell.strip() for cell in row):
+            continue
+        if len(row) != len(header):
+            raise CampusError("PARSE_ERROR", f"第 {line} 行列数与表头不一致", line=line)
+        fields = {str(column): cell.strip() for column, cell in zip(columns, row)}
+        questions.append(_normalize_question(fields, line))
+    return questions
+
+
+def _normalize_question(fields: Mapping[str, Any], line: int) -> dict[str, Any]:
+    question: dict[str, Any] = {}
+    for name in QUESTION_REQUIRED_FIELDS:
+        value = str(fields.get(name) or "").strip()
+        if not value:
+            raise CampusError("PARSE_ERROR", f"第 {line} 行缺少必填字段：{name}", line=line)
+        question[name] = value
+    question["qtype"] = _question_type(fields.get("qtype"), line)
+    question["options"] = _parse_options(fields.get("options"), line)
+    question["answer"] = str(fields.get("answer") or "").strip() or None
+    if fields.get("max_score") not in (None, ""):
+        question["max_score"] = _question_score(fields["max_score"], line)
+    if fields.get("difficulty") not in (None, ""):
+        question["difficulty"] = _question_difficulty(fields["difficulty"], line)
+    return question
+
+
+def _question_type(value: Any, line: int) -> str:
+    raw = str(value or models.QuestionType.SINGLE.value).strip()
+    try:
+        return models.QuestionType.from_value(raw).value
+    except ValueError:
+        raise CampusError("PARSE_ERROR", f"第 {line} 行题型非法：{raw}", line=line) from None
+
+
+def _question_score(value: Any, line: int) -> float:
+    try:
+        score = float(str(value).strip())
+    except ValueError:
+        raise CampusError("PARSE_ERROR", f"第 {line} 行分值不是数字：{value}", line=line) from None
+    if score <= 0:
+        raise CampusError("PARSE_ERROR", f"第 {line} 行分值必须为正数：{value}", line=line)
+    return score
+
+
+def _question_difficulty(value: Any, line: int) -> int:
+    raw = str(value).strip()
+    if not raw.isdigit() or not MIN_DIFFICULTY <= int(raw) <= MAX_DIFFICULTY:
+        raise CampusError(
+            "PARSE_ERROR",
+            f"第 {line} 行难度需为 {MIN_DIFFICULTY}-{MAX_DIFFICULTY} 的整数：{value}",
+            line=line,
+        )
+    return int(raw)
+
+
+def _parse_options(value: Any, line: int) -> Optional[list[dict[str, str]]]:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    options: list[dict[str, str]] = []
+    for part in _OPTION_SEPARATOR.split(text):
+        match = _OPTION_PART.match(part)
+        if match is None:
+            raise CampusError(
+                "PARSE_ERROR",
+                f"第 {line} 行选项应为「A.内容」并以 | 分隔：{part.strip()}",
+                line=line,
+            )
+        options.append({"key": match.group(1).upper(), "text": match.group(2).strip()})
+    return options
 
 
 @dataclass(frozen=True)
@@ -405,7 +603,144 @@ class CampusService:
         freed += _remove_tree(root, root / "campus")
         return {"cleared": True, "freed_bytes": freed}
 
+    # -- E1-E4: question bank ----------------------------------------------
+
+    def import_questions(
+        self, profile: models.ExamProfile, fmt: str, content: str
+    ) -> dict[str, Any]:
+        """Import questions from an MD or CSV payload, skipping ones already in the bank (E1).
+
+        The payload is fully parsed and validated before the first write, so a malformed block
+        cannot leave a half-imported batch behind. A question already present for this profile
+        with the same subject and stem is counted in `skipped` instead of being duplicated,
+        which is what makes re-importing the same file idempotent.
+        """
+        imported: list[dict[str, Any]] = []
+        skipped = 0
+        for question in parse_questions(fmt, content):
+            if self._question_exists(profile.id, question["subject"], question["stem"]):
+                skipped += 1
+                continue
+            imported.append(self._insert_question(profile.id, question))
+        return {"imported": len(imported), "skipped": skipped, "items": imported}
+
+    def list_questions(
+        self,
+        profile: models.ExamProfile,
+        *,
+        point_id: Optional[str] = None,
+        qtype: Optional[str] = None,
+        subject: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> dict[str, Any]:
+        """One page of the profile's question bank, newest first (E2, 03 §1 pagination)."""
+        filters = [
+            pair
+            for pair in (("point_id", point_id), ("qtype", qtype), ("subject", subject))
+            if pair[1]
+        ]
+        conditions = ['"profile_id" = ?', *(f'"{name}" = ?' for name, _ in filters)]
+        total = self._store.count(
+            "question_bank_item", " AND ".join(conditions), [profile.id, *(v for _, v in filters)]
+        )
+        rows = self._store.list_rows(
+            "question_bank_item",
+            profile_id=profile.id,
+            where=" AND ".join(f'"{name}" = ?' for name, _ in filters) or None,
+            params=[value for _, value in filters],
+            order_by="created_at DESC, id",
+            limit=page_size,
+            offset=(page - 1) * page_size,
+        )
+        return {
+            "items": [question_payload(models.QuestionBankItem.from_row(row)) for row in rows],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def create_question(
+        self, profile: models.ExamProfile, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Add one question by hand (E3)."""
+        return self._insert_question(profile.id, dict(payload))
+
+    def update_question(
+        self,
+        profile: models.ExamProfile,
+        question: models.QuestionBankItem,
+        patch: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Apply a partial update to a question of this profile (E4)."""
+        values: dict[str, Any] = {}
+        for name in QUESTION_FIELDS:
+            if name not in patch:
+                continue
+            value = patch[name]
+            if name == "point_id":
+                value = self._require_point(profile.id, value)
+            elif name in JSON_QUESTION_FIELDS:
+                value = _encode(value)
+            values[name] = value
+        if values:
+            self._store.update("question_bank_item", question.id, values)
+        return self.question(question.id)
+
+    def delete_question(
+        self, profile: models.ExamProfile, question: models.QuestionBankItem
+    ) -> dict[str, Any]:
+        """Remove one question of this profile (E4)."""
+        del profile
+        self._store.delete("question_bank_item", question.id)
+        return {"deleted": True}
+
+    def question(self, question_id: str) -> dict[str, Any]:
+        """One question body, or `QUESTION_NOT_FOUND`."""
+        row = self._store.get("question_bank_item", question_id)
+        if row is None:
+            raise CampusError("QUESTION_NOT_FOUND", f"题目不存在：{question_id}")
+        return question_payload(models.QuestionBankItem.from_row(row))
+
     # -- internals ---------------------------------------------------------
+
+    def _insert_question(self, profile_id: str, data: Mapping[str, Any]) -> dict[str, Any]:
+        values = {
+            "profile_id": profile_id,
+            "subject": str(data["subject"]),
+            "stem": str(data["stem"]),
+            "qtype": str(data.get("qtype") or models.QuestionType.SINGLE.value),
+            "point_id": self._require_point(profile_id, data.get("point_id")),
+            "options": _encode(data.get("options")),
+            "answer": data.get("answer") or None,
+            "answer_meta": _encode(data.get("answer_meta")),
+            "max_score": 1 if data.get("max_score") is None else data["max_score"],
+            "difficulty": data.get("difficulty"),
+            "source": str(data.get("source") or models.QuestionSource.MANUAL.value),
+            "doc_id": data.get("doc_id") or None,
+        }
+        return self.question(self._store.insert("question_bank_item", values))
+
+    def _question_exists(self, profile_id: str, subject: str, stem: str) -> bool:
+        row = self._store.query_one(
+            'SELECT "id" FROM "question_bank_item" WHERE "profile_id" = ? AND "subject" = ? '
+            'AND "stem" = ?',
+            (profile_id, subject, stem),
+        )
+        return row is not None
+
+    def _require_point(self, profile_id: str, point_id: Optional[str]) -> Optional[str]:
+        """Validate a knowledge point inside the profile's scope, or `POINT_NOT_FOUND`.
+
+        The read is scoped (`WHERE id = ? AND profile_id = ?`), so another profile's point is
+        simply not found — the same answer as a point that never existed, which keeps a
+        cross-profile reference from confirming that someone else's row exists.
+        """
+        if point_id is None:
+            return None
+        if self._store.get_scoped("knowledge_point", str(point_id), profile_id) is None:
+            raise CampusError("POINT_NOT_FOUND", f"知识点不存在：{point_id}")
+        return str(point_id)
 
     def _task_model_override(self, task: str) -> Optional[str]:
         overrides = self._stored_settings().get("task_models")

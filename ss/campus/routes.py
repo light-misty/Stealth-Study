@@ -34,14 +34,20 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Mapping, NoReturn, Optional
+from typing import Any, Literal, Mapping, NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import models, tracks
 from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
-from .service import CampusError, CampusService, ModelInventory
+from .service import (
+    MAX_DIFFICULTY,
+    MIN_DIFFICULTY,
+    CampusError,
+    CampusService,
+    ModelInventory,
+)
 from .store import CampusStore
 
 CAMPUS_PREFIX = "/v1/campus"
@@ -49,6 +55,7 @@ PROFILE_ID_PARAM = "profile_id"
 PROFILE_PATH_PARAM = "pid"
 EXAM_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 PUSH_TIME_PATTERN = r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+MAX_PAGE_SIZE = 200
 
 
 @dataclass(frozen=True)
@@ -342,6 +349,93 @@ class AppStatePatch(BaseModel):
     settings: Optional[CampusSettingsPatch] = None
 
 
+class QuestionOption(BaseModel):
+    """One choice of a question, as stored in `question_bank_item.options` (02 §4.12)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    text: str
+
+    @field_validator("key", "text")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("option key and text must not be blank")
+        return cleaned
+
+
+class QuestionImport(BaseModel):
+    """E1 body (03 §4.5): the payload format and its raw text."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    format: Literal["md", "csv"]
+    content: str
+
+
+class QuestionCreate(BaseModel):
+    """E3 body: the question itself; `profile_id` is the cross-cutting guard parameter."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    subject: str
+    stem: str
+    qtype: models.QuestionType = models.QuestionType.SINGLE
+    point_id: Optional[str] = None
+    options: Optional[list[QuestionOption]] = None
+    answer: Optional[str] = None
+    answer_meta: Optional[dict[str, Any]] = None
+    max_score: Optional[float] = Field(default=None, gt=0)
+    difficulty: Optional[int] = Field(default=None, ge=MIN_DIFFICULTY, le=MAX_DIFFICULTY)
+    source: Optional[models.QuestionSource] = None
+    doc_id: Optional[str] = None
+
+    @field_validator("subject", "stem")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("subject and stem must not be blank")
+        return cleaned
+
+
+class QuestionPatch(BaseModel):
+    """E4 body: any subset of a question's fields, plus the guard's `profile_id`.
+
+    An explicit `null` clears a nullable field (`options`, `answer`, `point_id`), which is how a
+    question is reduced back to its stem without a dedicated endpoint.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    subject: Optional[str] = None
+    stem: Optional[str] = None
+    qtype: Optional[models.QuestionType] = None
+    point_id: Optional[str] = None
+    options: Optional[list[QuestionOption]] = None
+    answer: Optional[str] = None
+    answer_meta: Optional[dict[str, Any]] = None
+    max_score: Optional[float] = Field(default=None, gt=0)
+    difficulty: Optional[int] = Field(default=None, ge=MIN_DIFFICULTY, le=MAX_DIFFICULTY)
+    source: Optional[models.QuestionSource] = None
+    doc_id: Optional[str] = None
+
+    @field_validator("subject", "stem")
+    @classmethod
+    def _must_carry_content(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("subject and stem must not be blank")
+        return cleaned
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -451,5 +545,77 @@ def build_campus_router(manager: Any) -> APIRouter:
     def campus_wipe_data() -> dict[str, Any]:
         """A10 — clear local campus data: `campus.db` rebuilt empty plus the `campus/` tree."""
         return _call(campus_service.wipe_data)
+
+    # -- E 组：题库与作答（03 §4.5）----------------------------------------
+
+    def scoped_question(
+        qid: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.QuestionBankItem:
+        """Resolve a question of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "question_bank_item", qid, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/questions/import")
+    def campus_import_questions(
+        body: QuestionImport,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """E1 — import MD/CSV questions; a broken payload is `PARSE_ERROR` with its line."""
+        return _call(campus_service.import_questions, profile, body.format, body.content)
+
+    @router.get("/questions")
+    def campus_list_questions(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        point_id: Optional[str] = None,
+        qtype: Optional[models.QuestionType] = None,
+        subject: Optional[str] = None,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(50, ge=1, le=MAX_PAGE_SIZE),
+    ) -> dict[str, Any]:
+        """E2 — one page of the profile's question bank."""
+        return _call(
+            campus_service.list_questions,
+            profile,
+            point_id=point_id,
+            qtype=qtype.value if qtype is not None else None,
+            subject=subject,
+            page=page,
+            page_size=page_size,
+        )
+
+    @router.post("/questions")
+    def campus_create_question(
+        body: QuestionCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """E3 — add one question by hand."""
+        return _call(
+            campus_service.create_question,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.patch("/questions/{qid}")
+    def campus_patch_question(
+        body: QuestionPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: models.QuestionBankItem = Depends(scoped_question),
+    ) -> dict[str, Any]:
+        """E4 — partial update; the writable check runs before the row is even looked up."""
+        return _call(
+            campus_service.update_question,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.delete("/questions/{qid}")
+    def campus_delete_question(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: models.QuestionBankItem = Depends(scoped_question),
+    ) -> dict[str, Any]:
+        """E4 — delete one question of the profile."""
+        return _call(campus_service.delete_question, profile, question)
 
     return router
