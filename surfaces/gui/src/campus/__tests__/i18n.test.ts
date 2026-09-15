@@ -119,8 +119,10 @@ describe("campus i18n skeleton", () => {
   });
 
   it("keeps zh/en campus base key sets equal", () => {
-    const zhKeys = baseKeys(flatten((zh as Record<string, unknown>).campus, "campus"));
-    const enKeys = baseKeys(flatten((en as Record<string, unknown>).campus, "campus"));
+    const zhCampus = (zh as Record<string, Record<string, unknown>>).campus ?? {};
+    const enCampus = (en as Record<string, Record<string, unknown>>).campus ?? {};
+    const zhKeys = baseKeys(flatten(zhCampus, "campus"));
+    const enKeys = baseKeys(flatten(enCampus, "campus"));
     const missingInZh = enKeys.filter((k) => !zhKeys.includes(k));
     const missingInEn = zhKeys.filter((k) => !enKeys.includes(k));
     expect(missingInZh, `campus keys missing in zh.json: ${missingInZh.join(", ")}`).toEqual([]);
