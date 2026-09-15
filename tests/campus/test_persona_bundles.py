@@ -219,6 +219,37 @@ def test_bundle_skills_are_progressive_disclosure():
             assert skill.allowed_tools == []
 
 
+def test_load_skill_gate_admits_only_the_personas_own_skills():
+    """渐进加载的落地口径：会话目录只有 name+description，正文经 load_skill 取；
+    跨人设的技能在门禁处被拒，不靠提示词自觉（`skill_tools` 的 allowed 闸门）。
+    """
+    from ss.skills.base import skill_catalog_text, skill_tools
+
+    for persona_id, skills in BUNDLES.items():
+        if not skills:
+            continue
+        loader = SkillLoader([_persona_skill_dir(persona_id)])
+        allowed = set(skills)
+        catalog = skill_catalog_text(loader, allowed)
+        for name in skills:
+            skill = loader.get(name)
+            assert f"- {name}: {skill.description}" in catalog
+            # 摘要进目录、正文不进：会话启动时看不到评分档全文。
+            title = skill.instructions.splitlines()[0]
+            assert title not in catalog
+
+        load_skill = {
+            getattr(tool, "__name__", ""): tool for tool in skill_tools(loader, allowed)
+        }["load_skill"]
+        first_title = loader.get(skills[0]).instructions.splitlines()[0]
+        assert first_title in str(load_skill(name=skills[0]))
+
+        foreign = set(ALL_SKILLS) - allowed
+        if foreign:
+            refused = load_skill(name=sorted(foreign)[0])
+            assert "unknown skill" in str(refused)
+
+
 class _ScriptedProvider(ProviderClient):
     def complete(self, *, model, messages, tools=None, **settings):
         raise AssertionError("no turns expected")
