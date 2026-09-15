@@ -21,8 +21,14 @@ from __future__ import annotations
 import io
 import math
 import re
+import shutil
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
+
+from ..secrets import state_dir
+from . import models
+from .store import CampusStore
 
 # ---------------------------------------------------------------------------
 # 常量（06 §4.2 / T04 决策门 §6）
@@ -33,6 +39,19 @@ MAX_DOC_CHUNKS = 3000
 MAX_EXTRACT_CHARS = 200_000
 MAX_TITLE_CHARS = 40
 RUN_HEADER_MIN_PAGES = 3
+BLANK_PAGE_FAIL_RATIO = 0.8
+
+# 扫描件与异常分支的 `fail_reason` 值域（06 §6.1；截断按 T04 §6-1 的资料库独立上限口径）
+FAIL_NO_TEXT_LAYER = "no_text_layer"
+FAIL_PDF_BROKEN = "pdf_broken"
+FAIL_TRUNCATED = "truncated_2m"
+FAIL_TOO_MANY_CHUNKS = "too_many_chunks"
+
+_FILE_TYPES = {
+    ".pdf": models.DocFileType.PDF.value,
+    ".md": models.DocFileType.MD.value,
+    ".txt": models.DocFileType.TXT.value,
+}
 
 _TITLE_BODY = (
     r"(?:第\s*[一二三四五六七八九十百零\d]+\s*[章讲部分节篇]"
@@ -44,6 +63,8 @@ PAGE_TITLE_PATTERN = re.compile(rf"^(?=.{{0,{MAX_TITLE_CHARS}}}$)\s*{_TITLE_BODY
 _PARAGRAPH_GAP = re.compile(r"\n\s*\n")
 _URL_PART = re.compile(r"(?:https?://\S+|www\.\S+)")
 _TRAILING_NUMBERS = re.compile(r"[\d\s]+$")
+_MD_HEADING = re.compile(r"^(#{1,3})\s+(\S.*)$")
+_MD_HEADING_TOP = re.compile(r"^#{1,3}\s+", re.M)
 
 
 class TooManyChunks(Exception):
@@ -67,6 +88,11 @@ def read_pdf_pages(path: str) -> list[tuple[int, str]]:
     空文本合法（扫描件）。无法读取（缺文件/损坏/带口令）返回空列表——判空分支在
     `import_pdf` 里落 `fail_reason=pdf_broken`，这里不静默吞掉任何中间页。
     """
+    return _read_pdf_with_meta(path)[0]
+
+
+def _read_pdf_with_meta(path: str) -> tuple[list[tuple[int, str]], bool]:
+    """`read_pdf_pages` 的完整形态：附带截断标记（T04 §6-1 资料库独立上限）。"""
     try:
         from pypdf import PdfReader
 
@@ -75,9 +101,10 @@ def read_pdf_pages(path: str) -> list[tuple[int, str]]:
             try:
                 reader.decrypt("")
             except Exception:
-                return []
+                return [], False
         pages: list[tuple[int, str]] = []
         total = 0
+        truncated = False
         for index, page in enumerate(reader.pages, start=1):
             try:
                 text = page.extract_text() or ""
@@ -86,10 +113,29 @@ def read_pdf_pages(path: str) -> list[tuple[int, str]]:
             pages.append((index, text))
             total += len(text)
             if total >= MAX_EXTRACT_CHARS:
+                truncated = True
                 break
-        return pages
+        return pages, truncated
     except Exception:
-        return []
+        return [], False
+
+
+def _read_text_pages(path: Path) -> list[tuple[int, str]]:
+    """MD/TXT 按 `\\n#{1,3} ` 标题切伪页（06 §4.2-4）；无标题整文一页。"""
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        text = ""
+    matches = list(_MD_HEADING_TOP.finditer(text))
+    if not matches:
+        return [(1, text)]
+    page_texts: list[str] = []
+    if matches[0].start() > 0:
+        page_texts.append(text[: matches[0].start()])
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        page_texts.append(text[match.start() : end])
+    return [(order + 1, page) for order, page in enumerate(page_texts)]
 
 
 def slice_page(text: str) -> list[tuple[int, int]]:
@@ -149,12 +195,13 @@ def is_run_header(title: str, pages_seen: set[int]) -> bool:
     return len(pages_seen) >= RUN_HEADER_MIN_PAGES
 
 
-def slice_document(pages: list[tuple[int, str]]) -> list[dict]:
+def slice_document(pages: list[tuple[int, str]], *, markdown: bool = False) -> list[dict]:
     """页文本序列 → `doc_chunk` 行 dict 列表（02 §4.6 形状，06 §4.3）。
 
     `section_title` 取"自文档开头到该片为止最近一次匹配的标题行"（行偏移 ≤ 片
     全文起始偏移；页内偏移精确继承），运行页眉剔除后不参与归属。超出
-    `MAX_DOC_CHUNKS` 抛 `TooManyChunks` 中止导入。
+    `MAX_DOC_CHUNKS` 抛 `TooManyChunks` 中止导入。`markdown=True` 时标题行改用
+    `#{1,3}` 形式（MD 伪页，06 §4.2-4），`section_title` 取剥掉井号后的标题文本。
     """
     page_offsets: dict[int, int] = {}
     offset = 0
@@ -168,11 +215,18 @@ def slice_document(pages: list[tuple[int, str]]) -> list[dict]:
         base = page_offsets[page_no]
         for line in text.splitlines():
             stripped = line.strip()
-            if not stripped or not PAGE_TITLE_PATTERN.match(stripped):
+            if not stripped:
+                continue
+            if markdown:
+                match = _MD_HEADING.match(stripped)
+                title_text = match.group(2).strip() if match else ""
+            else:
+                title_text = stripped if PAGE_TITLE_PATTERN.match(stripped) else ""
+            if not title_text or len(title_text) > MAX_TITLE_CHARS:
                 continue
             line_offset = base + text.find(line)
-            candidates.append((line_offset, page_no, stripped))
-            pages_by_title.setdefault(_title_stem(stripped), set()).add(page_no)
+            candidates.append((line_offset, page_no, title_text))
+            pages_by_title.setdefault(_title_stem(title_text), set()).add(page_no)
 
     kept = [
         (line_offset, page_no, title)
@@ -184,7 +238,8 @@ def slice_document(pages: list[tuple[int, str]]) -> list[dict]:
     global_offset = 0
     history: Optional[str] = None
     for page_no, text in pages:
-        for seq, (start, end) in enumerate(slice_page(text)):
+        page_spans = slice_page(text)
+        for seq, (start, end) in enumerate(page_spans):
             if len(chunks) >= MAX_DOC_CHUNKS:
                 raise TooManyChunks(
                     f"document exceeds {MAX_DOC_CHUNKS} chunks (fail_reason=too_many_chunks)"
@@ -203,7 +258,7 @@ def slice_document(pages: list[tuple[int, str]]) -> list[dict]:
                     "doc_id": "",
                     "page_no": page_no,
                     "chunk_seq": seq,
-                    "chunk_type": "page" if len(slice_page(text)) == 1 else "split",
+                    "chunk_type": "page" if len(page_spans) == 1 else "split",
                     "section_title": title,
                     "content": content,
                     "char_start": piece_start,
@@ -219,3 +274,203 @@ def _token_estimate(text: str) -> int:
     """估算 token 数：中文 ≈ 字符数，英文 ≈ /4（02 §4.6）。"""
     cjk = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
     return cjk + (len(text) - cjk) // 4
+
+
+def _utcnow() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+# ---------------------------------------------------------------------------
+# CampusLibrary：导入 / 重试 / 删除（06 §4.1 + 03 §4.2 B1/B3/B4/B5 库层）
+# ---------------------------------------------------------------------------
+
+
+class LibraryError(Exception):
+    """资料库领域错误；`code` 对应 03 §6 错误码表，端点层据此映射 HTTP 错误体。"""
+
+    def __init__(self, code: str, message: Optional[str] = None, **extra: object) -> None:
+        super().__init__(message or code)
+        self.code = code
+        self.message = message or code
+        self.extra = extra
+
+
+class _ParseFailure(Exception):
+    """解析阶段的内部失败信号，`_parse_into` 捕获后落 `parse_status=failed`。"""
+
+    def __init__(self, reason: str, page_count: int = 0) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.page_count = page_count
+
+
+class CampusLibrary:
+    """`campus/library/<profile_id>/<doc_id>/` 的库层句柄（02 §1.1 目录布局）。
+
+    `provider`/`model_picker` 供检索 L1 章节路由与 `answer_qa` 复用批改同款
+    provider 链路（06 §4.1；T08 接口先行，注入即用）。
+    """
+
+    def __init__(
+        self,
+        store: CampusStore,
+        lib_dir: Optional[Path] = None,
+        provider: Optional[object] = None,
+        model_picker: Optional[Callable[[str, str], tuple[str, str]]] = None,
+    ) -> None:
+        self.store = store
+        self._lib_dir = Path(lib_dir) if lib_dir is not None else (state_dir() / "campus" / "library")
+        self._provider = provider
+        self._model_picker = model_picker
+
+    # ---- 导入（B1 库层：落盘 + 建行 + 同步解析，06 §6.1 判定时机） ----
+
+    def import_pdf(self, profile_id: str, file_path: str) -> dict:
+        src = Path(file_path)
+        if not src.is_file():
+            raise LibraryError("PARSE_ERROR", f"文件不存在：{src}")
+        file_type = _FILE_TYPES.get(src.suffix.lower())
+        if file_type is None:
+            raise LibraryError("UNSUPPORTED_TYPE", f"不支持的文件类型：{src.suffix}")
+        doc_id = self.store.new_id()
+        dest_dir = self._lib_dir / profile_id / doc_id
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / src.name
+        shutil.copy2(src, dest)
+        self.store.insert(
+            "source_doc",
+            {
+                "id": doc_id,
+                "profile_id": profile_id,
+                "title": src.stem,
+                "file_path": f"{doc_id}/{src.name}",
+                "file_type": file_type,
+                "parse_status": models.ParseStatus.PENDING.value,
+                "imported_at": _utcnow(),
+            },
+        )
+        self._parse_into(doc_id, profile_id, dest, file_type)
+        return dict(self.store.get("source_doc", doc_id))
+
+    # ---- 重试（B5：扫描件幂等拒绝，不再烧解析；06 §6.1） ----
+
+    def retry_parse(self, profile_id: str, doc_id: str) -> dict:
+        row = self.store.get_scoped("source_doc", doc_id, profile_id)
+        if row is None:
+            raise LibraryError("DOC_NOT_FOUND", f"资料不存在：{doc_id}")
+        doc = models.SourceDoc.from_row(row)
+        if doc.parse_status == models.ParseStatus.READY.value:
+            return dict(row)
+        if doc.parse_status == models.ParseStatus.FAILED.value and doc.fail_reason == FAIL_NO_TEXT_LAYER:
+            raise LibraryError("DOC_SCAN_EMPTY", "扫描件无可提取文字层，请转文字版后重新导入")
+        path = self._doc_path(profile_id, doc)
+        if path is None:
+            raise LibraryError("DOC_NOT_FOUND", f"资料文件已丢失：{doc_id}")
+        with self.store.transaction():
+            self.store.delete_where("doc_chunk", "doc_id = ?", (doc_id,))
+            self.store.update(
+                "source_doc",
+                doc_id,
+                {
+                    "parse_status": models.ParseStatus.PENDING.value,
+                    "fail_reason": None,
+                    "chunk_count": 0,
+                    "char_count": 0,
+                },
+            )
+        self._parse_into(doc_id, profile_id, path, doc.file_type or "pdf")
+        return dict(self.store.get("source_doc", doc_id))
+
+    # ---- 删除（B4：级联 chunk + 文件，顺序按 02 §5.3） ----
+
+    def delete_doc(self, profile_id: str, doc_id: str) -> bool:
+        row = self.store.get_scoped("source_doc", doc_id, profile_id)
+        if row is None:
+            raise LibraryError("DOC_NOT_FOUND", f"资料不存在：{doc_id}")
+        with self.store.transaction():
+            self.store.delete_where("doc_chunk", "doc_id = ?", (doc_id,))
+            self.store.delete("source_doc", doc_id)
+        shutil.rmtree(self._lib_dir / profile_id / doc_id, ignore_errors=True)
+        return True
+
+    # ---- 解析状态机 ----
+
+    def _parse_into(self, doc_id: str, profile_id: str, path: Path, file_type: str) -> None:
+        truncated = False
+        pages: list[tuple[int, str]] = []
+        try:
+            if file_type == models.DocFileType.PDF.value:
+                pages, truncated = _read_pdf_with_meta(str(path))
+                if not pages:
+                    raise _ParseFailure(FAIL_PDF_BROKEN, 0)
+            else:
+                pages = _read_text_pages(path)
+                if not any(text.strip() for _, text in pages):
+                    raise _ParseFailure(FAIL_NO_TEXT_LAYER, len(pages))
+            slices = slice_document(pages, markdown=file_type != models.DocFileType.PDF.value)
+            page_count = len(pages)
+            char_count = sum(len(text) for _, text in pages)
+            blank = sum(1 for _, text in pages if not text.strip())
+            if char_count == 0 or (page_count and blank / page_count > BLANK_PAGE_FAIL_RATIO):
+                raise _ParseFailure(FAIL_NO_TEXT_LAYER, page_count)
+        except TooManyChunks:
+            self._mark_failed(doc_id, FAIL_TOO_MANY_CHUNKS, len(pages))
+            return
+        except _ParseFailure as exc:
+            self._mark_failed(doc_id, exc.reason, exc.page_count)
+            return
+        with self.store.transaction():
+            self._insert_chunks(doc_id, profile_id, slices)
+            self.store.update(
+                "source_doc",
+                doc_id,
+                {
+                    "parse_status": models.ParseStatus.READY.value,
+                    "fail_reason": FAIL_TRUNCATED if truncated else None,
+                    "page_count": page_count,
+                    "chunk_count": len(slices),
+                    "char_count": char_count,
+                },
+            )
+
+    def _mark_failed(self, doc_id: str, reason: str, page_count: int) -> None:
+        self.store.update(
+            "source_doc",
+            doc_id,
+            {
+                "parse_status": models.ParseStatus.FAILED.value,
+                "fail_reason": reason,
+                "page_count": page_count,
+                "chunk_count": 0,
+                "char_count": 0,
+            },
+        )
+
+    def _insert_chunks(self, doc_id: str, profile_id: str, slices: list[dict]) -> None:
+        now = _utcnow()
+        rows = [
+            (
+                self.store.new_id(),
+                doc_id,
+                profile_id,
+                piece["page_no"],
+                piece["content"],
+                piece["chunk_type"],
+                piece["section_title"],
+                piece["char_start"],
+                piece["char_end"],
+                piece["token_est"],
+                now,
+            )
+            for piece in slices
+        ]
+        self.store.executemany(
+            'INSERT INTO "doc_chunk" ("id", "doc_id", "profile_id", "page_no", "content", '
+            '"chunk_type", "section_title", "char_start", "char_end", "token_est", "created_at") '
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows,
+        )
+
+    def _doc_path(self, profile_id: str, doc: models.SourceDoc) -> Optional[Path]:
+        path = self._lib_dir / profile_id / (doc.file_path or "")
+        return path if path.is_file() else None
