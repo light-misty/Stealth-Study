@@ -22,22 +22,40 @@ read-only profiles (`PROFILE_REQUIRED` / `PROFILE_NOT_FOUND` / `PROFILE_READ_ONL
 declare `Depends(guard.get_profile)` and receive an `ExamProfile`; they never accept a raw
 `profile_id` string and query with it. `scoped_row()` is the sub-resource half of the same
 rule: a row owned by another profile is refused as `FORBIDDEN_PROFILE`.
+
+Group registrations sit next to the factory that mounts them. Body shapes are Pydantic models
+whose enums, patterns and ranges are taken from the campus enums and config constants
+themselves, so a malformed request is refused by the framework (422) while every documented
+business failure travels out of `service.py` as a `CampusError` and comes back through
+`_call()` as the structured body of 03 §1.
 """
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Mapping, NoReturn, Optional
+from typing import Any, Literal, Mapping, NoReturn, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import models, tracks
+from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
+from .service import (
+    MAX_DIFFICULTY,
+    MIN_DIFFICULTY,
+    CampusError,
+    CampusService,
+    ModelInventory,
+)
 from .store import CampusStore
 
 CAMPUS_PREFIX = "/v1/campus"
 PROFILE_ID_PARAM = "profile_id"
 PROFILE_PATH_PARAM = "pid"
+EXAM_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
+PUSH_TIME_PATTERN = r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+MAX_PAGE_SIZE = 200
 
 
 @dataclass(frozen=True)
@@ -134,6 +152,27 @@ def raise_campus_error(
 ) -> NoReturn:
     """Raise the structured error for `code`."""
     raise campus_error(code, message, status=status, **extra)
+
+
+def _call(fn: Any, *args: Any, **kwargs: Any) -> Any:
+    """Run one `CampusService` call, translating its `CampusError` into the documented response.
+
+    `service.py` owns the business rules and never imports FastAPI, so this is the single place
+    a campus failure crosses into HTTP: the code selects the status, retryability and fallback
+    message from `ERROR_SPECS`, and a code outside the table still fails loudly (03 §6).
+    """
+    try:
+        return fn(*args, **kwargs)
+    except CampusError as exc:
+        raise_campus_error(exc.code, exc.message, **exc.extra)
+
+
+async def _async_call(fn: Any, *args: Any, **kwargs: Any) -> Any:
+    """`_call` for the awaited endpoints (E5 drives the grading chain)."""
+    try:
+        return await fn(*args, **kwargs)
+    except CampusError as exc:
+        raise_campus_error(exc.code, exc.message, **exc.extra)
 
 
 class ProfileGuard:
@@ -237,6 +276,193 @@ class ProfileGuard:
         return models.ROW_MODELS[table].from_row(row)
 
 
+class ProfileCreate(BaseModel):
+    """A2 body (03 §4.1): the track and a title are required, everything else is optional.
+
+    `extra="forbid"` is the "never silent" half of 03 §1 — a misspelled field is refused with
+    422 instead of being dropped while the caller believes it was stored.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    track_type: models.TrackType
+    title: str
+    cert_type: Optional[models.CertType] = None
+    level: Optional[models.CetLevel] = None
+    exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+    target_score: Optional[int] = None
+    subjects: Optional[list[str]] = None
+    daily_minutes: Optional[int] = Field(default=None, ge=MIN_DAILY_MINUTES, le=MAX_DAILY_MINUTES)
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
+class ProfilePatch(BaseModel):
+    """A4 body: any subset of the mutable fields of a profile (03 §4.1 "任意可变字段").
+
+    `track_type` is not part of the body: a profile's track decides the meaning of every row
+    it owns, so an accidental track change is refused rather than silently rewriting them.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: Optional[str] = None
+    cert_type: Optional[models.CertType] = None
+    level: Optional[models.CetLevel] = None
+    exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+    target_score: Optional[int] = None
+    current_estimate: Optional[int] = None
+    subjects: Optional[list[str]] = None
+    daily_minutes: Optional[int] = Field(default=None, ge=MIN_DAILY_MINUTES, le=MAX_DAILY_MINUTES)
+    status: Optional[models.ProfileStatus] = None
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_carry_content(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
+class CampusSettingsPatch(BaseModel):
+    """A7 preference body: the G-09 set (02 §4.2 `campus_settings`).
+
+    Ranges and patterns are the same ones `config.py` applies to the TOML defaults, so the API
+    and the config file cannot drift into accepting different values.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    daily_minutes: Optional[int] = Field(default=None, ge=MIN_DAILY_MINUTES, le=MAX_DAILY_MINUTES)
+    push_time: Optional[str] = Field(default=None, pattern=PUSH_TIME_PATTERN)
+    review_intensity: Optional[models.ReviewIntensity] = None
+    task_models: Optional[dict[models.CampusTask, Optional[str]]] = None
+
+
+class AppStatePatch(BaseModel):
+    """A7 body: the active profile pointer and/or a partial preference patch (03 §4.1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    active_profile_id: Optional[str] = None
+    settings: Optional[CampusSettingsPatch] = None
+
+
+class QuestionOption(BaseModel):
+    """One choice of a question, as stored in `question_bank_item.options` (02 §4.12)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    text: str
+
+    @field_validator("key", "text")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("option key and text must not be blank")
+        return cleaned
+
+
+class QuestionImport(BaseModel):
+    """E1 body (03 §4.5): the payload format and its raw text."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    format: Literal["md", "csv"]
+    content: str
+
+
+class QuestionCreate(BaseModel):
+    """E3 body: the question itself; `profile_id` is the cross-cutting guard parameter."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    subject: str
+    stem: str
+    qtype: models.QuestionType = models.QuestionType.SINGLE
+    point_id: Optional[str] = None
+    options: Optional[list[QuestionOption]] = None
+    answer: Optional[str] = None
+    answer_meta: Optional[dict[str, Any]] = None
+    max_score: Optional[float] = Field(default=None, gt=0)
+    difficulty: Optional[int] = Field(default=None, ge=MIN_DIFFICULTY, le=MAX_DIFFICULTY)
+    source: Optional[models.QuestionSource] = None
+    doc_id: Optional[str] = None
+
+    @field_validator("subject", "stem")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("subject and stem must not be blank")
+        return cleaned
+
+
+class QuestionPatch(BaseModel):
+    """E4 body: any subset of a question's fields, plus the guard's `profile_id`.
+
+    An explicit `null` clears a nullable field (`options`, `answer`, `point_id`), which is how a
+    question is reduced back to its stem without a dedicated endpoint.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    subject: Optional[str] = None
+    stem: Optional[str] = None
+    qtype: Optional[models.QuestionType] = None
+    point_id: Optional[str] = None
+    options: Optional[list[QuestionOption]] = None
+    answer: Optional[str] = None
+    answer_meta: Optional[dict[str, Any]] = None
+    max_score: Optional[float] = Field(default=None, gt=0)
+    difficulty: Optional[int] = Field(default=None, ge=MIN_DIFFICULTY, le=MAX_DIFFICULTY)
+    source: Optional[models.QuestionSource] = None
+    doc_id: Optional[str] = None
+
+    @field_validator("subject", "stem")
+    @classmethod
+    def _must_carry_content(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("subject and stem must not be blank")
+        return cleaned
+
+
+class AttemptCreate(BaseModel):
+    """E5 body (03 §4.5): which question was answered, in what context, and with what."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question_id: str
+    session_type: models.SessionType = models.SessionType.PRACTICE
+    mock_exam_id: Optional[str] = None
+    answer: str
+
+    @field_validator("answer")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("answer must not be blank")
+        return value
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -246,8 +472,19 @@ def build_campus_router(manager: Any) -> APIRouter:
 
     Opening the router opens `campus.db`, so the migration of 02 §3.4 runs here: a schema
     written by a newer application raises `SchemaVersionError` and stops startup.
+
+    The service, the guard and the store are built here and shared by every endpoint of every
+    group, which is what keeps `campus.db` a single handle for the whole application (02 §2.1).
     """
     campus_store = CampusStore()
+    campus_config = load_campus_config()
+    campus_service = CampusService(
+        campus_store,
+        campus_config,
+        inventory=ModelInventory.from_manager(manager),
+        provider_host=manager,
+    )
+    guard = ProfileGuard(campus_store)
     router = APIRouter(prefix=CAMPUS_PREFIX, tags=["campus"])
 
     @router.get("/health")
@@ -257,6 +494,198 @@ def build_campus_router(manager: Any) -> APIRouter:
             "status": "ok",
             "schema_version": campus_store.current_version(),
             "tracks": list(tracks.TRACK_IDS),
+        }
+
+    # -- A 组：全局与设置（03 §4.1）------------------------------------------
+
+    @router.get("/profiles")
+    def campus_list_profiles(
+        track: Optional[models.TrackType] = None,
+        status: Optional[models.ProfileStatus] = None,
+    ) -> dict[str, Any]:
+        """A1 — every profile, optionally narrowed by track and status."""
+        return {
+            "items": _call(
+                campus_service.list_profiles,
+                track=track.value if track is not None else None,
+                status=status.value if status is not None else None,
+            )
+        }
+
+    @router.post("/profiles")
+    def campus_create_profile(body: ProfileCreate) -> dict[str, Any]:
+        """A2 — create a profile; a title already in use is `DUPLICATE_TITLE`."""
+        return _call(campus_service.create_profile, body.model_dump())
+
+    @router.get("/profiles/{pid}")
+    def campus_get_profile(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """A3 — one profile, resolved and ownership-checked by the guard."""
+        return _call(campus_service.get_profile, profile.id)
+
+    @router.patch("/profiles/{pid}")
+    def campus_patch_profile(
+        body: ProfilePatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """A4 — partial update; a `finished` profile refuses every write (02 §7.2)."""
+        return _call(
+            campus_service.update_profile, profile, body.model_dump(exclude_unset=True)
+        )
+
+    @router.delete("/profiles/{pid}")
+    def campus_delete_profile(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """A5 — delete the profile with its whole subtree (02 §7.3)."""
+        return _call(campus_service.delete_profile, profile)
+
+    @router.get("/app-state")
+    def campus_get_app_state() -> dict[str, Any]:
+        """A6 — the active profile pointer plus the resolved campus preferences.
+
+        Deliberately profile-free: `app_state` is global, so this endpoint carries neither a
+        `profile_id` nor one of the guard dependencies.
+        """
+        return _call(campus_service.app_state)
+
+    @router.patch("/app-state")
+    def campus_patch_app_state(body: AppStatePatch) -> dict[str, Any]:
+        """A7 — switch the active profile and/or merge preference changes."""
+        return _call(
+            campus_service.update_app_state,
+            body.model_dump(exclude_unset=True, mode="json"),
+        )
+
+    @router.get("/capabilities")
+    def campus_capabilities() -> dict[str, Any]:
+        """A8 — the static model recommendation list plus what this machine can run."""
+        return _call(campus_service.capabilities)
+
+    @router.get("/privacy")
+    def campus_privacy() -> dict[str, Any]:
+        """A9 — local data layout, its size, and the model endpoints in use."""
+        return _call(campus_service.privacy)
+
+    @router.delete("/privacy/data")
+    def campus_wipe_data() -> dict[str, Any]:
+        """A10 — clear local campus data: `campus.db` rebuilt empty plus the `campus/` tree."""
+        return _call(campus_service.wipe_data)
+
+    # -- E 组：题库与作答（03 §4.5）----------------------------------------
+
+    def scoped_question(
+        qid: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.QuestionBankItem:
+        """Resolve a question of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "question_bank_item", qid, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/questions/import")
+    def campus_import_questions(
+        body: QuestionImport,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """E1 — import MD/CSV questions; a broken payload is `PARSE_ERROR` with its line."""
+        return _call(campus_service.import_questions, profile, body.format, body.content)
+
+    @router.get("/questions")
+    def campus_list_questions(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        point_id: Optional[str] = None,
+        qtype: Optional[models.QuestionType] = None,
+        subject: Optional[str] = None,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(50, ge=1, le=MAX_PAGE_SIZE),
+    ) -> dict[str, Any]:
+        """E2 — one page of the profile's question bank."""
+        return _call(
+            campus_service.list_questions,
+            profile,
+            point_id=point_id,
+            qtype=qtype.value if qtype is not None else None,
+            subject=subject,
+            page=page,
+            page_size=page_size,
+        )
+
+    @router.post("/questions")
+    def campus_create_question(
+        body: QuestionCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """E3 — add one question by hand."""
+        return _call(
+            campus_service.create_question,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.patch("/questions/{qid}")
+    def campus_patch_question(
+        body: QuestionPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: models.QuestionBankItem = Depends(scoped_question),
+    ) -> dict[str, Any]:
+        """E4 — partial update; the writable check runs before the row is even looked up."""
+        return _call(
+            campus_service.update_question,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.delete("/questions/{qid}")
+    def campus_delete_question(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: models.QuestionBankItem = Depends(scoped_question),
+    ) -> dict[str, Any]:
+        """E4 — delete one question of the profile."""
+        return _call(campus_service.delete_question, profile, question)
+
+    def scoped_attempt_question(
+        body: AttemptCreate,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> models.QuestionBankItem:
+        """Resolve the question E5 answers, which the body names instead of the path."""
+        return guard.scoped_row(
+            "question_bank_item", body.question_id, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/attempts")
+    async def campus_submit_attempt(
+        body: AttemptCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: models.QuestionBankItem = Depends(scoped_attempt_question),
+    ) -> dict[str, Any]:
+        """E5 — record an answer; objective questions are judged, subjective ones graded."""
+        return await _async_call(
+            campus_service.submit_attempt,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
+
+    @router.get("/tasks")
+    def campus_list_tasks(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        date: Optional[str] = Query(default=None, pattern=EXAM_DATE_PATTERN),
+        status: Optional[models.PlanTaskStatus] = None,
+        track: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """G1 — the profile's plan tasks; `date=<today>` is the today suggestion."""
+        return {
+            "items": _call(
+                campus_service.list_tasks,
+                profile,
+                date=date,
+                status=status.value if status is not None else None,
+                track=track,
+            )
         }
 
     return router
