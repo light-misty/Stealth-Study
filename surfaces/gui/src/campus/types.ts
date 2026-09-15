@@ -681,6 +681,12 @@ export interface TaskFilters {
   track?: PlanTrack;
 }
 
+export interface TaskPatch {
+  status?: TaskStatus;
+  scheduled_date?: string;
+  priority?: number;
+}
+
 export interface SchoolProfilePatch {
   school?: string;
   major?: string;
