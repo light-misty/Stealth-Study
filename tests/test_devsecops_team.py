@@ -63,12 +63,12 @@ def test_prompts_carry_the_load_bearing_rules(tmp_path):
     lead_prompt = reg.get("devsecops-lead").manifest.system_prompt
     # Falsifiable-claims criteria convention + evidence-based review + the one-time
     # board chip are the lead-contract deltas of the sixteenth/seventeenth passes.
-    assert "FALSIFIABLE" in lead_prompt
+    assert "可证伪的验收标准" in lead_prompt
     assert "(board:)" in lead_prompt
-    assert "evidence" in lead_prompt.lower()
+    assert "证据" in lead_prompt.lower()
     for pid in ("appsec-worker", "secrets-worker"):
         prompt = reg.get(pid).manifest.system_prompt
-        assert "never print a discovered secret's value" in prompt.lower()
+        assert "输出发现的机密值" in prompt.lower()
     # Workers talk to the lead, never the end user.
     for pid in ROSTER:
         assert "ask_user" in reg.get(pid).manifest.system_prompt  # the "never use" line
@@ -76,5 +76,5 @@ def test_prompts_carry_the_load_bearing_rules(tmp_path):
 
 def test_posture_worker_is_read_only_on_cloud(tmp_path):
     prompt = _reg(tmp_path).get("posture-worker").manifest.system_prompt
-    assert "read-only" in prompt
+    assert "只读" in prompt
     assert "terraform apply" in prompt  # the never-apply rule is written down

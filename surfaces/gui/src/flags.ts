@@ -25,3 +25,9 @@ export const showPersonas = () => flag("ocw.flag.personas", true);
  * Source, API calls and i18n copy all stay in the tree, so `ocw.flag.login` = "1" brings
  * the entry points straight back. */
 export const showLogin = () => flag("ocw.flag.login", false);
+
+/** StealthStudy v1.1 (PRD G-04/G-05): voice (STT) entry points. OFF by default = no mic
+ * button, no settings tab, no microphone permission prompt anywhere the user can reach.
+ * Source, API calls and i18n copy all stay in the tree, so `ocw.flag.voice` = "1" brings
+ * the entry points straight back. */
+export const showVoice = () => flag("ocw.flag.voice", false);

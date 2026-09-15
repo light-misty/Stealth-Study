@@ -1,4 +1,218 @@
 {
+  "campus": {
+    "nav": {
+      "cet": "CET station",
+      "kaoyan": "Postgrad station",
+      "cert": "Certification station"
+    },
+    "track": {
+      "cet": {
+        "name": "CET-4/6",
+        "tagline": "Listening · Reading · Writing · Translation"
+      },
+      "kaoyan": {
+        "name": "Postgrad exam",
+        "tagline": "Politics · English · Math · Major"
+      },
+      "cert": {
+        "name": "Certification",
+        "tagline": "Knowledge tree · Practice · Grading"
+      }
+    },
+    "common": {
+      "mastery": {
+        "unknown": "Unknown",
+        "fuzzy": "Fuzzy",
+        "mastered": "Mastered"
+      },
+      "attribution": {
+        "concept_unclear": "Unclear concept",
+        "misread": "Misread the question",
+        "calculation_or_operation": "Calculation slip",
+        "out_of_scope": "Out of scope",
+        "time_short": "Ran out of time",
+        "pending": "Pending attribution"
+      },
+      "subject": {
+        "listening": "Listening",
+        "reading": "Reading",
+        "writing": "Writing",
+        "translation": "Translation",
+        "vocab": "Vocabulary",
+        "politics": "Politics",
+        "english": "English",
+        "math": "Math",
+        "major": "Major course"
+      },
+      "stage": {
+        "foundation": "Foundation",
+        "intensive": "Intensive",
+        "pastpaper": "Past papers",
+        "sprint": "Sprint"
+      },
+      "days_left_one": "{{count}} day left",
+      "days_left_other": "{{count}} days left",
+      "ai_notice": "AI generated, for reference only"
+    },
+    "profile": {
+      "create": "New exam profile",
+      "switch": "Switch profile",
+      "archive": "Archive",
+      "title_label": "Profile name",
+      "exam_date_label": "Exam date",
+      "target_score_label": "Target score",
+      "daily_minutes_label": "Daily minutes",
+      "empty": "No exam profile yet — create one to get started"
+    },
+    "settings": {
+      "title": "Station settings",
+      "daily_minutes": "Daily study minutes",
+      "push_time": "Push time",
+      "review_intensity": "Review intensity",
+      "intensity_light": "Light",
+      "intensity_standard": "Standard",
+      "intensity_intense": "Intense"
+    },
+    "grading": {
+      "submit": "Submit for grading",
+      "dimensions": "Dimension scores",
+      "errors": "Error list",
+      "model_outline": "Model answer outline",
+      "degrade_notice_1": "Graded by a weaker model — for reference only",
+      "degrade_notice_2": "Grading degraded — for reference only",
+      "degrade_notice_3": "Repeated parse failures — for reference only"
+    },
+    "mistake": {
+      "title": "Mistake book",
+      "attribution": "Attribution",
+      "resolved": "Resolved",
+      "stats": "Mistake stats"
+    },
+    "review": {
+      "due_today": "Due today",
+      "correct": "Correct",
+      "wrong": "Wrong",
+      "interval": "Next review in {{days}} days"
+    },
+    "question": {
+      "import": "Import questions",
+      "create": "New question",
+      "filter": "Filter",
+      "qtype": "Type"
+    },
+    "library": {
+      "import": "Import material",
+      "parsing": "Parsing…",
+      "ready": "Ready",
+      "failed": "Parse failed",
+      "ask": "Ask",
+      "citation": "Citations"
+    },
+    "cet": {
+      "assessment": {
+        "start": "Start assessment",
+        "resume": "Resume assessment",
+        "finish": "Finish assessment"
+      },
+      "vocab": {
+        "today_new": "New words today",
+        "today_review": "Review today",
+        "mnemonic": "Generate mnemonic"
+      },
+      "mock": {
+        "start": "Start mock exam",
+        "stage_writing": "Writing",
+        "stage_listening": "Listening",
+        "stage_reading_translation": "Reading & translation",
+        "locked": "Locked",
+        "submit": "Submit"
+      }
+    },
+    "kaoyan": {
+      "plan": {
+        "generate": "Generate plan",
+        "reorder": "Reorder plan",
+        "tracks": "Tracks"
+      },
+      "progress": {
+        "streak_one": "{{count}}-day streak",
+        "streak_other": "{{count}}-day streak",
+        "heatmap": "Heatmap"
+      },
+      "school": {
+        "profile": "School profile",
+        "extract": "Extract from brochure"
+      }
+    },
+    "cert": {
+      "tree": {
+        "generate": "Generate knowledge tree",
+        "coverage": "Coverage",
+        "weak_top5": "Weakest 5"
+      },
+      "practice": {
+        "title": "Practice",
+        "submit": "Submit"
+      },
+      "deadline": {
+        "banner": "Countdown",
+        "reference_notice": "Subject to the official announcement",
+        "create_reminders": "Create reminders"
+      }
+    },
+    "privacy": {
+      "title": "Privacy & data",
+      "data_dir": "Data directory",
+      "db_size": "Database size",
+      "clear": "Clear local data"
+    },
+    "export": {
+      "title": "Export & import",
+      "md": "Export Markdown",
+      "json": "Export JSON",
+      "csv": "Export CSV",
+      "wipe": "Wipe & rebuild"
+    },
+    "error": {
+      "profile_required": "Missing profile parameter",
+      "profile_not_found": "Profile not found",
+      "profile_read_only": "Profile is finished and read-only",
+      "forbidden_profile": "This resource belongs to another profile",
+      "duplicate_title": "A profile with this title already exists",
+      "duplicate_node": "A deadline node of this type already exists",
+      "exam_date_required": "Set the exam date first",
+      "file_too_large": "File exceeds the size limit",
+      "unsupported_type": "Unsupported file type",
+      "disk_full": "Disk is full",
+      "doc_not_found": "Material not found",
+      "doc_not_ready": "Material is still parsing",
+      "doc_scan_empty": "Looks like a scan with no text layer",
+      "parse_error": "Imported content is malformed",
+      "question_not_found": "Question not found",
+      "point_not_found": "Knowledge point not found",
+      "attempt_not_found": "Attempt not found",
+      "rq_not_found": "Review item not found",
+      "mock_not_found": "Mock exam not found",
+      "assessment_not_found": "Assessment not found",
+      "item_not_found": "Review material not found",
+      "invalid_attribution": "Invalid attribution value",
+      "invalid_level": "Invalid mastery level",
+      "illegal_transition": "Illegal task status transition",
+      "illegal_stage": "Illegal mock exam stage transition",
+      "stage_locked": "This stage is locked",
+      "mock_submitted": "Mock exam already submitted",
+      "pause_exceeded": "Pause limit exceeded",
+      "assessment_finished": "Assessment already finished",
+      "model_not_configured": "No model is configured yet",
+      "model_timeout": "Model call timed out",
+      "model_output_invalid": "Model output could not be parsed",
+      "rubric_not_found": "Rubric not found",
+      "automation_unavailable": "Automation store unavailable",
+      "export_not_found": "Export file not found",
+      "no_task_data": "No task data to generate a weekly report",
+      "schema_version_error": "Data version is newer than this app"
+    }
+  },
   "boot": {
     "starting": "Starting…",
     "restoring": "Restoring your session…"
@@ -288,7 +502,8 @@
       "personas": "Coworkers",
       "context": "Context optimization",
       "skills": "Skills",
-      "memory": "Memory"
+      "memory": "Memory",
+      "campus": "Exam prep"
     },
     "general_title": "General",
     "general_sub": "How OpenWorker looks and behaves on this machine.",
