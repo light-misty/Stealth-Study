@@ -22,6 +22,7 @@ import io
 import math
 import re
 import shutil
+import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
@@ -46,6 +47,30 @@ FAIL_NO_TEXT_LAYER = "no_text_layer"
 FAIL_PDF_BROKEN = "pdf_broken"
 FAIL_TRUNCATED = "truncated_2m"
 FAIL_TOO_MANY_CHUNKS = "too_many_chunks"
+
+# 检索（06 §5.1；T04 §6-4：2-gram 必须 IDF 加权；L1 置信度不足回退全库）
+DEFAULT_TOP_K = 6
+MAX_KEYWORDS = 32
+FTS_MIN_TERM_CHARS = 3
+L1_MIN_SECTION_RATIO = 0.5
+TOC_MAX_LINES = 200
+ROUTER_MAX_SECTIONS = 3
+RETRIEVAL_TIMEOUT_S = 90
+
+# 02 §5.2：V0.1 默认启用 L1 + L2b（LIKE，零探测成本）；trigram FTS 是可选加速档，
+# 显式 `enable_fts=True` 时才探测 `ENABLE_FTS5` 并建虚表，探测/建表/运行时任何一步
+# 失败都自动退回 LIKE——两态对上层透明（T08 验收③）。
+FTS_DDL = (
+    "CREATE VIRTUAL TABLE IF NOT EXISTS doc_chunk_fts USING "
+    "fts5(content, content='doc_chunk', content_rowid='rowid', tokenize='trigram')"
+)
+FTS_TRIGGER_DDLS = (
+    "CREATE TRIGGER IF NOT EXISTS doc_chunk_fts_ai AFTER INSERT ON doc_chunk BEGIN "
+    "INSERT INTO doc_chunk_fts(rowid, content) VALUES (new.rowid, new.content); END",
+    "CREATE TRIGGER IF NOT EXISTS doc_chunk_fts_ad AFTER DELETE ON doc_chunk BEGIN "
+    "INSERT INTO doc_chunk_fts(doc_chunk_fts, rowid, content) "
+    "VALUES ('delete', old.rowid, old.content); END",
+)
 
 _FILE_TYPES = {
     ".pdf": models.DocFileType.PDF.value,
@@ -276,6 +301,68 @@ def _token_estimate(text: str) -> int:
     return cjk + (len(text) - cjk) // 4
 
 
+# ---------------------------------------------------------------------------
+# 关键词抽取与评分（06 §5.1 L2；实现逐字对齐 T02 spike `extract_terms`，
+# T04 决策二：T08 落地沿用 spike 已验证的实现，无新设计）
+# ---------------------------------------------------------------------------
+
+_CJK_STOPCHARS = frozenset(
+    "的了和与及或在是为对从到把被让给并且但而所以就都可以需要那这我们你们他它好么"
+    "很更最多少上下着过之其此该等如什怎哪"
+)
+_WORD_STOPWORDS = frozenset(
+    "the a an of in on at to for and or is are was were be been what which how why "
+    "does do did can could should would will shall this that these those it its".split()
+)
+_LATIN_WORD = re.compile(r"[A-Za-z][A-Za-z0-9_+#.-]*|\d+")
+_CJK_RUN = re.compile(r"[\u4e00-\u9fff]+")
+
+
+def extract_keywords(query: str) -> list[str]:
+    """问题 → 关键词序列：拉丁词元优先，中文在原文上滑窗取 2-gram（06 §5.1）。
+
+    含停用字的窗口整窗跳过——不在停用字处拼接，避免产出"反传"这类跨虚词的
+    假 gram；停用字表与拉丁词规则逐字沿用 T02 spike 的 `extract_terms`。
+    """
+    keywords: list[str] = []
+    for token in _LATIN_WORD.findall(query or ""):
+        lowered = token.lower()
+        if len(lowered) > 1 and lowered not in _WORD_STOPWORDS and lowered not in keywords:
+            keywords.append(lowered)
+    for run in _CJK_RUN.findall(query or ""):
+        if len(run) == 1:
+            if run not in _CJK_STOPCHARS and run not in keywords:
+                keywords.append(run)
+            continue
+        for index in range(len(run) - 1):
+            bigram = run[index : index + 2]
+            if bigram[0] in _CJK_STOPCHARS or bigram[1] in _CJK_STOPCHARS:
+                continue
+            if bigram not in keywords:
+                keywords.append(bigram)
+    return keywords[:MAX_KEYWORDS]
+
+
+def score_chunk(content: str, keywords: list[str], idf: dict[str, float]) -> float:
+    """命中词 IDF 加权 + 首次命中位置评分（T02 §3 的 L2 评分口径）。"""
+    haystack = content.lower()
+    total = 0.0
+    length = max(len(content), 1)
+    for keyword in keywords:
+        position = haystack.find(keyword.lower())
+        if position < 0:
+            continue
+        weight = idf.get(keyword, 0.0)
+        hits = haystack.count(keyword.lower())
+        total += weight * (1 + min(hits, 3))
+        total += weight * (1 - position / length)
+    return total
+
+
+def _idf_of(total: int, doc_freq: int) -> float:
+    return math.log(1 + total / (1 + doc_freq))
+
+
 def _utcnow() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -317,11 +404,14 @@ class CampusLibrary:
         lib_dir: Optional[Path] = None,
         provider: Optional[object] = None,
         model_picker: Optional[Callable[[str, str], tuple[str, str]]] = None,
+        *,
+        enable_fts: bool = False,
     ) -> None:
         self.store = store
         self._lib_dir = Path(lib_dir) if lib_dir is not None else (state_dir() / "campus" / "library")
         self._provider = provider
         self._model_picker = model_picker
+        self._fts_ready = bool(enable_fts) and self._detect_fts5() and self._ensure_fts_table()
 
     # ---- 导入（B1 库层：落盘 + 建行 + 同步解析，06 §6.1 判定时机） ----
 
@@ -474,3 +564,146 @@ class CampusLibrary:
     def _doc_path(self, profile_id: str, doc: models.SourceDoc) -> Optional[Path]:
         path = self._lib_dir / profile_id / (doc.file_path or "")
         return path if path.is_file() else None
+
+    # ---- 检索（06 §5.1：L2 关键词召回 / L3 全扫兜底；L1 目录路由见下） ----
+
+    def retrieve(
+        self,
+        profile_id: str,
+        query: str,
+        top_k: int = DEFAULT_TOP_K,
+        doc_id: Optional[str] = None,
+    ) -> list[dict]:
+        """三级检索的统一入口（06 §5.1；L1 目录路由在 `_search` 的 `sections` 限域内）。
+
+        返回 `[{doc_id, page_no, chunk_seq, section_title, content, score}]`（06 §4.1）。
+        """
+        if doc_id is not None:
+            row = self.store.get_scoped("source_doc", doc_id, profile_id)
+            if row is None:
+                return []
+            doc = models.SourceDoc.from_row(row)
+            if doc.parse_status != models.ParseStatus.READY.value:
+                return []
+        chunks, _used = self._search(profile_id, query, doc_id=doc_id, top_k=top_k)
+        return chunks
+
+    def _search(
+        self,
+        profile_id: str,
+        query: str,
+        *,
+        doc_id: Optional[str] = None,
+        top_k: int = DEFAULT_TOP_K,
+        sections: Optional[list[str]] = None,
+    ) -> tuple[list[dict], str]:
+        """L2/L3 关键词召回，返回 `(chunks, used_retrieval)`（06 §5.1 输出标记）。"""
+        keywords = extract_keywords(query)
+        if not keywords:
+            return [], "toc_route" if sections else "keyword"
+        scope, params = self._scope(profile_id, doc_id, sections)
+        rows = self._candidate_rows(scope, params, keywords)
+        if not rows:
+            return [], "toc_route" if sections else "keyword"
+        idf = self._idf(scope, params, keywords)
+        scored: list[tuple[float, sqlite3.Row]] = []
+        for row in rows:
+            score = score_chunk(row["content"], keywords, idf)
+            if score > 0:
+                scored.append((score, row))
+        scored.sort(
+            key=lambda item: (
+                -item[0],
+                item[1]["doc_id"],
+                item[1]["page_no"],
+                item[1]["char_start"],
+            )
+        )
+        return [self._chunk_dict(row, score) for score, row in scored[:top_k]], (
+            "toc_route" if sections else "keyword"
+        )
+
+    def _scope(
+        self,
+        profile_id: str,
+        doc_id: Optional[str],
+        sections: Optional[list[str]],
+    ) -> tuple[str, list]:
+        """检索域 SQL（白名单片段拼装，值全部参数化）：doc 限域 / 档案全扫 / L1 限域。"""
+        if doc_id is not None:
+            scope, params = '"doc_id" = ?', [doc_id]
+        else:
+            scope, params = '"profile_id" = ?', [profile_id]
+        if sections:
+            placeholders = ", ".join("?" for _ in sections)
+            scope += f' AND "section_title" IN ({placeholders})'
+            params = params + list(sections)
+        return scope, params
+
+    def _candidate_rows(self, scope: str, params: list, keywords: list[str]) -> list[sqlite3.Row]:
+        """候选行：FTS 加速档就绪且存在长词元时走 MATCH，否则 LIKE 全扫兜底。"""
+        if self._fts_ready:
+            terms = [keyword for keyword in keywords if len(keyword) >= FTS_MIN_TERM_CHARS]
+            if terms:
+                try:
+                    return self._fts_match(terms, scope, params)
+                except Exception:
+                    self._fts_ready = False
+        likes = " OR ".join('"content" LIKE ?' for _ in keywords)
+        sql = f'SELECT * FROM "doc_chunk" WHERE {scope} AND ({likes})'
+        return self.store.query_all(sql, (*params, *[f"%{keyword}%" for keyword in keywords]))
+
+    def _fts_match(self, terms: list[str], scope: str, params: list) -> list[sqlite3.Row]:
+        match = " OR ".join(f'"{term}"' for term in terms)
+        sql = (
+            'SELECT * FROM "doc_chunk" WHERE rowid IN '
+            "(SELECT rowid FROM doc_chunk_fts WHERE doc_chunk_fts MATCH ?) "
+            f"AND {scope}"
+        )
+        return self.store.query_all(sql, (match, *params))
+
+    def _idf(self, scope: str, params: list, keywords: list[str]) -> dict[str, float]:
+        total = self.store.scalar(f'SELECT COUNT(*) FROM "doc_chunk" WHERE {scope}', params) or 0
+        idf: dict[str, float] = {}
+        for keyword in keywords:
+            doc_freq = self.store.scalar(
+                f'SELECT COUNT(*) FROM "doc_chunk" WHERE {scope} AND "content" LIKE ?',
+                (*params, f"%{keyword}%"),
+            )
+            idf[keyword] = _idf_of(total, doc_freq or 0)
+        return idf
+
+    def _chunk_dict(self, row: sqlite3.Row, score: float) -> dict:
+        """检索行 → 06 §4.1 返回形状；`chunk_seq` 取页内切片序（与导入一致）。"""
+        chunk_seq = self.store.scalar(
+            'SELECT COUNT(*) FROM "doc_chunk" WHERE "doc_id" = ? AND "page_no" = ? '
+            'AND "char_start" < ?',
+            (row["doc_id"], row["page_no"], row["char_start"]),
+        )
+        return {
+            "doc_id": row["doc_id"],
+            "page_no": row["page_no"],
+            "chunk_seq": int(chunk_seq or 0),
+            "section_title": row["section_title"],
+            "content": row["content"],
+            "score": score,
+        }
+
+    # ---- FTS5 加速档（02 §5.2 L2a；探测/建表/运行时失败均退回 LIKE） ----
+
+    def _detect_fts5(self) -> bool:
+        try:
+            options = self.store.query_all("PRAGMA compile_options")
+        except Exception:
+            return False
+        return any("ENABLE_FTS5" in str(row[0]) for row in options)
+
+    def _ensure_fts_table(self) -> bool:
+        try:
+            self.store.execute(FTS_DDL)
+            for ddl in FTS_TRIGGER_DDLS:
+                self.store.execute(ddl)
+            self.store.execute("INSERT INTO doc_chunk_fts(doc_chunk_fts) VALUES('rebuild')")
+            return True
+        except Exception:
+            return False
