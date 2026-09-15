@@ -123,7 +123,8 @@
       "due_today": "Due today",
       "correct": "Correct",
       "wrong": "Wrong",
-      "interval": "Next review in {{days}} days"
+      "interval": "Next review in {{days}} days",
+      "empty": "Nothing due for review right now"
     },
     "question": {
       "import": "Import questions",

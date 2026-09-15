@@ -120,7 +120,8 @@
       "due_today": "今日待复习",
       "correct": "答对",
       "wrong": "答错",
-      "interval": "下次复习：{{days}} 天后"
+      "interval": "下次复习：{{days}} 天后",
+      "empty": "当前没有到期的复习项"
     },
     "question": {
       "import": "导入题库",
