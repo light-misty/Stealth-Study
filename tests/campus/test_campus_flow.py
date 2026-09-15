@@ -46,6 +46,7 @@ T09_ENDPOINTS: tuple[tuple[str, str], ...] = (
 )
 
 T12_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("POST", "/grading"),
     ("GET", "/knowledge-tree"),
     ("POST", "/knowledge-points"),
     ("PATCH", "/knowledge-points/{point_id}"),

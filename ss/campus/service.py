@@ -34,6 +34,7 @@ from . import models
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import GradeRequest, GradeResult, GradingEngine, extract_json
 from .library import FAIL_NO_TEXT_LAYER
+from .rubrics import CERT_SCORING_POINTS_SPEC, CET_ESSAY_RUBRIC, CET_TRANSLATION_RUBRIC
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -107,6 +108,41 @@ _MASTERY_LEVELS: frozenset[str] = frozenset(item.value for item in models.Master
 _MASTERY_WEAK_ORDER: Mapping[str, int] = {
     models.MasteryLevel.UNKNOWN.value: 0,
     models.MasteryLevel.FUZZY.value: 1,
+}
+
+MASTERY_DOWNGRADE: Mapping[str, str] = {
+    models.MasteryLevel.MASTERED.value: models.MasteryLevel.FUZZY.value,
+    models.MasteryLevel.FUZZY.value: models.MasteryLevel.UNKNOWN.value,
+    models.MasteryLevel.UNKNOWN.value: models.MasteryLevel.UNKNOWN.value,
+}
+
+GENERAL_SUBJECT = "general"
+
+DIMENSION_LABELS: Mapping[str, str] = {"content": "内容", "structure": "结构", "language": "语言"}
+DIMENSION_MAX_SCORE = 5
+
+
+@dataclass(frozen=True)
+class RubricSpec:
+    """One named rubric of 05 §5: the label the API reports and the prompt text."""
+
+    name: str
+    text: str
+
+
+RUBRICS: Mapping[str, RubricSpec] = {
+    "cet_essay": RubricSpec("四六级短文写作评分标准", CET_ESSAY_RUBRIC),
+    "cet_translation": RubricSpec("四六级段落翻译评分标准", CET_TRANSLATION_RUBRIC),
+    "cert_scoring_points": RubricSpec("主观题评分点三态输出契约", CERT_SCORING_POINTS_SPEC),
+}
+
+DEFAULT_RUBRIC_BY_KIND: Mapping[str, str] = {
+    "essay": "cet_essay",
+    "translation": "cet_translation",
+    "short_answer": "cert_scoring_points",
+    "essay_material": "cert_scoring_points",
+    "lesson_plan": "cert_scoring_points",
+    "practical": "cert_scoring_points",
 }
 
 MIN_DIFFICULTY = 1
@@ -862,7 +898,9 @@ class CampusService:
                 subject=question.subject,
             )
         )
-        self._store.update("attempt", attempt_id, self._grading_columns(result))
+        with self._store.transaction():
+            self._store.update("attempt", attempt_id, self._grading_columns(result))
+            self._apply_mastery_downgrade(profile.id, question, result)
         if not result.ok:
             code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
             raise CampusError(code, f"批改失败（{result.fail_reason}）")
@@ -876,6 +914,131 @@ class CampusService:
         if row is None:
             raise CampusError("ATTEMPT_NOT_FOUND", f"作答记录不存在：{attempt_id}")
         return attempt_payload(models.Attempt.from_row(row))
+
+    # -- C1: the shared grading endpoint (03 §4.3) --------------------------
+
+    async def grade(
+        self,
+        profile: models.ExamProfile,
+        question: Optional[models.QuestionBankItem],
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Grade one subjective answer through the shared chain (C1, CERT-07/14).
+
+        The attempt row is written first and survives a model failure — exactly the E5
+        semantics — and the CERT-15 mastery downgrade runs in the same transaction as the
+        grading write, so the response and the side effect land together.
+        """
+        kind = str(payload["kind"])
+        if self.model_for_task(models.task_for_kind(kind)) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        rubric_id = payload.get("rubric_id")
+        if rubric_id is not None and rubric_id not in RUBRICS:
+            raise CampusError("RUBRIC_NOT_FOUND", f"评分标准不存在：{rubric_id}")
+        chosen = RUBRICS[rubric_id if rubric_id is not None else DEFAULT_RUBRIC_BY_KIND[kind]]
+        custom = str(payload.get("custom_rubric") or "").strip() or None
+        rubric_text = custom if custom is not None else chosen.text
+        rubric_name = (
+            chosen.name
+            if custom is None or rubric_id is not None
+            else "自定义评分标准"
+        )
+        answer = str(payload["answer"])
+        attempt_id = self._insert_attempt(
+            profile,
+            question,
+            answer,
+            models.SessionType.GRADING.value,
+            None,
+        )
+        result = await self._require_grader().grade(
+            GradeRequest(
+                profile_id=profile.id,
+                track_type=profile.track_type,
+                kind=kind,
+                question=question.stem if question is not None else "",
+                answer=answer,
+                rubric_id=rubric_id,
+                custom_rubric=rubric_text,
+            )
+        )
+        with self._store.transaction():
+            self._store.update("attempt", attempt_id, self._grading_columns(result))
+            self._apply_mastery_downgrade(profile.id, question, result)
+        if not result.ok:
+            code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
+            raise CampusError(code, f"批改失败（{result.fail_reason}）")
+        return self._grading_response(attempt_id, result, rubric_name)
+
+    def _grading_response(
+        self, attempt_id: str, result: GradeResult, rubric_name: str
+    ) -> dict[str, Any]:
+        """The 03 §4.3 GradeResult view plus the attempt id and the raw grading columns."""
+        attempt = self.attempt(attempt_id)
+        return {
+            "attempt_id": attempt_id,
+            "degrade_level": result.degrade_level,
+            "rubric": rubric_name,
+            "dimensions": [
+                {"name": DIMENSION_LABELS[name], "score": score, "max": DIMENSION_MAX_SCORE, "comment": ""}
+                for name, score in result.dimension_scores.items()
+            ],
+            "errors": [
+                {
+                    "original": error.get("fragment", ""),
+                    "suggestion": error.get("suggestion", ""),
+                    "type": error.get("type", ""),
+                    "offset": error.get("offset"),
+                }
+                for error in result.errors
+            ],
+            "model_answer_outline": result.model_answer_outline,
+            "model_used": result.model_used,
+            "notice": result.notice,
+            "band": result.band,
+            "score": attempt["score"],
+            "max_score": attempt["max_score"],
+            "scoring_points": result.scoring_points,
+            "grading_json": attempt["grading_json"],
+        }
+
+    def _apply_mastery_downgrade(
+        self,
+        profile_id: str,
+        question: Optional[models.QuestionBankItem],
+        result: GradeResult,
+    ) -> None:
+        """CERT-15: one fully missed scoring point drags the point's mastery down a state.
+
+        Runs inside the caller's transaction together with the attempt write, so a grading
+        that fails to land never leaves the tree marked "待加强" behind.
+        """
+        if question is None or not question.point_id or not result.scoring_points:
+            return
+        misses = [
+            str(point["point"])
+            for point in result.scoring_points
+            if point.get("status") == "miss"
+        ]
+        if not misses:
+            return
+        point_id = str(question.point_id)
+        row = self._mastery_row(profile_id, point_id, None)
+        level = row["level"] if row is not None else models.MasteryLevel.UNKNOWN.value
+        next_level = MASTERY_DOWNGRADE.get(level, models.MasteryLevel.UNKNOWN.value)
+        evidence = "未命中得分点：" + "；".join(misses)
+        if row is None:
+            self._store.insert(
+                "mastery",
+                {
+                    "profile_id": profile_id,
+                    "point_id": point_id,
+                    "level": next_level,
+                    "evidence": evidence,
+                },
+            )
+        else:
+            self._store.update("mastery", row["id"], {"level": next_level, "evidence": evidence})
 
     # -- G1: today's suggestion and the self-built board -------------------
 
@@ -1133,7 +1296,7 @@ class CampusService:
     def _insert_attempt(
         self,
         profile: models.ExamProfile,
-        question: models.QuestionBankItem,
+        question: Optional[models.QuestionBankItem],
         answer: str,
         session_type: str,
         mock_exam_id: Optional[str],
@@ -1143,9 +1306,9 @@ class CampusService:
         row: dict[str, Any] = {
             "profile_id": profile.id,
             "track_type": profile.track_type,
-            "subject": question.subject,
+            "subject": question.subject if question is not None else GENERAL_SUBJECT,
             "user_answer": answer,
-            "question_id": question.id,
+            "question_id": question.id if question is not None else None,
             "session_type": session_type,
             "mock_exam_id": mock_exam_id,
         }

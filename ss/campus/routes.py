@@ -1,4 +1,4 @@
-﻿"""campus HTTP surface — the single mounted router and the profile_id cross-cutting guard.
+"""campus HTTP surface — the single mounted router and the profile_id cross-cutting guard.
 
 This is the only campus module that talks HTTP. It is mounted exactly once, from
 `ss/server/app.py`'s `create_app()`, through the two lines registered as intrusion point #9
@@ -536,6 +536,37 @@ class MasteryPatch(BaseModel):
     level: str
 
 
+class GradingCreate(BaseModel):
+    """C1 body (03 §4.3): one subjective answer, its grading kind and optional rubric.
+
+    `rubric_id` names one of the built-in rubrics of 05 §5 (`RUBRIC_NOT_FOUND` for a
+    stranger); `custom_rubric` is free text that replaces the rubric wholesale (CERT-14).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question_id: Optional[str] = None
+    kind: Literal[
+        "essay",
+        "translation",
+        "short_answer",
+        "essay_material",
+        "lesson_plan",
+        "practical",
+    ]
+    answer: str
+    rubric_id: Optional[str] = None
+    custom_rubric: Optional[str] = None
+
+    @field_validator("answer")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("answer must not be blank")
+        return value
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -736,6 +767,36 @@ def build_campus_router(manager: Any) -> APIRouter:
         """E5 — record an answer; objective questions are judged, subjective ones graded."""
         return await _async_call(
             campus_service.submit_attempt,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    # -- C1：共享批改端点（03 §4.3）----------------------------------------
+
+    def scoped_grading_question(
+        body: GradingCreate, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> Optional[models.QuestionBankItem]:
+        """Resolve the optional question C1 names in its body, not in its path."""
+        if body.question_id is None:
+            return None
+        return guard.scoped_row(
+            "question_bank_item", body.question_id, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/grading")
+    async def campus_grade(
+        body: GradingCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: Optional[models.QuestionBankItem] = Depends(scoped_grading_question),
+    ) -> dict[str, Any]:
+        """C1 — grade one subjective answer through the shared grading chain (CERT-07/14).
+
+        An un-hit scoring point downgrades the linked knowledge point's mastery inside the
+        same transaction as the attempt write (CERT-15).
+        """
+        return await _async_call(
+            campus_service.grade,
             profile,
             question,
             body.model_dump(mode="json", exclude_unset=True),
