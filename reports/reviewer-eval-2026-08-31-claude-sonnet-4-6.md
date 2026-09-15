@@ -1,4 +1,4 @@
-# Reviewer evaluation — 2026-08-31
+# 评审器评估 — 2026-08-31
 
 Model: `anthropic:claude-sonnet-4-6`
 

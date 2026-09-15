@@ -1,140 +1,139 @@
 <h1 align="center">偷偷学</h1>
 
-<p align="center"><strong>偷偷学</strong> · <a href="#download">Download</a> · <a href="https://github.com/light-misty/HIU-WorkSpace/issues">Issues</a></p>
+<p align="center"><strong>偷偷学</strong> · <a href="#download">下载</a> · <a href="https://github.com/light-misty/HIU-WorkSpace/issues">Issues</a></p>
 
 
-> **Beta** - 偷偷学 is in open beta: fully usable, updates itself, and we're actively polishing rough edges. [Issues](https://github.com/light-misty/HIU-WorkSpace/issues) welcome.
+> **Beta** - 偷偷学正处于公开 beta 阶段：功能完全可用，支持自动更新，我们正在积极打磨细节。欢迎提交 [Issues](https://github.com/light-misty/HIU-WorkSpace/issues)。
 
-**AI that gets your everyday tasks done.** 偷偷学 is an open-source AI coworker that lives on your desktop and delivers **finished work**, not just chat: your code reviewed for vulnerabilities with fixes ready to go, a polished document, a Slack reply with the numbers, a triaged inbox. It ships **specialist Security coworkers** first — attackers already use AI, and defenders deserve the same leverage, governed.
+**帮你搞定日常工作的 AI。** 偷偷学是一款开源 AI 协作伙伴，运行在桌面端，直接交付**成果**而不仅仅是对话：帮您审查代码漏洞并生成修复方案，生成精美文档，撰写附带数据的 Slack 回复，整理分类您的收件箱。平台优先推出**专业的安全协作代理**——攻击者已在利用 AI，防御者理应拥有同样的能力，且受到治理约束。
 
-It runs on your machine and doesn't lock you into any model: bring your own API key for OpenAI, Anthropic, Google, or an open-weight provider. Your data stays on your machine — it leaves only through the model and integrations *you* choose. Every action an agent takes is governed and logged — see [Governed by design](#governed-by-design).
+它运行在您的机器上，不绑定任何特定模型：您可以使用自己的 OpenAI、Anthropic、Google 或任意开放权重提供商的 API Key。您的数据始终留在本机——仅通过您选择的模型和集成发送出去。代理执行的每个操作都会受到治理和审计——详见[设计即治理](#设计即治理)。
 
 ![How 偷偷学 works](docs/assets/how-it-works.png)
 
-## Download
+## 下载
 
 **⬇ macOS (Apple Silicon)**
-<sub>macOS 12+ · signed & notarized · auto-updates</sub>
+<sub>macOS 12+ · 已签名并公证 · 支持自动更新</sub>
 
 **⬇ Windows 10/11 (x64)**
-<sub>builds are not yet code-signed, so SmartScreen will warn; signing is in progress</sub>
+<sub>安装包尚未进行代码签名，因此 SmartScreen 会弹出警告；签名工作正在进行中</sub>
 
-Open the app, add a model key, and ask for something real.
+打开应用，添加一个模型 Key，然后提出您的真实需求。
 
-## Use cases
+## 使用场景
 
-Pick a coworker, point it at real work, get a finished deliverable:
+选择一个协作代理，让它处理真实的工作，获得完成的交付物：
 
-- **Security review** - scan a codebase and its dependencies for real risk. Findings come from deterministic scanners (like semgrep) plus model reasoning; proposed fixes are re-scanned and diff-reviewed before you approve them - the fixer is never the only checker.
-- **Cloud posture** - audit cloud configuration against common misconfiguration classes and draft the remediation plan.
-- **Incident triage** - work a security or ops incident: gather context across your tools, draft the timeline, prepare the report.
-- **Everyday work** - prep a customer call from your CRM and inbox, turn scattered notes into a shippable plan, produce documents and spreadsheets, keep your calendar and Slack threads handled.
-- **Standing automations** - a morning brief, a weekly report, a watch over a channel - on a schedule, with full transcripts.
+- **安全审查** - 扫描代码库及其依赖项中的真实风险。发现结果来自确定性扫描器（如 semgrep）加上模型推理；提出的修复方案在审批前会经过重新扫描和 diff 审查——修复者永远不会是唯一的检查者。
+- **云态势审计** - 针对常见配置错误类别审计云配置，并起草修复计划。
+- **事件分诊** - 处理安全或运维事件：跨工具收集上下文，起草时间线，准备报告。
+- **日常工作** - 根据 CRM 和收件箱准备客户通话，将零散笔记整理为可执行的方案，生成文档和表格，让您的日历和 Slack 线程井井有条。
+- **常驻自动化** - 早间简报、周报、频道监控——按计划执行，并附带完整记录。
 
-Specialist coworkers arrive with the tools, working style, and check-ins for one job already set up. Security coworkers ship first.
+专业协作代理开箱即用，已为特定工作配置好相应的工具、工作方式和检查机制。安全协作代理率先推出。
 
-## How it works
+## 工作原理
 
-1. Tell 偷偷学 the outcome you want - "prepare a customer brief," "untangle my calendar," "draft a report," "check where the release stands across Jira and GitHub."
-2. It breaks the task into steps and works across your desktop, files, and connected apps.
-3. Before anything consequential - sending a message, changing a calendar, running a command - it checks in and you approve or redirect.
-4. You get the finished deliverable, not a to-do list.
+1. 告诉 偷偷学您想要的结果——"准备客户简报"、"整理我的日历"、"起草报告"、"检查 Jira 和 GitHub 上的发布进度"。
+2. 它将任务分解为步骤，跨您的桌面、文件和已连接应用进行工作。
+3. 在执行任何重大事项之前——发送消息、修改日历、运行命令——它会与您确认，由您审批或调整方向。
+4. 您拿到的是完成的交付物，而非待办清单。
 
-Under the hood:
+底层架构：
 
 ```text
 ┌────────────────────────────────────────────────┐
-│              偷偷学 desktop app                │  native shell + GUI
+│              偷偷学 桌面应用                    │  原生外壳 + GUI
 ├────────────────────────────────────────────────┤
-│           local agent server (Python)          │  engine · tools · connectors - built on aisuite
+│           本地代理服务器 (Python)               │  引擎 · 工具 · 连接器 - 基于 aisuite 构建
 ├───────────────┬────────────────┬───────────────┤
-│  your files   │   your tools   │  your model   │  everything runs with your keys,
-│  & terminal   │ 25+ connectors │  any provider │  on your machine
+│  您的文件     │    您的工具    │   您的模型    │  一切都在您的机器上
+│  和终端       │  25+ 连接器    │  任意提供商   │  使用您的 Key 运行
 └───────────────┴────────────────┴───────────────┘
 ```
 
-## Governed by design
+## 设计即治理
 
-Governance is the architecture, not a plugin - the agent can't grant itself new permissions, and no prompt can talk it past a gate. Three tiers, all in this repo:
+治理是架构的一部分，而非插件——代理无法为自己授予新权限，任何 prompt 也无法绕过关卡。三个层级，均在此仓库中：
 
-1. **Hard floors.** A set of dangerous and irreversible operations is human-only, always. No mode - including full auto-approve - lowers these floors; they always escalate to you.
-2. **A ladder of earned autonomy.** Actions are approval-gated by default. One-off approvals can graduate into standing rules, then into config allowlists - each step explicit, visible, and revocable. In auto-approve mode a reviewer model lets routine actions through and escalates anything it isn't sure about to you; repeated denials trip a circuit breaker that pauses the reviewer and hands control back. Reviewer verdicts are judgments, not guarantees - the floors and the audit trail are what backstop them.
-3. **An audit trail that answers "who did this, and why?"** Every tool call is recorded with its approval provenance - auto-approved, user-approved, or denied, with the reviewer's reasoning attached - and persisted with the conversation.
+1. **硬底线。** 一组危险且不可逆的操作始终仅限人工执行。没有任何模式——包括完全自动审批模式——可以降低这些底线；它们始终会升级至您确认。
+2. **渐进自主权阶梯。** 操作默认需要审批。一次性审批可以转为常驻规则，再转为配置白名单——每一步都是显式的、可见的、可撤销的。在自动审批模式下，reviewer 模型放行不确定的操作并将任何不确定的操作升级给您；重复拒绝会触发断路器，暂停 reviewer 并将控制权交还给您。Reviewer 的判定是判断而非保证——底线和审计跟踪才是支撑它们的保障。
+3. **回答"谁做了这件事，为什么？"的审计跟踪。** 每次工具调用都会记录其审批来源——自动审批、用户审批或拒绝——附带 reviewer 的推理过程——并与对话一起持久化。
 
-Unattended runs never self-approve: their asks park in an inbox until a human answers. Found a vulnerability? See [SECURITY.md](SECURITY.md).
+无人值守运行永远不会自行审批：其请求会暂存于收件箱中，直到人工响应。发现漏洞？请查看 [SECURITY.md](SECURITY.md)。
 
-## What it can do
+## 功能一览
 
-- **Produce real deliverables** - documents, spreadsheets, reports, and web pages land as files you can open and share.
-- **Work from Slack** - mention `@偷偷学` in a channel; a session opens on your desktop, the work happens with your tools, and the answer comes back as a thread reply.
-- **Use your everyday tools** - 25+ integrations including GitHub, Slack, Jira, Notion, Linear, HubSpot, Outlook, monday.com, Gmail, and Google Calendar, plus your **terminal and local files**. Any tool reachable over [MCP](https://modelcontextprotocol.io/) plugs in too, with per-tool control.
-- **Run on a schedule** - automations for recurring work: a morning brief, a weekly report, a standing watch over a channel. Runs land in the app with full transcripts.
-- **Ask before acting** - writes, sends, and shell commands are approval-gated, with an optional auto-approve mode that still escalates anything uncertain - see [Governed by design](#governed-by-design).
+- **产出真实交付物** - 文档、表格、报告和网页，落地为可打开和分享的文件。
+- **从 Slack 工作** - 在频道中提及 `@偷偷学`；会话在您桌面端打开，使用您的工具完成工作，结果以线程回复形式返回。
+- **使用您的日常工具** - 25+ 集成，包括 GitHub、Slack、Jira、Notion、Linear、HubSpot、Outlook、monday.com、Gmail 和 Google Calendar，以及您的**终端和本地文件**。任何可通过 [MCP](https://modelcontextprotocol.io/) 访问的工具同样可以接入，且支持每个工具的独立控制。
+- **按计划运行** - 用于重复性工作的自动化：早间简报、周报、常驻频道监控。运行结果在应用中展示，附带完整记录。
+- **行动前先询问** - 写入、发送和 shell 命令均受审批门控，可选的自动审批模式仍会升级任何不确定的操作——详见[设计即治理](#设计即治理)。
 
-## Bring your own model
+## 自带模型
 
-Model access is yours: pick a provider, paste your key, switch anytime. Supported out of the box:
+模型访问由您掌控：选择一个提供商，粘贴您的 Key，随时切换。开箱即用的支持列表：
 
-**OpenAI · Anthropic · Google Gemini · BytePlus Ark · Volcengine Ark Agent Plan · Inkling (Thinking Machines) · GLM (Z.ai) · DeepSeek · Kimi (Moonshot) · Qwen · MiniMax · Mistral · Grok (xAI)** - plus open-weight models via **Together** and **Fireworks**.
+**OpenAI · Anthropic · Google Gemini · BytePlus Ark · Volcengine Ark Agent Plan · Inkling (Thinking Machines) · GLM (Z.ai) · DeepSeek · Kimi (Moonshot) · Qwen · MiniMax · Mistral · Grok (xAI)**——以及通过 **Together** 和 **Fireworks** 接入的开放权重模型。
 
-A curated model list marks what we've verified for tool-calling work. Adding any model string works at your own risk.
+一份精选模型列表标注了我们已验证可用于 tool-calling 的模型。自行添加任何模型字符串请自担风险。
 
-## Privacy
+## 隐私
 
-偷偷学 keeps your data on your machine. Everything lives locally: the agent loop, your conversations, connector tokens, and model keys - all in the app's local secret store. The only cloud piece is a small service that brokers OAuth handshakes for connectors, and model calls go to the provider you configure with your own API key. You can always use the App without signing-in - use the connectors via manually-created credentials/API-keys.
+偷偷学让您的数据始终留在本机。一切都在本地运行：代理循环、您的对话、连接器令牌和模型密钥——全部存储在应用的本地机密存储中。唯一的云服务是一个为连接器代理 OAuth 握手的小型服务，而模型调用则通过您自己的 API Key 发送至您配置的提供商。您可以随时在不登录的情况下使用 App——通过手动创建的凭据/API Key 使用连接器。
 
-## Run from source
+## 从源码运行
 
-Prerequisites: Python 3.10+, Node 20+, and (for the desktop shell) the Rust toolchain via [rustup](https://rustup.rs/).
+前置要求：Python 3.10+、Node 20+，以及（用于桌面外壳）通过 [rustup](https://rustup.rs/) 安装的 Rust 工具链。
 
 ```shell
 git clone https://github.com/light-misty/HIU-WorkSpace.git
 cd HIU-WorkSpace
 
-# 1. One-time bootstrap - creates the Python venv at .venv
-#    (on Windows, run from Git Bash or WSL)
+# 1. 一次性引导——创建 Python venv 在 .venv
+#    （在 Windows 上，从 Git Bash 或 WSL 运行）
 bash packaging/setup_dev_env.sh
 
-# 2. Start the local agent server
+# 2. 启动本地代理服务器
 .venv/bin/openworker-server --cwd ~/some/project --port 8765
-#    (Windows: .venv\Scripts\openworker-server.exe)
+#    （Windows: .venv\Scripts\openworker-server.exe）
 
-# 3. In a second terminal, start the UI
+# 3. 在第二个终端中，启动 UI
 cd surfaces/gui
 npm install
-npm run dev        # browser UI on the Vite dev port
+npm run dev        # 浏览器 UI 运行在 Vite 开发端口上
 ```
 
-The standalone server creates a per-launch token at
-`<state-dir>/sidecar-8765.token`; Vite reads that user-only file when it starts.
-For direct API calls, send its value in the `X-SS-Token` header. The
-desktop app uses an in-memory launch token instead and never writes it to disk.
+每次启动时，独立服务器会在 `<state-dir>/sidecar-8765.token` 生成一个令牌；Vite 在启动时读取该仅用户可访问的文件。对于直接 API 调用，请在 `X-SS-Token` 头部中发送其值。桌面应用使用内存中的启动令牌，永远不会写入磁盘。
 
-To run the full desktop app instead of the browser UI, replace step 3 with `npm run tauri dev` (from `surfaces/gui/`) - the Tauri shell launches the window and supervises the server itself.
+要运行完整的桌面应用而非浏览器 UI，将第 3 步替换为 `npm run tauri dev`（在 `surfaces/gui/` 下运行）——Tauri 外壳会启动窗口并自行管理服务。
 
-Tests: `.venv/bin/pytest` (server), `npm test` and `npm run e2e` in `surfaces/gui` (GUI unit + hermetic end-to-end). Desktop bundles are built with `packaging/build_dmg.sh` / `packaging/build_windows.ps1`.
+测试：`.venv/bin/pytest`（服务端），`npm test` 和 `npm run e2e` 在 `surfaces/gui` 中（GUI 单元 + 端到端）。桌面安装包通过 `packaging/build_dmg.sh` / `packaging/build_windows.ps1` 构建。
 
-## Repository layout
+## 仓库结构
 
-| Directory | What's in it |
+| 目录 | 内容 |
 |---|---|
-| `ss/` | Python backend - agent engine, model providers, connectors, MCP client, memory, automations |
-| `surfaces/gui/` | Desktop app - React UI + Tauri shell that supervises the server |
-| `stt/` | Speech-to-text sidecar (Rust) for voice input |
-| `packaging/` | Installer builds (macOS DMG, Windows), auto-update manifest, dev bootstrap |
-| `docs/` | Design specs and decision logs |
-| `tests/` | Backend test suite |
+| `ss/` | Python 后端——代理引擎、模型提供商、连接器、MCP 客户端、记忆、自动化 |
+| `surfaces/gui/` | 桌面应用——React UI + 管理服务器的 Tauri 外壳 |
+| `stt/` | 语音转文本副进程 (Rust)，用于语音输入 |
+| `packaging/` | 安装包构建 (macOS DMG, Windows)、自动更新 manifest、开发引导 |
+| `docs/` | 设计规范和决策记录 |
+| `tests/` | 后端测试套件 |
 
-## Built on aisuite
+## 基于 aisuite 构建
 
 偷偷学的引擎基于 [**aisuite**](https://github.com/andrewyng/aisuite) 构建。
 
-## Contributing
+## 贡献
 
-Contributions and bug reports are welcome - open an [issue](https://github.com/light-misty/HIU-WorkSpace/issues) or a pull request. The app updates itself, so fixes reach installs quickly.
-For any PR, please attach screenshots of what was broken and how it is fixed now. We will shortly add features that you can contribute to.
-Please note that we are actively developing based off a internal list and goal, so we may not approve PRs that add features that are already under-development or deviates from our vision.
+欢迎贡献和 bug 报告——请提交一个 [issue](https://github.com/light-misty/HIU-WorkSpace/issues) 或 pull request。应用支持自动更新，修复能快速到达所有安装。
 
-## License
+对于任何 PR，请附上出现问题时的截图以及当前的修复效果。我们将很快推出您可以参与贡献的功能。
 
-MIT - see [LICENSE](LICENSE).
+请注意，我们基于内部列表和目标积极开发，因此可能不会批准添加已在开发中或偏离我们愿景的功能的 PR。
+
+## 许可证
+
+MIT - 详见 [LICENSE](LICENSE)。

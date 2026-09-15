@@ -1,4 +1,4 @@
-# Reviewer evaluation — 2026-08-18
+# 评审器评估 — 2026-08-18
 
 Model: `openai:gpt-5.6-sol`
 

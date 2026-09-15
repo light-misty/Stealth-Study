@@ -1,52 +1,51 @@
 # ss GUI (React + Tauri)
 
-A thin client of the ss server (OpenAI-compatible API + WS event/approval stream).
-Same codebase runs in a browser (dev) and as the 偷偷学 desktop app.
+ss 服务器的一个薄客户端（OpenAI 兼容 API + WS 事件/审批流）。
+同一套代码在浏览器（开发模式）和 偷偷学 桌面应用中运行。
 
-## First time: bootstrap the Python backend
+## 首次运行：引导 Python 后端
 
-A fresh checkout has no server to run — create the venv both flows below expect
-(from the repo root):
+新检出时没有可运行的服务器——创建以下两种流程都需要的 venv
+（从仓库根目录执行）：
 
 ```bash
 bash packaging/setup_dev_env.sh   # → .venv (server + aisuite)
 ```
 
-## Run it (browser, two terminals)
+## 运行方式（浏览器，两个终端）
 
-1. **Start the server** (needs a model key, e.g. `OPENAI_API_KEY`, in the environment —
-   or add one later in the app's Settings), from the repo root:
+1. **启动服务器**（需要环境中已配置模型 Key，例如 `OPENAI_API_KEY` ——
+   或稍后应用的设置中添加），从仓库根目录执行：
    ```bash
    ./.venv/bin/openworker-server --cwd /path/to/your/project --port 8765
    ```
-2. **Start the UI:**
+2. **启动 UI：**
    ```bash
    cd surfaces/gui
-   npm install      # first time
+   npm install      # 首次运行时
    npm run dev      # → http://localhost:5173
    ```
 
-Open http://localhost:5173. The UI talks to `http://127.0.0.1:8765` (override with
-`VITE_COWORKER_HTTP` / `VITE_COWORKER_WS`). Start the server before Vite so the
-UI can read its per-launch token from `<state-dir>/sidecar-8765.token`; restart
-Vite if the server is restarted.
+打开 http://localhost:5173。UI 会与 `http://127.0.0.1:8765` 通信（可通过
+`VITE_COWORKER_HTTP` / `VITE_COWORKER_WS` 覆盖）。请在 Vite 之前启动服务，
+以便 UI 从 `<state-dir>/sidecar-8765.token` 读取每次启动的令牌；如果服务重启，
+请同步重启 Vite。
 
-## Run the desktop app from source
+## 从源码运行桌面应用
 
-The Tauri shell wraps the same UI and supervises the Python server itself — no separate
-terminal. It needs the Rust toolchain (`rustup`) plus the venv from the bootstrap step;
-in dev it finds the server at `.venv/bin/openworker-server` automatically (a
-packaged sidecar binary is only produced by the release scripts in `packaging/`).
+Tauri 外壳包裹相同的 UI，并自行管理 Python 服务器——无需单独的终端。
+它需要 Rust 工具链（`rustup`）和引导步骤中的 venv；在开发模式下，它会自动
+找到 `.venv/bin/openworker-server` 路径下的服务器。
 
 ```bash
 cd surfaces/gui
-npm install        # first time
-npm run tauri dev  # builds the shell, launches the window, starts the server
+npm install        # 首次运行时
+npm run tauri dev  # 构建外壳、启动窗口、启动服务器
 ```
 
-## Tests
+## 测试
 
 ```bash
-npx tsc --noEmit && npx vitest run   # typecheck + unit
-npx playwright test                  # hermetic e2e (mocked /v1 + WS, no Python needed)
+npx tsc --noEmit && npx vitest run   # 类型检查 + 单元测试
+npx playwright test                  # 端到端隔离测试（mock /v1 + WS，无需 Python）
 ```
