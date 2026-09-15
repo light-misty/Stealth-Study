@@ -62,6 +62,18 @@ T12_ENDPOINTS: tuple[tuple[str, str], ...] = (
 
 TODAY = "2026-09-15"
 
+T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + (
+    ("POST", "/plans/generate"),
+    ("PATCH", "/tasks/{task_id}"),
+    ("POST", "/plans/{plan_id}/reschedule"),
+    ("GET", "/progress"),
+    ("POST", "/weekly-reports/generate"),
+    ("GET", "/weekly-reports"),
+    ("GET", "/school-profile"),
+    ("PATCH", "/school-profile"),
+    ("POST", "/school-profile/extract"),
+)
+
 
 def essay_payload() -> str:
     return json.dumps(
@@ -111,7 +123,7 @@ def test_route_inventory_matches_the_t09_contract() -> None:
         for route in router.routes
         for method in route.methods
     }
-    for method, path in (*T09_ENDPOINTS, *T12_ENDPOINTS):
+    for method, path in (*T11_ENDPOINTS, *T12_ENDPOINTS):
         assert (method, path) in declared, f"{method} {path} is not registered"
 
 
@@ -122,7 +134,7 @@ def test_the_mounted_router_holds_no_endpoint_outside_the_contract() -> None:
         for route in router.routes
         for method in route.methods
     }
-    allowed = {*T09_ENDPOINTS, *T12_ENDPOINTS, ("GET", "/health")}
+    allowed = {*T11_ENDPOINTS, *T12_ENDPOINTS, ("GET", "/health")}
     assert declared == allowed
 
 

@@ -463,6 +463,116 @@ class AttemptCreate(BaseModel):
         return value
 
 
+class GradingCreate(BaseModel):
+    """C1 body (03 §4.3): one subjective answer, its grading kind and optional rubric.
+
+    `rubric_id` names one of the built-in rubrics of 05 §5 (`RUBRIC_NOT_FOUND` for a
+    stranger); `custom_rubric` is free text that replaces the rubric wholesale (CERT-14).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question_id: Optional[str] = None
+    kind: Literal[
+        "essay",
+        "translation",
+        "short_answer",
+        "essay_material",
+        "lesson_plan",
+        "practical",
+    ]
+    answer: str
+    rubric_id: Optional[str] = None
+    custom_rubric: Optional[str] = None
+
+    @field_validator("answer")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("answer must not be blank")
+        return value
+
+
+class PlanGenerate(BaseModel):
+    """F5 body (03 §4.4): the profile is the only input — exam date, subjects and budget
+    already live on the profile, so the request cannot contradict them."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+
+
+class TaskPatch(BaseModel):
+    """G2 body (03 §4.7): a status move, a new date and/or a new priority.
+
+    The status vocabulary is `PlanTaskStatus` and the transition legality is the service's
+    machine (PRD §6.4); the date pattern and the 1-3 priority scale match what the plan
+    generator itself writes, so the board and the plan cannot drift apart.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Optional[models.PlanTaskStatus] = None
+    scheduled_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+    priority: Optional[int] = Field(default=None, ge=1, le=3)
+
+
+class ReschedulePlan(BaseModel):
+    """G3 body (03 §4.7): the new exam date, or nothing to reuse the profile's."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    new_exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+
+
+class WeeklyReportGenerate(BaseModel):
+    """G5 body (03 §4.7): the report covers the running week of the profile."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+
+
+class PastScore(BaseModel):
+    """One row of `school_profile.past_scores` (02 §4.4: 历年复试线 [{year, line}])."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int
+    line: float
+
+
+class SchoolProfilePatch(BaseModel):
+    """G8 body (03 §4.7 任意字段): any subset of the school card's own columns.
+
+    Field shapes mirror 02 §4.4 exactly — `degree_type` is the shared enum, the ratio is
+    bounded to 0-1 and every past score needs its year — so a malformed value is refused with
+    422 instead of being stored half-written.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    school: Optional[str] = None
+    major: Optional[str] = None
+    degree_type: Optional[models.DegreeType] = None
+    subjects: Optional[list[str]] = None
+    enroll_count: Optional[int] = Field(default=None, ge=0)
+    recommend_ratio: Optional[float] = Field(default=None, ge=0, le=1)
+    past_scores: Optional[list[PastScore]] = None
+    books: Optional[list[str]] = None
+    note: Optional[str] = None
+
+
+class SchoolProfileExtract(BaseModel):
+    """G9 body (03 §4.7): the pasted admission-copy text to mine."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    text: str
+
+
 class KnowledgePointCreate(BaseModel):
     """H2 body (03 §4.8): a title under an optional parent point."""
 
@@ -534,37 +644,6 @@ class MasteryPatch(BaseModel):
     point_id: Optional[str] = None
     dimension: Optional[models.MasteryDimension] = None
     level: str
-
-
-class GradingCreate(BaseModel):
-    """C1 body (03 §4.3): one subjective answer, its grading kind and optional rubric.
-
-    `rubric_id` names one of the built-in rubrics of 05 §5 (`RUBRIC_NOT_FOUND` for a
-    stranger); `custom_rubric` is free text that replaces the rubric wholesale (CERT-14).
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    profile_id: str
-    question_id: Optional[str] = None
-    kind: Literal[
-        "essay",
-        "translation",
-        "short_answer",
-        "essay_material",
-        "lesson_plan",
-        "practical",
-    ]
-    answer: str
-    rubric_id: Optional[str] = None
-    custom_rubric: Optional[str] = None
-
-    @field_validator("answer")
-    @classmethod
-    def _must_carry_content(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("answer must not be blank")
-        return value
 
 
 class DeadlineCreate(BaseModel):
@@ -941,6 +1020,16 @@ def build_campus_router(manager: Any) -> APIRouter:
         """H10 — the in-app banner source: upcoming nodes and the due/overdue ones."""
         return _call(campus_service.reminders, profile.id)
 
+    # -- F5：计划生成（03 §4.4，KY-01/02 与 CET-03 按 TrackSpec 分台共用）---
+
+    @router.post("/plans/generate")
+    async def campus_generate_plan(
+        body: PlanGenerate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F5 — lay out weekly and daily tasks from today to the exam date."""
+        return await _async_call(campus_service.generate_plan, profile)
+
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 
     @router.get("/tasks")
@@ -960,5 +1049,92 @@ def build_campus_router(manager: Any) -> APIRouter:
                 track=track,
             )
         }
+
+    def scoped_task(
+        task_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.PlanTask:
+        """Resolve a plan task of the request's profile.
+
+        03 §6 defines no task-specific 404 code, so a missing row is answered with the same
+        `FORBIDDEN_PROFILE` as a row owned by another profile — the caller learns nothing about
+        tasks it does not own (G2 docstring in `tests/campus/test_routes_task_patch.py`).
+        """
+        return guard.scoped_row(
+            "plan_task", task_id, profile.id, missing_code="FORBIDDEN_PROFILE"
+        )
+
+    @router.patch("/tasks/{task_id}")
+    def campus_patch_task(
+        body: TaskPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        task: models.PlanTask = Depends(scoped_task),
+    ) -> dict[str, Any]:
+        """G2 — write a board drag back; the PRD §6.4 machine polices status moves."""
+        return _call(
+            campus_service.update_task,
+            profile,
+            task,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.post("/plans/{plan_id}/reschedule")
+    def campus_reschedule_plan(
+        plan_id: str,
+        body: ReschedulePlan,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G3 — spread the plan's open tasks over the new horizon, keeping finished work."""
+        return _call(campus_service.reschedule_plan, profile, plan_id, body.new_exam_date)
+
+    @router.get("/progress")
+    def campus_progress(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """G4 — the four-track completion overview, streak and heatmap (KY-11)."""
+        return _call(campus_service.progress, profile)
+
+    @router.post("/weekly-reports/generate")
+    def campus_generate_weekly_report(
+        body: WeeklyReportGenerate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G5 — aggregate the running week into the fixed five-section report."""
+        return _call(campus_service.generate_weekly_report, profile)
+
+    @router.get("/weekly-reports")
+    def campus_list_weekly_reports(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """G6 — every stored weekly report, newest week first."""
+        return _call(campus_service.list_weekly_reports, profile)
+
+    @router.get("/school-profile")
+    def campus_get_school_profile(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """G7 — the target school card, or an empty shell before the first save."""
+        return _call(campus_service.get_school_profile, profile)
+
+    @router.patch("/school-profile")
+    def campus_patch_school_profile(
+        body: SchoolProfilePatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G8 — upsert the school card (KY-14)."""
+        return _call(
+            campus_service.update_school_profile,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.post("/school-profile/extract")
+    async def campus_extract_school_profile(
+        body: SchoolProfileExtract,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G9 — extract a school-card prefill from pasted admission text."""
+        return await _async_call(
+            campus_service.extract_school_profile, profile, body.text
+        )
 
     return router
