@@ -404,6 +404,41 @@ class CampusStore:
         with self._lock:
             self._conn.close()
 
+    def wipe(self) -> int:
+        """Delete `campus.db` and rebuild an empty schema, returning the bytes freed (02 §7.1).
+
+        The connection is closed before the files go and reopened after, so this object stays
+        the single handle the rest of the application shares (02 §2.1) and nothing has to be
+        re-wired after a wipe. `-wal`/`-shm` siblings and the pre-migration backups
+        (`campus.db.bak-v*`, 02 §3.3) go with the database; no file outside campus's own set is
+        touched, and a wipe requested from inside an open transaction is refused rather than
+        leaving a half-applied one behind.
+        """
+        with self._lock:
+            if self._depth:
+                raise RuntimeError("cannot wipe campus.db inside an open transaction")
+            self._conn.close()
+            freed = 0
+            for path in self._database_paths():
+                if os.path.isfile(path):
+                    freed += os.path.getsize(path)
+                    os.remove(path)
+            self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
+            self._conn.row_factory = sqlite3.Row
+            self._conn.execute("PRAGMA journal_mode=WAL").fetchone()
+            self.migrate()
+            return freed
+
+    def _database_paths(self) -> list[str]:
+        """The database plus every file sqlite keeps beside it."""
+        parent = Path(self.path).parent
+        backups = sorted(str(path) for path in parent.glob(f"{Path(self.path).name}.bak-v*"))
+        return [self.path, f"{self.path}-wal", f"{self.path}-shm", *backups]
+
+    def database_bytes(self) -> int:
+        """The on-disk footprint of the database, siblings included (A9)."""
+        return sum(os.path.getsize(path) for path in self._database_paths() if os.path.isfile(path))
+
     def migrate(self) -> int:
         """Bring the database up to `CURRENT_SCHEMA_VERSION`, returning that version."""
         with self._lock:

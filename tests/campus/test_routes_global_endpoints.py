@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ss import secrets
-from ss.campus import config, models, routes, store
+from ss.campus import config, models, routes, service, store
 
 ACTIVE_ID = "profile-active"
 FINISHED_ID = "profile-finished"
@@ -50,16 +50,18 @@ class FakeManager:
         *,
         ready: bool = True,
         provider: Any = None,
+        models: tuple[str, ...] | None = None,
     ) -> None:
         self.model = model
         self._ready = ready
         self.provider = provider if provider is not None else FakeProvider()
+        self._models = models if models is not None else ((model,) if model else ())
 
     def get_settings(self) -> dict[str, Any]:
         return {
             "model": self.model,
             "model_ready": self._ready,
-            "models": [self.model] if self.model else [],
+            "models": list(self._models),
         }
 
 
@@ -561,3 +563,234 @@ def test_a7_is_global_and_never_asks_for_a_profile_id(client: TestClient) -> Non
 
 def test_a7_push_time_pattern_matches_the_config_loader() -> None:
     assert routes.PUSH_TIME_PATTERN == config._PUSH_TIME.pattern
+
+
+# ---------------------------------------------------------------------------
+# A8 GET /capabilities, A9 GET /privacy, A10 DELETE /privacy/data
+# ---------------------------------------------------------------------------
+
+@pytest.fixture()
+def isolated_client(manager: FakeManager) -> TestClient:
+    """A client whose `campus.db` has no other open handle.
+
+    The wipe tests need this: Windows refuses to delete a file another handle still has open,
+    and the seeding fixture holds one for the whole test.
+    """
+    return _fresh_client(manager)
+
+
+def test_a8_reports_the_static_recommendation_for_every_task(client: TestClient) -> None:
+    body = client.get(f"{routes.CAMPUS_PREFIX}/capabilities").json()
+    assert body["current_model"] == "fake:model"
+    tasks = {entry["task"]: entry for entry in body["tasks"]}
+    assert set(tasks) == {task.value for task in models.CampusTask}
+    for task in models.CampusTask:
+        recommended, minimum = models.pick_for_task(task.value)
+        entry = tasks[task.value]
+        assert entry["recommended"] == recommended
+        assert entry["minimum"] == minimum
+        assert entry["supported"] is True
+        assert entry["reason"]
+
+
+def test_a8_denies_every_task_without_a_usable_model() -> None:
+    body = _fresh_client(FakeManager(model="", ready=False)).get(
+        f"{routes.CAMPUS_PREFIX}/capabilities"
+    ).json()
+    assert body["current_model"] == ""
+    assert body["tasks"]
+    for entry in body["tasks"]:
+        assert entry["supported"] is False
+        assert entry["reason"]
+
+
+def test_a8_survives_a_manager_without_a_model_api() -> None:
+    """The mount is also built with a stub manager in the T06 tests; AI must be denied, not crash."""
+    body = _fresh_client(object()).get(f"{routes.CAMPUS_PREFIX}/capabilities").json()
+    assert body["current_model"] == ""
+    assert all(entry["supported"] is False for entry in body["tasks"])
+
+
+def test_a8_marks_a_task_supported_through_the_model_the_user_picked() -> None:
+    manager = FakeManager(model="active:model", models=("active:model", "picked:model"))
+    client = _fresh_client(manager)
+    client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state",
+        json={"settings": {"task_models": {models.CampusTask.GRADING.value: "picked:model"}}},
+    )
+    tasks = {
+        entry["task"]: entry
+        for entry in client.get(f"{routes.CAMPUS_PREFIX}/capabilities").json()["tasks"]
+    }
+    assert tasks[models.CampusTask.GRADING.value]["supported"] is True
+
+
+def test_model_inventory_reads_the_manager_surface() -> None:
+    inventory = service.ModelInventory.from_manager(FakeManager(model="openai:gpt-5.6"))
+    assert inventory.current == "openai:gpt-5.6"
+    assert inventory.ready is True
+    assert inventory.selectable == ("openai:gpt-5.6",)
+    assert inventory.endpoints == ("openai",)
+    assert inventory.usable("openai:gpt-5.6")
+    assert not inventory.usable("anthropic:claude-opus-4-8")
+
+
+def test_model_inventory_treats_a_bare_model_id_as_openai() -> None:
+    inventory = service.ModelInventory.from_manager(FakeManager(model="gpt-5.6"))
+    assert inventory.endpoints == ("openai",)
+
+
+def test_model_inventory_of_an_unreadable_manager_is_empty() -> None:
+    class Exploding:
+        model = "boom:model"
+
+        def get_settings(self):
+            raise RuntimeError("sidecar still starting")
+
+    inventory = service.ModelInventory.from_manager(Exploding())
+    assert inventory.current == "boom:model"
+    assert inventory.ready is False
+    assert inventory.selectable == ()
+    assert inventory.endpoints == ()
+
+    assert service.ModelInventory.from_manager(object()) == service.ModelInventory()
+
+
+def test_model_inventory_needs_a_ready_default_to_trust_the_current_model() -> None:
+    """`get_settings()` lists only models whose provider is configured, which `usable` mirrors."""
+    unconfigured = service.ModelInventory.from_manager(
+        FakeManager(model="gpt-5.6", ready=False, models=())
+    )
+    assert unconfigured.current == "gpt-5.6"
+    assert unconfigured.selectable == ()
+    assert not unconfigured.usable("gpt-5.6")
+
+    ready_default = service.ModelInventory(current="gpt-5.6", ready=True, selectable=())
+    assert ready_default.usable("gpt-5.6")
+
+
+def _service(campus_store: store.CampusStore, manager: FakeManager) -> service.CampusService:
+    return service.CampusService(
+        campus_store,
+        config.load_campus_config(),
+        inventory=service.ModelInventory.from_manager(manager),
+        provider_host=manager,
+    )
+
+
+def test_the_task_model_chain_prefers_a_usable_user_choice(
+    seeded_store: store.CampusStore,
+) -> None:
+    manager = FakeManager(model="active:model", models=("active:model", "chosen:model"))
+    seeded_store.set_state("campus_settings", {"task_models": {"grading": "chosen:model"}})
+    campus_service = _service(seeded_store, manager)
+    assert campus_service.model_for_task(models.CampusTask.GRADING.value) == "chosen:model"
+    assert campus_service.model_for_task(models.CampusTask.QUESTION.value) == "active:model"
+
+
+def test_the_task_model_chain_falls_through_an_unusable_choice(
+    seeded_store: store.CampusStore,
+) -> None:
+    manager = FakeManager(model="active:model")
+    seeded_store.set_state("campus_settings", {"task_models": {"grading": "not:configured"}})
+    campus_service = _service(seeded_store, manager)
+    assert campus_service.model_for_task(models.CampusTask.GRADING.value) == "active:model"
+
+
+def test_the_task_model_chain_is_empty_when_nothing_is_callable(
+    seeded_store: store.CampusStore,
+) -> None:
+    manager = FakeManager(model="", ready=False)
+    campus_service = _service(seeded_store, manager)
+    assert campus_service.model_for_task(models.CampusTask.GRADING.value) is None
+
+
+def test_a9_reports_the_local_data_layout(client: TestClient, campus_db_path: Path) -> None:
+    body = client.get(f"{routes.CAMPUS_PREFIX}/privacy").json()
+    assert body["data_dir"] == str(secrets.state_dir())
+    assert body["library_dir"] == str(secrets.state_dir() / "campus" / "library")
+    assert body["db_size_bytes"] >= campus_db_path.stat().st_size
+    assert body["model_endpoints"] == ["fake"]
+
+
+def test_a9_reports_no_endpoint_without_a_model() -> None:
+    body = _fresh_client(FakeManager(model="", ready=False)).get(
+        f"{routes.CAMPUS_PREFIX}/privacy"
+    ).json()
+    assert body["model_endpoints"] == []
+
+
+def test_a9_is_read_only(client: TestClient) -> None:
+    assert client.post(f"{routes.CAMPUS_PREFIX}/privacy").status_code == 405
+
+
+def test_a10_clears_the_database_and_the_campus_directory(
+    isolated_client: TestClient, campus_db_path: Path
+) -> None:
+    isolated_client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "待清除"},
+    )
+    isolated_client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state", json={"settings": {"daily_minutes": 90}}
+    )
+    library_dir = campus_db_path.parent / "campus" / "library" / ACTIVE_ID
+    library_dir.mkdir(parents=True, exist_ok=True)
+    (library_dir / "notes.pdf").write_bytes(b"pdf-bytes")
+
+    response = isolated_client.delete(f"{routes.CAMPUS_PREFIX}/privacy/data")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cleared"] is True
+    assert body["freed_bytes"] > 0
+    assert not library_dir.exists()
+    assert campus_db_path.is_file()
+
+    reopened = store.CampusStore(campus_db_path)
+    try:
+        assert reopened.current_version() == store.CURRENT_SCHEMA_VERSION
+        assert reopened.count("exam_profile") == 0
+        assert reopened.count("app_state") == 0
+        assert reopened.count("schema_meta") == 1
+    finally:
+        reopened.close()
+
+
+def test_a10_keeps_serving_from_the_rebuilt_database(isolated_client: TestClient) -> None:
+    assert isolated_client.delete(f"{routes.CAMPUS_PREFIX}/privacy/data").status_code == 200
+    created = isolated_client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "清除后新建"},
+    )
+    assert created.status_code == 200
+    assert _profile_ids(isolated_client.get(f"{routes.CAMPUS_PREFIX}/profiles")) == {
+        created.json()["id"]
+    }
+    settings = isolated_client.get(f"{routes.CAMPUS_PREFIX}/app-state").json()["settings"]
+    assert settings["daily_minutes"] == config.DEFAULT_DAILY_MINUTES
+
+
+def test_a10_removes_the_pre_migration_backups(
+    isolated_client: TestClient, campus_db_path: Path
+) -> None:
+    backup = Path(f"{campus_db_path}.bak-v1")
+    backup.write_bytes(b"x" * 32)
+    assert isolated_client.delete(f"{routes.CAMPUS_PREFIX}/privacy/data").json()[
+        "freed_bytes"
+    ] >= 32
+    assert not backup.exists()
+
+
+def test_a10_never_touches_the_kernel_database(
+    isolated_client: TestClient, campus_db_path: Path
+) -> None:
+    kernel_db = campus_db_path.parent / "coworker.db"
+    kernel_db.write_bytes(b"kernel")
+    assert isolated_client.delete(f"{routes.CAMPUS_PREFIX}/privacy/data").json()["cleared"] is True
+    assert kernel_db.read_bytes() == b"kernel"
+
+
+def test_a10_on_an_empty_install_still_reports_cleared(isolated_client: TestClient) -> None:
+    body = isolated_client.delete(f"{routes.CAMPUS_PREFIX}/privacy/data").json()
+    assert body["cleared"] is True
+    assert body["freed_bytes"] >= 0

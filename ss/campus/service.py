@@ -166,6 +166,19 @@ def _provider_of(model: str) -> str:
     return prefix if _rest else "openai"
 
 
+def _remove_tree(root: Path, target: Path) -> int:
+    """Remove the `target` tree when it really sits below `root`, returning the bytes freed.
+
+    The containment check is what keeps a wipe inside campus's own state directory: a target
+    equal to the root, or outside it, is left alone instead of being deleted.
+    """
+    if target == root or root not in target.parents or not target.is_dir():
+        return 0
+    freed = sum(path.stat().st_size for path in target.rglob("*") if path.is_file())
+    shutil.rmtree(target, ignore_errors=True)
+    return freed
+
+
 class CampusService:
     """Global-domain orchestration (07 §4 T09).
 
@@ -336,7 +349,78 @@ class CampusService:
             self._merge_settings(settings_patch)
         return self.app_state()
 
+    # -- A8-A10: model self-check and the local-data panel -----------------
+
+    def model_for_task(self, task: str) -> Optional[str]:
+        """The model a task will actually run on, or `None` when none is callable (ADR-06).
+
+        The first candidate the inventory considers usable wins: the user's choice in the
+        settings panel, then their `config.toml` entry, then the app's active default, then the
+        static recommendation. The static list is last on purpose — it names the model a task
+        *should* use (A8 reports it for the UI), not necessarily one this machine holds a key
+        for, so a missing recommendation degrades to the configured default instead of failing.
+        """
+        candidates = (
+            self._task_model_override(task),
+            self._config.task_models.get(task),
+            self._inventory.current,
+            models.pick_for_task(task)[0],
+        )
+        for candidate in candidates:
+            if self._inventory.usable(candidate):
+                return candidate
+        return None
+
+    def capabilities(self) -> dict[str, Any]:
+        """The self-check card: the static recommendation list and what this machine can run (A8).
+
+        ADR-06 replaced the runtime capability probe (`providers/base.py` carries no structured
+        output flag) with a static list, so `supported` answers "can this task be called at
+        all right now" — the UI shows the recommendation itself and lets the user upgrade.
+        """
+        return {
+            "current_model": self._inventory.current,
+            "tasks": [self._capability_entry(task.value) for task in models.CampusTask],
+        }
+
+    def privacy(self) -> dict[str, Any]:
+        """Where campus data lives, how big it is, and which endpoints it would call (A9)."""
+        root = Path(state_dir())
+        return {
+            "data_dir": str(root),
+            "library_dir": str(root / "campus" / "library"),
+            "db_size_bytes": self._store.database_bytes(),
+            "model_endpoints": list(self._inventory.endpoints),
+        }
+
+    def wipe_data(self) -> dict[str, Any]:
+        """Clear every local campus artefact: the database and the `campus/` tree (A10).
+
+        This is G-03's "一键清除本地数据" of 02 §7.1 — the database is dropped and rebuilt empty
+        and the library/export tree goes with it. The kernel's own database is untouched: no
+        other component reads this path (02 §2.2).
+        """
+        root = Path(state_dir())
+        freed = self._store.wipe()
+        freed += _remove_tree(root, root / "campus")
+        return {"cleared": True, "freed_bytes": freed}
+
     # -- internals ---------------------------------------------------------
+
+    def _task_model_override(self, task: str) -> Optional[str]:
+        overrides = self._stored_settings().get("task_models")
+        return overrides.get(task) if isinstance(overrides, Mapping) else None
+
+    def _capability_entry(self, task: str) -> dict[str, Any]:
+        recommended, minimum = models.pick_for_task(task)
+        supported = self.model_for_task(task) is not None
+        return {
+            "task": task,
+            "recommended": recommended,
+            "minimum": minimum,
+            "supported": supported,
+            "reason": f"建议使用 {recommended} 及以上模型" if supported else "尚未配置可用模型",
+        }
 
     def _stored_settings(self) -> dict[str, Any]:
         stored = self._store.get_state(SETTINGS_KEY, {})

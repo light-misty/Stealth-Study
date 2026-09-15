@@ -437,4 +437,19 @@ def build_campus_router(manager: Any) -> APIRouter:
             body.model_dump(exclude_unset=True, mode="json"),
         )
 
+    @router.get("/capabilities")
+    def campus_capabilities() -> dict[str, Any]:
+        """A8 — the static model recommendation list plus what this machine can run."""
+        return _call(campus_service.capabilities)
+
+    @router.get("/privacy")
+    def campus_privacy() -> dict[str, Any]:
+        """A9 — local data layout, its size, and the model endpoints in use."""
+        return _call(campus_service.privacy)
+
+    @router.delete("/privacy/data")
+    def campus_wipe_data() -> dict[str, Any]:
+        """A10 — clear local campus data: `campus.db` rebuilt empty plus the `campus/` tree."""
+        return _call(campus_service.wipe_data)
+
     return router
