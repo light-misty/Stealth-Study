@@ -311,6 +311,139 @@ def weekly_report_payload(report: models.WeeklyReport) -> dict[str, Any]:
     return payload
 
 
+def school_profile_payload(school: models.SchoolProfile) -> dict[str, Any]:
+    """One school card with its JSON columns decoded (02 §4.4)."""
+    payload = asdict(school)
+    for name in ("subjects", "past_scores", "books"):
+        payload[name] = _decode(payload.get(name), [])
+    return payload
+
+
+SCHOOL_PROFILE_MUTABLE_FIELDS: tuple[str, ...] = (
+    "school",
+    "major",
+    "degree_type",
+    "subjects",
+    "enroll_count",
+    "recommend_ratio",
+    "past_scores",
+    "books",
+    "note",
+)
+
+JSON_SCHOOL_FIELDS: frozenset[str] = frozenset({"subjects", "past_scores", "books"})
+
+SCHOOL_PREFILL_FIELDS = 8
+
+_DEGREE_SYNONYMS: Mapping[str, str] = {
+    "academic": "academic",
+    "professional": "professional",
+    "学硕": "academic",
+    "学术型": "academic",
+    "学术学位": "academic",
+    "专硕": "professional",
+    "专业型": "professional",
+    "专业学位": "professional",
+}
+
+
+def _clean_text(value: Any) -> str:
+    text = "" if value is None else str(value).strip()
+    return text
+
+
+def _clean_degree(value: Any) -> Optional[str]:
+    return _DEGREE_SYNONYMS.get(_clean_text(value).lower())
+
+
+def _clean_string_list(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for entry in value:
+        if isinstance(entry, Mapping):
+            entry = entry.get("name") or entry.get("title") or ""
+        text = _clean_text(entry)
+        if text:
+            items.append(text[:60])
+    return items
+
+
+def _clean_enroll_count(value: Any) -> Optional[int]:
+    if isinstance(value, bool):
+        return None
+    try:
+        number = int(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number >= 0 else None
+
+
+def _clean_ratio(value: Any) -> Optional[float]:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if 0 <= number <= 1:
+        return round(number, 4)
+    if 1 < number <= 100:
+        return round(number / 100, 4)
+    return None
+
+
+def _clean_past_scores(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+    items: list[dict[str, Any]] = []
+    for entry in value:
+        if not isinstance(entry, Mapping):
+            continue
+        try:
+            year = int(str(entry.get("year")).strip()[:4])
+            line = float(entry.get("line"))
+        except (TypeError, ValueError):
+            continue
+        items.append({"year": year, "line": line})
+    return items
+
+
+def school_prefill(data: Optional[dict[str, Any]]) -> tuple[dict[str, Any], float]:
+    """Keep only the well-formed fields of a school extraction, scored by coverage.
+
+    `confidence` is the share of the eight documented fields the model actually produced in a
+    valid shape (KY-14 验收 1 的"抽取 ≥3 字段"由调用方按此判断); unusable output degrades to
+    an empty prefill with confidence 0 instead of failing the endpoint.
+    """
+    prefill: dict[str, Any] = {}
+    if not data:
+        return prefill, 0.0
+    school = _clean_text(data.get("school"))
+    if school:
+        prefill["school"] = school[:80]
+    major = _clean_text(data.get("major"))
+    if major:
+        prefill["major"] = major[:80]
+    degree = _clean_degree(data.get("degree_type"))
+    if degree:
+        prefill["degree_type"] = degree
+    subjects = _clean_string_list(data.get("subjects"))
+    if subjects:
+        prefill["subjects"] = subjects
+    enroll = _clean_enroll_count(data.get("enroll_count"))
+    if enroll is not None:
+        prefill["enroll_count"] = enroll
+    ratio = _clean_ratio(data.get("recommend_ratio"))
+    if ratio is not None:
+        prefill["recommend_ratio"] = ratio
+    scores = _clean_past_scores(data.get("past_scores"))
+    if scores:
+        prefill["past_scores"] = scores
+    books = _clean_string_list(data.get("books"))
+    if books:
+        prefill["books"] = books
+    return prefill, round(len(prefill) / SCHOOL_PREFILL_FIELDS, 4)
+
+
 def parse_questions(fmt: str, content: str) -> list[dict[str, Any]]:
     """Parse an E1 payload into validated question dictionaries (03 §4.5 E1).
 
@@ -1324,6 +1457,72 @@ class CampusService:
                 weekly_report_payload(models.WeeklyReport.from_row(row)) for row in rows
             ]
         }
+
+    # -- G7-G9: the target school profile ------------------------------------
+
+    def get_school_profile(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """The school card, or an empty `id=None` shell before the first save (G7, KY-14).
+
+        03 §4.7 registers no error for G7, so an absent card is an empty card: the settings
+        panel renders the blank form and the first PATCH (G8) creates the row.
+        """
+        row = self._store.query_one(
+            'SELECT * FROM "school_profile" WHERE "profile_id" = ?', (profile.id,)
+        )
+        if row is None:
+            shell = school_profile_payload(models.SchoolProfile(id="", profile_id=profile.id))
+            shell["id"] = None
+            return shell
+        return school_profile_payload(models.SchoolProfile.from_row(row))
+
+    def update_school_profile(
+        self, profile: models.ExamProfile, patch: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Upsert the school card from a partial body (G8, KY-14)."""
+        values: dict[str, Any] = {}
+        for name in SCHOOL_PROFILE_MUTABLE_FIELDS:
+            if name not in patch:
+                continue
+            value = patch[name]
+            if name in JSON_SCHOOL_FIELDS:
+                value = _encode(value or [])
+            values[name] = value
+        row = self._store.query_one(
+            'SELECT "id" FROM "school_profile" WHERE "profile_id" = ?', (profile.id,)
+        )
+        if row is None:
+            self._store.insert("school_profile", {"profile_id": profile.id, **values})
+        elif values:
+            self._store.update("school_profile", str(row["id"]), values)
+        return self.get_school_profile(profile)
+
+    async def extract_school_profile(
+        self, profile: models.ExamProfile, text: str
+    ) -> dict[str, Any]:
+        """Pull a school-card prefill out of pasted admission text (G9, KY-14).
+
+        Same model chain as F5 (`_complete_json`): a configured model is required, a failed
+        call is the documented `MODEL_TIMEOUT`, and a model answer that parses to nothing
+        useful simply yields an empty prefill — the user's confirmation click, not the model,
+        is what writes the card.
+        """
+        cleaned = _clean_text(text)
+        if not cleaned:
+            raise CampusError("PARSE_ERROR", "粘贴内容为空")
+        data = await self._complete_json(
+            models.task_for_kind("explain"),
+            system=(
+                "你是招生简章信息抽取助手。从简章原文中抽取目标院校信息。"
+                "只输出一个 JSON 对象，schema："
+                '{"school": "...", "major": "...", "degree_type": "academic|professional", '
+                '"subjects": ["科目"], "enroll_count": 0, "recommend_ratio": 0.0, '
+                '"past_scores": [{"year": 2025, "line": 350}], "books": ["参考书"]}，'
+                "取不到的键直接省略，不要编造，不要输出任何其他文字。"
+            ),
+            user=f"简章原文：\n{cleaned[:6000]}",
+        )
+        prefill, confidence = school_prefill(data)
+        return {"prefill": prefill, "confidence": confidence}
 
     # -- internals ---------------------------------------------------------
 

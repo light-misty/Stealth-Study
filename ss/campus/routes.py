@@ -503,6 +503,45 @@ class WeeklyReportGenerate(BaseModel):
     profile_id: str
 
 
+class PastScore(BaseModel):
+    """One row of `school_profile.past_scores` (02 §4.4: 历年复试线 [{year, line}])."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    year: int
+    line: float
+
+
+class SchoolProfilePatch(BaseModel):
+    """G8 body (03 §4.7 任意字段): any subset of the school card's own columns.
+
+    Field shapes mirror 02 §4.4 exactly — `degree_type` is the shared enum, the ratio is
+    bounded to 0-1 and every past score needs its year — so a malformed value is refused with
+    422 instead of being stored half-written.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    school: Optional[str] = None
+    major: Optional[str] = None
+    degree_type: Optional[models.DegreeType] = None
+    subjects: Optional[list[str]] = None
+    enroll_count: Optional[int] = Field(default=None, ge=0)
+    recommend_ratio: Optional[float] = Field(default=None, ge=0, le=1)
+    past_scores: Optional[list[PastScore]] = None
+    books: Optional[list[str]] = None
+    note: Optional[str] = None
+
+
+class SchoolProfileExtract(BaseModel):
+    """G9 body (03 §4.7): the pasted admission-copy text to mine."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    text: str
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -795,5 +834,34 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """G6 — every stored weekly report, newest week first."""
         return _call(campus_service.list_weekly_reports, profile)
+
+    @router.get("/school-profile")
+    def campus_get_school_profile(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """G7 — the target school card, or an empty shell before the first save."""
+        return _call(campus_service.get_school_profile, profile)
+
+    @router.patch("/school-profile")
+    def campus_patch_school_profile(
+        body: SchoolProfilePatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G8 — upsert the school card (KY-14)."""
+        return _call(
+            campus_service.update_school_profile,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.post("/school-profile/extract")
+    async def campus_extract_school_profile(
+        body: SchoolProfileExtract,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G9 — extract a school-card prefill from pasted admission text."""
+        return await _async_call(
+            campus_service.extract_school_profile, profile, body.text
+        )
 
     return router
