@@ -167,6 +167,14 @@ def _call(fn: Any, *args: Any, **kwargs: Any) -> Any:
         raise_campus_error(exc.code, exc.message, **exc.extra)
 
 
+async def _async_call(fn: Any, *args: Any, **kwargs: Any) -> Any:
+    """`_call` for the awaited endpoints (E5 drives the grading chain)."""
+    try:
+        return await fn(*args, **kwargs)
+    except CampusError as exc:
+        raise_campus_error(exc.code, exc.message, **exc.extra)
+
+
 class ProfileGuard:
     """Resolve and validate the `profile_id` a profile-scoped request acts on.
 
@@ -436,6 +444,25 @@ class QuestionPatch(BaseModel):
         return cleaned
 
 
+class AttemptCreate(BaseModel):
+    """E5 body (03 §4.5): which question was answered, in what context, and with what."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question_id: str
+    session_type: models.SessionType = models.SessionType.PRACTICE
+    mock_exam_id: Optional[str] = None
+    answer: str
+
+    @field_validator("answer")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("answer must not be blank")
+        return value
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -617,5 +644,28 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """E4 — delete one question of the profile."""
         return _call(campus_service.delete_question, profile, question)
+
+    def scoped_attempt_question(
+        body: AttemptCreate,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> models.QuestionBankItem:
+        """Resolve the question E5 answers, which the body names instead of the path."""
+        return guard.scoped_row(
+            "question_bank_item", body.question_id, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/attempts")
+    async def campus_submit_attempt(
+        body: AttemptCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: models.QuestionBankItem = Depends(scoped_attempt_question),
+    ) -> dict[str, Any]:
+        """E5 — record an answer; objective questions are judged, subjective ones graded."""
+        return await _async_call(
+            campus_service.submit_attempt,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
 
     return router

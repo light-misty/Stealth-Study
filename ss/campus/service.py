@@ -31,6 +31,7 @@ from typing import Any, Mapping, Optional
 from ..secrets import state_dir
 from . import models
 from .config import DEFAULT_DAILY_MINUTES
+from .grading import GradeRequest, GradeResult, GradingEngine
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -113,6 +114,30 @@ _LABEL_LINE = re.compile(r"^\s*([^\s：:]{1,12})\s*[：:]\s*(.*)$")
 _OPTION_PART = re.compile(r"^\s*([A-Za-z]{1,3})\s*[.、)．]\s*(\S.*)$")
 _OPTION_SEPARATOR = re.compile(r"[|｜]")
 
+OBJECTIVE_QUESTION_TYPES: frozenset[str] = frozenset(
+    {
+        models.QuestionType.SINGLE.value,
+        models.QuestionType.MULTIPLE.value,
+        models.QuestionType.JUDGE.value,
+        models.QuestionType.BLANK.value,
+    }
+)
+
+GRADING_KIND_BY_QTYPE: Mapping[str, str] = {
+    models.QuestionType.ESSAY.value: "essay",
+    models.QuestionType.MATERIAL.value: "essay_material",
+    models.QuestionType.SHORT_ANSWER.value: "short_answer",
+    models.QuestionType.LESSON_PLAN.value: "lesson_plan",
+    models.QuestionType.PRACTICAL.value: "practical",
+}
+
+BAND_MAX_SCORE = 15
+
+_JUDGE_TRUE: frozenset[str] = frozenset({"t", "true", "y", "yes", "对", "正确", "√"})
+_JUDGE_FALSE: frozenset[str] = frozenset({"f", "false", "n", "no", "错", "错误", "×", "x"})
+
+_BLANK_SEPARATOR = re.compile(r"[|｜]")
+
 
 class CampusError(Exception):
     """A business failure carrying one documented code, its message and any extra detail.
@@ -159,6 +184,13 @@ def question_payload(question: models.QuestionBankItem) -> dict[str, Any]:
     payload = asdict(question)
     for name in JSON_QUESTION_FIELDS:
         payload[name] = _decode(payload.get(name), None)
+    return payload
+
+
+def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
+    """One attempt with its `grading_json` decoded (03 §4.3 shape lives in that column)."""
+    payload = asdict(attempt)
+    payload["grading_json"] = _decode(payload.get("grading_json"), None)
     return payload
 
 
@@ -368,13 +400,73 @@ def _remove_tree(root: Path, target: Path) -> int:
     """Remove the `target` tree when it really sits below `root`, returning the bytes freed.
 
     The containment check is what keeps a wipe inside campus's own state directory: a target
-    equal to the root, or outside it, is left alone instead of being deleted.
+    equal to the root, or one outside it, is left alone instead of being deleted.
     """
     if target == root or root not in target.parents or not target.is_dir():
         return 0
     freed = sum(path.stat().st_size for path in target.rglob("*") if path.is_file())
     shutil.rmtree(target, ignore_errors=True)
     return freed
+
+
+def _letters(value: Any) -> str:
+    """The sorted uppercase letters of a multi-choice answer, so "CA" equals "AC"."""
+    return "".join(sorted(char for char in str(value).upper() if char.isalpha()))
+
+
+def _judge_value(value: Any) -> str:
+    """Normalise a true/false answer onto `T`/`F`, leaving anything else as written."""
+    text = str(value).strip().casefold()
+    if text in _JUDGE_TRUE:
+        return "T"
+    if text in _JUDGE_FALSE:
+        return "F"
+    return text
+
+
+def _blanks(value: Any) -> tuple[str, ...]:
+    """Split a fill-in-the-blank key on `|`, trimming and case-folding each slot."""
+    return tuple(part.strip().casefold() for part in _BLANK_SEPARATOR.split(str(value).strip()))
+
+
+class ManagerGrader:
+    """Runs T07's grading engine through the sidecar's provider (T07 §6-1 移交要点).
+
+    The engine asks for a model per grading kind through its `model_picker`; campus answers with
+    the model it would actually run that task on (`CampusService.model_for_task`), and the
+    recommended-but-unconfigured entry of the static list never reaches the provider. The
+    engine's own parameters (temperature 0, 90s, 5-call budget) stay untouched.
+    """
+
+    def __init__(
+        self,
+        provider_host: Any,
+        resolve_model: Any,
+        start_level: int,
+    ) -> None:
+        self._host = provider_host
+        self._resolve_model = resolve_model
+        self._start_level = start_level
+
+    async def grade(self, request: GradeRequest) -> GradeResult:
+        """Grade one answer through the host's `ProviderClient`."""
+        provider = getattr(self._host, "provider", None)
+        if provider is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        engine = GradingEngine(
+            provider,
+            self._pick,
+            start_level=self._start_level,
+        )
+        return await engine.grade(request)
+
+    def _pick(self, kind: str, track_type: str) -> tuple[str, str]:
+        del track_type
+        task = models.task_for_kind(kind)
+        model = self._resolve_model(task)
+        if model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return model, models.pick_for_task(task)[1]
 
 
 class CampusService:
@@ -397,7 +489,11 @@ class CampusService:
         self._store = campus_store
         self._config = config
         self._inventory = inventory if inventory is not None else ModelInventory()
-        self._provider_host = provider_host
+        self._grader = (
+            ManagerGrader(provider_host, self.model_for_task, config.grading_start_level)
+            if provider_host is not None
+            else None
+        )
 
     @property
     def inventory(self) -> ModelInventory:
@@ -702,7 +798,172 @@ class CampusService:
             raise CampusError("QUESTION_NOT_FOUND", f"题目不存在：{question_id}")
         return question_payload(models.QuestionBankItem.from_row(row))
 
+    # -- E5: answering ------------------------------------------------------
+
+    async def submit_attempt(
+        self,
+        profile: models.ExamProfile,
+        question: models.QuestionBankItem,
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Record one answer and grade it the way its question type demands (E5).
+
+        Objective questions are judged here against the stored key and answered immediately with
+        `is_correct` plus the key itself. Subjective ones are stored first and then graded
+        synchronously through the C1 chain, so the attempt survives even when the model call
+        fails — the response reports the failure with its documented code while the row keeps the
+        answer and the degradation trace.
+        """
+        answer = str(payload["answer"])
+        session_type = str(payload.get("session_type") or models.SessionType.PRACTICE.value)
+        mock_exam_id = self._require_mock(profile.id, payload.get("mock_exam_id"))
+        if question.qtype in OBJECTIVE_QUESTION_TYPES:
+            return self._record_objective(profile, question, answer, session_type, mock_exam_id)
+        kind = GRADING_KIND_BY_QTYPE[question.qtype]
+        if self.model_for_task(models.task_for_kind(kind)) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        attempt_id = self._insert_attempt(
+            profile, question, answer, session_type, mock_exam_id
+        )
+        result = await self._require_grader().grade(
+            GradeRequest(
+                profile_id=profile.id,
+                track_type=profile.track_type,
+                kind=kind,
+                question=question.stem,
+                answer=answer,
+                subject=question.subject,
+            )
+        )
+        self._store.update("attempt", attempt_id, self._grading_columns(result))
+        if not result.ok:
+            code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
+            raise CampusError(code, f"批改失败（{result.fail_reason}）")
+        body = self.attempt(attempt_id)
+        body["pending_grading"] = True
+        return body
+
+    def attempt(self, attempt_id: str) -> dict[str, Any]:
+        """One attempt body, or `ATTEMPT_NOT_FOUND`."""
+        row = self._store.get("attempt", attempt_id)
+        if row is None:
+            raise CampusError("ATTEMPT_NOT_FOUND", f"作答记录不存在：{attempt_id}")
+        return attempt_payload(models.Attempt.from_row(row))
+
     # -- internals ---------------------------------------------------------
+
+    def _record_objective(
+        self,
+        profile: models.ExamProfile,
+        question: models.QuestionBankItem,
+        answer: str,
+        session_type: str,
+        mock_exam_id: Optional[str],
+    ) -> dict[str, Any]:
+        max_score = float(question.max_score if question.max_score is not None else 0)
+        correct = self._judge(question, answer)
+        attempt_id = self._insert_attempt(
+            profile,
+            question,
+            answer,
+            session_type,
+            mock_exam_id,
+            values={
+                "is_correct": 1 if correct else 0,
+                "score": max_score if correct else 0.0,
+                "max_score": max_score,
+            },
+        )
+        body = self.attempt(attempt_id)
+        body["pending_grading"] = False
+        body["standard_answer"] = question.answer
+        return body
+
+    def _judge(self, question: models.QuestionBankItem, answer: str) -> bool:
+        """Compare an objective answer with the stored key, normalising the documented spellings.
+
+        A question with no key can never be marked correct: guessing "correct by default" would
+        feed the mistake book with false negatives, which is worse than an explicit zero.
+        """
+        expected = question.answer
+        if expected is None or not str(expected).strip():
+            return False
+        if question.qtype == models.QuestionType.MULTIPLE.value:
+            return _letters(expected) == _letters(answer)
+        if question.qtype == models.QuestionType.JUDGE.value:
+            return _judge_value(expected) == _judge_value(answer)
+        if question.qtype == models.QuestionType.BLANK.value:
+            return _blanks(expected) == _blanks(answer)
+        return str(expected).strip().upper() == answer.strip().upper()
+
+    def _insert_attempt(
+        self,
+        profile: models.ExamProfile,
+        question: models.QuestionBankItem,
+        answer: str,
+        session_type: str,
+        mock_exam_id: Optional[str],
+        *,
+        values: Optional[Mapping[str, Any]] = None,
+    ) -> str:
+        row: dict[str, Any] = {
+            "profile_id": profile.id,
+            "track_type": profile.track_type,
+            "subject": question.subject,
+            "user_answer": answer,
+            "question_id": question.id,
+            "session_type": session_type,
+            "mock_exam_id": mock_exam_id,
+        }
+        row.update(values or {})
+        return self._store.insert("attempt", row)
+
+    def _grading_columns(self, result: GradeResult) -> dict[str, Any]:
+        """Map a `GradeResult` onto the attempt columns and its `grading_json` whitelist.
+
+        The whitelist is T07 §6-4: the server-side fields (`ok`, `model_used`, `usage`,
+        `fail_reason`) stay out, `degrade_level` gets its own column, and the degradation trace
+        is kept under `_degrade_trace`. `score` carries the rubric band on the 15-point scale of
+        06 §2.1; a scoring-point kind has no band, so both score columns stay empty and the
+        detail lives in `grading_json.scoring_points`.
+        """
+        score = None if result.band is None else float(result.band)
+        return {
+            "grading_json": json.dumps(
+                {
+                    "band": result.band,
+                    "dimension_scores": result.dimension_scores,
+                    "errors": result.errors,
+                    "scoring_points": result.scoring_points,
+                    "upgraded_demo": result.upgraded_demo,
+                    "model_answer_outline": result.model_answer_outline,
+                    "notice": result.notice,
+                    "raw_text": result.raw_text,
+                    "_degrade_trace": result.degrade_trace,
+                    "schema_flags": result.schema_flags,
+                    "calls": result.calls,
+                    "retries": result.retries,
+                },
+                ensure_ascii=False,
+            ),
+            "degrade_level": result.degrade_level,
+            "model_used": result.model_used,
+            "score": score,
+            "max_score": None if score is None else float(BAND_MAX_SCORE),
+        }
+
+    def _require_grader(self) -> ManagerGrader:
+        if self._grader is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return self._grader
+
+    def _require_mock(self, profile_id: str, mock_exam_id: Optional[str]) -> Optional[str]:
+        """Validate `mock_exam_id` inside the profile's scope, or `MOCK_NOT_FOUND`."""
+        if mock_exam_id is None:
+            return None
+        if self._store.get_scoped("mock_exam", str(mock_exam_id), profile_id) is None:
+            raise CampusError("MOCK_NOT_FOUND", f"模考不存在：{mock_exam_id}")
+        return str(mock_exam_id)
 
     def _insert_question(self, profile_id: str, data: Mapping[str, Any]) -> dict[str, Any]:
         values = {
