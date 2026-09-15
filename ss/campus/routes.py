@@ -37,7 +37,14 @@ from dataclasses import dataclass
 from typing import Any, Literal, Mapping, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    field_validator,
+    model_validator,
+)
 
 from . import models, tracks
 from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
@@ -546,6 +553,90 @@ class SchoolProfileExtract(BaseModel):
     text: str
 
 
+class KnowledgePointCreate(BaseModel):
+    """H2 body (03 §4.8): a title under an optional parent point."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    parent_id: Optional[str] = None
+    title: str
+    desc: Optional[str] = None
+    order_index: int = Field(default=0, ge=0)
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
+class KnowledgePointPatch(BaseModel):
+    """H3 body: any subset of a point's fields; an explicit `null` clears `parent_id`/`desc`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    parent_id: Optional[str] = None
+    title: Optional[str] = None
+    desc: Optional[str] = None
+    order_index: Optional[int] = Field(default=None, ge=0)
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_carry_content(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
+class TreeGenerate(BaseModel):
+    """H4 body (03 §4.8): the pasted syllabus text, or a parsed 考纲 doc to read instead."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    text: Optional[str] = None
+    doc_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _needs_text_or_doc(self) -> "TreeGenerate":
+        if not (self.text or "").strip() and not self.doc_id:
+            raise ValueError("provide the syllabus text or a doc_id")
+        return self
+
+
+class MasteryPatch(BaseModel):
+    """H5 body (03 §4.8): the three-state level of a point, optionally of one dimension.
+
+    `level` stays a plain string so an unknown value reaches `service.py` and comes back
+    as the documented `INVALID_LEVEL` (400) instead of the framework's 422.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    point_id: Optional[str] = None
+    dimension: Optional[models.MasteryDimension] = None
+    level: str
+
+
+class DeadlineCreate(BaseModel):
+    """H7 body (03 §4.8): one node of the exam timeline; `is_reference` marks a hint date."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    node_type: models.DeadlineNodeType
+    date: str = Field(pattern=EXAM_DATE_PATTERN)
+    is_reference: bool = False
+
+
 
 class GradingRequest(BaseModel):
     """C1 body (03 §4.3): what to grade, how, and with which rubric.
@@ -716,6 +807,7 @@ def build_campus_router(manager: Any) -> APIRouter:
         campus_config,
         inventory=ModelInventory.from_manager(manager),
         provider_host=manager,
+        automation_store=getattr(manager, "task_store", None),
     )
     guard = ProfileGuard(campus_store)
     router = APIRouter(prefix=CAMPUS_PREFIX, tags=["campus"])
@@ -900,6 +992,133 @@ def build_campus_router(manager: Any) -> APIRouter:
             question,
             body.model_dump(mode="json", exclude_unset=True),
         )
+
+    # -- H 组：证书备考台（03 §4.8）----------------------------------------
+
+    @router.get("/knowledge-tree")
+    def campus_knowledge_tree(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """H1 — the whole knowledge tree, nested, with live question/mistake counts."""
+        return _call(campus_service.knowledge_tree, profile.id)
+
+    @router.post("/knowledge-points")
+    def campus_create_knowledge_point(
+        body: KnowledgePointCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """H2 — add one manual point under an optional parent."""
+        return _call(
+            campus_service.create_knowledge_point,
+            profile.id,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    def scoped_point(
+        point_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.KnowledgePoint:
+        """Resolve a knowledge point of the request's profile (`FORBIDDEN_PROFILE` otherwise)."""
+        return guard.scoped_row(
+            "knowledge_point", point_id, profile.id, missing_code="POINT_NOT_FOUND"
+        )
+
+    @router.patch("/knowledge-points/{point_id}")
+    def campus_patch_knowledge_point(
+        body: KnowledgePointPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        point: models.KnowledgePoint = Depends(scoped_point),
+    ) -> dict[str, Any]:
+        """H3 — rename, reorder or re-parent; a cyclic move is refused."""
+        return _call(
+            campus_service.update_knowledge_point,
+            profile.id,
+            point,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.delete("/knowledge-points/{point_id}")
+    def campus_delete_knowledge_point(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        point: models.KnowledgePoint = Depends(scoped_point),
+    ) -> dict[str, Any]:
+        """H3 — delete a point, promoting its children to unclassified."""
+        return _call(campus_service.delete_knowledge_point, profile.id, point)
+
+    @router.post("/knowledge-tree/generate")
+    async def campus_generate_knowledge_tree(
+        body: TreeGenerate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """H4 — extract the chapter-section-point tree from a syllabus (CERT-02)."""
+        return await _async_call(
+            campus_service.generate_knowledge_tree,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.patch("/mastery")
+    def campus_set_mastery(
+        body: MasteryPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """H5 — UPSERT one mastery row keyed by point and dimension."""
+        return _call(
+            campus_service.set_mastery,
+            profile.id,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.get("/mastery/coverage")
+    def campus_mastery_coverage(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """H6 — the rated share of the tree plus the weakest rated points."""
+        return _call(campus_service.mastery_coverage, profile.id)
+
+    @router.post("/deadlines")
+    def campus_create_deadline(
+        body: DeadlineCreate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """H7 — record one node of the exam timeline; one of each type per profile."""
+        return _call(
+            campus_service.create_deadline,
+            profile.id,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.get("/deadlines")
+    def campus_list_deadlines(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """H8 — the node timeline, oldest first, each with its countdown."""
+        return _call(campus_service.list_deadlines, profile.id)
+
+    def scoped_deadline(
+        deadline_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.CertDeadline:
+        """Resolve an exam node of the request's profile (`FORBIDDEN_PROFILE` otherwise)."""
+        row = campus_store.get_scoped("cert_deadline", deadline_id, profile.id)
+        if row is None:
+            if campus_store.get("cert_deadline", deadline_id) is not None:
+                raise_campus_error("FORBIDDEN_PROFILE", f"考试节点不属于当前档案：{deadline_id}")
+            raise_campus_error("ITEM_NOT_FOUND", f"考试节点不存在：{deadline_id}")
+        return models.CertDeadline.from_row(row)
+
+    @router.post("/deadlines/{deadline_id}/reminders")
+    def campus_create_deadline_reminders(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        deadline: models.CertDeadline = Depends(scoped_deadline),
+    ) -> dict[str, Any]:
+        """H9 — create the D-30/D-7/D-1 in-app reminder tasks once (CERT-13)."""
+        return _call(campus_service.create_deadline_reminders, deadline)
+
+    @router.get("/reminders")
+    def campus_reminders(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """H10 — the in-app banner source: upcoming nodes and the due/overdue ones."""
+        return _call(campus_service.reminders, profile.id)
 
     # -- C 组：批改（03 §4.3，三台共享）-------------------------------------
 
