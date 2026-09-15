@@ -495,6 +495,14 @@ class ReschedulePlan(BaseModel):
     new_exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
 
 
+class WeeklyReportGenerate(BaseModel):
+    """G5 body (03 §4.7): the report covers the running week of the profile."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -772,5 +780,20 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """G4 — the four-track completion overview, streak and heatmap (KY-11)."""
         return _call(campus_service.progress, profile)
+
+    @router.post("/weekly-reports/generate")
+    def campus_generate_weekly_report(
+        body: WeeklyReportGenerate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G5 — aggregate the running week into the fixed five-section report."""
+        return _call(campus_service.generate_weekly_report, profile)
+
+    @router.get("/weekly-reports")
+    def campus_list_weekly_reports(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """G6 — every stored weekly report, newest week first."""
+        return _call(campus_service.list_weekly_reports, profile)
 
     return router

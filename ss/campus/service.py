@@ -303,6 +303,14 @@ def task_payload(task: models.PlanTask) -> dict[str, Any]:
     return asdict(task)
 
 
+def weekly_report_payload(report: models.WeeklyReport) -> dict[str, Any]:
+    """One weekly report with its JSON columns decoded (03 §4.7 G5/G6 shape)."""
+    payload = asdict(report)
+    payload["completion_rate"] = _decode(payload.get("completion_rate"), {})
+    payload["top_mistake_points"] = _decode(payload.get("top_mistake_points"), [])
+    return payload
+
+
 def parse_questions(fmt: str, content: str) -> list[dict[str, Any]]:
     """Parse an E1 payload into validated question dictionaries (03 §4.5 E1).
 
@@ -1197,7 +1205,137 @@ class CampusService:
             "heatmap": heatmap,
         }
 
+    # -- G5/G6: weekly reports ----------------------------------------------
+
+    def generate_weekly_report(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """Aggregate the running ISO week into the fixed five-section report (G5, KY-12).
+
+        Deliberately model-free: 03 §4.7 registers only `NO_TASK_DATA` for this endpoint, and
+        the 05 §4.7 section structure is fully derivable from stored data — the AI-authored
+        variant arrives through T13's automation template, not here. Regenerating the same week
+        upserts (02 §4.18 一周一报) instead of stacking a second row.
+        """
+        today = _utc_today()
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        tasks = [
+            models.PlanTask.from_row(row)
+            for row in self._store.list_rows("plan_task", profile_id=profile.id)
+        ]
+        if not tasks:
+            raise CampusError("NO_TASK_DATA", "暂无任务数据，无法生成周报")
+        daily_minutes = int(profile.daily_minutes or DEFAULT_DAILY_MINUTES)
+        week_tasks = [
+            task
+            for task in tasks
+            if week_start.isoformat() <= task.scheduled_date <= week_end.isoformat()
+        ]
+        totals: dict[str, list[int]] = {}
+        buckets: dict[str, list[models.PlanTask]] = {}
+        for task in week_tasks:
+            entry = totals.setdefault(task.subject, [0, 0])
+            entry[1] += 1
+            if task.status == models.PlanTaskStatus.DONE.value:
+                entry[0] += 1
+                continue
+            reason = (
+                "卡住了"
+                if task.status == models.PlanTaskStatus.DOING.value
+                else "拖了"
+                if task.scheduled_date < today.isoformat()
+                else "超量"
+                if (task.est_minutes or 0) > daily_minutes
+                else "计划内"
+            )
+            buckets.setdefault(reason, []).append(task)
+        done = sum(entry[0] for entry in totals.values())
+        total = sum(entry[1] for entry in totals.values())
+        overall = round(done / total, 4) if total else 0.0
+        completion_rate: dict[str, Any] = {"overall": overall}
+        for subject, entry in sorted(totals.items()):
+            completion_rate[subject] = round(entry[0] / entry[1], 4) if entry[1] else 0.0
+        plan = self._latest_plan(profile.id)
+        expected = self._expected_progress(plan) if plan is not None else None
+        if expected is None:
+            expected = overall
+        lagging = {
+            subject
+            for subject, entry in totals.items()
+            if entry[1] and entry[0] / entry[1] <= expected - PLAN_LAG_THRESHOLD
+        }
+        top_points = self._week_top_mistake_points(profile.id, week_start, week_end)
+        streak = self._streak_days(self._completion_days(tasks))
+        exam_days = self._days_until_exam(profile, today)
+        suggestion = self._next_week_suggestion(
+            today, tasks, buckets, lagging, top_points
+        )
+        content_md = self._weekly_markdown(
+            week_start=week_start.isoformat(),
+            week_end=week_end.isoformat(),
+            completion_rate=completion_rate,
+            totals=totals,
+            buckets=buckets,
+            overdue=[
+                task
+                for task in tasks
+                if task.status == models.PlanTaskStatus.TODO.value
+                and task.scheduled_date < week_start.isoformat()
+            ],
+            streak=streak,
+            exam_days=exam_days,
+            top_points=top_points,
+            lagging=lagging,
+            expected=expected,
+            suggestion=suggestion,
+        )
+        values = {
+            "completion_rate": _encode(completion_rate),
+            "top_mistake_points": _encode(top_points),
+            "content_md": content_md,
+            "suggestion": suggestion,
+        }
+        existing = self._store.query_one(
+            'SELECT "id" FROM "weekly_report" WHERE "profile_id" = ? AND "week_start" = ?',
+            (profile.id, week_start.isoformat()),
+        )
+        if existing is not None:
+            report_id = str(existing["id"])
+            self._store.update("weekly_report", report_id, values)
+        else:
+            report_id = self._store.insert(
+                "weekly_report",
+                {
+                    "profile_id": profile.id,
+                    "week_start": week_start.isoformat(),
+                    "week_end": week_end.isoformat(),
+                    **values,
+                },
+            )
+        row = self._store.get("weekly_report", report_id)
+        return weekly_report_payload(models.WeeklyReport.from_row(row))
+
+    def list_weekly_reports(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """Every stored weekly report, newest week first (G6)."""
+        rows = self._store.list_rows(
+            "weekly_report", profile_id=profile.id, order_by="week_start DESC"
+        )
+        return {
+            "items": [
+                weekly_report_payload(models.WeeklyReport.from_row(row)) for row in rows
+            ]
+        }
+
     # -- internals ---------------------------------------------------------
+
+    @staticmethod
+    def _completion_days(tasks: list[models.PlanTask]) -> dict[str, int]:
+        """Completions per day, counted only where `completed_at` actually says so."""
+        days: dict[str, int] = {}
+        for task in tasks:
+            if task.status == models.PlanTaskStatus.DONE.value and task.completed_at:
+                day = str(task.completed_at)[:10]
+                days[day] = days.get(day, 0) + 1
+        return days
 
     @staticmethod
     def _streak_days(completed: Mapping[str, int]) -> int:
@@ -1210,6 +1348,171 @@ class CampusService:
             streak += 1
             day -= timedelta(days=1)
         return streak
+
+    @staticmethod
+    def _days_until_exam(profile: models.ExamProfile, today: date) -> Optional[int]:
+        raw = str(profile.exam_date or "").strip()
+        if not raw:
+            return None
+        try:
+            return (date.fromisoformat(raw) - today).days
+        except ValueError:
+            return None
+
+    def _latest_plan(self, profile_id: str) -> Optional[models.StudyPlan]:
+        rows = self._store.list_rows(
+            "study_plan", profile_id=profile_id, order_by="created_at DESC, id", limit=1
+        )
+        return models.StudyPlan.from_row(rows[0]) if rows else None
+
+    def _week_top_mistake_points(
+        self, profile_id: str, week_start: date, week_end: date
+    ) -> list[dict[str, Any]]:
+        """Mistake points entered this week that showed up at least twice (05 §4.7 §3)."""
+        counts: dict[str, int] = {}
+        for row in self._store.list_rows("mistake_book", profile_id=profile_id):
+            entry = models.MistakeBookEntry.from_row(row)
+            created = str(entry.created_at or "")[:10]
+            if not week_start.isoformat() <= created <= week_end.isoformat():
+                continue
+            key = (
+                f"point:{entry.point_id}"
+                if entry.point_id
+                else f"subject:{entry.subject}"
+            )
+            counts[key] = counts.get(key, 0) + 1
+        items: list[dict[str, Any]] = []
+        for key, count in counts.items():
+            if count < 2:
+                continue
+            kind, _, value = key.partition(":")
+            point_id: Optional[str] = None
+            title = value
+            if kind == "point":
+                point_id = value
+                row = self._store.get_scoped("knowledge_point", value, profile_id)
+                if row is not None:
+                    title = str(row["title"])
+            items.append({"point_id": point_id, "title": title, "count": count})
+        items.sort(key=lambda item: (-int(item["count"]), str(item["title"])))
+        return items[:5]
+
+    @staticmethod
+    def _minutes_of(tasks: list[models.PlanTask]) -> int:
+        return sum(int(task.est_minutes or 30) for task in tasks)
+
+    @staticmethod
+    def _next_week_suggestion(
+        today: date,
+        tasks: list[models.PlanTask],
+        buckets: Mapping[str, list[models.PlanTask]],
+        lagging: set[str],
+        top_points: list[dict[str, Any]],
+    ) -> str:
+        """Up to five concrete, time-estimated actions for next week (05 §4.7 §5)."""
+        messages: list[str] = []
+        overdue = [
+            task
+            for task in tasks
+            if task.status == models.PlanTaskStatus.TODO.value
+            and task.scheduled_date < today.isoformat()
+        ]
+        if overdue:
+            messages.append(
+                f"先补做 {len(overdue)} 个拖期任务（约 {CampusService._minutes_of(overdue)} 分钟），"
+                "别让旧任务滚雪球。"
+            )
+        stuck = buckets.get("卡住了", [])
+        if stuck:
+            messages.append(
+                f"推进 {len(stuck)} 个卡住的任务（约 {CampusService._minutes_of(stuck)} 分钟），"
+                "从最小的一步重启。"
+            )
+        if lagging:
+            labels = "、".join(_track_label(subject) for subject in sorted(lagging))
+            messages.append(
+                f"{labels} 完成率落后计划 15% 以上，下周给这些轨加权，优先安排其任务。"
+            )
+        if top_points:
+            names = "、".join(str(item["title"]) for item in top_points[:3])
+            messages.append(f"重做高频错题知识点：{names}（约 30 分钟）。")
+        pending = buckets.get("计划内", [])
+        if pending:
+            messages.append(
+                f"按期推进 {len(pending)} 个计划内任务"
+                f"（约 {CampusService._minutes_of(pending)} 分钟）。"
+            )
+        if not messages:
+            messages.append("本周任务已全部完成，下周从新一周的周计划开始。")
+        return "\n".join(
+            f"{index}. {message}" for index, message in enumerate(messages[:5], start=1)
+        )
+
+    def _weekly_markdown(
+        self,
+        *,
+        week_start: str,
+        week_end: str,
+        completion_rate: Mapping[str, Any],
+        totals: Mapping[str, list[int]],
+        buckets: Mapping[str, list[models.PlanTask]],
+        overdue: list[models.PlanTask],
+        streak: int,
+        exam_days: Optional[int],
+        top_points: list[dict[str, Any]],
+        lagging: set[str],
+        expected: float,
+        suggestion: str,
+    ) -> str:
+        """Render the fixed five-section report of 05 §4.7 as exportable markdown."""
+        lines = [f"# 周报（{week_start} ~ {week_end}）", "", "## 一、总览"]
+        overall = float(completion_rate.get("overall", 0.0))
+        track_summary = "、".join(
+            f"{_track_label(subject)} {float(completion_rate.get(subject, 0.0)):.0%}"
+            for subject in sorted(totals)
+        )
+        lines.append(f"- 本周任务完成率：整体 {overall:.0%}（{track_summary}）")
+        lines.append(f"- 连续打卡天数：{streak} 天")
+        lines.append(
+            f"- 距考试天数：{exam_days} 天"
+            if exam_days is not None
+            else "- 距考试天数：未设置考试日期"
+        )
+        lines += ["", "## 二、各轨明细"]
+        if totals:
+            for subject, entry in sorted(totals.items()):
+                parts = [
+                    f"{len(items)} 个{reason}"
+                    for reason in ("拖了", "卡住了", "超量", "计划内")
+                    if (items := [t for t in buckets.get(reason, []) if t.subject == subject])
+                ]
+                leftover = sum(1 for task in overdue if task.subject == subject)
+                if leftover:
+                    parts.append(f"本周之前遗留 {leftover} 个拖了的任务")
+                lines.append(
+                    f"- {_track_label(subject)}：完成 {entry[0]} / 共 {entry[1]}"
+                    + (f"；未完成 " + "、".join(parts) if parts else "")
+                )
+        else:
+            lines.append("- 本周无排期任务。")
+        lines += ["", "## 三、新增错题 TOP 知识点"]
+        if top_points:
+            lines += [f"- {item['title']} ×{item['count']}" for item in top_points]
+        else:
+            lines.append("- 本周暂无出现 ≥2 次的错题知识点。")
+        lines += ["", "## 四、落后预警"]
+        if lagging:
+            for subject in sorted(lagging):
+                lines.append(
+                    f"- 【落后】{_track_label(subject)}：本周完成率落后计划 {expected:.0%} 达 "
+                    "15 个百分点以上，建议使用「一键重排」调整计划（已完成任务保留）。"
+                )
+        else:
+            lines.append("- 各轨进度均未落后计划 15% 以上。")
+        lines += ["", "## 五、下周建议", suggestion]
+        return "\n".join(lines)
+
+    # -- internals (plan domain) -------------------------------------------
 
     def _plan_exam_date(self, profile: models.ExamProfile) -> date:
         raw = str(profile.exam_date or "").strip()
