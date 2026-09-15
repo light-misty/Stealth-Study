@@ -26,12 +26,12 @@ import json
 import re
 import shutil
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ..secrets import state_dir
-from . import models, rubrics
+from . import models, rubrics, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
@@ -223,6 +223,11 @@ DEFAULT_TARGET_SCORE = 425
 ASSESSMENT_ITEM_SCORE = 1
 MASTERY_MASTERED_RATIO = 0.75
 MASTERY_FUZZY_RATIO = 0.4
+
+PLAN_DATE_FORMAT = "%Y-%m-%d"
+PLAN_FALLBACK_MINUTES = 30
+PLAN_FALLBACK_TITLE = "{subject} 巩固练习"
+PLAN_FALLBACK_DETAIL = "按科目骨架轮转补齐的当日最低任务（模型未给出这一天）"
 
 
 class CampusError(Exception):
@@ -518,6 +523,131 @@ def _judge_value(value: Any) -> str:
 def _blanks(value: Any) -> tuple[str, ...]:
     """Split a fill-in-the-blank key on `|`, trimming and case-folding each slot."""
     return tuple(part.strip().casefold() for part in _BLANK_SEPARATOR.split(str(value).strip()))
+
+
+def build_plan_messages(
+    profile: models.ExamProfile,
+    *,
+    start: date,
+    exam_date: date,
+    skeleton: tuple[str, ...],
+) -> list[dict[str, str]]:
+    """The 备考计划 生成 prompt (03 §4.6 F5, PRD CET1 ③).
+
+    The prompt hands the model the exact window, the subject vocabulary and the spending order,
+    because the server validates all three afterwards: a task dated outside the window or named
+    with an undeclared subject is refused, and any day the model skips is filled locally.
+    """
+    order = "、".join(skeleton) if skeleton else "（无固定科目）"
+    system = (
+        "你在为学生生成一份按天执行的备考计划。只输出一个 JSON 对象，不要任何其他文字。\n"
+        f"计划窗口：{start.isoformat()} 到 {exam_date.isoformat()}，每天至少 1 条任务。\n"
+        f"科目只能取：{order}；优先把分值性价比高的科目排在前面。\n"
+        f"每日任务总时长不超过 {profile.daily_minutes} 分钟。\n"
+        '输出 schema：{"goal_desc": "一句话目标", "tasks": [{"date": "YYYY-MM-DD", '
+        '"subject": "listening", "title": "任务标题", "detail": "具体做法", "est_minutes": 30}]}'
+    )
+    user = (
+        f"档案：{profile.title}；考试日期 {exam_date.isoformat()}；"
+        f"目标分 {profile.target_score or DEFAULT_TARGET_SCORE}；每日可用 {profile.daily_minutes} 分钟。"
+    )
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def validate_plan_payload(
+    text: Optional[str],
+    *,
+    start: date,
+    exam_date: date,
+    skeleton: tuple[str, ...],
+) -> tuple[str, list[dict[str, Any]]]:
+    """Parse and validate the generated plan, or `MODEL_OUTPUT_INVALID` (05 §4.7 无空话原则).
+
+    Every task must sit inside the plan window and name a declared subject; the goal line is
+    optional. Days the model leaves out are the caller's business (they get filled), but a task it
+    *did* return has to be usable — a silently dropped task would make `task_count` a lie.
+    """
+    payload, reason = extract_json(text)
+    tasks = payload.get("tasks") if isinstance(payload, dict) else None
+    if not isinstance(tasks, list) or not tasks:
+        raise CampusError("MODEL_OUTPUT_INVALID", f"计划输出无法解析（{reason or 'tasks 缺失'}）")
+    validated: list[dict[str, Any]] = []
+    for index, task in enumerate(tasks):
+        if not isinstance(task, Mapping):
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 条任务不是对象")
+        raw_date = str(task.get("date") or "").strip()
+        try:
+            scheduled = datetime.strptime(raw_date, PLAN_DATE_FORMAT).date()
+        except ValueError:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 条任务日期非法：{raw_date}") from None
+        if not start <= scheduled <= exam_date:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 条任务日期越出计划窗口：{raw_date}")
+        subject = str(task.get("subject") or "").strip()
+        if skeleton and subject not in skeleton:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 条任务科目不在骨架内：{subject}")
+        title = str(task.get("title") or "").strip()
+        if not title:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 条任务缺少标题")
+        minutes = task.get("est_minutes")
+        if not isinstance(minutes, int) or isinstance(minutes, bool) or minutes <= 0:
+            minutes = PLAN_FALLBACK_MINUTES
+        validated.append(
+            {
+                "date": scheduled.isoformat(),
+                "subject": subject,
+                "title": title,
+                "detail": str(task.get("detail") or ""),
+                "est_minutes": minutes,
+            }
+        )
+    goal = payload.get("goal_desc")
+    return (str(goal).strip() if goal else ""), validated
+
+
+def _plan_priority(subject: str, skeleton: tuple[str, ...]) -> int:
+    """The task's priority, taken from the station's declared spending order (01 §3.2).
+
+    1 is the most important entry of `subject_skeleton` — for CET that is listening, so the
+    "听力和仔细阅读优先" rule of PRD CET1 ③ is expressed by the station declaration, not by a
+    special case in the generator.
+    """
+    if subject in skeleton:
+        return skeleton.index(subject) + 1
+    return len(skeleton) + 1 if skeleton else 1
+
+
+def _fill_plan_days(
+    tasks: list[dict[str, Any]],
+    *,
+    start: date,
+    exam_date: date,
+    skeleton: tuple[str, ...],
+) -> list[dict[str, Any]]:
+    """Give every day of the window at least one task (PRD CET1 ③ "每天任务数 ≥1").
+
+    Days the model skipped get one fallback task, rotated through the station's skeleton so the
+    order still reflects the spending priority. A model that returned nothing usable for a day is
+    the normal case for long windows, so this runs on every generation rather than as an error
+    path.
+    """
+    covered = {task["date"] for task in tasks}
+    filled = list(tasks)
+    for offset in range((exam_date - start).days + 1):
+        day = (start + timedelta(days=offset)).isoformat()
+        if day in covered:
+            continue
+        subject = skeleton[offset % len(skeleton)] if skeleton else ""
+        filled.append(
+            {
+                "date": day,
+                "subject": subject,
+                "title": PLAN_FALLBACK_TITLE.format(subject=subject or "当日"),
+                "detail": PLAN_FALLBACK_DETAIL,
+                "est_minutes": PLAN_FALLBACK_MINUTES,
+            }
+        )
+    filled.sort(key=lambda task: (task["date"], _plan_priority(task["subject"], skeleton)))
+    return filled
 
 
 def _utcnow() -> str:
@@ -1414,7 +1544,78 @@ class CampusService:
             "vocab": vocab,
         }
 
+    # -- F5: plan generation (shared by every station) ----------------------
+
+    async def generate_plan(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """Generate a day-by-day plan up to the exam date and store it (F5).
+
+        The station difference never appears as a branch here: the subject vocabulary and the
+        spending order come from the profile's `TrackSpec.subject_skeleton` (01 §3.2), so a fourth
+        station is one entry in `tracks.py`. Structural promises (cover every day, ≥1 task a day,
+        priority by the declared order) are enforced server-side, which is what makes PRD CET1 ③ a
+        property of the code rather than of the model.
+        """
+        if not profile.exam_date:
+            raise CampusError("EXAM_DATE_REQUIRED", "请先在档案里设置考试日期")
+        if self.model_for_task(models.CampusTask.QUESTION.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        start = date.today()
+        exam_date = datetime.strptime(profile.exam_date, PLAN_DATE_FORMAT).date()
+        if exam_date < start:
+            raise CampusError("EXAM_DATE_REQUIRED", f"考试日期已过（{profile.exam_date}），请更新档案")
+        skeleton = self._plan_skeleton(profile)
+        answer = await asyncio.to_thread(
+            self._require_caller().complete,
+            models.CampusTask.QUESTION.value,
+            build_plan_messages(profile, start=start, exam_date=exam_date, skeleton=skeleton),
+        )
+        goal_desc, tasks = validate_plan_payload(
+            answer, start=start, exam_date=exam_date, skeleton=skeleton
+        )
+        tasks = _fill_plan_days(tasks, start=start, exam_date=exam_date, skeleton=skeleton)
+        with self._store.transaction():
+            plan_id = self._store.insert(
+                "study_plan",
+                {
+                    "profile_id": profile.id,
+                    "track": None,
+                    "start_date": start.isoformat(),
+                    "end_date": exam_date.isoformat(),
+                    "goal_desc": goal_desc,
+                    "source": models.PlanSource.AI_GENERATED.value,
+                },
+            )
+            for task in tasks:
+                self._store.insert(
+                    "plan_task",
+                    {
+                        "plan_id": plan_id,
+                        "profile_id": profile.id,
+                        "title": task["title"],
+                        "subject": task["subject"],
+                        "scheduled_date": task["date"],
+                        "detail": task["detail"],
+                        "est_minutes": task["est_minutes"],
+                        "priority": _plan_priority(task["subject"], skeleton),
+                    },
+                )
+        return {"plan_id": plan_id, "task_count": len(tasks), "first_date": start.isoformat()}
+
     # -- internals ---------------------------------------------------------
+
+    def _plan_skeleton(self, profile: models.ExamProfile) -> tuple[str, ...]:
+        """The station's declared subjects, falling back to the profile's own list.
+
+        `tracks.py` declares the skeleton per station (01 §3.2); a profile created for a station
+        without one (the reserved `other`) or a CERT profile (whose subjects live in its knowledge
+        tree) can still carry its own `subjects` list, and an empty result simply means "no
+        vocabulary to validate against" rather than a failure.
+        """
+        spec = tracks.spec_for(profile.track_type) if profile.track_type in tracks.TRACKS else None
+        if spec is not None and spec.subject_skeleton:
+            return spec.subject_skeleton
+        own = _decode(profile.subjects, [])
+        return tuple(str(subject) for subject in own) if isinstance(own, list) else ()
 
     def _load_assessment(self, profile_id: str, assessment_id: str) -> models.Assessment:
         row = self._store.get_scoped("assessment", assessment_id, profile_id)

@@ -829,6 +829,15 @@ def build_campus_router(manager: Any) -> APIRouter:
         """F4 — fold the three sections onto 710 and write the profile's estimate."""
         return _call(campus_service.finish_assessment, profile, assessment)
 
+    @router.post("/plans/generate")
+    async def campus_generate_plan(
+        body: ProfileRef,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F5 — generate a day-by-day plan up to the exam date (shared across stations)."""
+        del body
+        return await _async_call(campus_service.generate_plan, profile)
+
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 
     @router.get("/tasks")
