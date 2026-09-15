@@ -48,6 +48,7 @@ CAMPUS_PREFIX = "/v1/campus"
 PROFILE_ID_PARAM = "profile_id"
 PROFILE_PATH_PARAM = "pid"
 EXAM_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
+PUSH_TIME_PATTERN = r"^(?:[01]\d|2[0-3]):[0-5]\d$"
 
 
 @dataclass(frozen=True)
@@ -317,6 +318,30 @@ class ProfilePatch(BaseModel):
         return cleaned
 
 
+class CampusSettingsPatch(BaseModel):
+    """A7 preference body: the G-09 set (02 §4.2 `campus_settings`).
+
+    Ranges and patterns are the same ones `config.py` applies to the TOML defaults, so the API
+    and the config file cannot drift into accepting different values.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    daily_minutes: Optional[int] = Field(default=None, ge=MIN_DAILY_MINUTES, le=MAX_DAILY_MINUTES)
+    push_time: Optional[str] = Field(default=None, pattern=PUSH_TIME_PATTERN)
+    review_intensity: Optional[models.ReviewIntensity] = None
+    task_models: Optional[dict[models.CampusTask, Optional[str]]] = None
+
+
+class AppStatePatch(BaseModel):
+    """A7 body: the active profile pointer and/or a partial preference patch (03 §4.1)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    active_profile_id: Optional[str] = None
+    settings: Optional[CampusSettingsPatch] = None
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -394,5 +419,22 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """A5 — delete the profile with its whole subtree (02 §7.3)."""
         return _call(campus_service.delete_profile, profile)
+
+    @router.get("/app-state")
+    def campus_get_app_state() -> dict[str, Any]:
+        """A6 — the active profile pointer plus the resolved campus preferences.
+
+        Deliberately profile-free: `app_state` is global, so this endpoint carries neither a
+        `profile_id` nor one of the guard dependencies.
+        """
+        return _call(campus_service.app_state)
+
+    @router.patch("/app-state")
+    def campus_patch_app_state(body: AppStatePatch) -> dict[str, Any]:
+        """A7 — switch the active profile and/or merge preference changes."""
+        return _call(
+            campus_service.update_app_state,
+            body.model_dump(exclude_unset=True, mode="json"),
+        )
 
     return router

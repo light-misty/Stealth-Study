@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ss import secrets
-from ss.campus import models, routes, store
+from ss.campus import config, models, routes, store
 
 ACTIVE_ID = "profile-active"
 FINISHED_ID = "profile-finished"
@@ -413,3 +413,151 @@ def test_a5_keeps_the_deleted_profile_out_of_later_reads(client: TestClient) -> 
     client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}")
     assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}").status_code == 404
     assert _profile_ids(client.get(f"{routes.CAMPUS_PREFIX}/profiles")) == {ACTIVE_ID, FINISHED_ID}
+
+
+# ---------------------------------------------------------------------------
+# A6 GET /app-state, A7 PATCH /app-state
+# ---------------------------------------------------------------------------
+
+def _fresh_client(manager: FakeManager) -> TestClient:
+    """A second app on the same `campus.db`, i.e. what a restart looks like from outside."""
+    app = FastAPI()
+    app.include_router(routes.build_campus_router(manager))
+    return TestClient(app)
+
+
+def _write_campus_config(campus_db_path: Path, body: str) -> None:
+    campus_db_path.parent.mkdir(parents=True, exist_ok=True)
+    (campus_db_path.parent / "config.toml").write_text(body, encoding="utf-8")
+
+
+def test_a6_reports_the_documented_defaults_on_a_fresh_install(client: TestClient) -> None:
+    body = client.get(f"{routes.CAMPUS_PREFIX}/app-state").json()
+    assert body["active_profile_id"] is None
+    settings = body["settings"]
+    assert settings["daily_minutes"] == config.DEFAULT_DAILY_MINUTES
+    assert settings["push_time"] == config.DEFAULT_PUSH_TIME
+    assert settings["review_intensity"] == config.DEFAULT_REVIEW_INTENSITY
+    assert settings["task_models"] == {
+        task.value: models.pick_for_task(task.value)[0] for task in models.CampusTask
+    }
+
+
+def test_a7_remembers_the_active_profile_across_a_restart(
+    client: TestClient, manager: FakeManager
+) -> None:
+    client.patch(f"{routes.CAMPUS_PREFIX}/app-state", json={"active_profile_id": ACTIVE_ID})
+    assert _fresh_client(manager).get(f"{routes.CAMPUS_PREFIX}/app-state").json()[
+        "active_profile_id"
+    ] == ACTIVE_ID
+
+
+def test_a7_refuses_an_unknown_active_profile(client: TestClient) -> None:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state", json={"active_profile_id": FORGED_ID}
+    )
+    assert response.status_code == 404
+    assert _detail(response)["code"] == "PROFILE_NOT_FOUND"
+    assert client.get(f"{routes.CAMPUS_PREFIX}/app-state").json()["active_profile_id"] is None
+
+
+def test_a7_clears_the_active_profile_with_an_explicit_null(client: TestClient) -> None:
+    client.patch(f"{routes.CAMPUS_PREFIX}/app-state", json={"active_profile_id": ACTIVE_ID})
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state", json={"active_profile_id": None}
+    ).json()
+    assert body["active_profile_id"] is None
+
+
+def test_a7_updates_one_setting_and_leaves_the_rest_alone(client: TestClient) -> None:
+    settings = client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state", json={"settings": {"daily_minutes": 90}}
+    ).json()["settings"]
+    assert settings["daily_minutes"] == 90
+    assert settings["push_time"] == config.DEFAULT_PUSH_TIME
+    assert settings["review_intensity"] == config.DEFAULT_REVIEW_INTENSITY
+
+
+def test_a7_overrides_one_task_model_and_keeps_the_static_defaults(client: TestClient) -> None:
+    settings = client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state",
+        json={"settings": {"task_models": {"grading": "custom:strong"}}},
+    ).json()["settings"]
+    assert settings["task_models"]["grading"] == "custom:strong"
+    assert settings["task_models"][models.CampusTask.QUESTION.value] == models.pick_for_task(
+        models.CampusTask.QUESTION.value
+    )[0]
+
+
+def test_a7_persists_settings_across_a_restart(client: TestClient, manager: FakeManager) -> None:
+    client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state",
+        json={"settings": {"daily_minutes": 45, "review_intensity": "intense"}},
+    )
+    settings = _fresh_client(manager).get(f"{routes.CAMPUS_PREFIX}/app-state").json()["settings"]
+    assert settings["daily_minutes"] == 45
+    assert settings["review_intensity"] == models.ReviewIntensity.INTENSE.value
+
+
+def test_a7_resets_a_setting_to_null(campus_db_path: Path, manager: FakeManager) -> None:
+    _write_campus_config(campus_db_path, '[campus]\npush_time = "21:30"\n')
+    client = _fresh_client(manager)
+    assert client.get(f"{routes.CAMPUS_PREFIX}/app-state").json()["settings"]["push_time"] == "21:30"
+    client.patch(f"{routes.CAMPUS_PREFIX}/app-state", json={"settings": {"push_time": "07:15"}})
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state", json={"settings": {"push_time": None}}
+    ).json()
+    assert body["settings"]["push_time"] == "21:30"
+
+
+def test_a7_lets_the_runtime_setting_win_over_the_config_file(
+    campus_db_path: Path, manager: FakeManager
+) -> None:
+    _write_campus_config(
+        campus_db_path, '[campus]\ndaily_minutes = 120\n[campus.models]\ngrading = "cfg:model"\n'
+    )
+    client = _fresh_client(manager)
+    settings = client.get(f"{routes.CAMPUS_PREFIX}/app-state").json()["settings"]
+    assert settings["daily_minutes"] == 120
+    assert settings["task_models"]["grading"] == "cfg:model"
+    patched = client.patch(
+        f"{routes.CAMPUS_PREFIX}/app-state",
+        json={"settings": {"daily_minutes": 30, "task_models": {"grading": "api:model"}}},
+    ).json()["settings"]
+    assert patched["daily_minutes"] == 30
+    assert patched["task_models"]["grading"] == "api:model"
+
+
+def test_a7_reports_the_surface_warnings_of_a_broken_config_file(
+    campus_db_path: Path, manager: FakeManager
+) -> None:
+    _write_campus_config(campus_db_path, '[campus]\ndaily_minutes = "sixty"\n')
+    settings = _fresh_client(manager).get(f"{routes.CAMPUS_PREFIX}/app-state").json()["settings"]
+    assert settings["daily_minutes"] == config.DEFAULT_DAILY_MINUTES
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"settings": {"daily_minutes": 0}},
+        {"settings": {"daily_minutes": 1441}},
+        {"settings": {"push_time": "25:00"}},
+        {"settings": {"push_time": "8:00"}},
+        {"settings": {"review_intensity": "nope"}},
+        {"settings": {"task_models": {"nope": "model"}}},
+        {"settings": {"unknown_key": 1}},
+        {"unknown_key": 1},
+    ],
+)
+def test_a7_rejects_malformed_patches(client: TestClient, patch: dict) -> None:
+    assert client.patch(f"{routes.CAMPUS_PREFIX}/app-state", json=patch).status_code == 422
+
+
+def test_a7_is_global_and_never_asks_for_a_profile_id(client: TestClient) -> None:
+    response = client.patch(f"{routes.CAMPUS_PREFIX}/app-state", json={})
+    assert response.status_code == 200
+    assert "code" not in response.json()
+
+
+def test_a7_push_time_pattern_matches_the_config_loader() -> None:
+    assert routes.PUSH_TIME_PATTERN == config._PUSH_TIME.pattern

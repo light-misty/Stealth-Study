@@ -286,7 +286,90 @@ class CampusService:
         self._remove_library_dir(profile.id)
         return {"deleted": True, "cascade": {table: rows for table, rows in cascade.items() if rows}}
 
+    # -- A6-A7: app state and campus preferences ---------------------------
+
+    def app_state(self) -> dict[str, Any]:
+        """The global app state: the active profile pointer and the resolved preferences (A6).
+
+        The stored `campus_settings` holds only what the user explicitly chose, and wins over
+        `config.toml` (02 §4.2 "运行时以 app_state 为准"); every absent key falls back to the
+        config value. `task_models` always reports all three tasks, resolved through
+        `CampusConfig.resolve_task_model`, so the settings panel never needs the static list.
+        """
+        stored = self._stored_settings()
+        overrides = stored.get("task_models")
+        overrides = overrides if isinstance(overrides, dict) else {}
+        return {
+            "active_profile_id": self._store.get_state(ACTIVE_PROFILE_KEY, None),
+            "settings": {
+                "daily_minutes": self._setting(
+                    stored, "daily_minutes", self._config.daily_minutes
+                ),
+                "push_time": self._setting(stored, "push_time", self._config.push_time),
+                "review_intensity": self._setting(
+                    stored, "review_intensity", self._config.review_intensity
+                ),
+                "task_models": {
+                    task.value: overrides.get(task.value)
+                    or self._config.resolve_task_model(task.value)
+                    for task in models.CampusTask
+                },
+            },
+        }
+
+    def update_app_state(self, patch: Mapping[str, Any]) -> dict[str, Any]:
+        """Point `active_profile_id` at a real profile and/or merge preference changes (A7).
+
+        An explicit `null` clears the key and falls back to the config file, which is how the
+        settings panel offers "reset to default" without a second endpoint.
+        """
+        if "active_profile_id" in patch:
+            value = patch["active_profile_id"]
+            if value is None:
+                self._store.delete_state(ACTIVE_PROFILE_KEY)
+            else:
+                if self._store.get("exam_profile", str(value)) is None:
+                    raise CampusError("PROFILE_NOT_FOUND", f"档案不存在：{value}")
+                self._store.set_state(ACTIVE_PROFILE_KEY, str(value))
+        settings_patch = patch.get("settings")
+        if isinstance(settings_patch, Mapping) and settings_patch:
+            self._merge_settings(settings_patch)
+        return self.app_state()
+
     # -- internals ---------------------------------------------------------
+
+    def _stored_settings(self) -> dict[str, Any]:
+        stored = self._store.get_state(SETTINGS_KEY, {})
+        return dict(stored) if isinstance(stored, dict) else {}
+
+    def _setting(self, stored: Mapping[str, Any], name: str, default: Any) -> Any:
+        value = stored.get(name)
+        return default if value is None else value
+
+    def _merge_settings(self, patch: Mapping[str, Any]) -> None:
+        stored = self._stored_settings()
+        for name in ("daily_minutes", "push_time", "review_intensity"):
+            if name not in patch:
+                continue
+            if patch[name] is None:
+                stored.pop(name, None)
+            else:
+                stored[name] = patch[name]
+        if "task_models" in patch:
+            overrides = dict(stored.get("task_models") or {})
+            for task, model in (patch["task_models"] or {}).items():
+                if model:
+                    overrides[str(task)] = str(model)
+                else:
+                    overrides.pop(str(task), None)
+            if overrides:
+                stored["task_models"] = overrides
+            else:
+                stored.pop("task_models", None)
+        if stored:
+            self._store.set_state(SETTINGS_KEY, stored)
+        else:
+            self._store.delete_state(SETTINGS_KEY)
 
     def _assert_title_free(self, title: str, *, exclude: Optional[str] = None) -> None:
         row = self._store.query_one('SELECT "id" FROM "exam_profile" WHERE "title" = ?', (title,))
