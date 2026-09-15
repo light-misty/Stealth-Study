@@ -55,7 +55,8 @@
       "ai_notice": "AI generated, for reference only",
       "loading": "Loading…",
       "retry": "Retry",
-      "error": "Something went wrong"
+      "error": "Something went wrong",
+      "exam_passed": "The exam date has passed"
     },
     "model": {
       "empty_title": "No model configured",
@@ -195,7 +196,15 @@
       "deadline": {
         "banner": "Countdown",
         "reference_notice": "Subject to the official announcement",
-        "create_reminders": "Create reminders"
+        "create_reminders": "Create reminders",
+        "node": {
+          "registration_open": "Registration opens",
+          "registration_close": "Registration closes",
+          "payment_close": "Payment deadline",
+          "admission_ticket": "Admission ticket",
+          "exam": "Exam",
+          "score_query": "Score release"
+        }
       }
     },
     "privacy": {
