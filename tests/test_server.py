@@ -632,9 +632,11 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
         assert ws.accepted_subprotocol == "StealthStudy"
 
     # Redirect callbacks remain tokenless, then enforce their own signed state.
+    # G-06: with cloud sign-in disabled (the default), /auth/callback refuses with 403
+    # before any state validation; the MCP/connector callbacks are not gated.
     assert client.get(
         "/auth/callback", params={"code": "x", "state": "bad"}
-    ).status_code == 400
+    ).status_code == 403
     assert client.get("/mcp/oauth/callback").status_code == 400
     assert client.post("/oauth/callback", data={"app_state": "bad"}).status_code == 400
 
