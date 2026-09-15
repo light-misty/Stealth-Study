@@ -463,6 +463,15 @@ class AttemptCreate(BaseModel):
         return value
 
 
+class PlanGenerate(BaseModel):
+    """F5 body (03 §4.4): the profile is the only input — exam date, subjects and budget
+    already live on the profile, so the request cannot contradict them."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -667,6 +676,16 @@ def build_campus_router(manager: Any) -> APIRouter:
             question,
             body.model_dump(mode="json", exclude_unset=True),
         )
+
+    # -- F5：计划生成（03 §4.4，KY-01/02 与 CET-03 按 TrackSpec 分台共用）---
+
+    @router.post("/plans/generate")
+    async def campus_generate_plan(
+        body: PlanGenerate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F5 — lay out weekly and daily tasks from today to the exam date."""
+        return await _async_call(campus_service.generate_plan, profile)
 
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 

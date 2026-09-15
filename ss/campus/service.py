@@ -19,19 +19,27 @@ Three rules from 01 §2.1/§3 are structural here:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
 import re
 import shutil
 from dataclasses import asdict, dataclass
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ..secrets import state_dir
-from . import models
+from . import models, tracks
 from .config import DEFAULT_DAILY_MINUTES
-from .grading import GradeRequest, GradeResult, GradingEngine
+from .grading import (
+    PROVIDER_TIMEOUT_S,
+    GradeRequest,
+    GradeResult,
+    GradingEngine,
+    extract_json,
+)
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -137,6 +145,65 @@ _JUDGE_TRUE: frozenset[str] = frozenset({"t", "true", "y", "yes", "对", "正确
 _JUDGE_FALSE: frozenset[str] = frozenset({"f", "false", "n", "no", "错", "错误", "×", "x"})
 
 _BLANK_SEPARATOR = re.compile(r"[|｜]")
+
+PLAN_STAGES: tuple[tuple[str, float], ...] = (
+    (models.PlanStage.FOUNDATION.value, 0.4),
+    (models.PlanStage.INTENSIVE.value, 0.3),
+    (models.PlanStage.PASTPAPER.value, 0.2),
+    (models.PlanStage.SPRINT.value, 0.1),
+)
+
+PLAN_STAGE_LABELS: Mapping[str, str] = {
+    "foundation": "基础",
+    "intensive": "强化",
+    "pastpaper": "真题",
+    "sprint": "冲刺",
+}
+
+PLAN_PRIORITY_BY_STAGE: Mapping[str, int] = {
+    "foundation": 3,
+    "intensive": 2,
+    "pastpaper": 1,
+    "sprint": 1,
+}
+
+TRACK_LABELS: Mapping[str, str] = {
+    "overall": "综合",
+    "politics": "政治",
+    "english": "英语",
+    "math": "数学",
+    "major": "专业课",
+    "listening": "听力",
+    "reading": "阅读",
+    "writing": "写作",
+    "translation": "翻译",
+}
+
+
+def _utc_today() -> date:
+    return datetime.now(timezone.utc).date()
+
+
+def _track_label(subject: str) -> str:
+    return TRACK_LABELS.get(subject, subject)
+
+
+def _stage_counts(weeks: int) -> list[int]:
+    counts = [max(1, round(weeks * frac)) for _stage, frac in PLAN_STAGES]
+    counts[0] += weeks - sum(counts)
+    return counts
+
+
+def _stage_for_week(index: int, weeks: int) -> str:
+    if weeks < len(PLAN_STAGES):
+        position = min(index * len(PLAN_STAGES) // weeks, len(PLAN_STAGES) - 1)
+        return PLAN_STAGES[position][0]
+    elapsed = 0
+    for (stage, _frac), count in zip(PLAN_STAGES, _stage_counts(weeks)):
+        elapsed += count
+        if index < elapsed:
+            return stage
+    return PLAN_STAGES[-1][0]
 
 
 class CampusError(Exception):
@@ -494,6 +561,7 @@ class CampusService:
         self._store = campus_store
         self._config = config
         self._inventory = inventory if inventory is not None else ModelInventory()
+        self._provider_host = provider_host
         self._grader = (
             ManagerGrader(provider_host, self.model_for_task, config.grading_start_level)
             if provider_host is not None
@@ -886,7 +954,195 @@ class CampusService:
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
+    # -- F5: plan generation ------------------------------------------------
+
+    async def generate_plan(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """Lay out the road to the exam date as weekly plus daily tasks (F5).
+
+        The structure is code-owned so the acceptance invariants of 07 §4 T11 cannot be broken
+        by a bad model day: every declared track gets exactly one weekly task per week from
+        today to the exam date (周级任务数 = 周数，无空轨), and every day gets one daily task
+        rotating through the tracks. The model only contributes the weekly themes — unusable
+        output degrades to the deterministic titles instead of failing, while a missing model
+        or a failed call is refused with the documented codes of 03 §4.4.
+        """
+        start = _utc_today()
+        exam = self._plan_exam_date(profile)
+        days = (exam - start).days
+        if days < 1:
+            raise CampusError("EXAM_DATE_REQUIRED", "考试日期需晚于今天")
+        plan_tracks = self._plan_tracks(profile)
+        weeks = -(-days // 7)
+        themes = await self._weekly_themes(profile, plan_tracks, weeks)
+        daily_minutes = int(profile.daily_minutes or DEFAULT_DAILY_MINUTES)
+        plan_id = self._store.insert(
+            "study_plan",
+            {
+                "profile_id": profile.id,
+                "track": models.PlanTrack.OVERALL.value,
+                "start_date": start.isoformat(),
+                "end_date": exam.isoformat(),
+                "goal_desc": f"目标 {profile.target_score} 分" if profile.target_score else "",
+                "source": models.PlanSource.AI_GENERATED.value,
+            },
+        )
+        with self._store.transaction():
+            for track in plan_tracks:
+                for week in range(weeks):
+                    stage = _stage_for_week(week, weeks)
+                    goals = themes.get(track) or ()
+                    title = (
+                        goals[week % len(goals)]
+                        if goals
+                        else f"{_track_label(track)}·第{week + 1}周（{PLAN_STAGE_LABELS[stage]}）"
+                    )
+                    self._store.insert(
+                        "plan_task",
+                        {
+                            "plan_id": plan_id,
+                            "profile_id": profile.id,
+                            "title": title,
+                            "subject": track,
+                            "scheduled_date": (
+                                start + timedelta(days=7 * week)
+                            ).isoformat(),
+                            "detail": f"{PLAN_STAGE_LABELS[stage]}阶段 · 第 {week + 1}/{weeks} 周",
+                            "est_minutes": daily_minutes,
+                            "priority": PLAN_PRIORITY_BY_STAGE[stage],
+                            "status": models.PlanTaskStatus.TODO.value,
+                        },
+                    )
+            for day in range(days):
+                track = plan_tracks[day % len(plan_tracks)]
+                stage = _stage_for_week(day // 7, weeks)
+                self._store.insert(
+                    "plan_task",
+                    {
+                        "plan_id": plan_id,
+                        "profile_id": profile.id,
+                        "title": f"{_track_label(track)}·每日练习",
+                        "subject": track,
+                        "scheduled_date": (start + timedelta(days=day)).isoformat(),
+                        "detail": f"{PLAN_STAGE_LABELS[stage]}阶段每日任务",
+                        "est_minutes": daily_minutes,
+                        "priority": 2,
+                        "status": models.PlanTaskStatus.TODO.value,
+                    },
+                )
+        return {
+            "plan_id": plan_id,
+            "task_count": weeks * len(plan_tracks) + days,
+            "first_date": start.isoformat(),
+        }
+
     # -- internals ---------------------------------------------------------
+
+    def _plan_exam_date(self, profile: models.ExamProfile) -> date:
+        raw = str(profile.exam_date or "").strip()
+        if not raw:
+            raise CampusError("EXAM_DATE_REQUIRED", "请先设置考试日期")
+        try:
+            return date.fromisoformat(raw)
+        except ValueError:
+            raise CampusError("EXAM_DATE_REQUIRED", f"考试日期无效：{raw}") from None
+
+    def _plan_tracks(self, profile: models.ExamProfile) -> tuple[str, ...]:
+        """The tracks this profile's plan covers, read from the TrackSpec (01 §3.2).
+
+        The profile's own `subjects` narrow and reorder the station skeleton — a "不考数学 +
+        两门专业课" plan covers three tracks while the default covers four, which is exactly
+        the heterogeneity KY-02's acceptance asks for. Values outside the skeleton are ignored
+        (never silently widened), and an empty skeleton degrades to the single `overall` track
+        so every station can still produce a plan.
+        """
+        allowed = tracks.spec_for(profile.track_type).subject_skeleton
+        chosen: list[str] = []
+        for subject in _decode(profile.subjects, []):
+            value = str(subject)
+            if value in allowed and value not in chosen:
+                chosen.append(value)
+        return tuple(chosen) or (tuple(allowed) or (models.PlanTrack.OVERALL.value,))
+
+    async def _weekly_themes(
+        self, profile: models.ExamProfile, plan_tracks: tuple[str, ...], weeks: int
+    ) -> dict[str, list[str]]:
+        """Ask the model for per-track weekly goals, keeping only the well-formed part.
+
+        Every failure mode of the model (absent, unreachable, unparseable, wrong shape) ends in
+        an empty or partial dict: the caller falls back to its deterministic titles per track,
+        so the plan's structure never depends on this call succeeding.
+        """
+        data = await self._complete_json(
+            models.task_for_kind("question"),
+            system=(
+                "你是备考规划助手。依据学生档案为每条科目轨输出每周学习主题。"
+                "只输出一个 JSON 对象，schema："
+                '{"tracks": {"<科目>": {"weekly_goals": ["第1周主题", "..."]}}}，'
+                "每条轨的 weekly_goals 数量必须等于给定周数，不要输出任何其他文字。"
+            ),
+            user=(
+                f"考试日期：{profile.exam_date}；距今天共 {weeks} 周；"
+                f"每日可用时长 {profile.daily_minutes} 分钟；"
+                f"科目轨：{'、'.join(_track_label(track) for track in plan_tracks)}。"
+                f"请为每条轨给出 {weeks} 个每周主题。"
+            ),
+        )
+        if not data:
+            return {}
+        raw_tracks = data.get("tracks")
+        if not isinstance(raw_tracks, Mapping):
+            return {}
+        themes: dict[str, list[str]] = {}
+        for track in plan_tracks:
+            entry = raw_tracks.get(track)
+            if not isinstance(entry, Mapping):
+                continue
+            goals = entry.get("weekly_goals")
+            if not isinstance(goals, list):
+                continue
+            cleaned = [str(goal).strip()[:80] for goal in goals if str(goal).strip()]
+            if cleaned:
+                themes[track] = cleaned
+        return themes
+
+    async def _complete_json(
+        self, task: str, *, system: str, user: str
+    ) -> Optional[dict[str, Any]]:
+        """One structured-output model call, refused or timed out with documented codes.
+
+        The blocking `provider.complete` runs in a thread (the GradingEngine pattern of 06
+        §2.2) under a hard `asyncio.wait_for`; any provider failure surfaces as the retryable
+        `MODEL_TIMEOUT` of 03 §6 rather than an undocumented error. Output that fails
+        `extract_json` comes back as `None` — a parsing failure is the caller's degrade path,
+        not an exception (F5/G9 list no `MODEL_OUTPUT_INVALID`).
+        """
+        model = self.model_for_task(task)
+        provider = getattr(self._provider_host, "provider", None)
+        if model is None or provider is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+
+        def call() -> str:
+            turn = provider.complete(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0,
+                timeout=PROVIDER_TIMEOUT_S,
+            )
+            return str(getattr(turn, "text", "") or "")
+
+        try:
+            text = await asyncio.wait_for(
+                asyncio.to_thread(call), timeout=PROVIDER_TIMEOUT_S
+            )
+        except asyncio.TimeoutError:
+            raise CampusError("MODEL_TIMEOUT", "模型调用超时") from None
+        except Exception as exc:
+            raise CampusError("MODEL_TIMEOUT", f"模型调用失败（{type(exc).__name__}）") from exc
+        data, _reason = extract_json(text)
+        return data
 
     def _record_objective(
         self,
