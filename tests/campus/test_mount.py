@@ -80,12 +80,12 @@ def test_the_mount_is_the_only_router_include_in_the_file(app_source: list[str])
     assert sum(line.count("build_campus_router") for line in app_source) == 2
 
 
-# Backend files whose diffs against the base revision are pre-approved: the campus
-# registration (01 §6 #9 as widened by G-06) plus standalone fixes that went through
-# review (search.py: rg exclusions must not blank a workspace whose root path itself
-# contains an ignored dir name). Anything else in the diff means the intrusion has
-# spread and must go back through review.
-BACKEND_PATCH = {"ss/campus/config.py", "ss/server/app.py", "ss/tools/search.py"}
+# The whole registered existing-file patch (01 §6 #9, widened by G-06): `config.py` is the
+# project-owned `login_enabled` read, `app.py` the guarded early returns. A diff outside this
+# list — and outside `ss/campus/`, which the feature owns — means the intrusion has spread and
+# must go back through review.
+BACKEND_PATCH = {"M\tss/campus/config.py", "M\tss/server/app.py"}
+CAMPUS_OWNED_PREFIX = "ss/campus/"
 APP_PY_PATCH = "40\t2\tss/server/app.py"
 
 
@@ -95,10 +95,12 @@ def test_no_other_backend_module_changed_against_the_base_revision() -> None:
         pytest.skip("no base revision to compare against from this checkout")
     status = _git("diff", "--name-status", base, "--", "ss/")
     touched = [line for line in status.splitlines() if line[:1] in {"M", "D", "R"}]
-    if not touched:
-        pytest.skip("no backend diff against the base revision to budget-guard")
-    unexpected = [line for line in touched if line.split("\t")[-1] not in BACKEND_PATCH]
-    assert unexpected == []
+    # A subset check, not an equality: the registered patch is merged into `main`, so a branch
+    # cut from it is expected to contain *none* of those edits — what this gate forbids is an
+    # edit outside the registered set.
+    for line in touched:
+        path = line.split("\t", 1)[1]
+        assert line in BACKEND_PATCH or path.startswith(CAMPUS_OWNED_PREFIX), line
 
 
 def test_app_py_keeps_its_registered_budget_against_the_base_revision() -> None:
@@ -106,9 +108,9 @@ def test_app_py_keeps_its_registered_budget_against_the_base_revision() -> None:
     if base is None or _on_the_base_revision(base):
         pytest.skip("no base revision to compare against from this checkout")
     numstat = _git("diff", "--numstat", base, "--", "ss/server/app.py").strip()
-    if not numstat:
-        pytest.skip("app.py carries no diff against the base revision")
-    assert numstat == APP_PY_PATCH
+    # Either the mount and the G-06 guard are already in the base (the normal case for a new
+    # feature branch), or `app.py` carries exactly the registered patch and nothing more.
+    assert numstat in {"", APP_PY_PATCH}
 
 
 def test_create_app_serves_the_campus_health_endpoint_behind_the_sidecar_token(
