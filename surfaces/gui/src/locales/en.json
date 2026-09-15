@@ -65,7 +65,7 @@
     "account_aria": "Account: {{email}}",
     "account_not_signed_in_aria": "Account: not signed in",
     "not_signed_in_row": "Not signed in",
-    "local_workspace": "Local workspace",
+    "more": "More",
     "inbox_chip_pending": "Inbox — {{n}} items need you",
     "start_session_as": "Start a session as",
     "manage_personas": "Manage personas…",

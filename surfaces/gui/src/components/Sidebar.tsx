@@ -1240,7 +1240,13 @@ export function Sidebar(props: Props) {
             }}
             aria-haspopup="menu"
             aria-expanded={appMenuOpen}
-            aria-label={cloud?.signed_in ? t("sidebar.account_aria", { email: accountEmail }) : t("sidebar.account_not_signed_in_aria")}
+            aria-label={
+              cloud?.signed_in
+                ? t("sidebar.account_aria", { email: accountEmail })
+                : showLogin()
+                  ? t("sidebar.account_not_signed_in_aria")
+                  : t("sidebar.more")
+            }
           >
             <span
               className={
@@ -1251,14 +1257,20 @@ export function Sidebar(props: Props) {
               }
               aria-hidden
             >
-              {cloud?.signed_in ? accountName.slice(0, 1).toUpperCase() : "?"}
+              {cloud?.signed_in ? (
+                accountName.slice(0, 1).toUpperCase()
+              ) : showLogin() ? (
+                "?"
+              ) : (
+                <Icon name="moreHorizontal" size={14} />
+              )}
             </span>
             <span className={"truncate " + (cloud?.signed_in ? "" : "text-muted")}>
               {cloud?.signed_in
                 ? accountName
                 : showLogin()
                   ? t("sidebar.not_signed_in_row")
-                  : t("sidebar.local_workspace")}
+                  : t("sidebar.more")}
             </span>
             {cloud?.signed_in && (
               <span

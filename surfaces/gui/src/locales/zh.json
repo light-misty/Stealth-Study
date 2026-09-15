@@ -65,7 +65,7 @@
     "account_aria": "账户：{{email}}",
     "account_not_signed_in_aria": "账户：未登录",
     "not_signed_in_row": "未登录",
-    "local_workspace": "本地工作区",
+    "more": "更多",
     "inbox_chip_pending": "收件箱 —— {{n}} 项待你处理",
     "start_session_as": "以此身份开始会话",
     "manage_personas": "管理角色…",
