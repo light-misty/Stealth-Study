@@ -64,9 +64,15 @@ def test_agents_and_memory_rest(tmp_path):
     # The picker lists enabled+surfaced personas. Release lineup (owner 2026-08-21):
     # StealthStudy + the security bundles; Code ships disabled, Chat is gone, and
     # ships:false personas (teams, ops, design) need OPENWORKER_UNSHIPPED=1.
+    # T21 adds the six campus personas: they leave `ships` unset (default True) and
+    # carry no `team`, so they join the release lineup as well.
     names = [a["name"] for a in agents]
     assert names[0] == "cowork"
-    assert set(names) == {"cowork", "security", "cloud-posture", "dep-audit"}
+    assert set(names) == {
+        "cowork", "security", "cloud-posture", "dep-audit",
+        "cert-instructor", "cet-examiner", "cet-grader",
+        "kaoyan-planner", "kaoyan-subject-tutor", "study-companion",
+    }
     assert "skills" in client.get("/v1/skills").json()  # catalog (may be empty)
 
     added = client.post("/v1/memory", json={"content": "prefer pathlib"}).json()
