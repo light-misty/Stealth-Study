@@ -56,6 +56,9 @@ ENDPOINT_TABLE_ONLY_CODES: dict[str, tuple[int, bool]] = {
     "ASSESSMENT_NOT_FOUND": (404, False),
     "ITEM_NOT_FOUND": (404, False),
     "NO_TASK_DATA": (409, False),
+    # T13 added: I3's unknown template id (03 §6 has no row for it yet — registered
+    # in the T13 delivery doc as a contract addition).
+    "TEMPLATE_NOT_FOUND": (404, False),
 }
 
 ALL_CODES = {**SECTION_6_CODES, **ENDPOINT_TABLE_ONLY_CODES}

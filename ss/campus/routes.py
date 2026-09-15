@@ -105,6 +105,7 @@ ERROR_SPECS: Mapping[str, ErrorSpec] = {
     "MODEL_OUTPUT_INVALID": ErrorSpec(502, True, "模型输出无法解析"),
     "RUBRIC_NOT_FOUND": ErrorSpec(404, False, "评分标准不存在"),
     "AUTOMATION_UNAVAILABLE": ErrorSpec(503, True, "自动化任务存储不可用"),
+    "TEMPLATE_NOT_FOUND": ErrorSpec(404, False, "自动化模板不存在"),
     "EXPORT_NOT_FOUND": ErrorSpec(404, False, "导出文件不存在"),
     "NO_TASK_DATA": ErrorSpec(409, False, "暂无任务数据，无法生成周报"),
     "SCHEMA_VERSION_ERROR": ErrorSpec(500, False, "数据版本高于当前应用版本"),
@@ -1273,5 +1274,21 @@ def build_campus_router(manager: Any) -> APIRouter:
         return await _async_call(
             campus_service.extract_school_profile, profile, body.text
         )
+
+    # -- I2-I3：自动化模板（03 §4.9 G-18）-----------------------------------
+
+    @router.get("/automation-templates")
+    def campus_list_automation_templates() -> dict[str, Any]:
+        """I2 — the four installable templates; no profile is needed to browse them."""
+        return _call(campus_service.automation_template_catalogue)
+
+    @router.post("/automation-templates/{tpl_id}/install")
+    def campus_install_automation_template(
+        tpl_id: str,
+        body: ProfileRef,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """I3 — one-click install; repeat installs return the same task ids."""
+        return _call(campus_service.install_automation_template, profile, tpl_id)
 
     return router

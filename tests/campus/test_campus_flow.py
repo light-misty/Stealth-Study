@@ -85,6 +85,8 @@ T13_NEW: tuple[tuple[str, str], ...] = (
     ("POST", "/review/items"),
     ("GET", "/review/due"),
     ("POST", "/review/{rq_id}/result"),
+    ("GET", "/automation-templates"),
+    ("POST", "/automation-templates/{tpl_id}/install"),
 )
 T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS + T11_NEW
 T13_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS + T13_NEW

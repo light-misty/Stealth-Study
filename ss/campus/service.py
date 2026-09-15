@@ -32,7 +32,7 @@ from typing import Any, Mapping, Optional
 
 from ..memory import Scope
 from ..secrets import state_dir
-from . import models, review_scheduler, rubrics, tracks
+from . import automation_templates, models, review_scheduler, rubrics, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
@@ -2195,6 +2195,43 @@ class CampusService:
         if item_type == models.ReviewItemType.KNOWLEDGE_POINT.value:
             return asdict(models.KnowledgePoint.from_row(source))
         return asdict(models.MistakeBookEntry.from_row(source))
+
+    # -- I2-I3: automation templates (G-18, installed through T13) ----------
+
+    def automation_template_catalogue(self) -> dict[str, Any]:
+        """The installable templates (I2, G-18): identity and schedule shape only."""
+        return {"items": automation_templates.catalogue()}
+
+    def install_automation_template(
+        self, profile: models.ExamProfile, tpl_id: str
+    ) -> dict[str, Any]:
+        """One-click install of an automation template (I3, G-18/CET-05/KY-12/CERT-13).
+
+        The tasks are created through the sidecar's existing automation CRUD — campus
+        adds no scheduler of its own (01 §2). The weekly report fires a model call when
+        it runs, so installing it without a usable model is refused up front; the node
+        template computes `once` fire moments from the exam date and cannot be installed
+        without one. Repeat installs return the already-installed task ids unchanged.
+        """
+        task_store = (
+            getattr(self._provider_host, "task_store", None)
+            if self._provider_host is not None
+            else None
+        )
+        if task_store is None:
+            raise CampusError("AUTOMATION_UNAVAILABLE")
+        template = automation_templates.get_template(tpl_id)
+        if template is None:
+            raise CampusError("TEMPLATE_NOT_FOUND", f"自动化模板不存在：{tpl_id}")
+        if template.requires_model and self.model_for_task(models.CampusTask.EXPLAIN.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        if template.requires_exam_date and not str(profile.exam_date or "").strip():
+            raise CampusError("EXAM_DATE_REQUIRED", "考试节点提醒需要先设置考试日期")
+        push_time = self.app_state()["settings"]["push_time"]
+        task_ids = automation_templates.install_template(
+            self._provider_host, profile, tpl_id, push_time=str(push_time)
+        )
+        return {"task_ids": task_ids}
 
     # -- F10-F14: the proctored mock exam (CET-13/14) -----------------------
 
