@@ -23,14 +23,16 @@ import asyncio
 import csv
 import io
 import json
+import os
 import re
 import shutil
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
+from ..automation.models import Schedule, ScheduledTask
 from ..secrets import state_dir
-from . import models
+from . import models, reminders
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import GradeRequest, GradeResult, GradingEngine, extract_json
 from .library import FAIL_NO_TEXT_LAYER
@@ -547,11 +549,13 @@ class CampusService:
         *,
         inventory: Optional[ModelInventory] = None,
         provider_host: Any = None,
+        automation_store: Any = None,
     ) -> None:
         self._store = campus_store
         self._config = config
         self._inventory = inventory if inventory is not None else ModelInventory()
         self._provider_host = provider_host
+        self._automation_store = automation_store
         self._grader = (
             ManagerGrader(provider_host, self.model_for_task, config.grading_start_level)
             if provider_host is not None
@@ -1247,6 +1251,87 @@ class CampusService:
         )
         return {"coverage": coverage, "weak_top5": weak[:5]}
 
+    # -- H7-H10: exam nodes and in-app reminders (03 §4.8) ------------------
+
+    def create_deadline(self, profile_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """Record one node of the exam timeline; one node of each type per profile (H7)."""
+        node_type = str(payload["node_type"])
+        if (
+            self._store.query_one(
+                'SELECT "id" FROM "cert_deadline" WHERE "profile_id" = ? AND "node_type" = ?',
+                (profile_id, node_type),
+            )
+            is not None
+        ):
+            raise CampusError("DUPLICATE_NODE", f"同类型考试节点已存在：{node_type}")
+        deadline_id = self._store.insert(
+            "cert_deadline",
+            {
+                "profile_id": profile_id,
+                "node_type": node_type,
+                "date": str(payload["date"]),
+                "is_reference": 1 if payload.get("is_reference") else 0,
+            },
+        )
+        return self._deadline_payload(self._store.get("cert_deadline", deadline_id))
+
+    def list_deadlines(self, profile_id: str) -> dict[str, Any]:
+        """The node timeline, oldest first, each with its live countdown (H8)."""
+        rows = self._store.list_rows(
+            "cert_deadline", profile_id=profile_id, order_by="date, id"
+        )
+        today = reminders.today()
+        return {
+            "items": [
+                {
+                    **self._deadline_payload(row),
+                    "days_left": reminders.days_left(row["date"], today=today),
+                }
+                for row in rows
+            ]
+        }
+
+    def create_deadline_reminders(self, deadline: models.CertDeadline) -> dict[str, Any]:
+        """Create the D-30/D-7/D-1 `once` tasks through the existing TaskStore (H9, CERT-13).
+
+        Pressing the button again returns the stored ids instead of duplicating tasks, and
+        a fire moment that already passed is not created at all: `compute_next_run` refuses
+        past once tasks, so such a row would only clutter the automation list.
+        """
+        if self._automation_store is None:
+            raise CampusError("AUTOMATION_UNAVAILABLE")
+        existing = _decode(deadline.automation_ids, [])
+        if existing:
+            return {"automation_ids": [str(task_id) for task_id in existing]}
+        label = reminders.node_label(deadline.node_type)
+        ids: list[str] = []
+        try:
+            for offset, fire_at in reminders.reminder_fire_dates(deadline.date):
+                task = ScheduledTask(
+                    title=f"{label}提醒（D-{offset}）",
+                    instructions=(
+                        f"用户备考的证书节点「{label}」定于 {deadline.date}。"
+                        f"今天是该节点的 D-{offset} 应用内提醒：请生成一条 50 字以内的中文提醒，"
+                        "包含节点名、日期与剩余天数，提醒用户及时处理，不要执行其他操作。"
+                    ),
+                    schedule=Schedule(kind="once", fire_at=fire_at, timezone="local"),
+                    workspace=os.getcwd(),
+                    origin_surface="campus",
+                )
+                self._automation_store.save(task)
+                ids.append(task.id)
+        except CampusError:
+            raise
+        except Exception as exc:
+            raise CampusError("AUTOMATION_UNAVAILABLE", f"自动化任务存储不可用：{exc}") from exc
+        if ids:
+            self._store.update("cert_deadline", deadline.id, {"automation_ids": _encode(ids)})
+        return {"automation_ids": ids}
+
+    def reminders(self, profile_id: str) -> dict[str, Any]:
+        """The banner data source: upcoming nodes plus the due-today and overdue ones (H10)."""
+        return reminders.deadline_snapshot(self._store, profile_id)
+
     # -- internals ---------------------------------------------------------
 
     def _record_objective(
@@ -1624,3 +1709,8 @@ class CampusService:
         return self._store.query_one(
             f'SELECT * FROM "mastery" WHERE {" AND ".join(conditions)}', params
         )
+
+    def _deadline_payload(self, row: Any) -> dict[str, Any]:
+        payload = asdict(models.CertDeadline.from_row(row))
+        payload["automation_ids"] = _decode(payload.get("automation_ids"), [])
+        return payload

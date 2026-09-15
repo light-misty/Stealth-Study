@@ -54,6 +54,10 @@ T12_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("POST", "/knowledge-tree/generate"),
     ("PATCH", "/mastery"),
     ("GET", "/mastery/coverage"),
+    ("POST", "/deadlines"),
+    ("GET", "/deadlines"),
+    ("POST", "/deadlines/{deadline_id}/reminders"),
+    ("GET", "/reminders"),
 )
 
 TODAY = "2026-09-15"
