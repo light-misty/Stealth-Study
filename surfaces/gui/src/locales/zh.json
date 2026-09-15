@@ -61,7 +61,11 @@
       "exam_date_label": "考试日期",
       "target_score_label": "目标分数",
       "daily_minutes_label": "每日时长（分钟）",
-      "empty": "还没有备考档案，先新建一个开始吧"
+      "empty": "还没有备考档案，先新建一个开始吧",
+      "active_badge": "当前",
+      "create_submit": "创建档案",
+      "create_cancel": "取消",
+      "title_required": "请填写档案名称"
     },
     "settings": {
       "title": "备考台设置",

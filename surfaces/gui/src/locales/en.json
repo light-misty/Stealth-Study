@@ -62,7 +62,11 @@
       "exam_date_label": "Exam date",
       "target_score_label": "Target score",
       "daily_minutes_label": "Daily minutes",
-      "empty": "No exam profile yet — create one to get started"
+      "empty": "No exam profile yet — create one to get started",
+      "active_badge": "Current",
+      "create_submit": "Create profile",
+      "create_cancel": "Cancel",
+      "title_required": "A profile name is required"
     },
     "settings": {
       "title": "Station settings",
