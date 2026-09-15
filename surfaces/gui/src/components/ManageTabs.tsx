@@ -533,7 +533,7 @@ export function ConnectSetup({
           )}
         </div>
       )}
-      {c.managed && !c.mcp && !manualOnly && (
+      {c.managed && !c.mcp && !manualOnly && showLogin() && (
         <div className="space-y-2" data-testid="managed-connect">
           {c.managed_paused ? (
             // One-click temporarily off (e.g. Google pending CASA verification):
@@ -553,13 +553,14 @@ export function ConnectSetup({
             <button className={BTN_ACCENT} onClick={oneClick} disabled={waiting}>
               {waiting ? t("manage.check_browser") : t("manage.connect_one_click", { title: c.title })}
             </button>
-          ) : cloud && showLogin() ? (
+          ) : cloud ? (
             <CloudSignInInline
               blurb={t("manage.signin_unlocks", { title: c.title })}
             />
           ) : (
-            // Status unknown (fetch pending/failed) — or cloud sign-in off (G-06):
-            // never show the sign-in ask to a possibly-signed-in user (FB-013).
+            // Status unknown (fetch pending/failed): never show the sign-in ask to a
+            // possibly-signed-in user (FB-013); the host keeps polling. The whole block
+            // is behind showLogin(), so this pane is only ever the loading state.
             <CloudStatusPending />
           )}
           {!c.managed_paused && cloud?.signed_in && (

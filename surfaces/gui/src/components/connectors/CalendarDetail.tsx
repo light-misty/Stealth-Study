@@ -10,6 +10,7 @@ import { ConnectorBadge } from "../../connectors/ConnectorIcon";
 import type { DetailProps } from "./ConnectorsSection";
 import { ToolsDisclosure } from "./ToolsDisclosure";
 import { FOOT, GRP, GRP_H, PILL_ACCENT, ROW, TAG_ACCENT, TAG_WARN, XBTN } from "./ui";
+import { showLogin } from "../../flags";
 
 // The Google Calendar detail page: connected accounts (multi-account, Default
 // badge, per-account disconnect) — Gmail's page minus the privacy filters.
@@ -55,7 +56,7 @@ export function CalendarDetail({ c, cloud, slack: _slack, onChanged }: DetailPro
           title={
             c.managed_paused
               ? t("calendar.coming_soon_title")
-              : cloud?.signed_in
+              : cloud?.signed_in || !showLogin()
                 ? ""
                 : t("cloud.sign_in_first")
           }
@@ -68,7 +69,7 @@ export function CalendarDetail({ c, cloud, slack: _slack, onChanged }: DetailPro
         <div className={GRP}>
           <div className={ROW + " text-[13px] text-muted"}>
             {t("calendar.setup_blurb")}
-            {cloud?.signed_in ? "" : " " + t("calendar.requires_cloud")}
+            {!cloud?.signed_in && showLogin() ? " " + t("calendar.requires_cloud") : ""}
           </div>
         </div>
       )}

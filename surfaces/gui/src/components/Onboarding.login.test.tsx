@@ -56,6 +56,9 @@ describe("Onboarding cloud sign-in band (G-06)", () => {
     expect(screen.getByTestId("ob-step-tools")).toBeTruthy();
     expect(screen.queryByTestId("ob-cloud-signin")).toBeNull();
     expect(screen.queryByTestId("ob-tools-signedin")).toBeNull();
-    expect(screen.getByTestId("ob-tools-skip")).toBeTruthy();
+    // The skip button must not mention signing in when there is no sign-in to skip.
+    const skip = screen.getByTestId("ob-tools-skip");
+    expect(skip).toBeTruthy();
+    expect(skip.textContent).toBe("Next");
   });
 });

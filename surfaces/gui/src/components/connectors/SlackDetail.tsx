@@ -23,6 +23,7 @@ import type { DetailProps } from "./ConnectorsSection";
 import { SlackHowItWorks } from "./SlackHowItWorks";
 import { ToolsDisclosure } from "./ToolsDisclosure";
 import { FOOT, GRP, GRP_H, PILL_ACCENT, PILL_LINE, ROW, TAG_WARN, XBTN } from "./ui";
+import { showLogin } from "../../flags";
 
 // The Slack detail page (UX-DECISIONS §21): one group per connected workspace —
 // People (allow-list) · Waiting (parked senders) · Listening (session ↔ channel) ·
@@ -41,10 +42,11 @@ function initials(name: string): string {
 const LABEL = "text-[13px] text-muted w-24 shrink-0";
 
 /** The relay status line, one honest layer at a time: sign-in → socket → live.
- * Dot color + text; never a synthetic "Slack is down" claim. */
+ * Dot color + text; never a synthetic "Slack is down" claim. With sign-in off
+ * (G-06) the sign-in layer is gone, so the socket state speaks. */
 function relayHealth(slack: SlackStatus | null, t: (k: string) => string): { dot: string; text: string } {
   if (!slack) return { dot: "bg-ok", text: t("slack.relay_live") };
-  if (!slack.signed_in)
+  if (!slack.signed_in && showLogin())
     return { dot: "bg-warnInk", text: t("slack.relay_signin_needed") };
   if (slack.relay.state === "offline")
     return { dot: "bg-faint/60", text: t("slack.relay_offline") };
@@ -105,7 +107,7 @@ export function SlackDetail({ c, cloud, slack, onChanged }: DetailProps) {
         <div className={GRP}>
           <div className={ROW + " text-[13px] text-muted"}>
             {t("slack.setup_blurb")}
-            {cloud?.signed_in ? "" : " " + t("slack.setup_cloud_note")}
+            {!cloud?.signed_in && showLogin() ? " " + t("slack.setup_cloud_note") : ""}
           </div>
         </div>
       )}

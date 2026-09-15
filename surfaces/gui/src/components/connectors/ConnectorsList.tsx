@@ -5,6 +5,7 @@ import { ConnectorBadge } from "../../connectors/ConnectorIcon";
 import { AddConnectionModal } from "./AddConnectionModal";
 import { AddMcpModal, CustomMcpGroup, McpPresetRows, mcpPresetOffers } from "./CustomMcp";
 import { CHIP_OK, CHIP_OFF, CHIP_WARN, GRP, GRP_H, FOOT, PILL_QUIET, ROW } from "./ui";
+import { showLogin } from "../../flags";
 
 // The Connectors LIST (UX-DECISIONS §21): connected first in their own inset group —
 // rows navigate to the connector's detail subpage; problems surface as a chip in the
@@ -182,7 +183,10 @@ function healthChip(c: Connector, slack: SlackStatus | null, t: (k: string, opts
   // surface in the list, never one click deep. Named honestly per layer; we
   // never claim "Slack↔cloud down" (the desktop can't see that leg).
   if (c.name === "slack" && c.mode === "relay" && slack) {
-    if (!slack.signed_in) return <span className={CHIP_WARN}>{"● " + t("connector.sign_in_needed")}</span>;
+    // With sign-in off (G-06) there is no "needs sign-in" layer to report — fall through
+    // to the socket state, which is the honest thing left to say.
+    if (!slack.signed_in && showLogin())
+      return <span className={CHIP_WARN}>{"● " + t("connector.sign_in_needed")}</span>;
     if (slack.relay.state === "offline") return <span className={CHIP_OFF}>{"● " + t("connector.offline")}</span>;
     if (slack.relay.state === "reconnecting")
       return <span className={CHIP_WARN}>{"● " + t("connector.reconnecting")}</span>;

@@ -11,6 +11,7 @@ import { ConnectorBadge } from "../../connectors/ConnectorIcon";
 import type { DetailProps } from "./ConnectorsSection";
 import { ToolsDisclosure } from "./ToolsDisclosure";
 import { FOOT, GRP, GRP_H, PILL_ACCENT, ROW, TAG_ACCENT, TAG_WARN, XBTN } from "./ui";
+import { showLogin } from "../../flags";
 
 // The Gmail detail page (UX-DECISIONS §21): connected mailboxes (multi-account,
 // Default badge, per-account disconnect) + "Never show agents" privacy filters.
@@ -57,7 +58,7 @@ export function GmailDetail({ c, cloud, slack: _slack, onChanged }: DetailProps)
           title={
             c.managed_paused
               ? t("gmail.coming_soon_title")
-              : cloud?.signed_in
+              : cloud?.signed_in || !showLogin()
                 ? ""
                 : t("cloud.sign_in_first")
           }
@@ -70,7 +71,7 @@ export function GmailDetail({ c, cloud, slack: _slack, onChanged }: DetailProps)
         <div className={GRP}>
           <div className={ROW + " text-[13px] text-muted"}>
             {t("gmail.setup_blurb")}
-            {cloud?.signed_in ? "" : " " + t("gmail.requires_cloud")}
+            {!cloud?.signed_in && showLogin() ? " " + t("gmail.requires_cloud") : ""}
           </div>
         </div>
       )}

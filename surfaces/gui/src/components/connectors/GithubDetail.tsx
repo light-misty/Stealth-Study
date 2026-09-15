@@ -18,6 +18,7 @@ import { AddConnectionModal } from "./AddConnectionModal";
 import type { DetailProps } from "./ConnectorsSection";
 import { ToolsDisclosure } from "./ToolsDisclosure";
 import { FOOT, GRP, GRP_H, PILL_ACCENT, PILL_LINE, ROW, TAG_WARN, XBTN } from "./ui";
+import { showLogin } from "../../flags";
 
 // The GitHub detail page (github-relay-spec §8), the Slack page's shape: one
 // group per App INSTALLATION (the allow-list scope) — People (sender logins
@@ -28,10 +29,11 @@ import { FOOT, GRP, GRP_H, PILL_ACCENT, PILL_LINE, ROW, TAG_WARN, XBTN } from ".
 
 const LABEL = "text-[13px] text-muted w-24 shrink-0";
 
-/** The relay status line, one honest layer at a time (the Slack rule). */
+/** The relay status line, one honest layer at a time (the Slack rule).
+ * With sign-in off (G-06) the sign-in layer is gone, so the socket state speaks. */
 function relayHealth(gh: GithubStatus | null, t: (k: string) => string): { dot: string; text: string } {
   if (!gh) return { dot: "bg-ok", text: t("github.relay_live") };
-  if (!gh.signed_in)
+  if (!gh.signed_in && showLogin())
     return { dot: "bg-warnInk", text: t("github.relay_signin_needed") };
   if (gh.relay.state === "offline")
     return { dot: "bg-faint/60", text: t("github.relay_offline") };
@@ -101,7 +103,7 @@ export function GithubDetail({ c, cloud, onChanged }: DetailProps) {
         <div className={GRP}>
           <div className={ROW + " text-[13px] text-muted"}>
             {t("github.setup_blurb")}
-            {cloud?.signed_in ? "" : " " + t("github.setup_cloud_note")}
+            {!cloud?.signed_in && showLogin() ? " " + t("github.setup_cloud_note") : ""}
           </div>
         </div>
       )}

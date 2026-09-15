@@ -310,7 +310,7 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
                   onClick={() => setStep(2)}
                   data-testid="ob-tools-skip"
                 >
-                  {t("onboarding.continue_without_signin")}
+                  {showLogin() ? t("onboarding.continue_without_signin") : t("onboarding.next")}
                 </button>
               )}
             </div>

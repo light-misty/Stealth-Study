@@ -102,17 +102,21 @@ describe("AddConnectionModal one-click panes (G-06)", () => {
 });
 
 describe("ConnectSetup managed block (G-06)", () => {
-  it("hides the sign-in ask while keeping the manual form reachable", () => {
+  it("drops the whole managed pane — not just the button — when the flag is off", () => {
     const { container } = render(
       <ConnectSetup c={connector()} cloud={signedOut()} onConnected={vi.fn()} />,
     );
+    // Nothing left of the cloud pane: no dead "checking" placeholder either.
+    expect(screen.queryByTestId("managed-connect")).toBeNull();
     expect(screen.queryByTestId("inline-cloud-sign-in")).toBeNull();
+    expect(screen.queryByTestId("cloud-status-pending")).toBeNull();
     expect(container.textContent).not.toContain("Sign in");
   });
 
   it("shows the sign-in ask when the flag is on", () => {
     localStorage.setItem("ocw.flag.login", "1");
     render(<ConnectSetup c={connector()} cloud={signedOut()} onConnected={vi.fn()} />);
+    expect(screen.getByTestId("managed-connect")).toBeTruthy();
     expect(screen.getByTestId("inline-cloud-sign-in")).toBeTruthy();
   });
 });

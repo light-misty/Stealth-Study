@@ -40,13 +40,16 @@ export function AddConnectionModal({
   // with manual fields alongside (jira, asana) it's a second mode; alone (monday)
   // it IS the connect flow.
   const mcpBacked = !!c.mcp;
-  const twoModes =
+  // Cloud-brokered one-click is unreachable with sign-in off (G-06), so those connectors
+  // go straight to their Manual pane rather than offering a dead tab. MCP-backed one-click
+  // is a LOCAL OAuth flow with no cloud account, so it keeps its tab.
+  const cloudOneClick =
     c.name === "slack" ||
     c.name === "hubspot" ||
     c.name === "github" ||
     c.name === "notion" ||
-    c.name === "attio" ||
-    (mcpBacked && c.fields.length > 0);
+    c.name === "attio";
+  const twoModes = (cloudOneClick && showLogin()) || (mcpBacked && c.fields.length > 0);
   const [pane, setPane] = useState<"one" | "manual">("one");
 
   useEffect(() => {
@@ -201,7 +204,7 @@ function GenericOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null
         >
           {waiting ? tt("cloud.check_browser") : tt("modal.connect_title", { title: c.title })}
         </button>
-      ) : cloud && showLogin() ? (
+      ) : cloud ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />
@@ -233,7 +236,7 @@ function SlackOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null }
         <button className={PILL_ACCENT + " w-full !py-2"} data-testid="modal-add-to-slack" onClick={go} disabled={waiting}>
           {waiting ? tt("cloud.check_browser") : tt("modal.add_to_slack")}
         </button>
-      ) : cloud && showLogin() ? (
+      ) : cloud ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />
@@ -268,7 +271,7 @@ function GithubOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null 
         <button className={PILL_ACCENT + " w-full !py-2"} data-testid="modal-install-github-app" onClick={() => go()} disabled={waiting}>
           {waiting ? tt("cloud.check_browser") : tt("modal.connect_github")}
         </button>
-      ) : cloud && showLogin() ? (
+      ) : cloud ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />
@@ -324,7 +327,7 @@ function HubSpotOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null
         <button className={PILL_ACCENT + " w-full !py-2"} data-testid="modal-connect-hubspot" onClick={go} disabled={waiting}>
           {waiting ? tt("cloud.check_browser") : tt("modal.connect_hubspot")}
         </button>
-      ) : cloud && showLogin() ? (
+      ) : cloud ? (
         <CloudSignInInline />
       ) : (
         <CloudStatusPending />

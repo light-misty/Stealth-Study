@@ -11,6 +11,7 @@ import { ConnectSetup } from "../ManageTabs";
 import type { DetailProps } from "./ConnectorsSection";
 import { ToolsDisclosure } from "./ToolsDisclosure";
 import { FOOT, GRP, GRP_H, PILL_ACCENT, ROW, TAG_ACCENT, XBTN } from "./ui";
+import { showLogin } from "../../flags";
 
 // The generic detail page for multi-account connectors on the accounts layer
 // (Notion, Attio, PostHog, Mixpanel, Amplitude, Apollo, Hunter — batch 2).
@@ -59,7 +60,7 @@ export function AccountsDetail({ c, cloud, slack: _slack, onChanged }: DetailPro
           onClick={() => (canOneClick ? addManaged() : setShowManual((v) => !v))}
           disabled={busy}
           title={
-            c.managed && !cloud?.signed_in
+            c.managed && !cloud?.signed_in && showLogin()
               ? t("cloud.sign_in_oneclick")
               : ""
           }
