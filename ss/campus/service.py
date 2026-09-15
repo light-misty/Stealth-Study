@@ -19,19 +19,30 @@ Three rules from 01 §2.1/§3 are structural here:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
 import re
 import shutil
 from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ..secrets import state_dir
 from . import models, rubrics
 from .config import DEFAULT_DAILY_MINUTES
-from .grading import GradeRequest, GradeResult, GradingEngine, SCORING_KINDS, TRANSLATION_KINDS
+from .grading import (
+    PROVIDER_TIMEOUT_S,
+    SCORING_KINDS,
+    TEMPERATURE,
+    TRANSLATION_KINDS,
+    GradeRequest,
+    GradeResult,
+    GradingEngine,
+    extract_json,
+)
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -177,6 +188,41 @@ SCORING_POINT_MAX = 1
 
 TOP_ERROR_TYPES = 3
 MAX_ERROR_SAMPLES = 3
+
+ASSESSMENT_SECTIONS: tuple[tuple[str, int], ...] = (
+    ("vocab", 6),
+    ("listening", 4),
+    ("reading", 5),
+    ("writing_translation", 5),
+)
+
+ASSESSMENT_PROMPT_SECTIONS: tuple[tuple[str, int, str], ...] = (
+    ("vocab", 6, "词汇辨析"),
+    ("listening", 4, "听力理解"),
+    ("reading", 5, "阅读理解"),
+    ("writing", 3, "写作知识"),
+    ("translation", 2, "翻译知识"),
+)
+
+SECTION_OF_SUBJECT: Mapping[str, str] = {
+    models.Subject.VOCAB.value: "vocab",
+    models.Subject.LISTENING.value: "listening",
+    models.Subject.READING.value: "reading",
+    models.Subject.WRITING.value: "writing_translation",
+    models.Subject.TRANSLATION.value: "writing_translation",
+}
+
+SECTION_WEIGHTS: Mapping[str, float] = {
+    "listening": 248.5,
+    "reading": 248.5,
+    "writing_translation": 213.0,
+}
+
+FULL_SCORE = 710.0
+DEFAULT_TARGET_SCORE = 425
+ASSESSMENT_ITEM_SCORE = 1
+MASTERY_MASTERED_RATIO = 0.75
+MASTERY_FUZZY_RATIO = 0.4
 
 
 class CampusError(Exception):
@@ -474,6 +520,11 @@ def _blanks(value: Any) -> tuple[str, ...]:
     return tuple(part.strip().casefold() for part in _BLANK_SEPARATOR.split(str(value).strip()))
 
 
+def _utcnow() -> str:
+    """The campus timestamp format of 02 §1.3 (ISO 8601 UTC to the second)."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def _grading_of(row: Any) -> dict[str, Any]:
     """The decoded `grading_json` of an attempt row, or an empty dict when it is unusable."""
     payload = _decode(row["grading_json"], None)
@@ -502,6 +553,118 @@ def _error_list(errors: Any, answer: str) -> list[dict[str, Any]]:
             }
         )
     return adapted
+
+
+def build_assessment_messages(profile: models.ExamProfile) -> list[dict[str, str]]:
+    """The 定级测评 出题 prompt (05 §3.1 cet-examiner: 20 题固定结构).
+
+    The section mix is spelled out in the prompt because the server validates it afterwards: a
+    model that returns 19 items or the wrong mix is refused rather than partially stored.
+    """
+    layout = "\n".join(
+        f"- {subject} {count} 题（{focus}）" for subject, count, focus in ASSESSMENT_PROMPT_SECTIONS
+    )
+    total = sum(count for _subject, count, _focus in ASSESSMENT_PROMPT_SECTIONS)
+    system = (
+        "你在为一位备考四六级的学生出定级测评卷。只输出一个 JSON 对象，不要任何其他文字。\n"
+        f"共 {total} 道单项选择题，每题 1 分、四个选项、唯一正确答案：\n{layout}\n"
+        '输出 schema：{"items": [{"subject": "vocab", "qtype": "single", "stem": "题干", '
+        '"options": [{"key": "A", "text": "选项"}], "answer": "A"}]}\n'
+        "要求：题干与选项用中文（听力题给出可阅读的文本材料），answer 只写正确选项的 key；"
+        "subject 只能取 vocab / listening / reading / writing / translation。"
+    )
+    user = f"考生档案：{profile.title}（目标分 {profile.target_score or DEFAULT_TARGET_SCORE}）。请出题。"
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def validate_assessment_items(text: Optional[str]) -> list[dict[str, Any]]:
+    """Parse and validate the generated 20 items, or `MODEL_OUTPUT_INVALID` (ADR-03 不静默).
+
+    Validation covers the whole paper at once: every item has a usable subject, a non-empty stem
+    and answer, and single/multiple items carry options; then the per-section counts must match
+    05 §3.1 exactly (词汇 6 / 听力 4 / 阅读 5 / 写译 5). A payload that fails any of these is
+    refused before a single question is stored, so a bad generation never leaves a half paper.
+    """
+    payload, reason = extract_json(text)
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise CampusError("MODEL_OUTPUT_INVALID", f"出题输出无法解析（{reason or 'items 缺失'}）")
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, Mapping):
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题不是对象")
+        subject = str(item.get("subject") or "").strip()
+        stem = str(item.get("stem") or "").strip()
+        answer = str(item.get("answer") or "").strip()
+        qtype = str(item.get("qtype") or models.QuestionType.SINGLE.value).strip()
+        if subject not in SECTION_OF_SUBJECT or not stem or not answer:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题字段缺失或 subject 非法")
+        if qtype not in {q.value for q in models.QuestionType}:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题题型非法：{qtype}")
+        options = item.get("options")
+        if qtype in {models.QuestionType.SINGLE.value, models.QuestionType.MULTIPLE.value}:
+            if not isinstance(options, list) or not options:
+                raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题缺少选项")
+            options = [
+                {"key": str(option.get("key") or "").strip(), "text": str(option.get("text") or "").strip()}
+                for option in options
+                if isinstance(option, Mapping)
+            ]
+            if len(options) < 2 or any(not option["key"] or not option["text"] for option in options):
+                raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题选项不完整")
+        else:
+            options = None
+        normalized.append(
+            {
+                "subject": subject,
+                "qtype": qtype,
+                "stem": stem,
+                "options": options,
+                "answer": answer,
+                "max_score": ASSESSMENT_ITEM_SCORE,
+                "source": models.QuestionSource.AI.value,
+            }
+        )
+    counts: dict[str, int] = {}
+    for item in normalized:
+        section = SECTION_OF_SUBJECT[str(item["subject"])]
+        counts[section] = counts.get(section, 0) + 1
+    if counts != dict(ASSESSMENT_SECTIONS):
+        raise CampusError(
+            "MODEL_OUTPUT_INVALID",
+            f"出题结构与要求不符：{counts}，应为 {dict(ASSESSMENT_SECTIONS)}",
+        )
+    return normalized
+
+
+class ManagerCaller:
+    """One plain provider call through the sidecar's client — the non-grading AI path.
+
+    `GradingEngine` owns its own provider calls; question/plan/mnemonic generation is a single
+    prompt with a validated answer, so it goes through this thin caller instead. The model comes
+    from the same resolution chain (`CampusService.model_for_task`) and the call keeps the grading
+    chain's temperature and timeout, so one configured model drives every AI feature.
+    """
+
+    def __init__(self, provider_host: Any, resolve_model: Any) -> None:
+        self._host = provider_host
+        self._resolve_model = resolve_model
+
+    def complete(self, task: str, messages: list[dict]) -> str:
+        """Run one blocking completion; failures leave as documented campus codes."""
+        provider = getattr(self._host, "provider", None)
+        model = self._resolve_model(task)
+        if provider is None or model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        try:
+            turn = provider.complete(
+                model=model, messages=messages, temperature=TEMPERATURE, timeout=PROVIDER_TIMEOUT_S
+            )
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower() or "timeout" in str(exc).lower():
+                raise CampusError("MODEL_TIMEOUT", f"模型调用超时：{type(exc).__name__}") from exc
+            raise CampusError("MODEL_OUTPUT_INVALID", f"模型调用失败：{type(exc).__name__}") from exc
+        return turn.text or ""
 
 
 class ManagerGrader:
@@ -568,6 +731,9 @@ class CampusService:
             ManagerGrader(provider_host, self.model_for_task, config.grading_start_level)
             if provider_host is not None
             else None
+        )
+        self._caller = (
+            ManagerCaller(provider_host, self.model_for_task) if provider_host is not None else None
         )
 
     @property
@@ -1108,7 +1274,202 @@ class CampusService:
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
+    # -- F1-F4: the level assessment (CET-01) ------------------------------
+
+    async def create_assessment(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """Generate the 20-question level assessment and open a draft (F1).
+
+        The paper is generated, validated as a whole and stored in one transaction, so a bad
+        generation leaves neither a partial question bank nor an empty assessment behind.
+        """
+        if self.model_for_task(models.CampusTask.QUESTION.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        answer = await asyncio.to_thread(
+            self._require_caller().complete,
+            models.CampusTask.QUESTION.value,
+            build_assessment_messages(profile),
+        )
+        items = validate_assessment_items(answer)
+        with self._store.transaction():
+            question_ids = [self._insert_question(profile.id, item)["id"] for item in items]
+            assessment_id = self._store.insert(
+                "assessment",
+                {
+                    "profile_id": profile.id,
+                    "question_ids": json.dumps(question_ids),
+                    "started_at": _utcnow(),
+                },
+            )
+        return self.assessment(self._load_assessment(profile.id, assessment_id))
+
+    def assessment(self, assessment: models.Assessment) -> dict[str, Any]:
+        """The documented assessment body: stored fields decoded plus the resume question list.
+
+        The questions are returned **without their answer keys**: the paper is graded at F4, and a
+        resume view that leaked the keys would make 自评 meaningless (03 §4.6 keeps the key server
+        side until the paper is finished).
+        """
+        payload = asdict(assessment)
+        payload["question_ids"] = _decode(assessment.question_ids, [])
+        payload["answers"] = _decode(assessment.answers, {})
+        payload["scores"] = _decode(assessment.scores, None)
+        payload["questions"] = [
+            self._resume_question(question_id) for question_id in payload["question_ids"]
+        ]
+        return payload
+
+    def record_answers(
+        self,
+        profile: models.ExamProfile,
+        assessment: models.Assessment,
+        answers: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Merge a batch of answers into the draft, refusing unknown question ids (F3).
+
+        Only ids that belong to this paper are accepted: storing an unrelated id would silently
+        create an answer nobody can grade, and a finished paper is immutable
+        (`ASSESSMENT_FINISHED`).
+        """
+        if assessment.status == models.AssessmentStatus.FINISHED.value:
+            raise CampusError("ASSESSMENT_FINISHED", f"测评已结束：{assessment.id}")
+        known = set(_decode(assessment.question_ids, []))
+        merged = _decode(assessment.answers, {})
+        merged = dict(merged) if isinstance(merged, Mapping) else {}
+        for question_id, answer in answers.items():
+            if str(question_id) not in known:
+                raise CampusError("QUESTION_NOT_FOUND", f"题目不属于本次测评：{question_id}")
+            merged[str(question_id)] = "" if answer is None else str(answer)
+        self._store.update("assessment", assessment.id, {"answers": json.dumps(merged, ensure_ascii=False)})
+        return self.assessment(self._load_assessment(profile.id, assessment.id))
+
+    def finish_assessment(
+        self, profile: models.ExamProfile, assessment: models.Assessment
+    ) -> dict[str, Any]:
+        """Grade the paper offline, fold the three sections onto 710 and write the side effects (F4).
+
+        Folding is deterministic — every item is objectively judged against its stored key — which
+        is what makes the "数字自洽" acceptance (PRD CET1 ②) a property of the code rather than of
+        the model. The side effects are 02 §4.8's per-section `mastery` rows, the profile's
+        `current_estimate` (02 §4.3) and, when the user never set one, the default 425 target the
+        gap table needs.
+        """
+        if assessment.status == models.AssessmentStatus.FINISHED.value:
+            raise CampusError("ASSESSMENT_FINISHED", f"测评已结束：{assessment.id}")
+        answers = _decode(assessment.answers, {})
+        answers = answers if isinstance(answers, Mapping) else {}
+        correct: dict[str, int] = {section: 0 for section in SECTION_WEIGHTS}
+        totals: dict[str, int] = {section: 0 for section in SECTION_WEIGHTS}
+        vocab = {"correct": 0, "total": 0}
+        for question_id in _decode(assessment.question_ids, []):
+            row = self._store.get("question_bank_item", str(question_id))
+            if row is None:
+                continue
+            question = models.QuestionBankItem.from_row(row)
+            section = SECTION_OF_SUBJECT.get(question.subject)
+            answered = answers.get(str(question_id))
+            hit = answered is not None and self._judge(question, str(answered))
+            if section is None:
+                continue
+            if section not in SECTION_WEIGHTS:
+                vocab["total"] += 1
+                vocab["correct"] += int(hit)
+                continue
+            totals[section] += 1
+            correct[section] += int(hit)
+        scores = {
+            section: round(weight * correct[section] / totals[section], 1) if totals[section] else 0.0
+            for section, weight in SECTION_WEIGHTS.items()
+        }
+        estimate_total = round(sum(scores.values()), 1)
+        target = profile.target_score or DEFAULT_TARGET_SCORE
+        gap_table = [
+            {
+                "section": section,
+                "current": scores[section],
+                "target": round(target * weight / FULL_SCORE, 2),
+                "gap": round(round(target * weight / FULL_SCORE, 2) - scores[section], 1),
+            }
+            for section, weight in SECTION_WEIGHTS.items()
+        ]
+        stored_scores = {**scores, "estimate_total": estimate_total}
+        with self._store.transaction():
+            self._store.update(
+                "assessment",
+                assessment.id,
+                {
+                    "status": models.AssessmentStatus.FINISHED.value,
+                    "scores": json.dumps(stored_scores, ensure_ascii=False),
+                    "finished_at": _utcnow(),
+                },
+            )
+            self._write_assessment_mastery(profile, correct, totals)
+            profile_update: dict[str, Any] = {"current_estimate": round(estimate_total)}
+            if not profile.target_score:
+                profile_update["target_score"] = DEFAULT_TARGET_SCORE
+            self._store.update("exam_profile", profile.id, profile_update)
+        return {
+            "scores": stored_scores,
+            "estimate_total": estimate_total,
+            "gap_table": gap_table,
+            "vocab": vocab,
+        }
+
     # -- internals ---------------------------------------------------------
+
+    def _load_assessment(self, profile_id: str, assessment_id: str) -> models.Assessment:
+        row = self._store.get_scoped("assessment", assessment_id, profile_id)
+        if row is None:
+            raise CampusError("ASSESSMENT_NOT_FOUND", f"测评不存在：{assessment_id}")
+        return models.Assessment.from_row(row)
+
+    def _resume_question(self, question_id: str) -> dict[str, Any]:
+        row = self._store.get("question_bank_item", str(question_id))
+        if row is None:
+            return {"id": str(question_id)}
+        payload = question_payload(models.QuestionBankItem.from_row(row))
+        for hidden in ("answer", "answer_meta"):
+            payload.pop(hidden, None)
+        return payload
+
+    def _write_assessment_mastery(
+        self, profile: models.ExamProfile, correct: Mapping[str, int], totals: Mapping[str, int]
+    ) -> None:
+        """UPSERT the three per-section mastery rows (02 §4.8: `point_id IS NULL` = 分项掌握度).
+
+        The unique index on `(profile_id, point_id, dimension)` cannot dedupe these rows because
+        SQLite treats NULL point ids as distinct, so the existing row is looked up explicitly and
+        updated — otherwise every re-assessment would pile up a new generation of rows.
+        """
+        now = _utcnow()
+        for section, total in totals.items():
+            ratio = (correct[section] / total) if total else 0.0
+            level = models.MasteryLevel.UNKNOWN.value
+            if ratio >= MASTERY_MASTERED_RATIO:
+                level = models.MasteryLevel.MASTERED.value
+            elif ratio >= MASTERY_FUZZY_RATIO:
+                level = models.MasteryLevel.FUZZY.value
+            values = {
+                "level": level,
+                "score_0_100": round(ratio * 100),
+                "evidence": f"定级测评：{section} {correct[section]}/{total} 正确",
+                "updated_at": now,
+            }
+            existing = self._store.query_one(
+                'SELECT "id" FROM "mastery" WHERE "profile_id" = ? AND "point_id" IS NULL '
+                'AND "dimension" = ?',
+                (profile.id, section),
+            )
+            if existing is None:
+                self._store.insert(
+                    "mastery", {"profile_id": profile.id, "dimension": section, **values}
+                )
+            else:
+                self._store.update("mastery", existing["id"], values)
+
+    def _require_caller(self) -> ManagerCaller:
+        if self._caller is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return self._caller
 
     def _record_objective(
         self,

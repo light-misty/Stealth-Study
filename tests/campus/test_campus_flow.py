@@ -53,6 +53,10 @@ T10_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/grading/history"),
     ("GET", "/grading/common-errors"),
     ("GET", "/grading/{attempt_id}"),
+    ("POST", "/assessments"),
+    ("GET", "/assessments/{assessment_id}"),
+    ("PATCH", "/assessments/{assessment_id}"),
+    ("POST", "/assessments/{assessment_id}/finish"),
 )
 
 DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS

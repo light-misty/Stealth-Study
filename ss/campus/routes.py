@@ -494,6 +494,23 @@ class GradingRequest(BaseModel):
         return value
 
 
+class ProfileRef(BaseModel):
+    """A body that carries only the cross-cutting `profile_id` (F1/F5 and friends, 03 §4)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+
+
+class AssessmentPatch(BaseModel):
+    """F3 body (03 §4.6): an incremental batch of `{question_id: answer}`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    answers: dict[str, Optional[str]]
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -766,6 +783,51 @@ def build_campus_router(manager: Any) -> APIRouter:
         """C2 — one stored attempt with its `grading_json` (CET-04 回看)."""
         del profile
         return _call(campus_service.attempt, attempt.id)
+
+    # -- F1-F4：定级测评（03 §4.6 CET-01）----------------------------------
+
+    def scoped_assessment(
+        assessment_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.Assessment:
+        """Resolve an assessment of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "assessment", assessment_id, profile.id, missing_code="ASSESSMENT_NOT_FOUND"
+        )
+
+    @router.post("/assessments")
+    async def campus_create_assessment(
+        body: ProfileRef,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F1 — generate the 20-question level assessment and open a draft."""
+        del body
+        return await _async_call(campus_service.create_assessment, profile)
+
+    @router.get("/assessments/{assessment_id}")
+    def campus_get_assessment(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        assessment: models.Assessment = Depends(scoped_assessment),
+    ) -> dict[str, Any]:
+        """F2 — resume view: the stored state, the questions and the answers so far."""
+        del profile
+        return _call(campus_service.assessment, assessment)
+
+    @router.patch("/assessments/{assessment_id}")
+    def campus_patch_assessment(
+        body: AssessmentPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        assessment: models.Assessment = Depends(scoped_assessment),
+    ) -> dict[str, Any]:
+        """F3 — merge answers into the draft, one question or a whole batch at a time."""
+        return _call(campus_service.record_answers, profile, assessment, body.answers)
+
+    @router.post("/assessments/{assessment_id}/finish")
+    def campus_finish_assessment(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        assessment: models.Assessment = Depends(scoped_assessment),
+    ) -> dict[str, Any]:
+        """F4 — fold the three sections onto 710 and write the profile's estimate."""
+        return _call(campus_service.finish_assessment, profile, assessment)
 
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 
