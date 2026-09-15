@@ -4,6 +4,13 @@ T06 is allowed exactly one change to an existing backend file. These tests hold 
 literally: the patch is the documented pair of lines, it sits immediately after
 `app = FastAPI(...)`, it adds nothing else, and it neither breaks the sidecar token middleware
 nor turns a bad database into a silently degraded startup (03 §2-4).
+
+G-06 widens that budget by exactly one more module. The cloud sign-in kill switch adds a
+guarded early return to `/v1/cloud/login`, `/v1/cloud/logout`, `/auth/callback` and
+`/v1/cloud/status` inside `create_app()`, and `ss/campus/config.py` — project-owned code, not
+an upstream file — carries the `login_enabled` read that drives it. Both are pinned below, so
+the wider patch still cannot reach any other backend module and the two-line mount itself
+stays untouched.
 """
 
 from __future__ import annotations
@@ -73,21 +80,28 @@ def test_the_mount_is_the_only_router_include_in_the_file(app_source: list[str])
     assert sum(line.count("build_campus_router") for line in app_source) == 2
 
 
+# The whole registered backend patch (01 §6 #9, widened by G-06): `config.py` is the
+# project-owned `login_enabled` read, `app.py` the guarded early returns. A diff outside
+# this list means the intrusion has spread and must go back through review.
+BACKEND_PATCH = ["M\tss/campus/config.py", "M\tss/server/app.py"]
+APP_PY_PATCH = "40\t2\tss/server/app.py"
+
+
 def test_no_other_backend_module_changed_against_the_base_revision() -> None:
     base = _base_revision()
     if base is None or _on_the_base_revision(base):
         pytest.skip("no base revision to compare against from this checkout")
     status = _git("diff", "--name-status", base, "--", "ss/")
     touched = [line for line in status.splitlines() if line[:1] in {"M", "D", "R"}]
-    assert touched == ["M\tss/server/app.py"]
+    assert sorted(touched) == BACKEND_PATCH
 
 
-def test_app_py_keeps_its_two_line_budget_against_the_base_revision() -> None:
+def test_app_py_keeps_its_registered_budget_against_the_base_revision() -> None:
     base = _base_revision()
     if base is None or _on_the_base_revision(base):
         pytest.skip("no base revision to compare against from this checkout")
     numstat = _git("diff", "--numstat", base, "--", "ss/server/app.py").strip()
-    assert numstat == "2\t0\tss/server/app.py"
+    assert numstat == APP_PY_PATCH
 
 
 def test_create_app_serves_the_campus_health_endpoint_behind_the_sidecar_token(

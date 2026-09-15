@@ -1,5 +1,10 @@
 """Sidecar loopback routes for OpenWorker Cloud: /oauth/callback,
-/auth/callback, /v1/cloud/*, connect-managed gating."""
+/auth/callback, /v1/cloud/*, connect-managed gating.
+
+These exercise the UPSTREAM one-click flow, so the fixture turns `campus.login_enabled` on
+(G-06). With the flag off — the shipping default — the same routes refuse; that side is
+covered by `tests/campus/test_campus_login_disabled.py`.
+"""
 
 from __future__ import annotations
 
@@ -17,7 +22,10 @@ def _allow_managed_state(state: str = "s") -> None:
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
+    state = tmp_path / "state"
+    monkeypatch.setenv("COWORKER_STATE_DIR", str(state))
+    state.mkdir(parents=True, exist_ok=True)
+    (state / "config.toml").write_text("[campus]\nlogin_enabled = true\n", encoding="utf-8")
     manager = SessionManager(workspace=tmp_path)
     app = create_app(manager)
     with TestClient(app) as c:
