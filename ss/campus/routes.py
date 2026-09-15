@@ -22,6 +22,12 @@ read-only profiles (`PROFILE_REQUIRED` / `PROFILE_NOT_FOUND` / `PROFILE_READ_ONL
 declare `Depends(guard.get_profile)` and receive an `ExamProfile`; they never accept a raw
 `profile_id` string and query with it. `scoped_row()` is the sub-resource half of the same
 rule: a row owned by another profile is refused as `FORBIDDEN_PROFILE`.
+
+Group registrations sit next to the factory that mounts them. Body shapes are Pydantic models
+whose enums, patterns and ranges are taken from the campus enums and config constants
+themselves, so a malformed request is refused by the framework (422) while every documented
+business failure travels out of `service.py` as a `CampusError` and comes back through
+`_call()` as the structured body of 03 §1.
 """
 
 from __future__ import annotations
@@ -30,14 +36,18 @@ import json
 from dataclasses import dataclass
 from typing import Any, Mapping, NoReturn, Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from . import models, tracks
+from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
+from .service import CampusError, CampusService, ModelInventory
 from .store import CampusStore
 
 CAMPUS_PREFIX = "/v1/campus"
 PROFILE_ID_PARAM = "profile_id"
 PROFILE_PATH_PARAM = "pid"
+EXAM_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 
 
 @dataclass(frozen=True)
@@ -134,6 +144,19 @@ def raise_campus_error(
 ) -> NoReturn:
     """Raise the structured error for `code`."""
     raise campus_error(code, message, status=status, **extra)
+
+
+def _call(fn: Any, *args: Any, **kwargs: Any) -> Any:
+    """Run one `CampusService` call, translating its `CampusError` into the documented response.
+
+    `service.py` owns the business rules and never imports FastAPI, so this is the single place
+    a campus failure crosses into HTTP: the code selects the status, retryability and fallback
+    message from `ERROR_SPECS`, and a code outside the table still fails loudly (03 §6).
+    """
+    try:
+        return fn(*args, **kwargs)
+    except CampusError as exc:
+        raise_campus_error(exc.code, exc.message, **exc.extra)
 
 
 class ProfileGuard:
@@ -237,6 +260,63 @@ class ProfileGuard:
         return models.ROW_MODELS[table].from_row(row)
 
 
+class ProfileCreate(BaseModel):
+    """A2 body (03 §4.1): the track and a title are required, everything else is optional.
+
+    `extra="forbid"` is the "never silent" half of 03 §1 — a misspelled field is refused with
+    422 instead of being dropped while the caller believes it was stored.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    track_type: models.TrackType
+    title: str
+    cert_type: Optional[models.CertType] = None
+    level: Optional[models.CetLevel] = None
+    exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+    target_score: Optional[int] = None
+    subjects: Optional[list[str]] = None
+    daily_minutes: Optional[int] = Field(default=None, ge=MIN_DAILY_MINUTES, le=MAX_DAILY_MINUTES)
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
+class ProfilePatch(BaseModel):
+    """A4 body: any subset of the mutable fields of a profile (03 §4.1 "任意可变字段").
+
+    `track_type` is not part of the body: a profile's track decides the meaning of every row
+    it owns, so an accidental track change is refused rather than silently rewriting them.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: Optional[str] = None
+    cert_type: Optional[models.CertType] = None
+    level: Optional[models.CetLevel] = None
+    exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+    target_score: Optional[int] = None
+    current_estimate: Optional[int] = None
+    subjects: Optional[list[str]] = None
+    daily_minutes: Optional[int] = Field(default=None, ge=MIN_DAILY_MINUTES, le=MAX_DAILY_MINUTES)
+    status: Optional[models.ProfileStatus] = None
+
+    @field_validator("title")
+    @classmethod
+    def _title_must_carry_content(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("title must not be blank")
+        return cleaned
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -246,8 +326,19 @@ def build_campus_router(manager: Any) -> APIRouter:
 
     Opening the router opens `campus.db`, so the migration of 02 §3.4 runs here: a schema
     written by a newer application raises `SchemaVersionError` and stops startup.
+
+    The service, the guard and the store are built here and shared by every endpoint of every
+    group, which is what keeps `campus.db` a single handle for the whole application (02 §2.1).
     """
     campus_store = CampusStore()
+    campus_config = load_campus_config()
+    campus_service = CampusService(
+        campus_store,
+        campus_config,
+        inventory=ModelInventory.from_manager(manager),
+        provider_host=manager,
+    )
+    guard = ProfileGuard(campus_store)
     router = APIRouter(prefix=CAMPUS_PREFIX, tags=["campus"])
 
     @router.get("/health")
@@ -258,5 +349,50 @@ def build_campus_router(manager: Any) -> APIRouter:
             "schema_version": campus_store.current_version(),
             "tracks": list(tracks.TRACK_IDS),
         }
+
+    # -- A 组：全局与设置（03 §4.1）------------------------------------------
+
+    @router.get("/profiles")
+    def campus_list_profiles(
+        track: Optional[models.TrackType] = None,
+        status: Optional[models.ProfileStatus] = None,
+    ) -> dict[str, Any]:
+        """A1 — every profile, optionally narrowed by track and status."""
+        return {
+            "items": _call(
+                campus_service.list_profiles,
+                track=track.value if track is not None else None,
+                status=status.value if status is not None else None,
+            )
+        }
+
+    @router.post("/profiles")
+    def campus_create_profile(body: ProfileCreate) -> dict[str, Any]:
+        """A2 — create a profile; a title already in use is `DUPLICATE_TITLE`."""
+        return _call(campus_service.create_profile, body.model_dump())
+
+    @router.get("/profiles/{pid}")
+    def campus_get_profile(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """A3 — one profile, resolved and ownership-checked by the guard."""
+        return _call(campus_service.get_profile, profile.id)
+
+    @router.patch("/profiles/{pid}")
+    def campus_patch_profile(
+        body: ProfilePatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """A4 — partial update; a `finished` profile refuses every write (02 §7.2)."""
+        return _call(
+            campus_service.update_profile, profile, body.model_dump(exclude_unset=True)
+        )
+
+    @router.delete("/profiles/{pid}")
+    def campus_delete_profile(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """A5 — delete the profile with its whole subtree (02 §7.3)."""
+        return _call(campus_service.delete_profile, profile)
 
     return router
