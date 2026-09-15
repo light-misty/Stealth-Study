@@ -19,6 +19,7 @@ Three rules from 01 §2.1/§3 are structural here:
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import json
@@ -31,7 +32,8 @@ from typing import Any, Mapping, Optional
 from ..secrets import state_dir
 from . import models
 from .config import DEFAULT_DAILY_MINUTES
-from .grading import GradeRequest, GradeResult, GradingEngine
+from .grading import GradeRequest, GradeResult, GradingEngine, extract_json
+from .library import FAIL_NO_TEXT_LAYER
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -87,6 +89,25 @@ QUESTION_FIELDS: tuple[str, ...] = (
 JSON_QUESTION_FIELDS: frozenset[str] = frozenset({"options", "answer_meta"})
 
 QUESTION_REQUIRED_FIELDS: tuple[str, ...] = ("stem", "subject")
+
+POINT_FIELDS: tuple[str, ...] = ("title", "desc", "order_index", "parent_id")
+
+TREE_MAX_CHARS = 20000
+TREE_MAX_DEPTH = 3
+
+TREE_SYSTEM_PROMPT = (
+    "你是证书教研员。把用户给出的考纲文本抽成「章-节-点」三层知识点树。"
+    "节点名使用考纲原文措辞，不改写、不缩写；层级以考纲编号体系（一/（一）/1.）为准；"
+    "拿不准归属的点挂到最近的章节并标记 ambiguous 为 true，宁缺毋滥。"
+    "只输出一个 JSON 对象，不要任何其他文字，schema："
+    '{"sections": [{"title": "章", "children": [{"title": "节", "children": [{"title": "点"}]}]}]}'
+)
+
+_MASTERY_LEVELS: frozenset[str] = frozenset(item.value for item in models.MasteryLevel)
+_MASTERY_WEAK_ORDER: Mapping[str, int] = {
+    models.MasteryLevel.UNKNOWN.value: 0,
+    models.MasteryLevel.FUZZY.value: 1,
+}
 
 MIN_DIFFICULTY = 1
 MAX_DIFFICULTY = 5
@@ -494,6 +515,7 @@ class CampusService:
         self._store = campus_store
         self._config = config
         self._inventory = inventory if inventory is not None else ModelInventory()
+        self._provider_host = provider_host
         self._grader = (
             ManagerGrader(provider_host, self.model_for_task, config.grading_start_level)
             if provider_host is not None
@@ -886,6 +908,182 @@ class CampusService:
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
+    # -- H1-H6: the knowledge tree and mastery (03 §4.8) --------------------
+
+    def knowledge_tree(self, profile_id: str) -> dict[str, Any]:
+        """The profile's tree as nested `KnowledgePointNode`s (H1).
+
+        `question_count`/`mistake_count` are counted from their owning tables at request
+        time — the tree endpoint is exactly where CERT-01 wants the truth, and maintained
+        counters would go stale the moment any future writer forgets to bump them.
+        """
+        rows = self._store.list_rows(
+            "knowledge_point", profile_id=profile_id, order_by="order_index, created_at, id"
+        )
+        question_counts = self._count_by_point("question_bank_item", profile_id)
+        mistake_counts = self._count_by_point("mistake_book", profile_id)
+        nodes: dict[str, dict[str, Any]] = {}
+        links: list[tuple[str, Optional[str]]] = []
+        roots: list[dict[str, Any]] = []
+        for row in rows:
+            point = models.KnowledgePoint.from_row(row)
+            nodes[point.id] = {
+                **asdict(point),
+                "question_count": question_counts.get(point.id, 0),
+                "mistake_count": mistake_counts.get(point.id, 0),
+                "children": [],
+            }
+            links.append((point.id, point.parent_id))
+        for point_id, parent_id in links:
+            parent = nodes.get(parent_id) if parent_id else None
+            if parent is None:
+                roots.append(nodes[point_id])
+            else:
+                parent["children"].append(nodes[point_id])
+        return {"roots": roots}
+
+    def create_knowledge_point(
+        self, profile_id: str, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Create one manual point under an optional parent (H2)."""
+        parent_id = self._require_point(profile_id, payload.get("parent_id"))
+        point_id = self._store.insert(
+            "knowledge_point",
+            {
+                "profile_id": profile_id,
+                "title": str(payload["title"]).strip(),
+                "parent_id": parent_id,
+                "desc": payload.get("desc"),
+                "order_index": int(payload.get("order_index") or 0),
+                "source": models.KnowledgeSource.MANUAL.value,
+            },
+        )
+        row = self._store.get("knowledge_point", point_id)
+        return self._point_payload(row, *self._point_counts(profile_id, point_id))
+
+    def update_knowledge_point(
+        self,
+        profile_id: str,
+        point: models.KnowledgePoint,
+        patch: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Rename, reorder or re-parent one point (H3).
+
+        A re-parent may never make the tree cyclic: a point cannot take itself or one of
+        its descendants as the parent, which is refused before the write happens.
+        """
+        values = {key: patch[key] for key in POINT_FIELDS if key in patch}
+        if "title" in values:
+            values["title"] = str(values["title"]).strip()
+        if "parent_id" in values and values["parent_id"] is not None:
+            parent_id = self._require_point(profile_id, values["parent_id"])
+            if parent_id == point.id or self._is_descendant(profile_id, point.id, parent_id):
+                raise CampusError("ILLEGAL_TRANSITION", "父节点不能是自身或其后代")
+            values["parent_id"] = parent_id
+        if values:
+            self._store.update("knowledge_point", point.id, values)
+        row = self._store.get("knowledge_point", point.id)
+        return self._point_payload(row, *self._point_counts(profile_id, point.id))
+
+    def delete_knowledge_point(
+        self, profile_id: str, point: models.KnowledgePoint
+    ) -> dict[str, Any]:
+        """Delete a point; its children are promoted to top level, its mastery rows go too (H3)."""
+        children = self._store.list_rows(
+            "knowledge_point", profile_id=profile_id, where='"parent_id" = ?', params=[point.id]
+        )
+        with self._store.transaction():
+            for child in children:
+                self._store.update("knowledge_point", child["id"], {"parent_id": None})
+            self._store.delete_where("mastery", '"point_id" = ?', (point.id,))
+            self._store.delete("knowledge_point", point.id)
+        return {"deleted": True, "orphaned_children": len(children)}
+
+    async def generate_knowledge_tree(
+        self, profile: models.ExamProfile, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Extract the chapter-section-point tree from a syllabus (H4, CERT-02).
+
+        The extraction discipline of 05 §4.8 travels as the system prompt; the model's
+        JSON is validated and inserted as one transaction, so a malformed tree leaves
+        nothing behind.
+        """
+        model = self.model_for_task(models.CampusTask.EXPLAIN.value)
+        if model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        text = self._tree_source_text(profile.id, payload)
+        messages = [
+            {"role": "system", "content": TREE_SYSTEM_PROMPT},
+            {"role": "user", "content": text},
+        ]
+        try:
+            turn = await asyncio.to_thread(
+                self._require_provider().complete,
+                model=model,
+                messages=messages,
+                temperature=0,
+                timeout=90,
+            )
+        except CampusError:
+            raise
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower() or "timeout" in str(exc).lower():
+                raise CampusError("MODEL_TIMEOUT", "模型调用超时") from exc
+            raise CampusError("MODEL_OUTPUT_INVALID", "模型调用失败") from exc
+        data, _reason = extract_json(getattr(turn, "text", None))
+        sections = self._tree_sections(data)
+        with self._store.transaction():
+            created, roots = self._insert_tree_sections(profile.id, sections)
+        return {"created": created, "roots": roots}
+
+    def set_mastery(self, profile_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """UPSERT one mastery row keyed by (profile, point, dimension) (H5)."""
+        level = str(payload.get("level") or "")
+        if level not in _MASTERY_LEVELS:
+            raise CampusError("INVALID_LEVEL", f"掌握度取值非法：{level}")
+        point_id = self._require_point(profile_id, payload.get("point_id"))
+        dimension = payload.get("dimension")
+        row = self._mastery_row(profile_id, point_id, dimension)
+        if row is None:
+            mastery_id = self._store.insert(
+                "mastery",
+                {
+                    "profile_id": profile_id,
+                    "level": level,
+                    "point_id": point_id,
+                    "dimension": dimension,
+                },
+            )
+            row = self._store.get("mastery", mastery_id)
+        else:
+            self._store.update("mastery", row["id"], {"level": level})
+            row = self._store.get("mastery", row["id"])
+        return asdict(models.Mastery.from_row(row))
+
+    def mastery_coverage(self, profile_id: str) -> dict[str, Any]:
+        """The rated share of the tree plus the weakest rated points (H6, CERT-03)."""
+        points = self._store.list_rows("knowledge_point", profile_id=profile_id)
+        titles = {row["id"]: row["title"] for row in points}
+        rated = [
+            row
+            for row in self._store.list_rows("mastery", profile_id=profile_id)
+            if row["point_id"] in titles and row["dimension"] is None
+        ]
+        coverage = round(len(rated) / len(points), 2) if points else 0.0
+        weak = sorted(
+            (
+                {
+                    "point_id": row["point_id"],
+                    "title": titles[row["point_id"]],
+                    "level": row["level"],
+                }
+                for row in rated
+                if row["level"] != models.MasteryLevel.MASTERED.value
+            ),
+            key=lambda item: (_MASTERY_WEAK_ORDER.get(item["level"], 0), item["title"]),
+        )
+        return {"coverage": coverage, "weak_top5": weak[:5]}
+
     # -- internals ---------------------------------------------------------
 
     def _record_objective(
@@ -1099,3 +1297,167 @@ class CampusService:
         if target.parent.name != "library" or root not in target.parents:
             return
         shutil.rmtree(target, ignore_errors=True)
+
+    def _require_provider(self) -> Any:
+        """The sidecar's `ProviderClient`, or `MODEL_NOT_CONFIGURED` (G-04's safe default)."""
+        provider = (
+            getattr(self._provider_host, "provider", None)
+            if self._provider_host is not None
+            else None
+        )
+        if provider is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return provider
+
+    def _count_by_point(self, table: str, profile_id: str) -> dict[str, int]:
+        rows = self._store.query_all(
+            f'SELECT "point_id", COUNT(*) AS n FROM "{table}" '
+            'WHERE "profile_id" = ? AND "point_id" IS NOT NULL GROUP BY "point_id"',
+            (profile_id,),
+        )
+        return {row["point_id"]: int(row["n"]) for row in rows}
+
+    def _point_counts(self, profile_id: str, point_id: str) -> tuple[int, int]:
+        questions = self._store.count(
+            "question_bank_item", '"profile_id" = ? AND "point_id" = ?', (profile_id, point_id)
+        )
+        mistakes = self._store.count(
+            "mistake_book", '"profile_id" = ? AND "point_id" = ?', (profile_id, point_id)
+        )
+        return questions, mistakes
+
+    def _point_payload(
+        self, row: Any, question_count: int, mistake_count: int
+    ) -> dict[str, Any]:
+        payload = asdict(models.KnowledgePoint.from_row(row))
+        payload["question_count"] = question_count
+        payload["mistake_count"] = mistake_count
+        return payload
+
+    def _is_descendant(
+        self, profile_id: str, ancestor_id: str, candidate_id: str
+    ) -> bool:
+        parent_by_id = {
+            row["id"]: row["parent_id"]
+            for row in self._store.list_rows("knowledge_point", profile_id=profile_id)
+        }
+        current = parent_by_id.get(candidate_id)
+        seen: set[str] = set()
+        while current is not None and current not in seen:
+            if current == ancestor_id:
+                return True
+            seen.add(current)
+            current = parent_by_id.get(current)
+        return False
+
+    def _tree_source_text(self, profile_id: str, payload: Mapping[str, Any]) -> str:
+        """The pasted text wins; otherwise the doc's chunks are joined in page order."""
+        text = str(payload.get("text") or "").strip()
+        if text:
+            return text
+        doc_id = str(payload.get("doc_id") or "")
+        row = self._store.get_scoped("source_doc", doc_id, profile_id)
+        if row is None:
+            raise CampusError("DOC_NOT_FOUND", f"资料不存在：{doc_id}")
+        chunks = self._store.list_rows(
+            "doc_chunk",
+            profile_id=profile_id,
+            where='"doc_id" = ?',
+            params=[doc_id],
+            order_by="page_no, char_start, id",
+        )
+        if not chunks:
+            doc = models.SourceDoc.from_row(row)
+            if (
+                doc.parse_status == models.ParseStatus.FAILED.value
+                and doc.fail_reason == FAIL_NO_TEXT_LAYER
+            ):
+                raise CampusError("DOC_SCAN_EMPTY", "扫描件无可提取文字层，无法抽取知识树")
+            raise CampusError("DOC_NOT_READY", "资料尚未解析完成，无法抽取知识树")
+        return "\n".join(str(chunk["content"]) for chunk in chunks)[:TREE_MAX_CHARS]
+
+    def _tree_sections(self, data: Any) -> list[dict[str, Any]]:
+        if not isinstance(data, dict) or not isinstance(data.get("sections"), list):
+            raise CampusError("MODEL_OUTPUT_INVALID", "知识树输出无法解析")
+        sections = [
+            section
+            for section in (self._tree_node(item) for item in data["sections"])
+            if section is not None
+        ]
+        if not sections:
+            raise CampusError("MODEL_OUTPUT_INVALID", "知识树输出为空")
+        return sections
+
+    def _tree_node(self, item: Any) -> Optional[dict[str, Any]]:
+        """One validated node: a non-empty title plus its validated children, depth-capped."""
+        if not isinstance(item, dict):
+            return None
+        title = str(item.get("title") or "").strip()
+        if not title:
+            return None
+        children = [
+            child
+            for child in (self._tree_node(raw) for raw in item.get("children") or [])
+            if child is not None
+        ]
+        return {"title": title, "children": children}
+
+    def _insert_tree_sections(
+        self, profile_id: str, sections: list[dict[str, Any]]
+    ) -> tuple[int, list[dict[str, Any]]]:
+        created = 0
+        roots: list[dict[str, Any]] = []
+        for index, section in enumerate(sections):
+            level_created, payload = self._insert_tree_level(
+                profile_id, section, None, index, 1
+            )
+            created += level_created
+            roots.append(payload)
+        return created, roots
+
+    def _insert_tree_level(
+        self,
+        profile_id: str,
+        node: Mapping[str, Any],
+        parent_id: Optional[str],
+        order_index: int,
+        depth: int,
+    ) -> tuple[int, dict[str, Any]]:
+        point_id = self._store.insert(
+            "knowledge_point",
+            {
+                "profile_id": profile_id,
+                "title": str(node["title"]),
+                "parent_id": parent_id,
+                "order_index": order_index,
+                "source": models.KnowledgeSource.AI_GENERATED.value,
+            },
+        )
+        created = 1
+        children: list[dict[str, Any]] = []
+        if depth < TREE_MAX_DEPTH:
+            for index, child in enumerate(node.get("children") or []):
+                level_created, payload = self._insert_tree_level(
+                    profile_id, child, point_id, index, depth + 1
+                )
+                created += level_created
+                children.append(payload)
+        row = self._store.get("knowledge_point", point_id)
+        payload = self._point_payload(row, 0, 0)
+        payload["children"] = children
+        return created, payload
+
+    def _mastery_row(
+        self, profile_id: str, point_id: Optional[str], dimension: Optional[str]
+    ) -> Any:
+        conditions = ['"profile_id" = ?']
+        params: list[Any] = [profile_id]
+        for column, value in (("point_id", point_id), ("dimension", dimension)):
+            if value is None:
+                conditions.append(f'"{column}" IS NULL')
+            else:
+                conditions.append(f'"{column}" = ?')
+                params.append(value)
+        return self._store.query_one(
+            f'SELECT * FROM "mastery" WHERE {" AND ".join(conditions)}', params
+        )
