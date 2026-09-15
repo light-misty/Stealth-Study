@@ -52,7 +52,10 @@
       },
       "days_left_one": "{{count}} day left",
       "days_left_other": "{{count}} days left",
-      "ai_notice": "AI generated, for reference only"
+      "ai_notice": "AI generated, for reference only",
+      "loading": "Loading…",
+      "retry": "Retry",
+      "error": "Something went wrong"
     },
     "model": {
       "empty_title": "No model configured",
@@ -108,7 +111,13 @@
       "title": "Mistake book",
       "attribution": "Attribution",
       "resolved": "Resolved",
-      "stats": "Mistake stats"
+      "stats": "Mistake stats",
+      "empty": "No mistakes recorded yet",
+      "count_one": "{{count}} entry",
+      "count_other": "{{count}} entries",
+      "wrong_count_one": "wrong {{count}} time",
+      "wrong_count_other": "wrong {{count}} times",
+      "window_info": "showing {{shown}} of {{total}}"
     },
     "review": {
       "due_today": "Due today",

@@ -51,7 +51,10 @@
         "sprint": "冲刺"
       },
       "days_left_other": "还剩 {{count}} 天",
-      "ai_notice": "AI 生成，仅供参考"
+      "ai_notice": "AI 生成，仅供参考",
+      "loading": "加载中…",
+      "retry": "重试",
+      "error": "出错了"
     },
     "model": {
       "empty_title": "未配置模型",
@@ -107,7 +110,11 @@
       "title": "错题本",
       "attribution": "归因",
       "resolved": "已解决",
-      "stats": "错题统计"
+      "stats": "错题统计",
+      "empty": "还没有错题记录",
+      "count_other": "共 {{count}} 条",
+      "wrong_count_other": "错 {{count}} 次",
+      "window_info": "显示 {{shown}} / {{total}} 条"
     },
     "review": {
       "due_today": "今日待复习",
