@@ -52,7 +52,23 @@
       },
       "days_left_one": "{{count}} day left",
       "days_left_other": "{{count}} days left",
-      "ai_notice": "AI generated, for reference only"
+      "ai_notice": "AI generated, for reference only",
+      "loading": "Loading…",
+      "retry": "Retry",
+      "error": "Something went wrong",
+      "exam_passed": "The exam date has passed"
+    },
+    "model": {
+      "empty_title": "No model configured",
+      "empty_hint": "Grading, question generation and explanations need a model — configure one to enable them.",
+      "partial_title": "Current model is too weak",
+      "partial_hint": "These features stay unavailable until a stronger model is selected:",
+      "unavailable": "{{task}} is unavailable",
+      "task": {
+        "grading": "Grading",
+        "question": "Question generation",
+        "explain": "Explanations"
+      }
     },
     "profile": {
       "create": "New exam profile",
@@ -62,7 +78,11 @@
       "exam_date_label": "Exam date",
       "target_score_label": "Target score",
       "daily_minutes_label": "Daily minutes",
-      "empty": "No exam profile yet — create one to get started"
+      "empty": "No exam profile yet — create one to get started",
+      "active_badge": "Current",
+      "create_submit": "Create profile",
+      "create_cancel": "Cancel",
+      "title_required": "A profile name is required"
     },
     "settings": {
       "title": "Station settings",
@@ -78,6 +98,12 @@
       "dimensions": "Dimension scores",
       "errors": "Error list",
       "model_outline": "Model answer outline",
+      "rubric": "Rubric",
+      "suggestion": "Suggestion",
+      "locate": "Locate in text",
+      "add_to_mistake": "Add to mistake book",
+      "no_errors": "Nothing flagged this time",
+      "model_used": "Graded by",
       "degrade_notice_1": "Graded by a weaker model — for reference only",
       "degrade_notice_2": "Grading degraded — for reference only",
       "degrade_notice_3": "Repeated parse failures — for reference only"
@@ -86,13 +112,20 @@
       "title": "Mistake book",
       "attribution": "Attribution",
       "resolved": "Resolved",
-      "stats": "Mistake stats"
+      "stats": "Mistake stats",
+      "empty": "No mistakes recorded yet",
+      "count_one": "{{count}} entry",
+      "count_other": "{{count}} entries",
+      "wrong_count_one": "wrong {{count}} time",
+      "wrong_count_other": "wrong {{count}} times",
+      "window_info": "showing {{shown}} of {{total}}"
     },
     "review": {
       "due_today": "Due today",
       "correct": "Correct",
       "wrong": "Wrong",
-      "interval": "Next review in {{days}} days"
+      "interval": "Next review in {{days}} days",
+      "empty": "Nothing due for review right now"
     },
     "question": {
       "import": "Import questions",
@@ -106,7 +139,13 @@
       "ready": "Ready",
       "failed": "Parse failed",
       "ask": "Ask",
-      "citation": "Citations"
+      "citation": "Citations",
+      "title": "Library",
+      "empty": "Nothing imported yet",
+      "retry": "Re-parse",
+      "delete": "Delete",
+      "ask_placeholder": "Ask your materials…",
+      "asking": "Searching…"
     },
     "cet": {
       "assessment": {
@@ -157,7 +196,15 @@
       "deadline": {
         "banner": "Countdown",
         "reference_notice": "Subject to the official announcement",
-        "create_reminders": "Create reminders"
+        "create_reminders": "Create reminders",
+        "node": {
+          "registration_open": "Registration opens",
+          "registration_close": "Registration closes",
+          "payment_close": "Payment deadline",
+          "admission_ticket": "Admission ticket",
+          "exam": "Exam",
+          "score_query": "Score release"
+        }
       }
     },
     "privacy": {

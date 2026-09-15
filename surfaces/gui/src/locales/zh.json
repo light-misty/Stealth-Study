@@ -51,7 +51,23 @@
         "sprint": "冲刺"
       },
       "days_left_other": "还剩 {{count}} 天",
-      "ai_notice": "AI 生成，仅供参考"
+      "ai_notice": "AI 生成，仅供参考",
+      "loading": "加载中…",
+      "retry": "重试",
+      "error": "出错了",
+      "exam_passed": "考试日期已过"
+    },
+    "model": {
+      "empty_title": "未配置模型",
+      "empty_hint": "批改、出题与讲解都需要模型，配置后即可使用。",
+      "partial_title": "当前模型能力不足",
+      "partial_hint": "以下功能暂不可用，换用更强的模型后自动恢复：",
+      "unavailable": "{{task}} 暂不可用",
+      "task": {
+        "grading": "批改",
+        "question": "出题",
+        "explain": "讲解"
+      }
     },
     "profile": {
       "create": "新建备考档案",
@@ -61,7 +77,11 @@
       "exam_date_label": "考试日期",
       "target_score_label": "目标分数",
       "daily_minutes_label": "每日时长（分钟）",
-      "empty": "还没有备考档案，先新建一个开始吧"
+      "empty": "还没有备考档案，先新建一个开始吧",
+      "active_badge": "当前",
+      "create_submit": "创建档案",
+      "create_cancel": "取消",
+      "title_required": "请填写档案名称"
     },
     "settings": {
       "title": "备考台设置",
@@ -77,6 +97,12 @@
       "dimensions": "分项得分",
       "errors": "错误清单",
       "model_outline": "范文要点",
+      "rubric": "评分标准",
+      "suggestion": "修改建议",
+      "locate": "定位原文",
+      "add_to_mistake": "加入错题本",
+      "no_errors": "本次未检出错误",
+      "model_used": "批改模型",
       "degrade_notice_1": "弱模型批改，结果仅供参考",
       "degrade_notice_2": "批改降级，结果仅供参考",
       "degrade_notice_3": "多次解析失败，结果仅供参考"
@@ -85,13 +111,18 @@
       "title": "错题本",
       "attribution": "归因",
       "resolved": "已解决",
-      "stats": "错题统计"
+      "stats": "错题统计",
+      "empty": "还没有错题记录",
+      "count_other": "共 {{count}} 条",
+      "wrong_count_other": "错 {{count}} 次",
+      "window_info": "显示 {{shown}} / {{total}} 条"
     },
     "review": {
       "due_today": "今日待复习",
       "correct": "答对",
       "wrong": "答错",
-      "interval": "下次复习：{{days}} 天后"
+      "interval": "下次复习：{{days}} 天后",
+      "empty": "当前没有到期的复习项"
     },
     "question": {
       "import": "导入题库",
@@ -105,7 +136,13 @@
       "ready": "解析完成",
       "failed": "解析失败",
       "ask": "提问",
-      "citation": "引用"
+      "citation": "引用",
+      "title": "资料库",
+      "empty": "还没有导入资料",
+      "retry": "重新解析",
+      "delete": "删除",
+      "ask_placeholder": "向资料提问…",
+      "asking": "检索中…"
     },
     "cet": {
       "assessment": {
@@ -155,7 +192,15 @@
       "deadline": {
         "banner": "倒计时",
         "reference_notice": "以官方公告为准",
-        "create_reminders": "创建提醒"
+        "create_reminders": "创建提醒",
+        "node": {
+          "registration_open": "报名开始",
+          "registration_close": "报名截止",
+          "payment_close": "缴费截止",
+          "admission_ticket": "准考证打印",
+          "exam": "考试",
+          "score_query": "成绩查询"
+        }
       }
     },
     "privacy": {
