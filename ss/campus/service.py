@@ -1159,7 +1159,57 @@ class CampusService:
             "first_date": start.isoformat(),
         }
 
+    # -- G4: progress overview ----------------------------------------------
+
+    def progress(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """The four-track progress overview (G4, KY-11).
+
+        Completion aggregates over `plan_task.subject`; the streak and the heatmap read only
+        `completed_at` — the timestamp G2 actually writes when a task reaches done — so the
+        overview can never claim a completion the board did not record.
+        """
+        tasks = [
+            models.PlanTask.from_row(row)
+            for row in self._store.list_rows("plan_task", profile_id=profile.id)
+        ]
+        totals: dict[str, list[int]] = {}
+        completed: dict[str, int] = {}
+        for task in tasks:
+            entry = totals.setdefault(task.subject, [0, 0])
+            entry[1] += 1
+            if task.status == models.PlanTaskStatus.DONE.value:
+                entry[0] += 1
+                if task.completed_at:
+                    day = str(task.completed_at)[:10]
+                    completed[day] = completed.get(day, 0) + 1
+        by_track = {
+            subject: {
+                "done": entry[0],
+                "total": entry[1],
+                "rate": round(entry[0] / entry[1], 4) if entry[1] else 0.0,
+            }
+            for subject, entry in sorted(totals.items())
+        }
+        heatmap = [{"date": day, "count": completed[day]} for day in sorted(completed)]
+        return {
+            "by_track": by_track,
+            "streak_days": self._streak_days(completed),
+            "heatmap": heatmap,
+        }
+
     # -- internals ---------------------------------------------------------
+
+    @staticmethod
+    def _streak_days(completed: Mapping[str, int]) -> int:
+        """Consecutive days with a completion, counted back from today or yesterday."""
+        day = _utc_today()
+        if day.isoformat() not in completed:
+            day -= timedelta(days=1)
+        streak = 0
+        while day.isoformat() in completed:
+            streak += 1
+            day -= timedelta(days=1)
+        return streak
 
     def _plan_exam_date(self, profile: models.ExamProfile) -> date:
         raw = str(profile.exam_date or "").strip()

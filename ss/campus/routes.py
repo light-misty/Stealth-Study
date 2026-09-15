@@ -766,4 +766,11 @@ def build_campus_router(manager: Any) -> APIRouter:
         """G3 — spread the plan's open tasks over the new horizon, keeping finished work."""
         return _call(campus_service.reschedule_plan, profile, plan_id, body.new_exam_date)
 
+    @router.get("/progress")
+    def campus_progress(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """G4 — the four-track completion overview, streak and heatmap (KY-11)."""
+        return _call(campus_service.progress, profile)
+
     return router

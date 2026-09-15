@@ -51,6 +51,7 @@ T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + (
     ("POST", "/plans/generate"),
     ("PATCH", "/tasks/{task_id}"),
     ("POST", "/plans/{plan_id}/reschedule"),
+    ("GET", "/progress"),
 )
 
 
