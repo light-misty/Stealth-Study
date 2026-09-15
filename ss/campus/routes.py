@@ -44,6 +44,8 @@ from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
 from .service import (
     MAX_DIFFICULTY,
     MIN_DIFFICULTY,
+    MOCK_PAUSE_BUDGET_SECONDS,
+    VOCAB_MASTERY_ALIASES,
     CampusError,
     CampusService,
     ModelInventory,
@@ -463,37 +465,6 @@ class AttemptCreate(BaseModel):
         return value
 
 
-class GradingCreate(BaseModel):
-    """C1 body (03 §4.3): one subjective answer, its grading kind and optional rubric.
-
-    `rubric_id` names one of the built-in rubrics of 05 §5 (`RUBRIC_NOT_FOUND` for a
-    stranger); `custom_rubric` is free text that replaces the rubric wholesale (CERT-14).
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    profile_id: str
-    question_id: Optional[str] = None
-    kind: Literal[
-        "essay",
-        "translation",
-        "short_answer",
-        "essay_material",
-        "lesson_plan",
-        "practical",
-    ]
-    answer: str
-    rubric_id: Optional[str] = None
-    custom_rubric: Optional[str] = None
-
-    @field_validator("answer")
-    @classmethod
-    def _must_carry_content(cls, value: str) -> str:
-        if not value.strip():
-            raise ValueError("answer must not be blank")
-        return value
-
-
 class PlanGenerate(BaseModel):
     """F5 body (03 §4.4): the profile is the only input — exam date, subjects and budget
     already live on the profile, so the request cannot contradict them."""
@@ -655,6 +626,133 @@ class DeadlineCreate(BaseModel):
     node_type: models.DeadlineNodeType
     date: str = Field(pattern=EXAM_DATE_PATTERN)
     is_reference: bool = False
+
+
+
+class GradingRequest(BaseModel):
+    """C1 body (03 §4.3): what to grade, how, and with which rubric.
+
+    `kind` is validated against `models.GRADING_KINDS` (the same set `grading.py` routes on) so
+    the API cannot offer a kind the engine has no parser for.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question_id: Optional[str] = None
+    kind: str
+    answer: str
+    rubric_id: Optional[str] = None
+    custom_rubric: Optional[str] = None
+
+    @field_validator("kind")
+    @classmethod
+    def _kind_must_be_gradable(cls, value: str) -> str:
+        if value not in models.GRADING_KINDS:
+            raise ValueError(f"kind must be one of {sorted(models.GRADING_KINDS)}")
+        return value
+
+    @field_validator("answer")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("answer must not be blank")
+        return value
+
+
+class ProfileRef(BaseModel):
+    """A body that carries only the cross-cutting `profile_id` (F1/F5 and friends, 03 §4)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+
+
+class AssessmentPatch(BaseModel):
+    """F3 body (03 §4.6): an incremental batch of `{question_id: answer}`."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    answers: dict[str, Optional[str]]
+
+
+class VocabPatch(BaseModel):
+    """F7 body (03 §4.6): the self-reported mastery mark.
+
+    03's vocabulary is `known|fuzzy|unknown` while the stored column is `unknown|fuzzy|mastered`
+    (02 §4.11); both spellings are accepted and the service stores the column form.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    mastery: str
+
+    @field_validator("mastery")
+    @classmethod
+    def _mastery_must_be_known(cls, value: str) -> str:
+        if value not in VOCAB_MASTERY_ALIASES:
+            raise ValueError(f"mastery must be one of {sorted(VOCAB_MASTERY_ALIASES)}")
+        return value
+
+
+class VocabImport(BaseModel):
+    """F8 body (03 §4.6): a custom word list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    format: Literal["csv", "md"]
+    content: str
+
+
+class VocabRef(BaseModel):
+    """F9 body (03 §4.6): the word to build a mnemonic for."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    vocab_id: str
+
+
+class MockStart(BaseModel):
+    """F10 body (03 §4.6): the paper being practised. `profile_id` rides the body for the guard."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    paper_title: str
+
+    @field_validator("paper_title")
+    @classmethod
+    def _title_must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("paper_title must not be blank")
+        return cleaned
+
+
+class MockStageMove(BaseModel):
+    """F12 body: the stage to move to.
+
+    03 §4.6 lists the two forward targets, but its error table also prices `ILLEGAL_STAGE` and
+    `STAGE_LOCKED` — those only exist if a wrong target is expressible, so the field takes the
+    full enum and the service (not the schema) decides between 409 codes. A non-enum value
+    still fails validation with 422.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    to: models.MockStage
+
+
+class MockPause(BaseModel):
+    """F13 body: the seconds just spent paused. 03's table shows no body, but a pause length has
+    to reach the server somehow; the delivery doc registers this as a contract gap."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seconds: int = Field(gt=0, le=MOCK_PAUSE_BUDGET_SECONDS)
 
 
 def build_campus_router(manager: Any) -> APIRouter:
@@ -863,36 +961,6 @@ def build_campus_router(manager: Any) -> APIRouter:
             body.model_dump(mode="json", exclude_unset=True),
         )
 
-    # -- C1：共享批改端点（03 §4.3）----------------------------------------
-
-    def scoped_grading_question(
-        body: GradingCreate, profile: models.ExamProfile = Depends(guard.get_profile)
-    ) -> Optional[models.QuestionBankItem]:
-        """Resolve the optional question C1 names in its body, not in its path."""
-        if body.question_id is None:
-            return None
-        return guard.scoped_row(
-            "question_bank_item", body.question_id, profile.id, missing_code="QUESTION_NOT_FOUND"
-        )
-
-    @router.post("/grading")
-    async def campus_grade(
-        body: GradingCreate,
-        profile: models.ExamProfile = Depends(guard.get_writable_profile),
-        question: Optional[models.QuestionBankItem] = Depends(scoped_grading_question),
-    ) -> dict[str, Any]:
-        """C1 — grade one subjective answer through the shared grading chain (CERT-07/14).
-
-        An un-hit scoring point downgrades the linked knowledge point's mastery inside the
-        same transaction as the attempt write (CERT-15).
-        """
-        return await _async_call(
-            campus_service.grade,
-            profile,
-            question,
-            body.model_dump(mode="json", exclude_unset=True),
-        )
-
     # -- H 组：证书备考台（03 §4.8）----------------------------------------
 
     @router.get("/knowledge-tree")
@@ -1020,15 +1088,214 @@ def build_campus_router(manager: Any) -> APIRouter:
         """H10 — the in-app banner source: upcoming nodes and the due/overdue ones."""
         return _call(campus_service.reminders, profile.id)
 
-    # -- F5：计划生成（03 §4.4，KY-01/02 与 CET-03 按 TrackSpec 分台共用）---
+    # -- C 组：批改（03 §4.3，三台共享）-------------------------------------
 
-    @router.post("/plans/generate")
-    async def campus_generate_plan(
-        body: PlanGenerate,
+    def scoped_attempt(
+        attempt_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.Attempt:
+        """Resolve a graded attempt of the request's profile (C2)."""
+        return guard.scoped_row("attempt", attempt_id, profile.id, missing_code="ATTEMPT_NOT_FOUND")
+
+    def scoped_grading_question(
+        body: GradingRequest,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> Optional[models.QuestionBankItem]:
+        """Resolve the optional question C1 grades against, which the body names."""
+        if not body.question_id:
+            return None
+        return guard.scoped_row(
+            "question_bank_item", body.question_id, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/grading")
+    async def campus_grade(
+        body: GradingRequest,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: Optional[models.QuestionBankItem] = Depends(scoped_grading_question),
+    ) -> dict[str, Any]:
+        """C1 — grade one answer and store the attempt."""
+        return await _async_call(
+            campus_service.grade,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.get("/grading/history")
+    def campus_grading_history(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        subject: Optional[str] = None,
+        kind: Optional[str] = None,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(50, ge=1, le=MAX_PAGE_SIZE),
+    ) -> dict[str, Any]:
+        """C3 — one page of the profile's graded attempts."""
+        return _call(
+            campus_service.attempt_history,
+            profile,
+            subject=subject,
+            kind=kind,
+            page=page,
+            page_size=page_size,
+        )
+
+    @router.get("/grading/common-errors")
+    def campus_common_errors(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        kind: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """C4 — the CET-12 "my top three recurring mistakes" ranking."""
+        return _call(campus_service.common_errors, profile, kind=kind)
+
+    @router.get("/grading/{attempt_id}")
+    def campus_get_attempt(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        attempt: models.Attempt = Depends(scoped_attempt),
+    ) -> dict[str, Any]:
+        """C2 — one stored attempt with its `grading_json` (CET-04 回看)."""
+        del profile
+        return _call(campus_service.attempt, attempt.id)
+
+    # -- F1-F4：定级测评（03 §4.6 CET-01）----------------------------------
+
+    def scoped_assessment(
+        assessment_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.Assessment:
+        """Resolve an assessment of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "assessment", assessment_id, profile.id, missing_code="ASSESSMENT_NOT_FOUND"
+        )
+
+    @router.post("/assessments")
+    async def campus_create_assessment(
+        body: ProfileRef,
         profile: models.ExamProfile = Depends(guard.get_writable_profile),
     ) -> dict[str, Any]:
-        """F5 — lay out weekly and daily tasks from today to the exam date."""
-        return await _async_call(campus_service.generate_plan, profile)
+        """F1 — generate the 20-question level assessment and open a draft."""
+        del body
+        return await _async_call(campus_service.create_assessment, profile)
+
+    @router.get("/assessments/{assessment_id}")
+    def campus_get_assessment(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        assessment: models.Assessment = Depends(scoped_assessment),
+    ) -> dict[str, Any]:
+        """F2 — resume view: the stored state, the questions and the answers so far."""
+        del profile
+        return _call(campus_service.assessment, assessment)
+
+    @router.patch("/assessments/{assessment_id}")
+    def campus_patch_assessment(
+        body: AssessmentPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        assessment: models.Assessment = Depends(scoped_assessment),
+    ) -> dict[str, Any]:
+        """F3 — merge answers into the draft, one question or a whole batch at a time."""
+        return _call(campus_service.record_answers, profile, assessment, body.answers)
+
+    @router.post("/assessments/{assessment_id}/finish")
+    def campus_finish_assessment(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        assessment: models.Assessment = Depends(scoped_assessment),
+    ) -> dict[str, Any]:
+        """F4 — fold the three sections onto 710 and write the profile's estimate."""
+        return _call(campus_service.finish_assessment, profile, assessment)
+
+    # -- F6-F9：高频词（03 §4.6 CET-02/04/06）------------------------------
+
+    def scoped_vocab(
+        vid: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.VocabItem:
+        """Resolve a word of the request's profile (F7)."""
+        return guard.scoped_row("vocab_item", vid, profile.id, missing_code="ITEM_NOT_FOUND")
+
+    @router.get("/vocab/today")
+    def campus_vocab_today(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """F6 — the day's new words (≤30, by real-exam frequency) and the due reviews."""
+        return _call(campus_service.vocab_today, profile)
+
+    @router.post("/vocab/import")
+    def campus_import_vocab(
+        body: VocabImport,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F8 — import a custom MD/CSV word list (PRD CET2 验收②)."""
+        return _call(campus_service.import_vocabulary, profile, body.format, body.content)
+
+    @router.post("/vocab/mnemonic")
+    async def campus_vocab_mnemonic(
+        body: VocabRef,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F9 — build a mnemonic and remember it (body carries no `profile_id`, so the query does)."""
+        vocab = guard.scoped_row(
+            "vocab_item", body.vocab_id, profile.id, missing_code="ITEM_NOT_FOUND"
+        )
+        return await _async_call(campus_service.vocab_mnemonic, profile, vocab)
+
+    @router.patch("/vocab/{vid}")
+    def campus_patch_vocab(
+        body: VocabPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        vocab: models.VocabItem = Depends(scoped_vocab),
+    ) -> dict[str, Any]:
+        """F7 — mark a word known/fuzzy/unknown; "不认识" joins tomorrow's review queue."""
+        return _call(campus_service.set_vocab_mastery, profile, vocab, body.mastery)
+
+    # -- F10-F14：模考（03 §4.6 CET-13/14）---------------------------------
+
+    def scoped_mock(
+        mock_exam_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.MockExam:
+        """Resolve a mock exam of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "mock_exam", mock_exam_id, profile.id, missing_code="MOCK_NOT_FOUND"
+        )
+
+    @router.post("/mock-exams")
+    def campus_start_mock(
+        body: MockStart,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F10 — open an ongoing mock on the writing stage, deadline precomputed."""
+        return _call(campus_service.start_mock, profile, body.paper_title)
+
+    @router.get("/mock-exams/{mock_exam_id}")
+    def campus_get_mock(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F11 — the stored state plus a server-derived timer (CET-13 验收 2)."""
+        del profile
+        return _call(campus_service.mock_view, mock)
+
+    @router.post("/mock-exams/{mock_exam_id}/stage")
+    def campus_advance_mock_stage(
+        body: MockStageMove,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F12 — advance the stage and collect the previous answer sheet."""
+        return _call(campus_service.advance_mock_stage, profile, mock, body.to.value)
+
+    @router.post("/mock-exams/{mock_exam_id}/pause")
+    def campus_pause_mock(
+        body: MockPause,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F13 — spend pause seconds against the cumulative budget, shifting the deadline."""
+        return _call(campus_service.pause_mock, profile, mock, body.seconds)
+
+    @router.post("/mock-exams/{mock_exam_id}/submit")
+    def campus_submit_mock(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F14 — estimate the score per section and file the wrong answers."""
+        return _call(campus_service.submit_mock, profile, mock)
 
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 
@@ -1049,6 +1316,29 @@ def build_campus_router(manager: Any) -> APIRouter:
                 track=track,
             )
         }
+
+    @router.post("/plans/generate")
+    async def campus_generate_plan(
+        body: PlanGenerate,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F5 — lay out weekly and daily tasks from today to the exam date."""
+        return await _async_call(campus_service.generate_plan, profile)
+
+    # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
+
+    def scoped_task(
+        task_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.PlanTask:
+        """Resolve a plan task of the request's profile.
+
+        03 §6 defines no task-specific 404 code, so a missing row is answered with the same
+        `FORBIDDEN_PROFILE` as a row owned by another profile — the caller learns nothing about
+        tasks it does not own (G2 docstring in `tests/campus/test_routes_task_patch.py`).
+        """
+        return guard.scoped_row(
+            "plan_task", task_id, profile.id, missing_code="FORBIDDEN_PROFILE"
+        )
 
     def scoped_task(
         task_id: str, profile: models.ExamProfile = Depends(guard.get_profile)

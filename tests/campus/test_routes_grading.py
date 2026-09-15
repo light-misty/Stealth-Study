@@ -1,10 +1,14 @@
-"""C1 共享批改端点与 CERT-15 服务端掌握度降级（03 §4.3/§4.8、07 §4 T12 验收②）。
+"""C 组批改端点（03 §4.3 C1-C4、07 §4 T10 的"作文/翻译批改挂 C1"与"常见错误 TOP3"）。
 
-C1 是 CET/KY/CERT 三台共用的主观题批改入口：落 `attempt`（失败也保留）→ 同步走
-T07 批改链 → 响应体为 03 §4.3 的 GradeResult 视图 + `attempt_id`（另附
-`grading_json`/`band`/`scoring_points` 等 attempt 列，前端得分点三态直接可用）。
-CERT-15 是 C1/E5 批改链的服务端副作用：未命中（miss）得分点把关联知识点的掌握度
-在同一次事务里降一档（mastered→fuzzy→unknown），树中即标记"待加强"。
+C 组在 07 文档里没有被点名给任何任务（T09 交付文档 §5-13 已登记该缺口），但 T10 的两处交付直接
+依赖它：写译批改必须挂在 C1 上、CET-12 的"我的常见错误 TOP3"就是 C4。因此本文件与 T10 同阶段交付。
+
+C1 的响应形状按 03 §4.3 的 `GradeResult` 契约（`dimensions`/`errors[].offset`/`rubric`）从 T07 引擎的
+`GradeResult` 适配而来；`errors[].offset` 由服务端在原文里定位片段得到（PRD CET4 ② "可点击定位到原文"）。
+批改链本身走 T07 引擎与回放式 provider，不依赖真实模型。
+
+T12 合并注记：文件以 T10 版为基干，末段追加 T12 的 CERT-15 服务端副作用用例——未命中（miss）得分点
+把关联知识点的掌握度在同一次事务里降一档（mastered→fuzzy→unknown），C1 与 E5 共享链路均生效。
 """
 
 from __future__ import annotations
@@ -20,31 +24,42 @@ from fastapi.testclient import TestClient
 
 from ss import secrets
 from ss.campus import models, routes, store
-from ss.campus.rubrics import CERT_SCORING_POINTS_SPEC, CET_ESSAY_RUBRIC
 
 ACTIVE_ID = "profile-active"
 OTHER_ID = "profile-other"
 FINISHED_ID = "profile-finished"
+CUSTOM_ANSWER = "I thinks it is very important to study hard, and we should persisting."
 
 
-def essay_payload(band: int = 11, content: int = 4, structure: int = 4, language: int = 3) -> str:
+def essay_payload(band: int = 11, fragment: str = "I thinks", type_: str = "主谓一致") -> str:
     return json.dumps(
         {
             "band": band,
-            "dimension_scores": {"content": content, "structure": structure, "language": language},
-            "errors": [{"fragment": "I thinks", "suggestion": "I think", "type": "主谓一致"}],
-            "upgraded_demo": "rewritten",
+            "dimension_scores": {"content": 4, "structure": 4, "language": 3},
+            "errors": [{"fragment": fragment, "suggestion": "I think", "type": type_}],
+            "upgraded_demo": "rewritten paragraph",
             "model_answer_outline": "outline",
         }
     )
 
 
-def scoring_payload(*statuses: str) -> str:
+def translation_payload(band: int = 9) -> str:
+    return json.dumps(
+        {
+            "band": band,
+            "errors": [{"fragment": "漏译片段", "suggestion": "补充译文", "type": "漏译"}],
+            "upgraded_demo": "rewritten translation",
+        }
+    )
+
+
+def scoring_payload() -> str:
     return json.dumps(
         {
             "scoring_points": [
-                {"point": f"得分点{index}", "status": status, "note": ""}
-                for index, status in enumerate(statuses, start=1)
+                {"point": "答出德育原则", "status": "hit", "note": "准确"},
+                {"point": "结合材料", "status": "partial", "note": "只举一例"},
+                {"point": "结构完整", "status": "miss", "note": ""},
             ],
             "overall_score": 6,
             "model_answer_outline": "outline",
@@ -53,10 +68,8 @@ def scoring_payload(*statuses: str) -> str:
 
 
 class FakeProvider:
-    """按调用序号回放文本的 provider（`ProviderClient.complete` 的假实现）。"""
-
     def __init__(self, responses: dict[Any, Any] | None = None) -> None:
-        self.responses = responses or {"default": essay_payload()}
+        self.responses = responses if responses is not None else {"default": essay_payload()}
         self.seen: list[dict] = []
 
     def complete(self, *, model: str, messages: list[dict], **settings: Any):
@@ -68,25 +81,13 @@ class FakeProvider:
 
 
 class FakeManager:
-    """The slice of `SessionManager` campus reads."""
-
-    def __init__(
-        self,
-        model: str = "fake:model",
-        *,
-        ready: bool = True,
-        provider: FakeProvider | None = None,
-    ) -> None:
+    def __init__(self, model: str = "fake:model", *, ready: bool = True, provider: Any = None) -> None:
         self.model = model
         self._ready = ready
         self.provider = provider if provider is not None else FakeProvider()
 
     def get_settings(self) -> dict[str, Any]:
-        return {
-            "model": self.model,
-            "model_ready": self._ready,
-            "models": [self.model] if self.model else [],
-        }
+        return {"model": self.model, "model_ready": self._ready, "models": [self.model] if self.model else []}
 
 
 @pytest.fixture()
@@ -103,79 +104,34 @@ def manager() -> FakeManager:
 def seeded_store(campus_db_path: Path) -> store.CampusStore:
     instance = store.CampusStore(campus_db_path)
     for profile_id, status, title in (
-        (ACTIVE_ID, models.ProfileStatus.ACTIVE.value, "教资高中语文"),
+        (ACTIVE_ID, models.ProfileStatus.ACTIVE.value, "六级 12 月"),
         (OTHER_ID, models.ProfileStatus.ACTIVE.value, "另一个档案"),
         (FINISHED_ID, models.ProfileStatus.FINISHED.value, "已结课"),
     ):
         instance.insert(
             "exam_profile",
-            {
-                "id": profile_id,
-                "track_type": models.TrackType.CERT.value,
-                "title": title,
-                "status": status,
-            },
+            {"id": profile_id, "track_type": models.TrackType.CET.value, "title": title, "status": status},
         )
-    instance.insert(
-        "knowledge_point",
-        {"id": "p-1", "profile_id": ACTIVE_ID, "title": "德育"},
-    )
-    instance.insert(
-        "knowledge_point",
-        {"id": "p-2", "profile_id": ACTIVE_ID, "title": "教学原则"},
-    )
-    instance.insert(
-        "knowledge_point",
-        {"id": "p-3", "profile_id": ACTIVE_ID, "title": "学习动机"},
-    )
     instance.insert(
         "question_bank_item",
         {
             "id": "q-essay",
             "profile_id": ACTIVE_ID,
-            "subject": "综合素质",
-            "stem": "写一段议论文",
+            "subject": models.Subject.WRITING.value,
+            "stem": "Write about the importance of reading.",
             "qtype": models.QuestionType.ESSAY.value,
             "max_score": 15,
         },
     )
-    for point_id, question_id in (
-        ("p-1", "q-p1"),
-        ("p-2", "q-p2"),
-        ("p-3", "q-p3"),
-    ):
+    instance.insert(
+        "question_bank_item",
+        {"id": "q-foreign", "profile_id": OTHER_ID, "subject": "writing", "stem": "他人题目"},
+    )
+    for point_id, title in (("p-1", "德育"), ("p-2", "教学原则"), ("p-3", "学习动机")):
         instance.insert(
-            "question_bank_item",
-            {
-                "id": question_id,
-                "profile_id": ACTIVE_ID,
-                "subject": "教育知识与能力",
-                "stem": f"简答：{point_id}",
-                "qtype": models.QuestionType.SHORT_ANSWER.value,
-                "point_id": point_id,
-                "max_score": 8,
-            },
+            "knowledge_point",
+            {"id": point_id, "profile_id": ACTIVE_ID, "title": title},
         )
-    instance.insert(
-        "question_bank_item",
-        {
-            "id": "q-nopoint",
-            "profile_id": ACTIVE_ID,
-            "subject": "教育知识与能力",
-            "stem": "简答：无知识点",
-            "qtype": models.QuestionType.SHORT_ANSWER.value,
-        },
-    )
-    instance.insert(
-        "question_bank_item",
-        {
-            "id": "q-foreign",
-            "profile_id": OTHER_ID,
-            "subject": "综合素质",
-            "stem": "他人题目",
-            "qtype": models.QuestionType.ESSAY.value,
-        },
-    )
     instance.insert(
         "mastery",
         {
@@ -194,6 +150,19 @@ def seeded_store(campus_db_path: Path) -> store.CampusStore:
             "level": models.MasteryLevel.FUZZY.value,
         },
     )
+    for question_id, point_id in (("q-p1", "p-1"), ("q-p2", "p-2"), ("q-p3", "p-3"), ("q-nopoint", None)):
+        instance.insert(
+            "question_bank_item",
+            {
+                "id": question_id,
+                "profile_id": ACTIVE_ID,
+                "subject": models.Subject.MAJOR.value,
+                "stem": f"简答：{question_id}",
+                "qtype": models.QuestionType.SHORT_ANSWER.value,
+                "point_id": point_id,
+                "max_score": 8,
+            },
+        )
     try:
         yield instance
     finally:
@@ -207,202 +176,427 @@ def client(manager: FakeManager, seeded_store: store.CampusStore) -> TestClient:
     return TestClient(app)
 
 
-def _prefix() -> str:
-    return routes.CAMPUS_PREFIX
-
-
 def _detail(response) -> dict:
     return response.json()["detail"]
 
 
 def _grade(client: TestClient, **overrides):
-    payload = {
-        "profile_id": ACTIVE_ID,
-        "kind": "short_answer",
-        "answer": "德育原则是……",
-    }
+    payload = {"profile_id": ACTIVE_ID, "kind": "essay", "answer": CUSTOM_ANSWER}
     payload.update(overrides)
-    return client.post(f"{_prefix()}/grading", json=payload)
+    return client.post(f"{routes.CAMPUS_PREFIX}/grading", json=payload)
 
 
-# ---------------------------------------------------------------------------
-# C1 — 批改主链与响应形状
-# ---------------------------------------------------------------------------
-
-
-def test_c1_grades_an_essay_into_the_documented_shape(
-    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
-) -> None:
-    response = _grade(
-        client, kind="essay", question_id="q-essay", answer="I thinks it is good."
+def _stored(client: TestClient, attempt_id: str) -> dict:
+    """The attempt as C2 serves it — where the fields 03 §4.3 does not echo back live."""
+    response = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/{attempt_id}", params={"profile_id": ACTIVE_ID}
     )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+# ---------------------------------------------------------------------------
+# C1 POST /grading
+# ---------------------------------------------------------------------------
+
+def test_c1_returns_the_documented_grade_result_shape(client: TestClient) -> None:
+    response = _grade(client)
     assert response.status_code == 200
     body = response.json()
-    assert body["attempt_id"] == seeded_store.get("attempt", body["attempt_id"])["id"]
+    assert set(body) >= {
+        "attempt_id",
+        "degrade_level",
+        "rubric",
+        "dimensions",
+        "errors",
+        "model_answer_outline",
+        "model_used",
+        "notice",
+    }
     assert body["degrade_level"] == 0
-    assert body["rubric"] == "四六级短文写作评分标准"
-    assert body["dimensions"] == [
+    assert body["notice"] is None
+    assert body["model_used"] == "fake:model"
+    assert body["model_answer_outline"] == "outline"
+
+
+def test_c1_maps_essay_dimensions_onto_the_five_point_scale(client: TestClient) -> None:
+    dims = _grade(client).json()["dimensions"]
+    assert dims == [
         {"name": "内容", "score": 4, "max": 5, "comment": ""},
         {"name": "结构", "score": 4, "max": 5, "comment": ""},
         {"name": "语言", "score": 3, "max": 5, "comment": ""},
     ]
-    assert body["errors"] == [
-        {"original": "I thinks", "suggestion": "I think", "type": "主谓一致", "offset": None}
+
+
+def test_c1_locates_each_error_in_the_submitted_text(client: TestClient) -> None:
+    errors = _grade(client).json()["errors"]
+    assert errors == [
+        {
+            "original": "I thinks",
+            "suggestion": "I think",
+            "type": "主谓一致",
+            "offset": CUSTOM_ANSWER.index("I thinks"),
+        }
     ]
-    assert body["model_answer_outline"] == "outline"
-    assert body["model_used"] == "fake:model"
-    assert body["notice"] is None
+
+
+def test_c1_reports_a_null_offset_when_the_fragment_is_absent(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": essay_payload(fragment="not in the text")})
+    assert _grade(client).json()["errors"][0]["offset"] is None
+
+
+def test_c1_carries_the_band_and_the_upgraded_demo(client: TestClient) -> None:
+    body = _grade(client).json()
     assert body["band"] == 11
-    assert body["score"] == 11
-    assert body["max_score"] == 15
-    assert body["grading_json"]["band"] == 11
-    assert manager.provider.seen[0]["settings"]["temperature"] == 0
-    assert manager.provider.seen[0]["settings"]["timeout"] == 90
+    assert body["upgraded_demo"] == "rewritten paragraph"
 
 
-def test_c1_records_a_grading_session_attempt_with_the_question(
-    client: TestClient, seeded_store: store.CampusStore
-) -> None:
-    body = _grade(
-        client, kind="essay", question_id="q-essay", answer="essay"
-    ).json()
-    row = seeded_store.get("attempt", body["attempt_id"])
-    assert row["question_id"] == "q-essay"
-    assert row["subject"] == "综合素质"
-    assert row["session_type"] == models.SessionType.GRADING.value
-    assert row["degrade_level"] == 0
+def test_c1_uses_the_essay_rubric_by_default(client: TestClient, manager: FakeManager) -> None:
+    body = _grade(client).json()
+    assert body["rubric"] == "cet-essay"
+    assert "四六级短文写作评分标准" in manager.provider.seen[0]["messages"][0]["content"]
 
 
-def test_c1_without_a_question_still_lands_the_attempt(
-    client: TestClient, seeded_store: store.CampusStore
-) -> None:
-    body = _grade(client, kind="short_answer", answer="答：……").json()
-    row = seeded_store.get("attempt", body["attempt_id"])
-    assert row["question_id"] is None
-    assert row["subject"] == "general"
-    assert row["track_type"] == models.TrackType.CERT.value
-    assert row["user_answer"] == "答：……"
+def test_c1_grades_a_translation_with_its_own_rubric(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": translation_payload()})
+    body = _grade(client, kind="translation", answer="我认为读书很重要。").json()
+    assert body["rubric"] == "cet-translation"
+    assert body["dimensions"] == [{"name": "档位", "score": 9, "max": 15, "comment": ""}]
+    assert body["errors"][0]["type"] == "漏译"
+    assert "四六级段落翻译评分标准" in manager.provider.seen[0]["messages"][0]["content"]
 
 
-def test_c1_returns_scoring_points_for_cert_kinds(
-    client: TestClient, manager: FakeManager
-) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("hit", "miss")})
-    body = _grade(client, question_id="q-p1", answer="……").json()
-    statuses = [point["status"] for point in body["scoring_points"]]
-    assert statuses == ["hit", "miss"]
+def test_c1_maps_scoring_points_onto_dimensions(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": scoring_payload()})
+    body = _grade(client, kind="short_answer", answer="德育原则包括……").json()
+    assert body["rubric"] == "cert-scoring-points"
+    assert body["dimensions"] == [
+        {"name": "答出德育原则", "score": 1.0, "max": 1, "comment": "准确"},
+        {"name": "结合材料", "score": 0.5, "max": 1, "comment": "只举一例"},
+        {"name": "结构完整", "score": 0.0, "max": 1, "comment": ""},
+    ]
+    assert body["band"] is None
 
 
-def test_c1_uses_the_named_rubric_text(client: TestClient, manager: FakeManager) -> None:
-    _grade(client, kind="essay", question_id="q-essay", answer="essay", rubric_id="cet_essay")
-    system = manager.provider.seen[0]["messages"][0]["content"]
-    assert CET_ESSAY_RUBRIC in system
+def test_c1_accepts_an_explicit_rubric_id(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": scoring_payload()})
+    body = _grade(client, kind="practical", answer="操作步骤……", rubric_id="cert-scoring-points").json()
+    assert body["rubric"] == "cert-scoring-points"
+    assert "主观题评分点三态输出契约" in manager.provider.seen[0]["messages"][0]["content"]
 
 
-def test_c1_cert_kinds_grade_against_the_scoring_contract(
-    client: TestClient, manager: FakeManager
-) -> None:
-    _grade(client, question_id="q-p1", answer="……")
-    system = manager.provider.seen[0]["messages"][0]["content"]
-    assert CERT_SCORING_POINTS_SPEC in system
-
-
-def test_c1_custom_rubric_replaces_the_text(client: TestClient, manager: FakeManager) -> None:
-    body = _grade(
-        client,
-        question_id="q-p1",
-        answer="……",
-        custom_rubric="只看论证是否引用原文，三档评分",
-    ).json()
-    system = manager.provider.seen[0]["messages"][0]["content"]
-    assert "只看论证是否引用原文，三档评分" in system
-    assert body["rubric"] == "自定义评分标准"
-
-
-def test_c1_rejects_an_unknown_rubric_id(client: TestClient, seeded_store: store.CampusStore) -> None:
-    response = _grade(client, rubric_id="no-such-rubric", answer="……")
+def test_c1_rejects_an_unknown_rubric_id(client: TestClient) -> None:
+    response = _grade(client, rubric_id="no-such-rubric")
     assert response.status_code == 404
     assert _detail(response)["code"] == "RUBRIC_NOT_FOUND"
-    assert seeded_store.count("attempt", "profile_id = ?", (ACTIVE_ID,)) == 0
 
 
-def test_c1_keeps_the_attempt_when_the_model_times_out(
-    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+def test_c1_lets_a_custom_rubric_override_the_built_in_one(client: TestClient, manager: FakeManager) -> None:
+    body = _grade(client, custom_rubric="自定义评分标准：只看得分点。").json()
+    assert body["rubric"] == "custom"
+    assert "自定义评分标准：只看得分点。" in manager.provider.seen[0]["messages"][0]["content"]
+
+
+def test_c1_takes_the_subject_from_the_question(client: TestClient) -> None:
+    attempt_id = _grade(client, question_id="q-essay").json()["attempt_id"]
+    stored = _stored(client, attempt_id)
+    assert stored["subject"] == models.Subject.WRITING.value
+    assert stored["question_id"] == "q-essay"
+
+
+@pytest.mark.parametrize(
+    "kind, subject, payload",
+    [
+        ("essay", models.Subject.WRITING.value, "essay"),
+        ("lesson_plan", models.Subject.WRITING.value, "scoring"),
+        ("translation", models.Subject.TRANSLATION.value, "essay"),
+        ("short_answer", models.Subject.MAJOR.value, "scoring"),
+        ("practical", models.Subject.MAJOR.value, "scoring"),
+    ],
+)
+def test_c1_derives_the_subject_from_the_kind_when_no_question_is_given(
+    client: TestClient, manager: FakeManager, kind: str, subject: str, payload: str
 ) -> None:
-    manager.provider = FakeProvider({"default": TimeoutError("upstream timeout")})
-    response = _grade(client, question_id="q-p1", answer="……")
-    assert response.status_code == 504
-    assert _detail(response)["code"] == "MODEL_TIMEOUT"
-    rows = seeded_store.list_rows("attempt", profile_id=ACTIVE_ID)
-    assert len(rows) == 1
-    assert rows[0]["degrade_level"] == 3
+    manager.provider = FakeProvider({"default": scoring_payload() if payload == "scoring" else essay_payload()})
+    attempt_id = _grade(client, kind=kind, answer="作答内容").json()["attempt_id"]
+    stored = _stored(client, attempt_id)
+    assert stored["subject"] == subject
+    assert stored["question_id"] is None
 
 
-def test_c1_rejects_an_unknown_kind(client: TestClient) -> None:
-    response = _grade(client, kind="poem", answer="……")
-    assert response.status_code == 422
-
-
-def test_c1_rejects_a_blank_answer(client: TestClient) -> None:
-    assert _grade(client, answer="   ").status_code == 422
-
-
-def test_c1_rejects_unknown_body_fields(client: TestClient) -> None:
-    assert _grade(client, answer_meta={"x": 1}).status_code == 422
-
-
-def test_c1_refuses_without_a_configured_model(seeded_store: store.CampusStore) -> None:
-    app = FastAPI()
-    app.include_router(routes.build_campus_router(FakeManager(model="", ready=False)))
-    client = TestClient(app)
-    payload = {"profile_id": ACTIVE_ID, "kind": "short_answer", "answer": "……"}
-    response = client.post(f"{routes.CAMPUS_PREFIX}/grading", json=payload)
-    assert response.status_code == 409
-    assert _detail(response)["code"] == "MODEL_NOT_CONFIGURED"
-    assert seeded_store.count("attempt", "profile_id = ?", (ACTIVE_ID,)) == 0
-
-
-# ---------------------------------------------------------------------------
-# C1 — 守卫与契约
-# ---------------------------------------------------------------------------
-
-
-def test_c1_rejects_a_missing_question(client: TestClient) -> None:
-    response = _grade(client, question_id="no-such-question")
-    assert response.status_code == 404
-    assert _detail(response)["code"] == "QUESTION_NOT_FOUND"
-
-
-def test_c1_rejects_a_foreign_question(client: TestClient) -> None:
+def test_c1_refuses_another_profile_question(client: TestClient) -> None:
     response = _grade(client, question_id="q-foreign")
     assert response.status_code == 403
     assert _detail(response)["code"] == "FORBIDDEN_PROFILE"
 
 
+def test_c1_returns_question_not_found_for_an_unknown_question(client: TestClient) -> None:
+    response = _grade(client, question_id="no-such-question")
+    assert response.status_code == 404
+    assert _detail(response)["code"] == "QUESTION_NOT_FOUND"
+
+
+def test_c1_records_the_attempt_with_the_grading_kind(client: TestClient, seeded_store: store.CampusStore) -> None:
+    body = _grade(client).json()
+    row = seeded_store.get("attempt", body["attempt_id"])
+    assert row["session_type"] == models.SessionType.GRADING.value
+    assert row["profile_id"] == ACTIVE_ID
+    assert row["user_answer"] == CUSTOM_ANSWER
+    assert row["degrade_level"] == 0
+    assert row["score"] == 11 and row["max_score"] == 15
+    assert json.loads(row["grading_json"])["kind"] == "essay"
+
+
+def test_c1_marks_a_degraded_grading_with_a_notice(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": "not json at all"})
+    body = _grade(client).json()
+    assert body["degrade_level"] >= 1
+    assert body["notice"]
+
+
+def test_c1_reports_a_timeout_with_the_documented_error(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": TimeoutError("upstream timeout")})
+    response = _grade(client)
+    assert response.status_code == 504
+    assert _detail(response)["code"] == "MODEL_TIMEOUT"
+
+
+def test_c1_reports_unparsable_output_with_the_documented_error(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": ""})
+    response = _grade(client)
+    assert response.status_code == 502
+    assert _detail(response)["code"] == "MODEL_OUTPUT_INVALID"
+
+
+def test_c1_refuses_grading_without_a_configured_model(seeded_store: store.CampusStore) -> None:
+    app = FastAPI()
+    app.include_router(routes.build_campus_router(FakeManager(model="", ready=False)))
+    client = TestClient(app)
+    response = _grade(client)
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "MODEL_NOT_CONFIGURED"
+    assert seeded_store.count("attempt", "profile_id = ?", (ACTIVE_ID,)) == 0
+
+
 def test_c1_refuses_a_finished_profile(client: TestClient) -> None:
-    response = _grade(client, profile_id=FINISHED_ID, answer="……")
+    response = _grade(client, profile_id=FINISHED_ID)
     assert response.status_code == 409
     assert _detail(response)["code"] == "PROFILE_READ_ONLY"
 
 
 def test_c1_requires_a_profile(client: TestClient) -> None:
     response = client.post(
-        f"{_prefix()}/grading", json={"kind": "short_answer", "answer": "……"}
+        f"{routes.CAMPUS_PREFIX}/grading", json={"kind": "essay", "answer": CUSTOM_ANSWER}
     )
     assert response.status_code == 400
     assert _detail(response)["code"] == "PROFILE_REQUIRED"
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"profile_id": ACTIVE_ID, "kind": "nope", "answer": "x"},
+        {"profile_id": ACTIVE_ID, "kind": "essay", "answer": "   "},
+        {"profile_id": ACTIVE_ID, "kind": "essay"},
+        {"profile_id": ACTIVE_ID, "kind": "essay", "answer": "x", "unknown": 1},
+    ],
+)
+def test_c1_rejects_malformed_bodies(client: TestClient, payload: dict) -> None:
+    assert client.post(f"{routes.CAMPUS_PREFIX}/grading", json=payload).status_code == 422
+
+
 # ---------------------------------------------------------------------------
-# CERT-15 — 未命中得分点降级掌握度（服务端副作用，单事务）
+# C2 GET /grading/{attempt_id}
 # ---------------------------------------------------------------------------
+
+def test_c2_returns_the_stored_attempt(client: TestClient) -> None:
+    attempt_id = _grade(client).json()["attempt_id"]
+    body = _stored(client, attempt_id)
+    assert body["id"] == attempt_id
+    assert body["degrade_level"] == 0
+    assert body["grading_json"]["band"] == 11
+
+
+def test_c2_returns_attempt_not_found(client: TestClient) -> None:
+    response = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/no-such-attempt", params={"profile_id": ACTIVE_ID}
+    )
+    assert response.status_code == 404
+    assert _detail(response)["code"] == "ATTEMPT_NOT_FOUND"
+
+
+def test_c2_refuses_another_profile_attempt(client: TestClient, seeded_store: store.CampusStore) -> None:
+    seeded_store.insert(
+        "attempt",
+        {
+            "id": "attempt-foreign",
+            "profile_id": OTHER_ID,
+            "track_type": "cet",
+            "subject": "writing",
+            "user_answer": "x",
+        },
+    )
+    response = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/attempt-foreign", params={"profile_id": ACTIVE_ID}
+    )
+    assert response.status_code == 403
+    assert _detail(response)["code"] == "FORBIDDEN_PROFILE"
+
+
+def test_c2_requires_a_profile(client: TestClient) -> None:
+    response = client.get(f"{routes.CAMPUS_PREFIX}/grading/whatever")
+    assert response.status_code == 400
+    assert _detail(response)["code"] == "PROFILE_REQUIRED"
+
+
+# ---------------------------------------------------------------------------
+# C3 GET /grading/history
+# ---------------------------------------------------------------------------
+
+def test_c3_returns_a_page_envelope_newest_first(client: TestClient) -> None:
+    first = _grade(client).json()["attempt_id"]
+    second = _grade(client, kind="translation", answer="译文").json()["attempt_id"]
+    body = client.get(f"{routes.CAMPUS_PREFIX}/grading/history", params={"profile_id": ACTIVE_ID}).json()
+    assert body["total"] == 2
+    assert body["page"] == 1 and body["page_size"] == 50
+    assert [item["id"] for item in body["items"]] == [second, first]
+
+
+def test_c3_filters_by_subject_and_kind(client: TestClient) -> None:
+    _grade(client).json()
+    _grade(client, kind="translation", answer="译文").json()
+    by_subject = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/history",
+        params={"profile_id": ACTIVE_ID, "subject": models.Subject.TRANSLATION.value},
+    ).json()
+    assert by_subject["total"] == 1
+    by_kind = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/history",
+        params={"profile_id": ACTIVE_ID, "kind": "essay"},
+    ).json()
+    assert by_kind["total"] == 1
+    assert by_kind["items"][0]["grading_json"]["kind"] == "essay"
+
+
+def test_c3_pages_through_the_history(client: TestClient) -> None:
+    ids = [_grade(client).json()["attempt_id"] for _ in range(3)]
+    page = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/history",
+        params={"profile_id": ACTIVE_ID, "page": 2, "page_size": 2},
+    ).json()
+    assert page["total"] == 3
+    assert len(page["items"]) == 1
+    assert page["items"][0]["id"] == ids[0]
+
+
+def test_c3_never_leaks_another_profile_history(client: TestClient, seeded_store: store.CampusStore) -> None:
+    seeded_store.insert(
+        "attempt",
+        {
+            "id": "attempt-foreign",
+            "profile_id": OTHER_ID,
+            "track_type": "cet",
+            "subject": "writing",
+            "user_answer": "x",
+        },
+    )
+    body = client.get(f"{routes.CAMPUS_PREFIX}/grading/history", params={"profile_id": ACTIVE_ID}).json()
+    assert body["total"] == 0
+
+
+# ---------------------------------------------------------------------------
+# C4 GET /grading/common-errors
+# ---------------------------------------------------------------------------
+
+def test_c4_is_empty_before_any_grading(client: TestClient) -> None:
+    body = client.get(f"{routes.CAMPUS_PREFIX}/grading/common-errors", params={"profile_id": ACTIVE_ID}).json()
+    assert body == {"top3": []}
+
+
+def test_c4_ranks_the_most_frequent_error_types(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider(
+        {
+            1: essay_payload(type_="主谓一致"),
+            2: essay_payload(type_="主谓一致"),
+            3: essay_payload(type_="拼写"),
+        }
+    )
+    for index in range(3):
+        assert _grade(client).status_code == 200
+    body = client.get(f"{routes.CAMPUS_PREFIX}/grading/common-errors", params={"profile_id": ACTIVE_ID}).json()
+    top3 = body["top3"]
+    assert [item["type"] for item in top3] == ["主谓一致", "拼写"]
+    assert top3[0]["count"] == 2
+    assert top3[1]["count"] == 1
+    assert top3[0]["samples"] == ["I thinks"]
+
+
+def test_c4_caps_the_list_at_three_types(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider(
+        {
+            1: essay_payload(type_="主谓一致"),
+            2: essay_payload(type_="拼写"),
+            3: essay_payload(type_="时态语态"),
+            4: essay_payload(type_="用词不当"),
+        }
+    )
+    for index in range(4):
+        _grade(client)
+    body = client.get(f"{routes.CAMPUS_PREFIX}/grading/common-errors", params={"profile_id": ACTIVE_ID}).json()
+    assert len(body["top3"]) == 3
+
+
+def test_c4_filters_by_kind(client: TestClient, manager: FakeManager) -> None:
+    manager.provider = FakeProvider({"default": essay_payload(type_="主谓一致")})
+    _grade(client)
+    manager.provider = FakeProvider({"default": translation_payload()})
+    _grade(client, kind="translation", answer="译文")
+    only_translation = client.get(
+        f"{routes.CAMPUS_PREFIX}/grading/common-errors",
+        params={"profile_id": ACTIVE_ID, "kind": "translation"},
+    ).json()
+    assert [item["type"] for item in only_translation["top3"]] == ["漏译"]
+
+
+def test_c4_ignores_unparsable_stored_grading(client: TestClient, seeded_store: store.CampusStore) -> None:
+    seeded_store.insert(
+        "attempt",
+        {
+            "id": "attempt-broken",
+            "profile_id": ACTIVE_ID,
+            "track_type": "cet",
+            "subject": "writing",
+            "user_answer": "x",
+            "grading_json": "{not json",
+        },
+    )
+    body = client.get(f"{routes.CAMPUS_PREFIX}/grading/common-errors", params={"profile_id": ACTIVE_ID}).json()
+    assert body == {"top3": []}
+
+
+# ---------------------------------------------------------------------------
+# CERT-15 — 未命中得分点降级掌握度（T12 服务端副作用，单事务）
+# ---------------------------------------------------------------------------
+
+
+def variable_scoring_payload(*statuses: str) -> str:
+    return json.dumps(
+        {
+            "scoring_points": [
+                {"point": f"得分点{index}", "status": status, "note": ""}
+                for index, status in enumerate(statuses, start=1)
+            ],
+            "overall_score": 6,
+        }
+    )
 
 
 def test_cert15_downgrades_mastered_to_fuzzy_on_a_miss(
     client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("hit", "miss")})
-    _grade(client, question_id="q-p1", answer="……").json()
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
+    response = _grade(client, kind="short_answer", question_id="q-p1", answer="德育原则是……")
+    assert response.status_code == 200
     row = seeded_store.get("mastery", "mast-p1")
     assert row["level"] == models.MasteryLevel.FUZZY.value
     assert "得分点2" in row["evidence"]
@@ -411,8 +605,8 @@ def test_cert15_downgrades_mastered_to_fuzzy_on_a_miss(
 def test_cert15_downgrades_fuzzy_to_unknown(
     client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("miss")})
-    _grade(client, question_id="q-p2", answer="……").json()
+    manager.provider = FakeProvider({"default": variable_scoring_payload("miss")})
+    assert _grade(client, kind="short_answer", question_id="q-p2", answer="……").status_code == 200
     row = seeded_store.get("mastery", "mast-p2")
     assert row["level"] == models.MasteryLevel.UNKNOWN.value
 
@@ -420,8 +614,8 @@ def test_cert15_downgrades_fuzzy_to_unknown(
 def test_cert15_creates_an_unknown_row_when_none_exists(
     client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("hit", "miss")})
-    _grade(client, question_id="q-p3", answer="……").json()
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
+    assert _grade(client, kind="short_answer", question_id="q-p3", answer="……").status_code == 200
     rows = seeded_store.list_rows(
         "mastery", profile_id=ACTIVE_ID, where='"point_id" = ?', params=["p-3"]
     )
@@ -434,8 +628,8 @@ def test_cert15_creates_an_unknown_row_when_none_exists(
 def test_cert15_leaves_mastery_alone_when_everything_hits(
     client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("hit", "partial")})
-    _grade(client, question_id="q-p1", answer="……").json()
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "partial")})
+    assert _grade(client, kind="short_answer", question_id="q-p1", answer="……").status_code == 200
     row = seeded_store.get("mastery", "mast-p1")
     assert row["level"] == models.MasteryLevel.MASTERED.value
     assert row["evidence"] == ""
@@ -444,23 +638,19 @@ def test_cert15_leaves_mastery_alone_when_everything_hits(
 def test_cert15_ignores_a_question_without_a_point(
     client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("miss")})
+    manager.provider = FakeProvider({"default": variable_scoring_payload("miss")})
     before = seeded_store.count("mastery", "profile_id = ?", (ACTIVE_ID,))
-    _grade(client, question_id="q-nopoint", answer="……").json()
+    assert _grade(client, kind="short_answer", question_id="q-nopoint", answer="……").status_code == 200
     assert seeded_store.count("mastery", "profile_id = ?", (ACTIVE_ID,)) == before
 
 
 def test_cert15_runs_for_e5_subjective_grading_too(
     client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("hit", "miss")})
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
     response = client.post(
-        f"{_prefix()}/attempts",
-        json={
-            "profile_id": ACTIVE_ID,
-            "question_id": "q-p1",
-            "answer": "德育原则是……",
-        },
+        f"{routes.CAMPUS_PREFIX}/attempts",
+        json={"profile_id": ACTIVE_ID, "question_id": "q-p1", "answer": "德育原则是……"},
     )
     assert response.status_code == 200
     assert response.json()["pending_grading"] is True
@@ -471,7 +661,7 @@ def test_cert15_runs_for_e5_subjective_grading_too(
 def test_cert15_lands_in_the_same_transaction_as_the_attempt_write(
     client: TestClient, manager: FakeManager, monkeypatch, seeded_store: store.CampusStore
 ) -> None:
-    manager.provider = FakeProvider({"default": scoring_payload("hit", "miss")})
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
     original = store.CampusStore.update
 
     def failing_update(self, table, row_id, values):
@@ -481,7 +671,7 @@ def test_cert15_lands_in_the_same_transaction_as_the_attempt_write(
 
     monkeypatch.setattr(store.CampusStore, "update", failing_update)
     with pytest.raises(RuntimeError):
-        _grade(client, question_id="q-p1", answer="……")
+        _grade(client, kind="short_answer", question_id="q-p1", answer="……")
     row = seeded_store.get("mastery", "mast-p1")
     assert row["level"] == models.MasteryLevel.MASTERED.value
     assert row["evidence"] == ""

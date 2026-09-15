@@ -32,18 +32,21 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ..automation.models import Schedule, ScheduledTask
+from ..memory import Scope
 from ..secrets import state_dir
-from . import models, reminders, tracks
+from . import models, reminders, rubrics, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
+    SCORING_KINDS,
+    TEMPERATURE,
+    TRANSLATION_KINDS,
     GradeRequest,
     GradeResult,
     GradingEngine,
     extract_json,
 )
 from .library import FAIL_NO_TEXT_LAYER
-from .rubrics import CERT_SCORING_POINTS_SPEC, CET_ESSAY_RUBRIC, CET_TRANSLATION_RUBRIC
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -127,33 +130,6 @@ MASTERY_DOWNGRADE: Mapping[str, str] = {
 
 GENERAL_SUBJECT = "general"
 
-DIMENSION_LABELS: Mapping[str, str] = {"content": "内容", "structure": "结构", "language": "语言"}
-DIMENSION_MAX_SCORE = 5
-
-
-@dataclass(frozen=True)
-class RubricSpec:
-    """One named rubric of 05 §5: the label the API reports and the prompt text."""
-
-    name: str
-    text: str
-
-
-RUBRICS: Mapping[str, RubricSpec] = {
-    "cet_essay": RubricSpec("四六级短文写作评分标准", CET_ESSAY_RUBRIC),
-    "cet_translation": RubricSpec("四六级段落翻译评分标准", CET_TRANSLATION_RUBRIC),
-    "cert_scoring_points": RubricSpec("主观题评分点三态输出契约", CERT_SCORING_POINTS_SPEC),
-}
-
-DEFAULT_RUBRIC_BY_KIND: Mapping[str, str] = {
-    "essay": "cet_essay",
-    "translation": "cet_translation",
-    "short_answer": "cert_scoring_points",
-    "essay_material": "cert_scoring_points",
-    "lesson_plan": "cert_scoring_points",
-    "practical": "cert_scoring_points",
-}
-
 MIN_DIFFICULTY = 1
 MAX_DIFFICULTY = 5
 
@@ -204,6 +180,128 @@ _JUDGE_FALSE: frozenset[str] = frozenset({"f", "false", "n", "no", "错", "错�
 
 _BLANK_SEPARATOR = re.compile(r"[|｜]")
 
+RUBRIC_TEXTS: Mapping[str, str] = {
+    "cet-essay": rubrics.CET_ESSAY_RUBRIC,
+    "cet-translation": rubrics.CET_TRANSLATION_RUBRIC,
+    "cert-scoring-points": rubrics.CERT_SCORING_POINTS_SPEC,
+}
+
+RUBRIC_BY_KIND: Mapping[str, str] = {
+    models.QuestionType.ESSAY.value: "cet-essay",
+    "translation": "cet-translation",
+    models.QuestionType.SHORT_ANSWER.value: "cert-scoring-points",
+    models.QuestionType.MATERIAL.value: "cert-scoring-points",
+    models.QuestionType.LESSON_PLAN.value: "cert-scoring-points",
+    models.QuestionType.PRACTICAL.value: "cert-scoring-points",
+}
+
+CUSTOM_RUBRIC_ID = "custom"
+
+SUBJECT_BY_KIND: Mapping[str, str] = {
+    models.QuestionType.ESSAY.value: models.Subject.WRITING.value,
+    models.QuestionType.MATERIAL.value: models.Subject.WRITING.value,
+    models.QuestionType.LESSON_PLAN.value: models.Subject.WRITING.value,
+    "translation": models.Subject.TRANSLATION.value,
+    models.QuestionType.SHORT_ANSWER.value: models.Subject.MAJOR.value,
+    models.QuestionType.PRACTICAL.value: models.Subject.MAJOR.value,
+}
+
+DIMENSION_LABELS: Mapping[str, str] = {
+    "content": "内容",
+    "structure": "结构",
+    "language": "语言",
+}
+
+ESSAY_DIMENSION_MAX = 5
+TRANSLATION_DIMENSION_NAME = "档位"
+SCORING_POINT_SCORES: Mapping[str, float] = {"hit": 1.0, "partial": 0.5, "miss": 0.0}
+SCORING_POINT_MAX = 1
+
+TOP_ERROR_TYPES = 3
+MAX_ERROR_SAMPLES = 3
+
+ASSESSMENT_SECTIONS: tuple[tuple[str, int], ...] = (
+    ("vocab", 6),
+    ("listening", 4),
+    ("reading", 5),
+    ("writing_translation", 5),
+)
+
+ASSESSMENT_PROMPT_SECTIONS: tuple[tuple[str, int, str], ...] = (
+    ("vocab", 6, "词汇辨析"),
+    ("listening", 4, "听力理解"),
+    ("reading", 5, "阅读理解"),
+    ("writing", 3, "写作知识"),
+    ("translation", 2, "翻译知识"),
+)
+
+SECTION_OF_SUBJECT: Mapping[str, str] = {
+    models.Subject.VOCAB.value: "vocab",
+    models.Subject.LISTENING.value: "listening",
+    models.Subject.READING.value: "reading",
+    models.Subject.WRITING.value: "writing_translation",
+    models.Subject.TRANSLATION.value: "writing_translation",
+}
+
+SECTION_WEIGHTS: Mapping[str, float] = {
+    "listening": 248.5,
+    "reading": 248.5,
+    "writing_translation": 213.0,
+}
+
+FULL_SCORE = 710.0
+DEFAULT_TARGET_SCORE = 425
+ASSESSMENT_ITEM_SCORE = 1
+MASTERY_MASTERED_RATIO = 0.75
+MASTERY_FUZZY_RATIO = 0.4
+
+
+NEW_WORD_LIMIT = 30
+VOCAB_MASTERY_ALIASES: Mapping[str, str] = {
+    "known": models.MasteryLevel.MASTERED.value,
+    "mastered": models.MasteryLevel.MASTERED.value,
+    "fuzzy": models.MasteryLevel.FUZZY.value,
+    "unknown": models.MasteryLevel.UNKNOWN.value,
+}
+
+VOCAB_FIELDS: tuple[str, ...] = ("word", "phonetic", "meaning", "example")
+
+MOCK_PAUSE_BUDGET_SECONDS = 180
+MOCK_SECTIONS: tuple[str, ...] = ("listening", "reading", "writing_translation")
+MOCK_STAGE_ORDER: tuple[str, ...] = (
+    models.MockStage.WRITING.value,
+    models.MockStage.LISTENING.value,
+    models.MockStage.READING_TRANSLATION.value,
+)
+MOCK_STAGE_MINUTES: Mapping[str, int] = {
+    models.MockStage.WRITING.value: 30,
+    models.MockStage.LISTENING.value: 25,
+    models.MockStage.READING_TRANSLATION.value: 70,
+}
+SUBJECT_STAGE: Mapping[str, str] = {
+    models.Subject.WRITING.value: models.MockStage.WRITING.value,
+    models.Subject.LISTENING.value: models.MockStage.LISTENING.value,
+    models.Subject.READING.value: models.MockStage.READING_TRANSLATION.value,
+    models.Subject.TRANSLATION.value: models.MockStage.READING_TRANSLATION.value,
+}
+SUBJECT_SECTION: Mapping[str, str] = {
+    models.Subject.LISTENING.value: "listening",
+    models.Subject.READING.value: "reading",
+    models.Subject.WRITING.value: "writing_translation",
+    models.Subject.TRANSLATION.value: "writing_translation",
+}
+
+_VOCAB_LABELS: Mapping[str, str] = {
+    "word": "word",
+    "单词": "word",
+    "词": "word",
+    "phonetic": "phonetic",
+    "音标": "phonetic",
+    "meaning": "meaning",
+    "释义": "meaning",
+    "example": "example",
+    "例句": "example",
+}
 PLAN_STAGES: tuple[tuple[str, float], ...] = (
     (models.PlanStage.FOUNDATION.value, 0.4),
     (models.PlanStage.INTENSIVE.value, 0.3),
@@ -354,6 +452,25 @@ def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
     payload = asdict(attempt)
     payload["grading_json"] = _decode(payload.get("grading_json"), None)
     return payload
+
+
+def vocab_payload(vocab: models.VocabItem) -> dict[str, Any]:
+    """One word card; every column is scalar, so the body is the row itself (02 §4.11)."""
+    return asdict(vocab)
+
+
+def mock_payload(mock: models.MockExam) -> dict[str, Any]:
+    """One mock exam; every column is scalar, `locked_stages` stays its JSON string (02 §4.16)."""
+    return asdict(mock)
+
+
+def _parse_utc(value: str) -> datetime:
+    """Parse a campus timestamp (`...Z`) into an aware UTC datetime."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _utcformat(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def task_payload(task: models.PlanTask) -> dict[str, Any]:
@@ -737,6 +854,230 @@ def _blanks(value: Any) -> tuple[str, ...]:
     return tuple(part.strip().casefold() for part in _BLANK_SEPARATOR.split(str(value).strip()))
 
 
+def parse_vocabulary(fmt: str, content: str) -> list[dict[str, str]]:
+    """Parse an F8 word-list payload into `{word, phonetic, meaning, example}` rows.
+
+    Two shapes, one vocabulary (03 §4.6 F8):
+    * `md` — one word per line (PRD CET2 验收②), optionally `word|音标|释义|例句` with `|`;
+    * `csv` — a header row using the same labels, then one word per row.
+
+    Blank lines and `#` comments are skipped; anything else unusable raises `PARSE_ERROR` with the
+    physical line number, and the whole payload is validated before the first insert.
+    """
+    if not isinstance(content, str) or not content.strip():
+        raise CampusError("PARSE_ERROR", "导入内容为空", line=1)
+    if fmt == "md":
+        rows = _parse_markdown_vocabulary(content)
+    elif fmt == "csv":
+        rows = _parse_csv_vocabulary(content)
+    else:
+        raise CampusError("PARSE_ERROR", f"不支持的内容格式：{fmt}", line=1)
+    if not rows:
+        raise CampusError("PARSE_ERROR", "未解析到任何单词", line=1)
+    return rows
+
+
+def _parse_markdown_vocabulary(content: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for number, raw in enumerate(content.splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        cells = [cell.strip() for cell in _OPTION_SEPARATOR.split(line)]
+        if len(cells) > len(VOCAB_FIELDS):
+            raise CampusError("PARSE_ERROR", f"第 {number} 行字段过多：{line}", line=number)
+        if not cells[0]:
+            raise CampusError("PARSE_ERROR", f"第 {number} 行缺少单词", line=number)
+        rows.append(dict(zip(VOCAB_FIELDS, cells)))
+    return rows
+
+
+def _parse_csv_vocabulary(content: str) -> list[dict[str, str]]:
+    reader = csv.reader(io.StringIO(content))
+    header = next(reader, None)
+    if not header:
+        raise CampusError("PARSE_ERROR", "导入内容为空", line=1)
+    columns = [_VOCAB_LABELS.get(cell.strip()) for cell in header]
+    if any(column is None for column in columns):
+        raise CampusError("PARSE_ERROR", "第 1 行表头含未知字段", line=1)
+    if len(set(columns)) != len(columns):
+        raise CampusError("PARSE_ERROR", "第 1 行表头字段重复", line=1)
+    if "word" not in columns:
+        raise CampusError("PARSE_ERROR", "第 1 行表头缺少必填字段：word", line=1)
+    rows: list[dict[str, str]] = []
+    for row in reader:
+        line = reader.line_num
+        if not any(cell.strip() for cell in row):
+            continue
+        if len(row) != len(header):
+            raise CampusError("PARSE_ERROR", f"第 {line} 行列数与表头不一致", line=line)
+        fields = {str(column): cell.strip() for column, cell in zip(columns, row)}
+        if not fields.get("word"):
+            raise CampusError("PARSE_ERROR", f"第 {line} 行缺少单词", line=line)
+        rows.append(fields)
+    return rows
+
+
+def build_mnemonic_messages(vocab: models.VocabItem) -> list[dict[str, str]]:
+    """The F9 助记 prompt — one line, no chatter (05 §3.1 技能包语气)."""
+    system = (
+        "你在为备考四六级的学生生成单词助记。只输出一句中文助记（拆词 / 谐音 / 词根任选其一），"
+        "不超过 60 字，不要任何其他文字。"
+    )
+    detail = "、".join(
+        part for part in (vocab.phonetic or "", vocab.meaning or "") if part
+    )
+    user = f"单词：{vocab.word}" + (f"（{detail}）" if detail else "")
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def _utcnow() -> str:
+    """The campus timestamp format of 02 §1.3 (ISO 8601 UTC to the second)."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _grading_of(row: Any) -> dict[str, Any]:
+    """The decoded `grading_json` of an attempt row, or an empty dict when it is unusable."""
+    payload = _decode(row["grading_json"], None)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _error_list(errors: Any, answer: str) -> list[dict[str, Any]]:
+    """Adapt the engine's error entries onto the documented `{original, suggestion, type, offset}`.
+
+    The offset is the position of the offending fragment inside the submitted text, which is what
+    makes each entry clickable back to the original (PRD CET4 ②); a fragment the model paraphrased
+    rather than quoted yields `null` instead of a misleading position.
+    """
+    adapted: list[dict[str, Any]] = []
+    for error in errors or []:
+        if not isinstance(error, Mapping):
+            continue
+        original = str(error.get("fragment") or "")
+        offset = answer.find(original) if original else -1
+        adapted.append(
+            {
+                "original": original,
+                "suggestion": str(error.get("suggestion") or ""),
+                "type": str(error.get("type") or ""),
+                "offset": None if offset < 0 else offset,
+            }
+        )
+    return adapted
+
+
+def build_assessment_messages(profile: models.ExamProfile) -> list[dict[str, str]]:
+    """The 定级测评 出题 prompt (05 §3.1 cet-examiner: 20 题固定结构).
+
+    The section mix is spelled out in the prompt because the server validates it afterwards: a
+    model that returns 19 items or the wrong mix is refused rather than partially stored.
+    """
+    layout = "\n".join(
+        f"- {subject} {count} 题（{focus}）" for subject, count, focus in ASSESSMENT_PROMPT_SECTIONS
+    )
+    total = sum(count for _subject, count, _focus in ASSESSMENT_PROMPT_SECTIONS)
+    system = (
+        "你在为一位备考四六级的学生出定级测评卷。只输出一个 JSON 对象，不要任何其他文字。\n"
+        f"共 {total} 道单项选择题，每题 1 分、四个选项、唯一正确答案：\n{layout}\n"
+        '输出 schema：{"items": [{"subject": "vocab", "qtype": "single", "stem": "题干", '
+        '"options": [{"key": "A", "text": "选项"}], "answer": "A"}]}\n'
+        "要求：题干与选项用中文（听力题给出可阅读的文本材料），answer 只写正确选项的 key；"
+        "subject 只能取 vocab / listening / reading / writing / translation。"
+    )
+    user = f"考生档案：{profile.title}（目标分 {profile.target_score or DEFAULT_TARGET_SCORE}）。请出题。"
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+def validate_assessment_items(text: Optional[str]) -> list[dict[str, Any]]:
+    """Parse and validate the generated 20 items, or `MODEL_OUTPUT_INVALID` (ADR-03 不静默).
+
+    Validation covers the whole paper at once: every item has a usable subject, a non-empty stem
+    and answer, and single/multiple items carry options; then the per-section counts must match
+    05 §3.1 exactly (词汇 6 / 听力 4 / 阅读 5 / 写译 5). A payload that fails any of these is
+    refused before a single question is stored, so a bad generation never leaves a half paper.
+    """
+    payload, reason = extract_json(text)
+    items = payload.get("items") if isinstance(payload, dict) else None
+    if not isinstance(items, list):
+        raise CampusError("MODEL_OUTPUT_INVALID", f"出题输出无法解析（{reason or 'items 缺失'}）")
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, Mapping):
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题不是对象")
+        subject = str(item.get("subject") or "").strip()
+        stem = str(item.get("stem") or "").strip()
+        answer = str(item.get("answer") or "").strip()
+        qtype = str(item.get("qtype") or models.QuestionType.SINGLE.value).strip()
+        if subject not in SECTION_OF_SUBJECT or not stem or not answer:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题字段缺失或 subject 非法")
+        if qtype not in {q.value for q in models.QuestionType}:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题题型非法：{qtype}")
+        options = item.get("options")
+        if qtype in {models.QuestionType.SINGLE.value, models.QuestionType.MULTIPLE.value}:
+            if not isinstance(options, list) or not options:
+                raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题缺少选项")
+            options = [
+                {"key": str(option.get("key") or "").strip(), "text": str(option.get("text") or "").strip()}
+                for option in options
+                if isinstance(option, Mapping)
+            ]
+            if len(options) < 2 or any(not option["key"] or not option["text"] for option in options):
+                raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题选项不完整")
+        else:
+            options = None
+        normalized.append(
+            {
+                "subject": subject,
+                "qtype": qtype,
+                "stem": stem,
+                "options": options,
+                "answer": answer,
+                "max_score": ASSESSMENT_ITEM_SCORE,
+                "source": models.QuestionSource.AI.value,
+            }
+        )
+    counts: dict[str, int] = {}
+    for item in normalized:
+        section = SECTION_OF_SUBJECT[str(item["subject"])]
+        counts[section] = counts.get(section, 0) + 1
+    if counts != dict(ASSESSMENT_SECTIONS):
+        raise CampusError(
+            "MODEL_OUTPUT_INVALID",
+            f"出题结构与要求不符：{counts}，应为 {dict(ASSESSMENT_SECTIONS)}",
+        )
+    return normalized
+
+
+class ManagerCaller:
+    """One plain provider call through the sidecar's client — the non-grading AI path.
+
+    `GradingEngine` owns its own provider calls; question/plan/mnemonic generation is a single
+    prompt with a validated answer, so it goes through this thin caller instead. The model comes
+    from the same resolution chain (`CampusService.model_for_task`) and the call keeps the grading
+    chain's temperature and timeout, so one configured model drives every AI feature.
+    """
+
+    def __init__(self, provider_host: Any, resolve_model: Any) -> None:
+        self._host = provider_host
+        self._resolve_model = resolve_model
+
+    def complete(self, task: str, messages: list[dict]) -> str:
+        """Run one blocking completion; failures leave as documented campus codes."""
+        provider = getattr(self._host, "provider", None)
+        model = self._resolve_model(task)
+        if provider is None or model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        try:
+            turn = provider.complete(
+                model=model, messages=messages, temperature=TEMPERATURE, timeout=PROVIDER_TIMEOUT_S
+            )
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower() or "timeout" in str(exc).lower():
+                raise CampusError("MODEL_TIMEOUT", f"模型调用超时：{type(exc).__name__}") from exc
+            raise CampusError("MODEL_OUTPUT_INVALID", f"模型调用失败：{type(exc).__name__}") from exc
+        return turn.text or ""
+
+
 class ManagerGrader:
     """Runs T07's grading engine through the sidecar's provider (T07 §6-1 移交要点).
 
@@ -805,6 +1146,11 @@ class CampusService:
             if provider_host is not None
             else None
         )
+        self._caller = (
+            ManagerCaller(provider_host, self.model_for_task) if provider_host is not None else None
+        )
+        self._memory_store = getattr(provider_host, "memory_store", None)
+        self._memory_settings = getattr(provider_host, "memory_settings", None)
 
     @property
     def inventory(self) -> ModelInventory:
@@ -832,7 +1178,7 @@ class CampusService:
             "exam_profile",
             where=" AND ".join(conditions) or None,
             params=params,
-            order_by="created_at DESC, id",
+            order_by="created_at DESC, rowid DESC",
         )
         return [profile_payload(models.ExamProfile.from_row(row)) for row in rows]
 
@@ -1056,7 +1402,7 @@ class CampusService:
             profile_id=profile.id,
             where=" AND ".join(f'"{name}" = ?' for name, _ in filters) or None,
             params=[value for _, value in filters],
-            order_by="created_at DESC, id",
+            order_by="created_at DESC, rowid DESC",
             limit=page_size,
             offset=(page - 1) * page_size,
         )
@@ -1127,7 +1473,9 @@ class CampusService:
         """
         answer = str(payload["answer"])
         session_type = str(payload.get("session_type") or models.SessionType.PRACTICE.value)
-        mock_exam_id = self._require_mock(profile.id, payload.get("mock_exam_id"))
+        mock = self._require_mock(profile.id, payload.get("mock_exam_id"))
+        self._assert_mock_open(mock, question)
+        mock_exam_id = None if mock is None else mock.id
         if question.qtype in OBJECTIVE_QUESTION_TYPES:
             return self._record_objective(profile, question, answer, session_type, mock_exam_id)
         kind = GRADING_KIND_BY_QTYPE[question.qtype]
@@ -1147,7 +1495,7 @@ class CampusService:
             )
         )
         with self._store.transaction():
-            self._store.update("attempt", attempt_id, self._grading_columns(result))
+            self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
             self._apply_mastery_downgrade(profile.id, question, result)
         if not result.ok:
             code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
@@ -1156,14 +1504,14 @@ class CampusService:
         body["pending_grading"] = True
         return body
 
+    # -- C1-C4: grading (shared by every station) --------------------------
+
     def attempt(self, attempt_id: str) -> dict[str, Any]:
-        """One attempt body, or `ATTEMPT_NOT_FOUND`."""
+        """One attempt body, or `ATTEMPT_NOT_FOUND` — the C2 read and E5's own reply."""
         row = self._store.get("attempt", attempt_id)
         if row is None:
             raise CampusError("ATTEMPT_NOT_FOUND", f"作答记录不存在：{attempt_id}")
         return attempt_payload(models.Attempt.from_row(row))
-
-    # -- C1: the shared grading endpoint (03 §4.3) --------------------------
 
     async def grade(
         self,
@@ -1171,33 +1519,30 @@ class CampusService:
         question: Optional[models.QuestionBankItem],
         payload: Mapping[str, Any],
     ) -> dict[str, Any]:
-        """Grade one subjective answer through the shared chain (C1, CERT-07/14).
+        """Grade one free-form or question-bound answer through the C1 chain (03 §4.3 C1).
 
-        The attempt row is written first and survives a model failure — exactly the E5
-        semantics — and the CERT-15 mastery downgrade runs in the same transaction as the
-        grading write, so the response and the side effect land together.
+        The rubric is resolved first so an unknown `rubric_id` costs nothing, then a usable model
+        is checked before the attempt is written: a missing model is `MODEL_NOT_CONFIGURED` with
+        no side effect, while a model call that fails leaves the attempt behind with its
+        degradation trace (T07 §6-3/§6-6). The CERT-15 mastery downgrade runs in the same
+        transaction as the grading write, so the response and the side effect land together.
         """
         kind = str(payload["kind"])
+        answer = str(payload["answer"])
+        rubric_id, rubric_text = self._rubric_for(kind, payload)
         if self.model_for_task(models.task_for_kind(kind)) is None:
             raise CampusError("MODEL_NOT_CONFIGURED")
-        rubric_id = payload.get("rubric_id")
-        if rubric_id is not None and rubric_id not in RUBRICS:
-            raise CampusError("RUBRIC_NOT_FOUND", f"评分标准不存在：{rubric_id}")
-        chosen = RUBRICS[rubric_id if rubric_id is not None else DEFAULT_RUBRIC_BY_KIND[kind]]
-        custom = str(payload.get("custom_rubric") or "").strip() or None
-        rubric_text = custom if custom is not None else chosen.text
-        rubric_name = (
-            chosen.name
-            if custom is None or rubric_id is not None
-            else "自定义评分标准"
-        )
-        answer = str(payload["answer"])
-        attempt_id = self._insert_attempt(
-            profile,
-            question,
-            answer,
-            models.SessionType.GRADING.value,
-            None,
+        subject = question.subject if question is not None else SUBJECT_BY_KIND[kind]
+        attempt_id = self._store.insert(
+            "attempt",
+            {
+                "profile_id": profile.id,
+                "track_type": profile.track_type,
+                "subject": subject,
+                "user_answer": answer,
+                "question_id": question.id if question is not None else None,
+                "session_type": models.SessionType.GRADING.value,
+            },
         )
         result = await self._require_grader().grade(
             GradeRequest(
@@ -1206,48 +1551,47 @@ class CampusService:
                 kind=kind,
                 question=question.stem if question is not None else "",
                 answer=answer,
-                rubric_id=rubric_id,
+                subject=subject,
                 custom_rubric=rubric_text,
             )
         )
         with self._store.transaction():
-            self._store.update("attempt", attempt_id, self._grading_columns(result))
+            self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
             self._apply_mastery_downgrade(profile.id, question, result)
         if not result.ok:
-            code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
-            raise CampusError(code, f"批改失败（{result.fail_reason}）")
-        return self._grading_response(attempt_id, result, rubric_name)
+            raise CampusError(
+                "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID",
+                f"批改失败（{result.fail_reason}）",
+            )
+        return self.grade_payload(result, attempt_id, kind, rubric_id, answer)
 
-    def _grading_response(
-        self, attempt_id: str, result: GradeResult, rubric_name: str
+    def grade_payload(
+        self,
+        result: GradeResult,
+        attempt_id: str,
+        kind: str,
+        rubric_id: str,
+        answer: str,
     ) -> dict[str, Any]:
-        """The 03 §4.3 GradeResult view plus the attempt id and the raw grading columns."""
-        attempt = self.attempt(attempt_id)
+        """Adapt a `GradeResult` onto the documented 03 §4.3 response shape.
+
+        Three shape differences are bridged here: the engine's per-dimension dict becomes the
+        documented `[{name, score, max, comment}]` list (five-point essay dimensions, the
+        translation band, or one entry per scoring point), its `fragment`/`suggestion` errors
+        gain the `offset` the UI needs to highlight the original text, and the band plus the
+        upgraded demo ride along as additive fields the result card renders.
+        """
         return {
             "attempt_id": attempt_id,
             "degrade_level": result.degrade_level,
-            "rubric": rubric_name,
-            "dimensions": [
-                {"name": DIMENSION_LABELS[name], "score": score, "max": DIMENSION_MAX_SCORE, "comment": ""}
-                for name, score in result.dimension_scores.items()
-            ],
-            "errors": [
-                {
-                    "original": error.get("fragment", ""),
-                    "suggestion": error.get("suggestion", ""),
-                    "type": error.get("type", ""),
-                    "offset": error.get("offset"),
-                }
-                for error in result.errors
-            ],
+            "rubric": rubric_id,
+            "dimensions": self._dimensions(kind, result),
+            "errors": _error_list(result.errors, answer),
             "model_answer_outline": result.model_answer_outline,
             "model_used": result.model_used,
             "notice": result.notice,
             "band": result.band,
-            "score": attempt["score"],
-            "max_score": attempt["max_score"],
-            "scoring_points": result.scoring_points,
-            "grading_json": attempt["grading_json"],
+            "upgraded_demo": result.upgraded_demo,
         }
 
     def _apply_mastery_downgrade(
@@ -1288,6 +1632,78 @@ class CampusService:
         else:
             self._store.update("mastery", row["id"], {"level": next_level, "evidence": evidence})
 
+    def attempt_history(
+        self,
+        profile: models.ExamProfile,
+        *,
+        subject: Optional[str] = None,
+        kind: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> dict[str, Any]:
+        """One page of the profile's graded attempts, newest first (C3).
+
+        `kind` is matched against the `kind` recorded inside `grading_json`; like the CET-12
+        aggregation of 02 §4.13 this is a Python-side scan rather than a JSON index, so the
+        page is sliced after filtering.
+        """
+        rows = self._store.list_rows(
+            "attempt",
+            profile_id=profile.id,
+            where='"subject" = ?' if subject else None,
+            params=[subject] if subject else [],
+            order_by="created_at DESC, rowid DESC",
+        )
+        if kind:
+            rows = [row for row in rows if _grading_of(row).get("kind") == kind]
+        page_rows = rows[(page - 1) * page_size : (page - 1) * page_size + page_size]
+        return {
+            "items": [attempt_payload(models.Attempt.from_row(row)) for row in page_rows],
+            "total": len(rows),
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def common_errors(
+        self, profile: models.ExamProfile, *, kind: Optional[str] = None
+    ) -> dict[str, Any]:
+        """The profile's most frequent grading error types, ranked (C4 / CET-12).
+
+        Counts come from `grading_json.errors[].type` across the profile's attempts (02 §4.13),
+        with a per-type sample of the offending fragments so the card can show what the mistake
+        looked like. A stored payload that cannot be decoded is skipped instead of failing the
+        whole ranking.
+        """
+        counts: dict[str, int] = {}
+        samples: dict[str, list[str]] = {}
+        for row in self._store.list_rows(
+            "attempt",
+            profile_id=profile.id,
+            where='"grading_json" IS NOT NULL',
+            order_by="created_at DESC, rowid DESC",
+        ):
+            grading = _grading_of(row)
+            if not grading or (kind and grading.get("kind") != kind):
+                continue
+            for error in grading.get("errors") or []:
+                if not isinstance(error, Mapping):
+                    continue
+                type_name = str(error.get("type") or "").strip()
+                if not type_name:
+                    continue
+                counts[type_name] = counts.get(type_name, 0) + 1
+                bucket = samples.setdefault(type_name, [])
+                fragment = str(error.get("fragment") or "").strip()
+                if fragment and fragment not in bucket and len(bucket) < MAX_ERROR_SAMPLES:
+                    bucket.append(fragment)
+        ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:TOP_ERROR_TYPES]
+        return {
+            "top3": [
+                {"type": type_name, "count": count, "samples": samples.get(type_name, [])}
+                for type_name, count in ranked
+            ]
+        }
+
     # -- G1: today's suggestion and the self-built board -------------------
 
     def list_tasks(
@@ -1315,7 +1731,7 @@ class CampusService:
             profile_id=profile.id,
             where=" AND ".join(f'"{name}" = ?' for name, _ in filters) or None,
             params=[value for _, value in filters],
-            order_by="scheduled_date, priority, created_at, id",
+            order_by="scheduled_date, priority, created_at, rowid",
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
@@ -1576,6 +1992,146 @@ class CampusService:
         """The banner data source: upcoming nodes plus the due-today and overdue ones (H10)."""
         return reminders.deadline_snapshot(self._store, profile_id)
 
+    # -- F1-F4: the level assessment (CET-01) ------------------------------
+
+    async def create_assessment(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """Generate the 20-question level assessment and open a draft (F1).
+
+        The paper is generated, validated as a whole and stored in one transaction, so a bad
+        generation leaves neither a partial question bank nor an empty assessment behind.
+        """
+        if self.model_for_task(models.CampusTask.QUESTION.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        answer = await asyncio.to_thread(
+            self._require_caller().complete,
+            models.CampusTask.QUESTION.value,
+            build_assessment_messages(profile),
+        )
+        items = validate_assessment_items(answer)
+        with self._store.transaction():
+            question_ids = [self._insert_question(profile.id, item)["id"] for item in items]
+            assessment_id = self._store.insert(
+                "assessment",
+                {
+                    "profile_id": profile.id,
+                    "question_ids": json.dumps(question_ids),
+                    "started_at": _utcnow(),
+                },
+            )
+        return self.assessment(self._load_assessment(profile.id, assessment_id))
+
+    def assessment(self, assessment: models.Assessment) -> dict[str, Any]:
+        """The documented assessment body: stored fields decoded plus the resume question list.
+
+        The questions are returned **without their answer keys**: the paper is graded at F4, and a
+        resume view that leaked the keys would make 自评 meaningless (03 §4.6 keeps the key server
+        side until the paper is finished).
+        """
+        payload = asdict(assessment)
+        payload["question_ids"] = _decode(assessment.question_ids, [])
+        payload["answers"] = _decode(assessment.answers, {})
+        payload["scores"] = _decode(assessment.scores, None)
+        payload["questions"] = [
+            self._resume_question(question_id) for question_id in payload["question_ids"]
+        ]
+        return payload
+
+    def record_answers(
+        self,
+        profile: models.ExamProfile,
+        assessment: models.Assessment,
+        answers: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Merge a batch of answers into the draft, refusing unknown question ids (F3).
+
+        Only ids that belong to this paper are accepted: storing an unrelated id would silently
+        create an answer nobody can grade, and a finished paper is immutable
+        (`ASSESSMENT_FINISHED`).
+        """
+        if assessment.status == models.AssessmentStatus.FINISHED.value:
+            raise CampusError("ASSESSMENT_FINISHED", f"测评已结束：{assessment.id}")
+        known = set(_decode(assessment.question_ids, []))
+        merged = _decode(assessment.answers, {})
+        merged = dict(merged) if isinstance(merged, Mapping) else {}
+        for question_id, answer in answers.items():
+            if str(question_id) not in known:
+                raise CampusError("QUESTION_NOT_FOUND", f"题目不属于本次测评：{question_id}")
+            merged[str(question_id)] = "" if answer is None else str(answer)
+        self._store.update("assessment", assessment.id, {"answers": json.dumps(merged, ensure_ascii=False)})
+        return self.assessment(self._load_assessment(profile.id, assessment.id))
+
+    def finish_assessment(
+        self, profile: models.ExamProfile, assessment: models.Assessment
+    ) -> dict[str, Any]:
+        """Grade the paper offline, fold the three sections onto 710 and write the side effects (F4).
+
+        Folding is deterministic — every item is objectively judged against its stored key — which
+        is what makes the "数字自洽" acceptance (PRD CET1 ②) a property of the code rather than of
+        the model. The side effects are 02 §4.8's per-section `mastery` rows, the profile's
+        `current_estimate` (02 §4.3) and, when the user never set one, the default 425 target the
+        gap table needs.
+        """
+        if assessment.status == models.AssessmentStatus.FINISHED.value:
+            raise CampusError("ASSESSMENT_FINISHED", f"测评已结束：{assessment.id}")
+        answers = _decode(assessment.answers, {})
+        answers = answers if isinstance(answers, Mapping) else {}
+        correct: dict[str, int] = {section: 0 for section in SECTION_WEIGHTS}
+        totals: dict[str, int] = {section: 0 for section in SECTION_WEIGHTS}
+        vocab = {"correct": 0, "total": 0}
+        for question_id in _decode(assessment.question_ids, []):
+            row = self._store.get("question_bank_item", str(question_id))
+            if row is None:
+                continue
+            question = models.QuestionBankItem.from_row(row)
+            section = SECTION_OF_SUBJECT.get(question.subject)
+            answered = answers.get(str(question_id))
+            hit = answered is not None and self._judge(question, str(answered))
+            if section is None:
+                continue
+            if section not in SECTION_WEIGHTS:
+                vocab["total"] += 1
+                vocab["correct"] += int(hit)
+                continue
+            totals[section] += 1
+            correct[section] += int(hit)
+        scores = {
+            section: round(weight * correct[section] / totals[section], 1) if totals[section] else 0.0
+            for section, weight in SECTION_WEIGHTS.items()
+        }
+        estimate_total = round(sum(scores.values()), 1)
+        target = profile.target_score or DEFAULT_TARGET_SCORE
+        gap_table = [
+            {
+                "section": section,
+                "current": scores[section],
+                "target": round(target * weight / FULL_SCORE, 2),
+                "gap": round(round(target * weight / FULL_SCORE, 2) - scores[section], 1),
+            }
+            for section, weight in SECTION_WEIGHTS.items()
+        ]
+        stored_scores = {**scores, "estimate_total": estimate_total}
+        with self._store.transaction():
+            self._store.update(
+                "assessment",
+                assessment.id,
+                {
+                    "status": models.AssessmentStatus.FINISHED.value,
+                    "scores": json.dumps(stored_scores, ensure_ascii=False),
+                    "finished_at": _utcnow(),
+                },
+            )
+            self._write_assessment_mastery(profile, correct, totals)
+            profile_update: dict[str, Any] = {"current_estimate": round(estimate_total)}
+            if not profile.target_score:
+                profile_update["target_score"] = DEFAULT_TARGET_SCORE
+            self._store.update("exam_profile", profile.id, profile_update)
+        return {
+            "scores": stored_scores,
+            "estimate_total": estimate_total,
+            "gap_table": gap_table,
+            "vocab": vocab,
+        }
+
     # -- G2/G3: board write-back and rescheduling ---------------------------
 
     def update_task(
@@ -1744,6 +2300,404 @@ class CampusService:
             "first_date": start.isoformat(),
         }
 
+    # -- F6-F9: high-frequency vocabulary (CET-02/04/06) --------------------
+
+    def vocab_today(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """The day's word list: new words plus the reviews that are due (F6).
+
+        New words are capped at 30 (PRD CET2's "每天只背 30 个词"), ordered by the real-exam
+        frequency (`freq_rank`, unknown ranks last) and excluding anything already queued for
+        review — a word the student is reviewing must not reappear as new. Due reviews inline the
+        word itself so the card can render without a second request.
+        """
+        queued = {
+            row["item_id"]
+            for row in self._store.list_rows(
+                "review_queue",
+                profile_id=profile.id,
+                where='"item_type" = ? AND "status" = ?',
+                params=[models.ReviewItemType.VOCAB.value, models.ReviewStatus.PENDING.value],
+            )
+        }
+        unknown_rows = self._store.list_rows(
+            "vocab_item",
+            profile_id=profile.id,
+            where='"mastery" = ?',
+            params=[models.MasteryLevel.UNKNOWN.value],
+            order_by="created_at, rowid",
+        )
+        candidates = [row for row in unknown_rows if row["id"] not in queued]
+        candidates.sort(key=lambda row: (row["freq_rank"] is None, row["freq_rank"] or 0))
+        review_items: list[dict[str, Any]] = []
+        for row in self._store.list_rows(
+            "review_queue",
+            profile_id=profile.id,
+            where='"item_type" = ? AND "status" = ? AND "due_at" <= ?',
+            params=[
+                models.ReviewItemType.VOCAB.value,
+                models.ReviewStatus.PENDING.value,
+                _utcnow(),
+            ],
+            order_by="due_at, rowid",
+        ):
+            word = self._store.get_scoped("vocab_item", row["item_id"], profile.id)
+            if word is None:
+                continue
+            review_items.append(
+                {
+                    **asdict(models.ReviewItem.from_row(row)),
+                    "payload": vocab_payload(models.VocabItem.from_row(word)),
+                }
+            )
+        return {
+            "new_items": [
+                vocab_payload(models.VocabItem.from_row(row))
+                for row in candidates[:NEW_WORD_LIMIT]
+            ],
+            "review_items": review_items,
+        }
+
+    def set_vocab_mastery(
+        self, profile: models.ExamProfile, vocab: models.VocabItem, mastery: str
+    ) -> dict[str, Any]:
+        """Record a self-reported mastery mark, queueing "不认识" for tomorrow (F7).
+
+        The API vocabulary of 03 §4.6 (`known`) and the column vocabulary of 02 §4.11
+        (`mastered`) are two names for the same state; both are accepted and the column form is
+        stored. Queueing is idempotent — marking a word unknown twice leaves one pending item —
+        and the interval progression itself belongs to T13's `review_scheduler` (D6).
+        """
+        stored = VOCAB_MASTERY_ALIASES[mastery]
+        self._store.update("vocab_item", vocab.id, {"mastery": stored})
+        if stored == models.MasteryLevel.UNKNOWN.value:
+            self._enqueue_vocab_review(profile.id, vocab.id)
+        return self.vocab(vocab.id)
+
+    def import_vocabulary(
+        self, profile: models.ExamProfile, fmt: str, content: str
+    ) -> dict[str, int]:
+        """Import a custom word list, counting words already stored as skipped (F8)."""
+        imported = 0
+        skipped = 0
+        for row in parse_vocabulary(fmt, content):
+            word = row["word"]
+            if self._vocab_exists(profile.id, word):
+                skipped += 1
+                continue
+            self._store.insert(
+                "vocab_item",
+                {
+                    "profile_id": profile.id,
+                    "word": word,
+                    "phonetic": row.get("phonetic") or "",
+                    "meaning": row.get("meaning") or "",
+                    "example": row.get("example") or "",
+                    "example_source": models.ExampleSource.AI.value,
+                },
+            )
+            imported += 1
+        return {"imported": imported, "skipped": skipped}
+
+    async def vocab_mnemonic(
+        self, profile: models.ExamProfile, vocab: models.VocabItem
+    ) -> dict[str, Any]:
+        """Generate a mnemonic and remember it through the existing memory chain (F9).
+
+        The write goes through the manager's memory store and respects the user's Memory switch
+        (01 §4.2: campus never opens `coworker.db` itself) — with Memory off the mnemonic is still
+        returned, just not remembered, and the response says so instead of pretending.
+        """
+        if self.model_for_task(models.CampusTask.EXPLAIN.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        mnemonic = (
+            await asyncio.to_thread(
+                self._require_caller().complete,
+                models.CampusTask.EXPLAIN.value,
+                build_mnemonic_messages(vocab),
+            )
+        ).strip()
+        if not mnemonic:
+            raise CampusError("MODEL_OUTPUT_INVALID", "助记输出为空")
+        saved, memory_id = self._remember_mnemonic(vocab, mnemonic)
+        return {"mnemonic": mnemonic, "saved": saved, "memory_id": memory_id}
+
+    def vocab(self, vocab_id: str) -> dict[str, Any]:
+        """One word body, or `ITEM_NOT_FOUND` (03 §6's code for a missing review source)."""
+        row = self._store.get("vocab_item", vocab_id)
+        if row is None:
+            raise CampusError("ITEM_NOT_FOUND", f"单词不存在：{vocab_id}")
+        return vocab_payload(models.VocabItem.from_row(row))
+
+    # -- F10-F14: the proctored mock exam (CET-13/14) -----------------------
+
+    def start_mock(self, profile: models.ExamProfile, paper_title: str) -> dict[str, Any]:
+        """F10 — open an ongoing mock on the writing stage with a precomputed deadline."""
+        started = _utcnow()
+        mock_id = self._store.insert(
+            "mock_exam",
+            {
+                "profile_id": profile.id,
+                "paper_title": paper_title,
+                "started_at": started,
+                "stage_deadline": _utcformat(
+                    _parse_utc(started)
+                    + timedelta(minutes=MOCK_STAGE_MINUTES[models.MockStage.WRITING.value])
+                ),
+            },
+        )
+        mock = models.MockExam.from_row(self._store.get("mock_exam", mock_id))
+        return self.mock_view(mock)
+
+    def mock_view(self, mock: models.MockExam) -> dict[str, Any]:
+        """F11 — the stored row plus a live derived timer, so a refresh never trusts the client.
+
+        The read is pure: the clock is recomputed from `stage_deadline` (which pauses already
+        shifted), and the stage transition itself stays an explicit F12 call.
+        """
+        payload = mock_payload(mock)
+        now = datetime.now(timezone.utc)
+        if mock.stage_deadline:
+            deadline = _parse_utc(mock.stage_deadline)
+            payload["remaining_seconds"] = max(0, int((deadline - now).total_seconds()))
+            payload["stage_expired"] = now >= deadline
+        else:
+            payload["remaining_seconds"] = 0
+            payload["stage_expired"] = False
+        payload["server_now"] = _utcformat(now)
+        return payload
+
+    def advance_mock_stage(
+        self, profile: models.ExamProfile, mock: models.MockExam, to: str
+    ) -> dict[str, Any]:
+        """F12 — move to the next stage and collect the previous answer sheet (CET-13 验收 1)."""
+        del profile
+        self._assert_mock_ongoing(mock)
+        locked = json.loads(mock.locked_stages or "[]")
+        if to in locked:
+            raise CampusError("STAGE_LOCKED", f"该阶段已收卡，不可返回：{to}")
+        successor = self._mock_successor(mock.current_stage)
+        if to != successor:
+            raise CampusError(
+                "ILLEGAL_STAGE", f"阶段流转非法：{mock.current_stage} → {to}"
+            )
+        locked.append(mock.current_stage)
+        deadline = _parse_utc(mock.stage_deadline) + timedelta(minutes=MOCK_STAGE_MINUTES[to])
+        self._store.update(
+            "mock_exam",
+            mock.id,
+            {
+                "current_stage": to,
+                "locked_stages": json.dumps(locked, ensure_ascii=False),
+                "stage_deadline": _utcformat(deadline),
+            },
+        )
+        return self.mock_view(models.MockExam.from_row(self._store.get("mock_exam", mock.id)))
+
+    def pause_mock(
+        self, profile: models.ExamProfile, mock: models.MockExam, seconds: int
+    ) -> dict[str, Any]:
+        """F13 — extend the stage clock, within the cumulative pause budget (03 §4.6)."""
+        del profile
+        self._assert_mock_ongoing(mock)
+        total = mock.paused_seconds + seconds
+        if total > MOCK_PAUSE_BUDGET_SECONDS:
+            raise CampusError(
+                "PAUSE_EXCEEDED",
+                f"累计暂停 {total}s 超过上限 {MOCK_PAUSE_BUDGET_SECONDS}s",
+            )
+        self._store.update(
+            "mock_exam",
+            mock.id,
+            {
+                "paused_seconds": total,
+                "stage_deadline": _utcformat(_parse_utc(mock.stage_deadline) + timedelta(seconds=seconds)),
+            },
+        )
+        return self.mock_view(models.MockExam.from_row(self._store.get("mock_exam", mock.id)))
+
+    def submit_mock(self, profile: models.ExamProfile, mock: models.MockExam) -> dict[str, Any]:
+        """F14 — score the linked attempts, store the estimate and file the wrong answers.
+
+        The estimate is the paper's own scores summed (objective earned, band-graded subjective
+        scores as recorded by E5): imported real papers carry their official per-item scores, so
+        a second rescaling would only invent precision (CET-14, 06 §2).
+        """
+        self._assert_mock_ongoing(mock)
+        attempts = self._store.list_rows(
+            "attempt",
+            profile_id=profile.id,
+            where="mock_exam_id = ?",
+            params=(mock.id,),
+            order_by="created_at, rowid",
+        )
+        by_section = {
+            section: {"earned": 0.0, "max": 0.0} for section in MOCK_SECTIONS
+        }
+        for row in attempts:
+            section = SUBJECT_SECTION.get(row["subject"])
+            if section is None:
+                continue
+            by_section[section]["earned"] += float(row["score"] or 0.0)
+            by_section[section]["max"] += float(row["max_score"] or 0.0)
+        for entry in by_section.values():
+            entry["ratio"] = (
+                round(entry["earned"] / entry["max"], 4) if entry["max"] > 0 else None
+            )
+        estimate = round(sum(entry["earned"] for entry in by_section.values()), 1)
+        self._store.update(
+            "mock_exam",
+            mock.id,
+            {
+                "status": models.MockStatus.SUBMITTED.value,
+                "current_stage": models.MockStage.GRADED.value,
+                "estimate_score": estimate,
+            },
+        )
+        for row in attempts:
+            if row["is_correct"] == 0 and row["question_id"]:
+                self._file_mistake(profile, row)
+        return {
+            "estimate_score": estimate,
+            "by_section": by_section,
+            "attempt_ids": [row["id"] for row in attempts],
+        }
+
+    # -- internals ---------------------------------------------------------
+
+    def _assert_mock_ongoing(self, mock: models.MockExam) -> None:
+        if mock.status != models.MockStatus.ONGOING.value:
+            raise CampusError("MOCK_SUBMITTED", f"模考已交卷：{mock.id}")
+
+    def _mock_successor(self, stage: Optional[str]) -> Optional[str]:
+        try:
+            return MOCK_STAGE_ORDER[MOCK_STAGE_ORDER.index(stage) + 1]
+        except (ValueError, IndexError):
+            return None
+
+    def _file_mistake(self, profile: models.ExamProfile, attempt_row: Any) -> None:
+        """Enter one wrong attempt into the mistake book, idempotent per attempt (CET-14 验收 3)."""
+        if self._store.count("mistake_book", "attempt_id = ?", (attempt_row["id"],)):
+            return
+        self._store.insert(
+            "mistake_book",
+            {
+                "profile_id": profile.id,
+                "attempt_id": attempt_row["id"],
+                "track_type": profile.track_type,
+                "subject": attempt_row["subject"],
+                "question_id": attempt_row["question_id"],
+                "last_wrong_at": _utcnow(),
+            },
+        )
+
+    def _enqueue_vocab_review(self, profile_id: str, vocab_id: str) -> None:
+        """Put a word into tomorrow's review queue once, never twice."""
+        existing = self._store.query_one(
+            'SELECT "id" FROM "review_queue" WHERE "profile_id" = ? AND "item_type" = ? '
+            'AND "item_id" = ? AND "status" = ?',
+            (
+                profile_id,
+                models.ReviewItemType.VOCAB.value,
+                vocab_id,
+                models.ReviewStatus.PENDING.value,
+            ),
+        )
+        if existing is not None:
+            return
+        due = datetime.now(timezone.utc) + timedelta(days=1)
+        self._store.insert(
+            "review_queue",
+            {
+                "profile_id": profile_id,
+                "item_type": models.ReviewItemType.VOCAB.value,
+                "item_id": vocab_id,
+                "due_at": due.strftime("%Y-%m-%dT00:00:00Z"),
+                "interval_days": 1,
+                "streak_right": 0,
+                "ease": 2.5,
+                "status": models.ReviewStatus.PENDING.value,
+            },
+        )
+
+    def _vocab_exists(self, profile_id: str, word: str) -> bool:
+        row = self._store.query_one(
+            'SELECT "id" FROM "vocab_item" WHERE "profile_id" = ? AND "word" = ?',
+            (profile_id, word),
+        )
+        return row is not None
+
+    def _remember_mnemonic(self, vocab: models.VocabItem, mnemonic: str) -> tuple[bool, Optional[int]]:
+        """Write the mnemonic through the manager's memory store, honouring the Memory switch."""
+        settings = self._memory_settings
+        if settings is not None and not getattr(settings, "enabled", False):
+            return False, None
+        store = self._memory_store
+        if store is None:
+            return False, None
+        try:
+            item = store.add(
+                f"背单词助记（{vocab.word}）：{mnemonic}",
+                scope=Scope.GLOBAL,
+                summary=f"{vocab.word} 的助记",
+            )
+        except Exception:
+            return False, None
+        return True, getattr(item, "id", None)
+
+    def _load_assessment(self, profile_id: str, assessment_id: str) -> models.Assessment:
+        row = self._store.get_scoped("assessment", assessment_id, profile_id)
+        if row is None:
+            raise CampusError("ASSESSMENT_NOT_FOUND", f"测评不存在：{assessment_id}")
+        return models.Assessment.from_row(row)
+
+    def _resume_question(self, question_id: str) -> dict[str, Any]:
+        row = self._store.get("question_bank_item", str(question_id))
+        if row is None:
+            return {"id": str(question_id)}
+        payload = question_payload(models.QuestionBankItem.from_row(row))
+        for hidden in ("answer", "answer_meta"):
+            payload.pop(hidden, None)
+        return payload
+
+    def _write_assessment_mastery(
+        self, profile: models.ExamProfile, correct: Mapping[str, int], totals: Mapping[str, int]
+    ) -> None:
+        """UPSERT the three per-section mastery rows (02 §4.8: `point_id IS NULL` = 分项掌握度).
+
+        The unique index on `(profile_id, point_id, dimension)` cannot dedupe these rows because
+        SQLite treats NULL point ids as distinct, so the existing row is looked up explicitly and
+        updated — otherwise every re-assessment would pile up a new generation of rows.
+        """
+        now = _utcnow()
+        for section, total in totals.items():
+            ratio = (correct[section] / total) if total else 0.0
+            level = models.MasteryLevel.UNKNOWN.value
+            if ratio >= MASTERY_MASTERED_RATIO:
+                level = models.MasteryLevel.MASTERED.value
+            elif ratio >= MASTERY_FUZZY_RATIO:
+                level = models.MasteryLevel.FUZZY.value
+            values = {
+                "level": level,
+                "score_0_100": round(ratio * 100),
+                "evidence": f"定级测评：{section} {correct[section]}/{total} 正确",
+                "updated_at": now,
+            }
+            existing = self._store.query_one(
+                'SELECT "id" FROM "mastery" WHERE "profile_id" = ? AND "point_id" IS NULL '
+                'AND "dimension" = ?',
+                (profile.id, section),
+            )
+            if existing is None:
+                self._store.insert(
+                    "mastery", {"profile_id": profile.id, "dimension": section, **values}
+                )
+            else:
+                self._store.update("mastery", existing["id"], values)
+
+    def _require_caller(self) -> ManagerCaller:
+        if self._caller is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return self._caller
     # -- G4: progress overview ----------------------------------------------
 
     def progress(self, profile: models.ExamProfile) -> dict[str, Any]:
@@ -2367,19 +3321,83 @@ class CampusService:
         row.update(values or {})
         return self._store.insert("attempt", row)
 
-    def _grading_columns(self, result: GradeResult) -> dict[str, Any]:
+    def _rubric_for(self, kind: str, payload: Mapping[str, Any]) -> tuple[str, Optional[str]]:
+        """Resolve the rubric to grade with, returning its reported id and its full text.
+
+        A caller-supplied `custom_rubric` wins outright and reports itself as `custom`; otherwise
+        an explicit `rubric_id` selects a `rubrics.py` constant and an unknown one is
+        `RUBRIC_NOT_FOUND`. With neither, the kind's own default applies — so the reported id is
+        always the rubric that actually shaped the prompt (T07's engine treats `custom_rubric` as
+        a full override of the built-in text).
+        """
+        custom = str(payload.get("custom_rubric") or "").strip()
+        if custom:
+            return CUSTOM_RUBRIC_ID, custom
+        rubric_id = payload.get("rubric_id")
+        if rubric_id:
+            text = RUBRIC_TEXTS.get(str(rubric_id))
+            if text is None:
+                raise CampusError("RUBRIC_NOT_FOUND", f"评分标准不存在：{rubric_id}")
+            return str(rubric_id), text
+        default_id = RUBRIC_BY_KIND[kind]
+        return default_id, RUBRIC_TEXTS[default_id]
+
+    def _dimensions(self, kind: str, result: GradeResult) -> list[dict[str, Any]]:
+        """The documented `dimensions` list for the graded kind (03 §4.3).
+
+        Essay keeps the three five-point dimensions of 06 §2.2 in their canonical order; a
+        translation has one 15-point band dimension (its L0/L1 payload carries no breakdown);
+        a scoring-point kind reports one entry per point with the three states mapped to
+        1 / 0.5 / 0.
+        """
+        if kind in SCORING_KINDS:
+            return [
+                {
+                    "name": str(point.get("point", "")),
+                    "score": SCORING_POINT_SCORES.get(str(point.get("status")), 0.0),
+                    "max": SCORING_POINT_MAX,
+                    "comment": str(point.get("note") or ""),
+                }
+                for point in result.scoring_points
+            ]
+        if kind in TRANSLATION_KINDS:
+            if result.band is None:
+                return []
+            return [
+                {
+                    "name": TRANSLATION_DIMENSION_NAME,
+                    "score": result.band,
+                    "max": rubrics.TRANSLATION_BAND_MAX,
+                    "comment": "",
+                }
+            ]
+        scores = result.dimension_scores or {}
+        return [
+            {
+                "name": DIMENSION_LABELS.get(name, name),
+                "score": scores.get(name),
+                "max": ESSAY_DIMENSION_MAX,
+                "comment": "",
+            }
+            for name in rubrics.ESSAY_DIMENSIONS
+            if name in scores
+        ]
+
+    def _grading_columns(self, result: GradeResult, kind: str) -> dict[str, Any]:
         """Map a `GradeResult` onto the attempt columns and its `grading_json` whitelist.
 
         The whitelist is T07 §6-4: the server-side fields (`ok`, `model_used`, `usage`,
         `fail_reason`) stay out, `degrade_level` gets its own column, and the degradation trace
-        is kept under `_degrade_trace`. `score` carries the rubric band on the 15-point scale of
-        06 §2.1; a scoring-point kind has no band, so both score columns stay empty and the
+        is kept under `_degrade_trace`. `kind` is kept alongside them because C3/C4 filter on it
+        and 02 §4.13 has no column for it. `score` carries the rubric band on the 15-point scale
+        of 06 §2.1; a scoring-point kind has no band, so both score columns stay empty and the
         detail lives in `grading_json.scoring_points`.
         """
         score = None if result.band is None else float(result.band)
         return {
             "grading_json": json.dumps(
                 {
+                    "kind": kind,
                     "band": result.band,
                     "dimension_scores": result.dimension_scores,
                     "errors": result.errors,
@@ -2406,13 +3424,27 @@ class CampusService:
             raise CampusError("MODEL_NOT_CONFIGURED")
         return self._grader
 
-    def _require_mock(self, profile_id: str, mock_exam_id: Optional[str]) -> Optional[str]:
-        """Validate `mock_exam_id` inside the profile's scope, or `MOCK_NOT_FOUND`."""
+    def _require_mock(
+        self, profile_id: str, mock_exam_id: Optional[str]
+    ) -> Optional[models.MockExam]:
+        """Load the referenced mock inside the profile's scope, or `MOCK_NOT_FOUND`."""
         if mock_exam_id is None:
             return None
-        if self._store.get_scoped("mock_exam", str(mock_exam_id), profile_id) is None:
+        row = self._store.get_scoped("mock_exam", str(mock_exam_id), profile_id)
+        if row is None:
             raise CampusError("MOCK_NOT_FOUND", f"模考不存在：{mock_exam_id}")
-        return str(mock_exam_id)
+        return models.MockExam.from_row(row)
+
+    def _assert_mock_open(
+        self, mock: Optional[models.MockExam], question: models.QuestionBankItem
+    ) -> None:
+        """Refuse attempts a real exam would not accept (PRD CET-13 验收 1, CET-14)."""
+        if mock is None:
+            return
+        self._assert_mock_ongoing(mock)
+        stage = SUBJECT_STAGE.get(question.subject)
+        if stage and stage in json.loads(mock.locked_stages or "[]"):
+            raise CampusError("STAGE_LOCKED", f"该阶段已收卡，不可再作答：{stage}")
 
     def _insert_question(self, profile_id: str, data: Mapping[str, Any]) -> dict[str, Any]:
         values = {
