@@ -81,8 +81,14 @@ T11_NEW: tuple[tuple[str, str], ...] = (
     ("PATCH", "/school-profile"),
     ("POST", "/school-profile/extract"),
 )
+T13_NEW: tuple[tuple[str, str], ...] = (
+    ("POST", "/review/items"),
+    ("GET", "/review/due"),
+    ("POST", "/review/{rq_id}/result"),
+)
 T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS + T11_NEW
-DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS
+T13_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS + T13_NEW
+DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T13_ENDPOINTS
 
 
 def essay_payload() -> str:
@@ -133,7 +139,7 @@ def test_route_inventory_matches_the_t09_contract() -> None:
         for route in router.routes
         for method in route.methods
     }
-    for method, path in T11_ENDPOINTS:
+    for method, path in T13_ENDPOINTS:
         assert (method, path) in declared, f"{method} {path} is not registered"
 
 

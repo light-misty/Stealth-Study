@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Mapping, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
 
 from . import models, tracks
 from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
@@ -57,6 +57,7 @@ PROFILE_ID_PARAM = "profile_id"
 PROFILE_PATH_PARAM = "pid"
 EXAM_DATE_PATTERN = r"^\d{4}-\d{2}-\d{2}$"
 PUSH_TIME_PATTERN = r"^(?:[01]\d|2[0-3]):[0-5]\d$"
+CAMPUS_TIMESTAMP_PATTERN = r"^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\dZ$"
 MAX_PAGE_SIZE = 200
 
 
@@ -631,6 +632,29 @@ class VocabRef(BaseModel):
     vocab_id: str
 
 
+class ReviewEnqueue(BaseModel):
+    """D4 body (03 §4.4): the source item joining the review queue."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    item_type: models.ReviewItemType
+    item_id: str
+
+
+class ReviewResult(BaseModel):
+    """D6 body (03 §4.4): whether the review was answered correctly.
+
+    `StrictBool` keeps `"yes"`/`1` from silently grading a review correct — only a real
+    JSON boolean says the answer was right.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    correct: StrictBool
+
+
 class MockStart(BaseModel):
     """F10 body (03 §4.6): the paper being practised. `profile_id` rides the body for the guard."""
 
@@ -1031,6 +1055,41 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """F7 — mark a word known/fuzzy/unknown; "不认识" joins tomorrow's review queue."""
         return _call(campus_service.set_vocab_mastery, profile, vocab, body.mastery)
+
+    # -- D4-D6：复习队列（03 §4.4 G-17/CET-05）------------------------------
+
+    def scoped_review_item(
+        rq_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.ReviewItem:
+        """Resolve a queue row of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "review_queue", rq_id, profile.id, missing_code="RQ_NOT_FOUND"
+        )
+
+    @router.post("/review/items")
+    def campus_enqueue_review(
+        body: ReviewEnqueue,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """D4 — queue a mistake/vocab/knowledge point for spaced review."""
+        return _call(campus_service.enqueue_review, profile, body.item_type.value, body.item_id)
+
+    @router.get("/review/due")
+    def campus_review_due(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        as_of: Optional[str] = Query(default=None, pattern=CAMPUS_TIMESTAMP_PATTERN),
+    ) -> dict[str, Any]:
+        """D5 — the due review queue with the source content inlined."""
+        return _call(campus_service.review_due, profile, as_of=as_of)
+
+    @router.post("/review/{rq_id}/result")
+    def campus_review_result(
+        body: ReviewResult,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        item: models.ReviewItem = Depends(scoped_review_item),
+    ) -> dict[str, Any]:
+        """D6 — record the review outcome and reschedule (simplified SM-2)."""
+        return _call(campus_service.review_result, profile, item, body.correct)
 
     # -- F10-F14：模考（03 §4.6 CET-13/14）---------------------------------
 

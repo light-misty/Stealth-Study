@@ -32,7 +32,7 @@ from typing import Any, Mapping, Optional
 
 from ..memory import Scope
 from ..secrets import state_dir
-from . import models, rubrics, tracks
+from . import models, review_scheduler, rubrics, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
@@ -67,6 +67,12 @@ CASCADE_TABLES: tuple[str, ...] = (
     "school_profile",
     "knowledge_point",
 )
+
+REVIEW_SOURCE_TABLES: Mapping[str, str] = {
+    models.ReviewItemType.MISTAKE.value: "mistake_book",
+    models.ReviewItemType.VOCAB.value: "vocab_item",
+    models.ReviewItemType.KNOWLEDGE_POINT.value: "knowledge_point",
+}
 
 PROFILE_MUTABLE_FIELDS: tuple[str, ...] = (
     "title",
@@ -427,6 +433,11 @@ def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
 def vocab_payload(vocab: models.VocabItem) -> dict[str, Any]:
     """One word card; every column is scalar, so the body is the row itself (02 §4.11)."""
     return asdict(vocab)
+
+
+def review_payload(item: models.ReviewItem) -> dict[str, Any]:
+    """One queue row; every column is scalar, so the body is the row itself (02 §4.15)."""
+    return asdict(item)
 
 
 def mock_payload(mock: models.MockExam) -> dict[str, Any]:
@@ -2095,6 +2106,95 @@ class CampusService:
         if row is None:
             raise CampusError("ITEM_NOT_FOUND", f"单词不存在：{vocab_id}")
         return vocab_payload(models.VocabItem.from_row(row))
+
+    # -- D4-D6: the review queue (G-17/CET-05, scheduler of T13) ------------
+
+    def enqueue_review(
+        self, profile: models.ExamProfile, item_type: str, item_id: str
+    ) -> dict[str, Any]:
+        """Put one source item into tomorrow's queue, never twice (D4).
+
+        The source must exist and belong to the profile (`ITEM_NOT_FOUND` / `FORBIDDEN_PROFILE`).
+        A still-pending row is returned unchanged so re-joining never resets progress —
+        02 §4.15 keeps one pending row per item and rides repeats through the UPSERT —
+        while a `done` history row starts a fresh cycle at the ladder's first step.
+        """
+        table = REVIEW_SOURCE_TABLES[item_type]
+        if self._store.get_scoped(table, item_id, profile.id) is None:
+            if self._store.get(table, item_id) is not None:
+                raise CampusError("FORBIDDEN_PROFILE", f"{table} 不属于当前档案：{item_id}")
+            raise CampusError("ITEM_NOT_FOUND", f"复习素材不存在：{item_id}")
+        existing = self._store.query_one(
+            'SELECT * FROM "review_queue" WHERE "profile_id" = ? AND "item_type" = ? '
+            'AND "item_id" = ? AND "status" = ?',
+            (profile.id, item_type, item_id, models.ReviewStatus.PENDING.value),
+        )
+        if existing is not None:
+            return review_payload(models.ReviewItem.from_row(existing))
+        row_id = self._store.insert(
+            "review_queue",
+            {
+                "profile_id": profile.id,
+                "item_type": item_type,
+                "item_id": item_id,
+                "due_at": (datetime.now(timezone.utc) + timedelta(days=1)).strftime(
+                    "%Y-%m-%dT00:00:00Z"
+                ),
+                "interval_days": 1,
+                "streak_right": 0,
+                "ease": 2.5,
+                "status": models.ReviewStatus.PENDING.value,
+            },
+        )
+        return review_payload(models.ReviewItem.from_row(self._store.get("review_queue", row_id)))
+
+    def review_due(
+        self, profile: models.ExamProfile, *, as_of: Optional[str] = None
+    ) -> dict[str, Any]:
+        """The due queue with the source content inlined (D5).
+
+        The scheduler owns the pull (pending, `due_at <= as_of`, oldest first, profile
+        isolated); this layer only adds each source's body so a review card renders
+        without a second request. A row whose source has disappeared — an individually
+        deleted question, say — is skipped instead of failing the whole pull.
+        """
+        items: list[dict[str, Any]] = []
+        for item in review_scheduler.due_items(self._store, profile.id, as_of=as_of):
+            source = self._store.get_scoped(
+                REVIEW_SOURCE_TABLES[item.item_type], item.item_id, profile.id
+            )
+            if source is None:
+                continue
+            items.append({**review_payload(item), "payload": self._source_payload(item.item_type, source)})
+        return {"items": items}
+
+    def review_result(
+        self, profile: models.ExamProfile, item: models.ReviewItem, correct: bool
+    ) -> dict[str, Any]:
+        """Record one review's outcome and reschedule it (D6, the SM-2 progression)."""
+        del profile
+        updated = review_scheduler.apply_result(item, correct)
+        self._store.update(
+            "review_queue",
+            item.id,
+            {
+                "due_at": updated.due_at,
+                "interval_days": updated.interval_days,
+                "streak_right": updated.streak_right,
+                "ease": updated.ease,
+                "status": updated.status,
+                "last_reviewed_at": updated.last_reviewed_at,
+            },
+        )
+        return review_payload(updated)
+
+    def _source_payload(self, item_type: str, source: Any) -> dict[str, Any]:
+        """The inlined body of a queue row's source, per its item type (D5)."""
+        if item_type == models.ReviewItemType.VOCAB.value:
+            return vocab_payload(models.VocabItem.from_row(source))
+        if item_type == models.ReviewItemType.KNOWLEDGE_POINT.value:
+            return asdict(models.KnowledgePoint.from_row(source))
+        return asdict(models.MistakeBookEntry.from_row(source))
 
     # -- F10-F14: the proctored mock exam (CET-13/14) -----------------------
 
