@@ -13,10 +13,12 @@ export function ProfileCreateCard({
   track,
   onCreate,
   onCancel,
+  busy = false,
 }: {
   track: CampusTrack;
   onCreate: (input: ProfileCreateInput) => void | Promise<void>;
   onCancel?: () => void;
+  busy?: boolean;
 }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState("");
@@ -33,6 +35,9 @@ export function ProfileCreateCard({
   };
 
   const submit = () => {
+    // A second click while the create is in flight would POST a second profile (A2 has no
+    // client-generated idempotency key yet), so the button is locked until it settles.
+    if (busy) return;
     const cleanTitle = title.trim();
     if (!cleanTitle) {
       setInvalid(true);
@@ -113,6 +118,7 @@ export function ProfileCreateCard({
           type="button"
           className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] disabled:opacity-40"
           onClick={submit}
+          disabled={busy}
           data-testid="campus-profile-create-submit"
         >
           {t("campus.profile.create_submit")}

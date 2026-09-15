@@ -58,6 +58,17 @@ describe("ProfileCreateCard", () => {
     expect(onCreate).toHaveBeenCalledWith({ track_type: "cet", title: "分数乱填" });
   });
 
+  it("locks the submit button while a create is in flight", () => {
+    const onCreate = vi.fn();
+    render(<ProfileCreateCard track="cet" onCreate={onCreate} busy />);
+    const submit = screen.getByTestId("campus-profile-create-submit") as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+
+    type("campus-profile-create-title", "重复提交");
+    fireEvent.click(submit);
+    expect(onCreate).not.toHaveBeenCalled();
+  });
+
   it("supports cancelling out of the card", () => {
     const { onCancel } = setup();
     fireEvent.click(screen.getByTestId("campus-profile-create-cancel"));

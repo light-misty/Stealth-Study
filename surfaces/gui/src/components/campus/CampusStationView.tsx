@@ -125,6 +125,7 @@ function StationBody({ track }: { track: CampusTrack }) {
       <div className="grid gap-3" data-testid="campus-station-empty" data-track={track}>
         <ProfileCreateCard
           track={track}
+          busy={creating}
           onCreate={(input) => {
             void createProfile(input).then((created) => {
               if (created) setCreating(false);
@@ -153,6 +154,7 @@ function StationBody({ track }: { track: CampusTrack }) {
         {creating ? (
           <ProfileCreateCard
             track={track}
+            busy={creating}
             onCreate={(input) => {
               void createProfile(input).then((created) => {
                 if (created) setCreating(false);
