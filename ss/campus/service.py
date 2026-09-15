@@ -240,6 +240,31 @@ VOCAB_MASTERY_ALIASES: Mapping[str, str] = {
 
 VOCAB_FIELDS: tuple[str, ...] = ("word", "phonetic", "meaning", "example")
 
+MOCK_PAUSE_BUDGET_SECONDS = 180
+MOCK_SECTIONS: tuple[str, ...] = ("listening", "reading", "writing_translation")
+MOCK_STAGE_ORDER: tuple[str, ...] = (
+    models.MockStage.WRITING.value,
+    models.MockStage.LISTENING.value,
+    models.MockStage.READING_TRANSLATION.value,
+)
+MOCK_STAGE_MINUTES: Mapping[str, int] = {
+    models.MockStage.WRITING.value: 30,
+    models.MockStage.LISTENING.value: 25,
+    models.MockStage.READING_TRANSLATION.value: 70,
+}
+SUBJECT_STAGE: Mapping[str, str] = {
+    models.Subject.WRITING.value: models.MockStage.WRITING.value,
+    models.Subject.LISTENING.value: models.MockStage.LISTENING.value,
+    models.Subject.READING.value: models.MockStage.READING_TRANSLATION.value,
+    models.Subject.TRANSLATION.value: models.MockStage.READING_TRANSLATION.value,
+}
+SUBJECT_SECTION: Mapping[str, str] = {
+    models.Subject.LISTENING.value: "listening",
+    models.Subject.READING.value: "reading",
+    models.Subject.WRITING.value: "writing_translation",
+    models.Subject.TRANSLATION.value: "writing_translation",
+}
+
 _VOCAB_LABELS: Mapping[str, str] = {
     "word": "word",
     "单词": "word",
@@ -311,6 +336,20 @@ def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
 def vocab_payload(vocab: models.VocabItem) -> dict[str, Any]:
     """One word card; every column is scalar, so the body is the row itself (02 §4.11)."""
     return asdict(vocab)
+
+
+def mock_payload(mock: models.MockExam) -> dict[str, Any]:
+    """One mock exam; every column is scalar, `locked_stages` stays its JSON string (02 §4.16)."""
+    return asdict(mock)
+
+
+def _parse_utc(value: str) -> datetime:
+    """Parse a campus timestamp (`...Z`) into an aware UTC datetime."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _utcformat(value: datetime) -> str:
+    return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def task_payload(task: models.PlanTask) -> dict[str, Any]:
@@ -1294,7 +1333,9 @@ class CampusService:
         """
         answer = str(payload["answer"])
         session_type = str(payload.get("session_type") or models.SessionType.PRACTICE.value)
-        mock_exam_id = self._require_mock(profile.id, payload.get("mock_exam_id"))
+        mock = self._require_mock(profile.id, payload.get("mock_exam_id"))
+        self._assert_mock_open(mock, question)
+        mock_exam_id = None if mock is None else mock.id
         if question.qtype in OBJECTIVE_QUESTION_TYPES:
             return self._record_objective(profile, question, answer, session_type, mock_exam_id)
         kind = GRADING_KIND_BY_QTYPE[question.qtype]
@@ -1836,7 +1877,167 @@ class CampusService:
             raise CampusError("ITEM_NOT_FOUND", f"单词不存在：{vocab_id}")
         return vocab_payload(models.VocabItem.from_row(row))
 
+    # -- F10-F14: the proctored mock exam (CET-13/14) -----------------------
+
+    def start_mock(self, profile: models.ExamProfile, paper_title: str) -> dict[str, Any]:
+        """F10 — open an ongoing mock on the writing stage with a precomputed deadline."""
+        started = _utcnow()
+        mock_id = self._store.insert(
+            "mock_exam",
+            {
+                "profile_id": profile.id,
+                "paper_title": paper_title,
+                "started_at": started,
+                "stage_deadline": _utcformat(
+                    _parse_utc(started)
+                    + timedelta(minutes=MOCK_STAGE_MINUTES[models.MockStage.WRITING.value])
+                ),
+            },
+        )
+        mock = models.MockExam.from_row(self._store.get("mock_exam", mock_id))
+        return self.mock_view(mock)
+
+    def mock_view(self, mock: models.MockExam) -> dict[str, Any]:
+        """F11 — the stored row plus a live derived timer, so a refresh never trusts the client.
+
+        The read is pure: the clock is recomputed from `stage_deadline` (which pauses already
+        shifted), and the stage transition itself stays an explicit F12 call.
+        """
+        payload = mock_payload(mock)
+        now = datetime.now(timezone.utc)
+        if mock.stage_deadline:
+            deadline = _parse_utc(mock.stage_deadline)
+            payload["remaining_seconds"] = max(0, int((deadline - now).total_seconds()))
+            payload["stage_expired"] = now >= deadline
+        else:
+            payload["remaining_seconds"] = 0
+            payload["stage_expired"] = False
+        payload["server_now"] = _utcformat(now)
+        return payload
+
+    def advance_mock_stage(
+        self, profile: models.ExamProfile, mock: models.MockExam, to: str
+    ) -> dict[str, Any]:
+        """F12 — move to the next stage and collect the previous answer sheet (CET-13 验收 1)."""
+        del profile
+        self._assert_mock_ongoing(mock)
+        locked = json.loads(mock.locked_stages or "[]")
+        if to in locked:
+            raise CampusError("STAGE_LOCKED", f"该阶段已收卡，不可返回：{to}")
+        successor = self._mock_successor(mock.current_stage)
+        if to != successor:
+            raise CampusError(
+                "ILLEGAL_STAGE", f"阶段流转非法：{mock.current_stage} → {to}"
+            )
+        locked.append(mock.current_stage)
+        deadline = _parse_utc(mock.stage_deadline) + timedelta(minutes=MOCK_STAGE_MINUTES[to])
+        self._store.update(
+            "mock_exam",
+            mock.id,
+            {
+                "current_stage": to,
+                "locked_stages": json.dumps(locked, ensure_ascii=False),
+                "stage_deadline": _utcformat(deadline),
+            },
+        )
+        return self.mock_view(models.MockExam.from_row(self._store.get("mock_exam", mock.id)))
+
+    def pause_mock(
+        self, profile: models.ExamProfile, mock: models.MockExam, seconds: int
+    ) -> dict[str, Any]:
+        """F13 — extend the stage clock, within the cumulative pause budget (03 §4.6)."""
+        del profile
+        self._assert_mock_ongoing(mock)
+        total = mock.paused_seconds + seconds
+        if total > MOCK_PAUSE_BUDGET_SECONDS:
+            raise CampusError(
+                "PAUSE_EXCEEDED",
+                f"累计暂停 {total}s 超过上限 {MOCK_PAUSE_BUDGET_SECONDS}s",
+            )
+        self._store.update(
+            "mock_exam",
+            mock.id,
+            {
+                "paused_seconds": total,
+                "stage_deadline": _utcformat(_parse_utc(mock.stage_deadline) + timedelta(seconds=seconds)),
+            },
+        )
+        return self.mock_view(models.MockExam.from_row(self._store.get("mock_exam", mock.id)))
+
+    def submit_mock(self, profile: models.ExamProfile, mock: models.MockExam) -> dict[str, Any]:
+        """F14 — score the linked attempts, store the estimate and file the wrong answers.
+
+        The estimate is the paper's own scores summed (objective earned, band-graded subjective
+        scores as recorded by E5): imported real papers carry their official per-item scores, so
+        a second rescaling would only invent precision (CET-14, 06 §2).
+        """
+        self._assert_mock_ongoing(mock)
+        attempts = self._store.list_rows(
+            "attempt",
+            profile_id=profile.id,
+            where="mock_exam_id = ?",
+            params=(mock.id,),
+            order_by="created_at, rowid",
+        )
+        by_section = {
+            section: {"earned": 0.0, "max": 0.0} for section in MOCK_SECTIONS
+        }
+        for row in attempts:
+            section = SUBJECT_SECTION.get(row["subject"])
+            if section is None:
+                continue
+            by_section[section]["earned"] += float(row["score"] or 0.0)
+            by_section[section]["max"] += float(row["max_score"] or 0.0)
+        for entry in by_section.values():
+            entry["ratio"] = (
+                round(entry["earned"] / entry["max"], 4) if entry["max"] > 0 else None
+            )
+        estimate = round(sum(entry["earned"] for entry in by_section.values()), 1)
+        self._store.update(
+            "mock_exam",
+            mock.id,
+            {
+                "status": models.MockStatus.SUBMITTED.value,
+                "current_stage": models.MockStage.GRADED.value,
+                "estimate_score": estimate,
+            },
+        )
+        for row in attempts:
+            if row["is_correct"] == 0 and row["question_id"]:
+                self._file_mistake(profile, row)
+        return {
+            "estimate_score": estimate,
+            "by_section": by_section,
+            "attempt_ids": [row["id"] for row in attempts],
+        }
+
     # -- internals ---------------------------------------------------------
+
+    def _assert_mock_ongoing(self, mock: models.MockExam) -> None:
+        if mock.status != models.MockStatus.ONGOING.value:
+            raise CampusError("MOCK_SUBMITTED", f"模考已交卷：{mock.id}")
+
+    def _mock_successor(self, stage: Optional[str]) -> Optional[str]:
+        try:
+            return MOCK_STAGE_ORDER[MOCK_STAGE_ORDER.index(stage) + 1]
+        except (ValueError, IndexError):
+            return None
+
+    def _file_mistake(self, profile: models.ExamProfile, attempt_row: Any) -> None:
+        """Enter one wrong attempt into the mistake book, idempotent per attempt (CET-14 验收 3)."""
+        if self._store.count("mistake_book", "attempt_id = ?", (attempt_row["id"],)):
+            return
+        self._store.insert(
+            "mistake_book",
+            {
+                "profile_id": profile.id,
+                "attempt_id": attempt_row["id"],
+                "track_type": profile.track_type,
+                "subject": attempt_row["subject"],
+                "question_id": attempt_row["question_id"],
+                "last_wrong_at": _utcnow(),
+            },
+        )
 
     def _enqueue_vocab_review(self, profile_id: str, vocab_id: str) -> None:
         """Put a word into tomorrow's review queue once, never twice."""
@@ -2130,13 +2331,27 @@ class CampusService:
             raise CampusError("MODEL_NOT_CONFIGURED")
         return self._grader
 
-    def _require_mock(self, profile_id: str, mock_exam_id: Optional[str]) -> Optional[str]:
-        """Validate `mock_exam_id` inside the profile's scope, or `MOCK_NOT_FOUND`."""
+    def _require_mock(
+        self, profile_id: str, mock_exam_id: Optional[str]
+    ) -> Optional[models.MockExam]:
+        """Load the referenced mock inside the profile's scope, or `MOCK_NOT_FOUND`."""
         if mock_exam_id is None:
             return None
-        if self._store.get_scoped("mock_exam", str(mock_exam_id), profile_id) is None:
+        row = self._store.get_scoped("mock_exam", str(mock_exam_id), profile_id)
+        if row is None:
             raise CampusError("MOCK_NOT_FOUND", f"模考不存在：{mock_exam_id}")
-        return str(mock_exam_id)
+        return models.MockExam.from_row(row)
+
+    def _assert_mock_open(
+        self, mock: Optional[models.MockExam], question: models.QuestionBankItem
+    ) -> None:
+        """Refuse attempts a real exam would not accept (PRD CET-13 验收 1, CET-14)."""
+        if mock is None:
+            return
+        self._assert_mock_ongoing(mock)
+        stage = SUBJECT_STAGE.get(question.subject)
+        if stage and stage in json.loads(mock.locked_stages or "[]"):
+            raise CampusError("STAGE_LOCKED", f"该阶段已收卡，不可再作答：{stage}")
 
     def _insert_question(self, profile_id: str, data: Mapping[str, Any]) -> dict[str, Any]:
         values = {

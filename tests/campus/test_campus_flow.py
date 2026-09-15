@@ -62,6 +62,11 @@ T10_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("PATCH", "/vocab/{vid}"),
     ("POST", "/vocab/import"),
     ("POST", "/vocab/mnemonic"),
+    ("POST", "/mock-exams"),
+    ("GET", "/mock-exams/{mock_exam_id}"),
+    ("POST", "/mock-exams/{mock_exam_id}/stage"),
+    ("POST", "/mock-exams/{mock_exam_id}/pause"),
+    ("POST", "/mock-exams/{mock_exam_id}/submit"),
 )
 
 DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS

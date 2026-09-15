@@ -44,6 +44,7 @@ from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
 from .service import (
     MAX_DIFFICULTY,
     MIN_DIFFICULTY,
+    MOCK_PAUSE_BUDGET_SECONDS,
     VOCAB_MASTERY_ALIASES,
     CampusError,
     CampusService,
@@ -550,6 +551,46 @@ class VocabRef(BaseModel):
     vocab_id: str
 
 
+class MockStart(BaseModel):
+    """F10 body (03 §4.6): the paper being practised. `profile_id` rides the body for the guard."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    paper_title: str
+
+    @field_validator("paper_title")
+    @classmethod
+    def _title_must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("paper_title must not be blank")
+        return cleaned
+
+
+class MockStageMove(BaseModel):
+    """F12 body: the stage to move to.
+
+    03 §4.6 lists the two forward targets, but its error table also prices `ILLEGAL_STAGE` and
+    `STAGE_LOCKED` — those only exist if a wrong target is expressible, so the field takes the
+    full enum and the service (not the schema) decides between 409 codes. A non-enum value
+    still fails validation with 422.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    to: models.MockStage
+
+
+class MockPause(BaseModel):
+    """F13 body: the seconds just spent paused. 03's table shows no body, but a pause length has
+    to reach the server somehow; the delivery doc registers this as a contract gap."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    seconds: int = Field(gt=0, le=MOCK_PAUSE_BUDGET_SECONDS)
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -919,6 +960,59 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """F7 — mark a word known/fuzzy/unknown; "不认识" joins tomorrow's review queue."""
         return _call(campus_service.set_vocab_mastery, profile, vocab, body.mastery)
+
+    # -- F10-F14：模考（03 §4.6 CET-13/14）---------------------------------
+
+    def scoped_mock(
+        mock_exam_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.MockExam:
+        """Resolve a mock exam of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row(
+            "mock_exam", mock_exam_id, profile.id, missing_code="MOCK_NOT_FOUND"
+        )
+
+    @router.post("/mock-exams")
+    def campus_start_mock(
+        body: MockStart,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F10 — open an ongoing mock on the writing stage, deadline precomputed."""
+        return _call(campus_service.start_mock, profile, body.paper_title)
+
+    @router.get("/mock-exams/{mock_exam_id}")
+    def campus_get_mock(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F11 — the stored state plus a server-derived timer (CET-13 验收 2)."""
+        del profile
+        return _call(campus_service.mock_view, mock)
+
+    @router.post("/mock-exams/{mock_exam_id}/stage")
+    def campus_advance_mock_stage(
+        body: MockStageMove,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F12 — advance the stage and collect the previous answer sheet."""
+        return _call(campus_service.advance_mock_stage, profile, mock, body.to.value)
+
+    @router.post("/mock-exams/{mock_exam_id}/pause")
+    def campus_pause_mock(
+        body: MockPause,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F13 — spend pause seconds against the cumulative budget, shifting the deadline."""
+        return _call(campus_service.pause_mock, profile, mock, body.seconds)
+
+    @router.post("/mock-exams/{mock_exam_id}/submit")
+    def campus_submit_mock(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mock: models.MockExam = Depends(scoped_mock),
+    ) -> dict[str, Any]:
+        """F14 — estimate the score per section and file the wrong answers."""
+        return _call(campus_service.submit_mock, profile, mock)
 
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 
