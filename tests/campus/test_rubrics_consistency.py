@@ -1,11 +1,12 @@
-"""T07 rubric 一致性测试（08 §5.1 的 CI 硬门禁，师资包落盘前的占位实现）。
+"""T21 rubric 一致性测试（08 §5.1 的 CI 硬门禁）。
 
-一致性测试的最终目标：`rubrics.py` 常量与 `personas/builtin/<id>/skills/<name>/SKILL.md`
-的对应章节 `strip()` 后逐字全等（05 §4.2）。SKILL.md 要到 T21 才落盘，因此本阶段先把
-锁定目标对准 05 文档 §4.3/§4.4/§4.9 的原文——T21 落盘后只需把 `_rubric_body` 的取源
-从 05 文档换成 SKILL.md 路径即可无缝切换到逐字比对，断言结构无需改动。
+权威文本落在 `ss/campus/rubrics.py`（05 §4.2 约定）；技能包 SKILL.md 的「评分标准」章节
+逐字引用同一份文本（05 §4.2 第 2 条：单一来源 + 一致性测试）。T21 把 SKILL.md 落盘后，
+本测试的取源从 `docs/dev/05` 文档正文切换为
+`personas/builtin/<id>/skills/<name>/SKILL.md`——比对口径不变：剥掉 YAML 前言后
+`strip()` 全等，兼容 markdown 表格行内空白差异（08 §5.1 末句口径）。
 
-本组用例 `strip()` 后比对，兼容 markdown 表格行内空白差异（08 §5.1 末句口径）。
+尚未落盘为 SKILL.md 的技能包仍暂以 05 文档代码块为取源，落盘一笔即切换一条，不留空窗。
 """
 
 from __future__ import annotations
@@ -14,16 +15,25 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+PERSONAS = ROOT / "ss" / "personas" / "builtin"
 DOC = ROOT / "docs" / "dev" / "05-人设与技能包设计.md"
 
 from ss.campus import rubrics
 
 
-def _rubric_body(header: str) -> str:
-    """从 05 文档取 `<header>` 章节的 markdown 代码块正文，去掉 YAML 前言。
+def _skill_body(relative_path: str) -> str:
+    """SKILL.md 的正文（YAML 前言之后）——即与常量比对的 rubric 章节全文。"""
+    text = (PERSONAS / relative_path).read_text(encoding="utf-8")
+    assert text.startswith("---"), f"{relative_path} 缺少 YAML 前言"
+    end = text.find("\n---", 3)
+    assert end != -1, f"{relative_path} 的 YAML 前言未闭合"
+    return text[end + 4 :].strip()
 
-    块结构固定为 `---\nname: ...\ndescription: ...\n---\n<body>`，`<body>` 即 rubric
-    正文（从一级标题开始），与 `spike_grading` 对 §4.3 的提取口径一致。
+
+def _doc_block_body(header: str) -> str:
+    """05 文档 `<header>` 章节 markdown 代码块的正文（去掉 YAML 前言）。
+
+    仅用于尚未落盘为 SKILL.md 的技能包，作为切换前的过渡取源。
     """
     doc = DOC.read_text(encoding="utf-8")
     match = re.search(rf"### {re.escape(header)}.*?```markdown\n(.*?)\n```", doc, re.S)
@@ -33,13 +43,11 @@ def _rubric_body(header: str) -> str:
         closing: list[int] = [
             index for index, line in enumerate(lines) if line.strip() == "---"
         ][1]
-        body = lines[closing + 1 :]
-    else:
-        body = lines
-    return "\n".join(body).strip()
+        lines = lines[closing + 1 :]
+    return "\n".join(lines).strip()
 
 
-def test_five_rubric_constants_declared_nonempty() -> None:
+def test_four_rubric_constants_declared_nonempty() -> None:
     assert isinstance(rubrics.CET_ESSAY_RUBRIC, str) and rubrics.CET_ESSAY_RUBRIC.strip()
     assert isinstance(rubrics.CET_TRANSLATION_RUBRIC, str) and rubrics.CET_TRANSLATION_RUBRIC.strip()
     assert isinstance(rubrics.ATTRIBUTION_TAXONOMY, str) and rubrics.ATTRIBUTION_TAXONOMY.strip()
@@ -47,16 +55,20 @@ def test_five_rubric_constants_declared_nonempty() -> None:
     assert isinstance(rubrics.ERROR_TYPES_CET, tuple) and rubrics.ERROR_TYPES_CET
 
 
-def test_essay_rubric_is_byte_for_byte_the_4_3_section() -> None:
-    assert rubrics.CET_ESSAY_RUBRIC.strip() == _rubric_body("4.3")
+def test_essay_rubric_is_byte_for_byte_the_cet_grader_skill() -> None:
+    assert rubrics.CET_ESSAY_RUBRIC.strip() == _skill_body(
+        "cet-grader/skills/cet-essay-grading/SKILL.md"
+    )
 
 
-def test_translation_rubric_is_byte_for_byte_the_4_4_section() -> None:
-    assert rubrics.CET_TRANSLATION_RUBRIC.strip() == _rubric_body("4.4")
+def test_translation_rubric_is_byte_for_byte_the_cet_grader_skill() -> None:
+    assert rubrics.CET_TRANSLATION_RUBRIC.strip() == _skill_body(
+        "cet-grader/skills/cet-translation-grading/SKILL.md"
+    )
 
 
 def test_attribution_taxonomy_is_byte_for_byte_the_4_9_section() -> None:
-    assert rubrics.ATTRIBUTION_TAXONOMY.strip() == _rubric_body("4.9")
+    assert rubrics.ATTRIBUTION_TAXONOMY.strip() == _doc_block_body("4.9")
 
 
 def test_error_types_complete_and_unique() -> None:
