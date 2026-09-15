@@ -682,10 +682,18 @@ class CampusStore:
             raise ValueError(f"{table}: unknown columns {unknown}")
 
     def _compile_order_by(self, order_by: str, columns: Sequence[str]) -> str:
+        """Compile an `order_by` clause, accepting declared columns plus `rowid`.
+
+        `rowid` is SQLite's insertion counter and is the only stable tie-breaker for rows written
+        in the same second (`created_at` has second precision, 02 §1.3): without it, two attempts
+        stored back to back can swap places between pages. It is a real column of every campus
+        table (none is declared `WITHOUT ROWID`), it never appears in a row dataclass, and every
+        other name still has to be a declared column.
+        """
         compiled: list[str] = []
         for clause in order_by.split(","):
             tokens = clause.split()
-            if not tokens or tokens[0] not in columns:
+            if not tokens or (tokens[0] not in columns and tokens[0] != "rowid"):
                 raise ValueError(f"unknown order column: {clause.strip()!r}")
             if len(tokens) > 2:
                 raise ValueError(f"bad order clause: {clause.strip()!r}")

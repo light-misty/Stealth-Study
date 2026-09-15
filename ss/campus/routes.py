@@ -463,6 +463,37 @@ class AttemptCreate(BaseModel):
         return value
 
 
+class GradingRequest(BaseModel):
+    """C1 body (03 §4.3): what to grade, how, and with which rubric.
+
+    `kind` is validated against `models.GRADING_KINDS` (the same set `grading.py` routes on) so
+    the API cannot offer a kind the engine has no parser for.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question_id: Optional[str] = None
+    kind: str
+    answer: str
+    rubric_id: Optional[str] = None
+    custom_rubric: Optional[str] = None
+
+    @field_validator("kind")
+    @classmethod
+    def _kind_must_be_gradable(cls, value: str) -> str:
+        if value not in models.GRADING_KINDS:
+            raise ValueError(f"kind must be one of {sorted(models.GRADING_KINDS)}")
+        return value
+
+    @field_validator("answer")
+    @classmethod
+    def _must_carry_content(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("answer must not be blank")
+        return value
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -667,6 +698,74 @@ def build_campus_router(manager: Any) -> APIRouter:
             question,
             body.model_dump(mode="json", exclude_unset=True),
         )
+
+    # -- C 组：批改（03 §4.3，三台共享）-------------------------------------
+
+    def scoped_attempt(
+        attempt_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.Attempt:
+        """Resolve a graded attempt of the request's profile (C2)."""
+        return guard.scoped_row("attempt", attempt_id, profile.id, missing_code="ATTEMPT_NOT_FOUND")
+
+    def scoped_grading_question(
+        body: GradingRequest,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> Optional[models.QuestionBankItem]:
+        """Resolve the optional question C1 grades against, which the body names."""
+        if not body.question_id:
+            return None
+        return guard.scoped_row(
+            "question_bank_item", body.question_id, profile.id, missing_code="QUESTION_NOT_FOUND"
+        )
+
+    @router.post("/grading")
+    async def campus_grade(
+        body: GradingRequest,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        question: Optional[models.QuestionBankItem] = Depends(scoped_grading_question),
+    ) -> dict[str, Any]:
+        """C1 — grade one answer and store the attempt."""
+        return await _async_call(
+            campus_service.grade,
+            profile,
+            question,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.get("/grading/history")
+    def campus_grading_history(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        subject: Optional[str] = None,
+        kind: Optional[str] = None,
+        page: int = Query(1, ge=1),
+        page_size: int = Query(50, ge=1, le=MAX_PAGE_SIZE),
+    ) -> dict[str, Any]:
+        """C3 — one page of the profile's graded attempts."""
+        return _call(
+            campus_service.attempt_history,
+            profile,
+            subject=subject,
+            kind=kind,
+            page=page,
+            page_size=page_size,
+        )
+
+    @router.get("/grading/common-errors")
+    def campus_common_errors(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        kind: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """C4 — the CET-12 "my top three recurring mistakes" ranking."""
+        return _call(campus_service.common_errors, profile, kind=kind)
+
+    @router.get("/grading/{attempt_id}")
+    def campus_get_attempt(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        attempt: models.Attempt = Depends(scoped_attempt),
+    ) -> dict[str, Any]:
+        """C2 — one stored attempt with its `grading_json` (CET-04 回看)."""
+        del profile
+        return _call(campus_service.attempt, attempt.id)
 
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 

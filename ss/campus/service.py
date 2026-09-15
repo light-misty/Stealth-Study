@@ -29,9 +29,9 @@ from pathlib import Path
 from typing import Any, Mapping, Optional
 
 from ..secrets import state_dir
-from . import models
+from . import models, rubrics
 from .config import DEFAULT_DAILY_MINUTES
-from .grading import GradeRequest, GradeResult, GradingEngine
+from .grading import GradeRequest, GradeResult, GradingEngine, SCORING_KINDS, TRANSLATION_KINDS
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -137,6 +137,46 @@ _JUDGE_TRUE: frozenset[str] = frozenset({"t", "true", "y", "yes", "对", "正确
 _JUDGE_FALSE: frozenset[str] = frozenset({"f", "false", "n", "no", "错", "错误", "×", "x"})
 
 _BLANK_SEPARATOR = re.compile(r"[|｜]")
+
+RUBRIC_TEXTS: Mapping[str, str] = {
+    "cet-essay": rubrics.CET_ESSAY_RUBRIC,
+    "cet-translation": rubrics.CET_TRANSLATION_RUBRIC,
+    "cert-scoring-points": rubrics.CERT_SCORING_POINTS_SPEC,
+}
+
+RUBRIC_BY_KIND: Mapping[str, str] = {
+    models.QuestionType.ESSAY.value: "cet-essay",
+    "translation": "cet-translation",
+    models.QuestionType.SHORT_ANSWER.value: "cert-scoring-points",
+    models.QuestionType.MATERIAL.value: "cert-scoring-points",
+    models.QuestionType.LESSON_PLAN.value: "cert-scoring-points",
+    models.QuestionType.PRACTICAL.value: "cert-scoring-points",
+}
+
+CUSTOM_RUBRIC_ID = "custom"
+
+SUBJECT_BY_KIND: Mapping[str, str] = {
+    models.QuestionType.ESSAY.value: models.Subject.WRITING.value,
+    models.QuestionType.MATERIAL.value: models.Subject.WRITING.value,
+    models.QuestionType.LESSON_PLAN.value: models.Subject.WRITING.value,
+    "translation": models.Subject.TRANSLATION.value,
+    models.QuestionType.SHORT_ANSWER.value: models.Subject.MAJOR.value,
+    models.QuestionType.PRACTICAL.value: models.Subject.MAJOR.value,
+}
+
+DIMENSION_LABELS: Mapping[str, str] = {
+    "content": "内容",
+    "structure": "结构",
+    "language": "语言",
+}
+
+ESSAY_DIMENSION_MAX = 5
+TRANSLATION_DIMENSION_NAME = "档位"
+SCORING_POINT_SCORES: Mapping[str, float] = {"hit": 1.0, "partial": 0.5, "miss": 0.0}
+SCORING_POINT_MAX = 1
+
+TOP_ERROR_TYPES = 3
+MAX_ERROR_SAMPLES = 3
 
 
 class CampusError(Exception):
@@ -434,6 +474,36 @@ def _blanks(value: Any) -> tuple[str, ...]:
     return tuple(part.strip().casefold() for part in _BLANK_SEPARATOR.split(str(value).strip()))
 
 
+def _grading_of(row: Any) -> dict[str, Any]:
+    """The decoded `grading_json` of an attempt row, or an empty dict when it is unusable."""
+    payload = _decode(row["grading_json"], None)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _error_list(errors: Any, answer: str) -> list[dict[str, Any]]:
+    """Adapt the engine's error entries onto the documented `{original, suggestion, type, offset}`.
+
+    The offset is the position of the offending fragment inside the submitted text, which is what
+    makes each entry clickable back to the original (PRD CET4 ②); a fragment the model paraphrased
+    rather than quoted yields `null` instead of a misleading position.
+    """
+    adapted: list[dict[str, Any]] = []
+    for error in errors or []:
+        if not isinstance(error, Mapping):
+            continue
+        original = str(error.get("fragment") or "")
+        offset = answer.find(original) if original else -1
+        adapted.append(
+            {
+                "original": original,
+                "suggestion": str(error.get("suggestion") or ""),
+                "type": str(error.get("type") or ""),
+                "offset": None if offset < 0 else offset,
+            }
+        )
+    return adapted
+
+
 class ManagerGrader:
     """Runs T07's grading engine through the sidecar's provider (T07 §6-1 移交要点).
 
@@ -526,7 +596,7 @@ class CampusService:
             "exam_profile",
             where=" AND ".join(conditions) or None,
             params=params,
-            order_by="created_at DESC, id",
+            order_by="created_at DESC, rowid DESC",
         )
         return [profile_payload(models.ExamProfile.from_row(row)) for row in rows]
 
@@ -750,7 +820,7 @@ class CampusService:
             profile_id=profile.id,
             where=" AND ".join(f'"{name}" = ?' for name, _ in filters) or None,
             params=[value for _, value in filters],
-            order_by="created_at DESC, id",
+            order_by="created_at DESC, rowid DESC",
             limit=page_size,
             offset=(page - 1) * page_size,
         )
@@ -840,7 +910,7 @@ class CampusService:
                 subject=question.subject,
             )
         )
-        self._store.update("attempt", attempt_id, self._grading_columns(result))
+        self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
         if not result.ok:
             code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
             raise CampusError(code, f"批改失败（{result.fail_reason}）")
@@ -848,12 +918,164 @@ class CampusService:
         body["pending_grading"] = True
         return body
 
+    # -- C1-C4: grading (shared by every station) --------------------------
+
     def attempt(self, attempt_id: str) -> dict[str, Any]:
-        """One attempt body, or `ATTEMPT_NOT_FOUND`."""
+        """One attempt body, or `ATTEMPT_NOT_FOUND` — the C2 read and E5's own reply."""
         row = self._store.get("attempt", attempt_id)
         if row is None:
             raise CampusError("ATTEMPT_NOT_FOUND", f"作答记录不存在：{attempt_id}")
         return attempt_payload(models.Attempt.from_row(row))
+
+    async def grade(
+        self,
+        profile: models.ExamProfile,
+        question: Optional[models.QuestionBankItem],
+        payload: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Grade one free-form or question-bound answer through the C1 chain (03 §4.3 C1).
+
+        The rubric is resolved first so an unknown `rubric_id` costs nothing, then a usable model
+        is checked before the attempt is written: a missing model is `MODEL_NOT_CONFIGURED` with
+        no side effect, while a model call that fails leaves the attempt behind with its
+        degradation trace (T07 §6-3/§6-6).
+        """
+        kind = str(payload["kind"])
+        answer = str(payload["answer"])
+        rubric_id, rubric_text = self._rubric_for(kind, payload)
+        if self.model_for_task(models.task_for_kind(kind)) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        subject = question.subject if question is not None else SUBJECT_BY_KIND[kind]
+        attempt_id = self._store.insert(
+            "attempt",
+            {
+                "profile_id": profile.id,
+                "track_type": profile.track_type,
+                "subject": subject,
+                "user_answer": answer,
+                "question_id": question.id if question is not None else None,
+                "session_type": models.SessionType.GRADING.value,
+            },
+        )
+        result = await self._require_grader().grade(
+            GradeRequest(
+                profile_id=profile.id,
+                track_type=profile.track_type,
+                kind=kind,
+                question=question.stem if question is not None else "",
+                answer=answer,
+                subject=subject,
+                custom_rubric=rubric_text,
+            )
+        )
+        self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
+        if not result.ok:
+            raise CampusError(
+                "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID",
+                f"批改失败（{result.fail_reason}）",
+            )
+        return self.grade_payload(result, attempt_id, kind, rubric_id, answer)
+
+    def grade_payload(
+        self,
+        result: GradeResult,
+        attempt_id: str,
+        kind: str,
+        rubric_id: str,
+        answer: str,
+    ) -> dict[str, Any]:
+        """Adapt a `GradeResult` onto the documented 03 §4.3 response shape.
+
+        Three shape differences are bridged here: the engine's per-dimension dict becomes the
+        documented `[{name, score, max, comment}]` list (five-point essay dimensions, the
+        translation band, or one entry per scoring point), its `fragment`/`suggestion` errors
+        gain the `offset` the UI needs to highlight the original text, and the band plus the
+        upgraded demo ride along as additive fields the result card renders.
+        """
+        return {
+            "attempt_id": attempt_id,
+            "degrade_level": result.degrade_level,
+            "rubric": rubric_id,
+            "dimensions": self._dimensions(kind, result),
+            "errors": _error_list(result.errors, answer),
+            "model_answer_outline": result.model_answer_outline,
+            "model_used": result.model_used,
+            "notice": result.notice,
+            "band": result.band,
+            "upgraded_demo": result.upgraded_demo,
+        }
+
+    def attempt_history(
+        self,
+        profile: models.ExamProfile,
+        *,
+        subject: Optional[str] = None,
+        kind: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> dict[str, Any]:
+        """One page of the profile's graded attempts, newest first (C3).
+
+        `kind` is matched against the `kind` recorded inside `grading_json`; like the CET-12
+        aggregation of 02 §4.13 this is a Python-side scan rather than a JSON index, so the
+        page is sliced after filtering.
+        """
+        rows = self._store.list_rows(
+            "attempt",
+            profile_id=profile.id,
+            where='"subject" = ?' if subject else None,
+            params=[subject] if subject else [],
+            order_by="created_at DESC, rowid DESC",
+        )
+        if kind:
+            rows = [row for row in rows if _grading_of(row).get("kind") == kind]
+        page_rows = rows[(page - 1) * page_size : (page - 1) * page_size + page_size]
+        return {
+            "items": [attempt_payload(models.Attempt.from_row(row)) for row in page_rows],
+            "total": len(rows),
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def common_errors(
+        self, profile: models.ExamProfile, *, kind: Optional[str] = None
+    ) -> dict[str, Any]:
+        """The profile's most frequent grading error types, ranked (C4 / CET-12).
+
+        Counts come from `grading_json.errors[].type` across the profile's attempts (02 §4.13),
+        with a per-type sample of the offending fragments so the card can show what the mistake
+        looked like. A stored payload that cannot be decoded is skipped instead of failing the
+        whole ranking.
+        """
+        counts: dict[str, int] = {}
+        samples: dict[str, list[str]] = {}
+        for row in self._store.list_rows(
+            "attempt",
+            profile_id=profile.id,
+            where='"grading_json" IS NOT NULL',
+            order_by="created_at DESC, rowid DESC",
+        ):
+            grading = _grading_of(row)
+            if not grading or (kind and grading.get("kind") != kind):
+                continue
+            for error in grading.get("errors") or []:
+                if not isinstance(error, Mapping):
+                    continue
+                type_name = str(error.get("type") or "").strip()
+                if not type_name:
+                    continue
+                counts[type_name] = counts.get(type_name, 0) + 1
+                bucket = samples.setdefault(type_name, [])
+                fragment = str(error.get("fragment") or "").strip()
+                if fragment and fragment not in bucket and len(bucket) < MAX_ERROR_SAMPLES:
+                    bucket.append(fragment)
+        ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[:TOP_ERROR_TYPES]
+        return {
+            "top3": [
+                {"type": type_name, "count": count, "samples": samples.get(type_name, [])}
+                for type_name, count in ranked
+            ]
+        }
 
     # -- G1: today's suggestion and the self-built board -------------------
 
@@ -882,7 +1104,7 @@ class CampusService:
             profile_id=profile.id,
             where=" AND ".join(f'"{name}" = ?' for name, _ in filters) or None,
             params=[value for _, value in filters],
-            order_by="scheduled_date, priority, created_at, id",
+            order_by="scheduled_date, priority, created_at, rowid",
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
@@ -954,19 +1176,83 @@ class CampusService:
         row.update(values or {})
         return self._store.insert("attempt", row)
 
-    def _grading_columns(self, result: GradeResult) -> dict[str, Any]:
+    def _rubric_for(self, kind: str, payload: Mapping[str, Any]) -> tuple[str, Optional[str]]:
+        """Resolve the rubric to grade with, returning its reported id and its full text.
+
+        A caller-supplied `custom_rubric` wins outright and reports itself as `custom`; otherwise
+        an explicit `rubric_id` selects a `rubrics.py` constant and an unknown one is
+        `RUBRIC_NOT_FOUND`. With neither, the kind's own default applies — so the reported id is
+        always the rubric that actually shaped the prompt (T07's engine treats `custom_rubric` as
+        a full override of the built-in text).
+        """
+        custom = str(payload.get("custom_rubric") or "").strip()
+        if custom:
+            return CUSTOM_RUBRIC_ID, custom
+        rubric_id = payload.get("rubric_id")
+        if rubric_id:
+            text = RUBRIC_TEXTS.get(str(rubric_id))
+            if text is None:
+                raise CampusError("RUBRIC_NOT_FOUND", f"评分标准不存在：{rubric_id}")
+            return str(rubric_id), text
+        default_id = RUBRIC_BY_KIND[kind]
+        return default_id, RUBRIC_TEXTS[default_id]
+
+    def _dimensions(self, kind: str, result: GradeResult) -> list[dict[str, Any]]:
+        """The documented `dimensions` list for the graded kind (03 §4.3).
+
+        Essay keeps the three five-point dimensions of 06 §2.2 in their canonical order; a
+        translation has one 15-point band dimension (its L0/L1 payload carries no breakdown);
+        a scoring-point kind reports one entry per point with the three states mapped to
+        1 / 0.5 / 0.
+        """
+        if kind in SCORING_KINDS:
+            return [
+                {
+                    "name": str(point.get("point", "")),
+                    "score": SCORING_POINT_SCORES.get(str(point.get("status")), 0.0),
+                    "max": SCORING_POINT_MAX,
+                    "comment": str(point.get("note") or ""),
+                }
+                for point in result.scoring_points
+            ]
+        if kind in TRANSLATION_KINDS:
+            if result.band is None:
+                return []
+            return [
+                {
+                    "name": TRANSLATION_DIMENSION_NAME,
+                    "score": result.band,
+                    "max": rubrics.TRANSLATION_BAND_MAX,
+                    "comment": "",
+                }
+            ]
+        scores = result.dimension_scores or {}
+        return [
+            {
+                "name": DIMENSION_LABELS.get(name, name),
+                "score": scores.get(name),
+                "max": ESSAY_DIMENSION_MAX,
+                "comment": "",
+            }
+            for name in rubrics.ESSAY_DIMENSIONS
+            if name in scores
+        ]
+
+    def _grading_columns(self, result: GradeResult, kind: str) -> dict[str, Any]:
         """Map a `GradeResult` onto the attempt columns and its `grading_json` whitelist.
 
         The whitelist is T07 §6-4: the server-side fields (`ok`, `model_used`, `usage`,
         `fail_reason`) stay out, `degrade_level` gets its own column, and the degradation trace
-        is kept under `_degrade_trace`. `score` carries the rubric band on the 15-point scale of
-        06 §2.1; a scoring-point kind has no band, so both score columns stay empty and the
+        is kept under `_degrade_trace`. `kind` is kept alongside them because C3/C4 filter on it
+        and 02 §4.13 has no column for it. `score` carries the rubric band on the 15-point scale
+        of 06 §2.1; a scoring-point kind has no band, so both score columns stay empty and the
         detail lives in `grading_json.scoring_points`.
         """
         score = None if result.band is None else float(result.band)
         return {
             "grading_json": json.dumps(
                 {
+                    "kind": kind,
                     "band": result.band,
                     "dimension_scores": result.dimension_scores,
                     "errors": result.errors,

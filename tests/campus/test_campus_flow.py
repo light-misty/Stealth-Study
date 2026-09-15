@@ -1,10 +1,13 @@
-"""T09 端点清单与端到端主链（07 §4 T09 的 16 个端点、08 §8 "端点契约抽查"）。
+"""campus 端点清单与端到端主链（T09 全局域 + T10 CET 台的端点、08 §8 "端点契约抽查"）。
 
 两个互补的证据：
 
 * `test_route_inventory_matches_the_t09_contract` —— 把 03 §4 里属于 T09 的 16 个端点（A1-A10、
   E1-E5、G1）连同方法逐一钉死，任何端点的漏注册/方法写错/路径漂移都会红；
-* `test_the_global_domain_story_runs_end_to_end` —— 用一条真实主线把 16 个端点串起来跑一遍
+* `test_the_mounted_router_holds_no_endpoint_outside_the_contract` —— 挂载后的路由集合必须**恰好**等于
+  已交付端点（T09 ∪ T10）加 `/health`，多一个少一个都红；后续阶段（T11-T14）追加端点时同步扩这张
+  清单，即"路由形状"的唯一真源。
+* `test_the_global_domain_story_runs_end_to_end` —— 用一条真实主线把 T09 的 16 个端点串起来跑一遍
   （建档 → 设为当前 → 自检 → 导题 → 录题/改题/删题 → 客观题与主观题作答 → 今日任务 → 隐私面板
   → 删档 → 一键清除），证明它们在同一份 store/guard/service 上协同工作而不是各自孤立可跑。
 """
@@ -44,6 +47,15 @@ T09_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("POST", "/attempts"),
     ("GET", "/tasks"),
 )
+
+T10_ENDPOINTS: tuple[tuple[str, str], ...] = (
+    ("POST", "/grading"),
+    ("GET", "/grading/history"),
+    ("GET", "/grading/common-errors"),
+    ("GET", "/grading/{attempt_id}"),
+)
+
+DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS
 
 TODAY = "2026-09-15"
 
@@ -107,7 +119,7 @@ def test_the_mounted_router_holds_no_endpoint_outside_the_contract() -> None:
         for route in router.routes
         for method in route.methods
     }
-    allowed = {*T09_ENDPOINTS, ("GET", "/health")}
+    allowed = {*DELIVERED_ENDPOINTS, ("GET", "/health")}
     assert declared == allowed
 
 
