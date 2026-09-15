@@ -668,4 +668,24 @@ def build_campus_router(manager: Any) -> APIRouter:
             body.model_dump(mode="json", exclude_unset=True),
         )
 
+    # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
+
+    @router.get("/tasks")
+    def campus_list_tasks(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        date: Optional[str] = Query(default=None, pattern=EXAM_DATE_PATTERN),
+        status: Optional[models.PlanTaskStatus] = None,
+        track: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """G1 — the profile's plan tasks; `date=<today>` is the today suggestion."""
+        return {
+            "items": _call(
+                campus_service.list_tasks,
+                profile,
+                date=date,
+                status=status.value if status is not None else None,
+                track=track,
+            )
+        }
+
     return router

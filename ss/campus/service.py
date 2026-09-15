@@ -194,6 +194,11 @@ def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
     return payload
 
 
+def task_payload(task: models.PlanTask) -> dict[str, Any]:
+    """One plan task; every column is scalar, so the body is the row itself (02 §4.10)."""
+    return asdict(task)
+
+
 def parse_questions(fmt: str, content: str) -> list[dict[str, Any]]:
     """Parse an E1 payload into validated question dictionaries (03 §4.5 E1).
 
@@ -849,6 +854,37 @@ class CampusService:
         if row is None:
             raise CampusError("ATTEMPT_NOT_FOUND", f"作答记录不存在：{attempt_id}")
         return attempt_payload(models.Attempt.from_row(row))
+
+    # -- G1: today's suggestion and the self-built board -------------------
+
+    def list_tasks(
+        self,
+        profile: models.ExamProfile,
+        *,
+        date: Optional[str] = None,
+        status: Optional[str] = None,
+        track: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """The profile's plan tasks, oldest day and most important first (G1).
+
+        Called with `date=<today>` this is the "今日建议" of 07 §4 T09; called without a date it is
+        the board's data source (ADR-11: the board is `plan_task` itself, no Teams involvement).
+        `track` is matched against `plan_task.subject`, which is where 02 §4.10 keeps the subject
+        or four-track label.
+        """
+        filters = [
+            pair
+            for pair in (("scheduled_date", date), ("status", status), ("subject", track))
+            if pair[1]
+        ]
+        rows = self._store.list_rows(
+            "plan_task",
+            profile_id=profile.id,
+            where=" AND ".join(f'"{name}" = ?' for name, _ in filters) or None,
+            params=[value for _, value in filters],
+            order_by="scheduled_date, priority, created_at, id",
+        )
+        return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
     # -- internals ---------------------------------------------------------
 
