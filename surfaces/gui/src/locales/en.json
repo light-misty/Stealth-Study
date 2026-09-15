@@ -54,6 +54,18 @@
       "days_left_other": "{{count}} days left",
       "ai_notice": "AI generated, for reference only"
     },
+    "model": {
+      "empty_title": "No model configured",
+      "empty_hint": "Grading, question generation and explanations need a model — configure one to enable them.",
+      "partial_title": "Current model is too weak",
+      "partial_hint": "These features stay unavailable until a stronger model is selected:",
+      "unavailable": "{{task}} is unavailable",
+      "task": {
+        "grading": "Grading",
+        "question": "Question generation",
+        "explain": "Explanations"
+      }
+    },
     "profile": {
       "create": "New exam profile",
       "switch": "Switch profile",

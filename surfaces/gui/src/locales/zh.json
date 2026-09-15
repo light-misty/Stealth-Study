@@ -53,6 +53,18 @@
       "days_left_other": "还剩 {{count}} 天",
       "ai_notice": "AI 生成，仅供参考"
     },
+    "model": {
+      "empty_title": "未配置模型",
+      "empty_hint": "批改、出题与讲解都需要模型，配置后即可使用。",
+      "partial_title": "当前模型能力不足",
+      "partial_hint": "以下功能暂不可用，换用更强的模型后自动恢复：",
+      "unavailable": "{{task}} 暂不可用",
+      "task": {
+        "grading": "批改",
+        "question": "出题",
+        "explain": "讲解"
+      }
+    },
     "profile": {
       "create": "新建备考档案",
       "switch": "切换档案",
