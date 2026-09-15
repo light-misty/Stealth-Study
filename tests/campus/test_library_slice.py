@@ -16,6 +16,7 @@ from ss.campus.library import (
     MAX_EXTRACT_CHARS,
     PAGE_TITLE_PATTERN,
     TooManyChunks,
+    _bookmark_spans,
     extract_section_title,
     is_run_header,
     read_pdf_pages,
@@ -200,3 +201,46 @@ def test_slice_document_filters_run_headers() -> None:
 def test_slice_document_empty_pages_yield_no_chunks() -> None:
     assert slice_document([]) == []
     assert slice_document([(1, ""), (2, "  ")]) == []
+
+
+# ---------- 书签优先归属（T04 决策二：书签优先、文本行兜底） ----------
+
+
+def test_slice_document_prefers_bookmarks_over_text_lines() -> None:
+    pages = [(1, "第 7 章 树\n内容"), (2, "更多"), (3, "第 8 章 图\n图论")]
+    bookmarks = [(0, "第一章 绪论", 1), (0, "第二章 排序", 2)]
+    chunks = slice_document(pages, bookmarks=bookmarks)
+    titles = {chunk["page_no"]: chunk["section_title"] for chunk in chunks}
+    assert titles[1] == "第一章 绪论"
+    assert titles[2] == "第二章 排序"
+    assert titles[3] == "第二章 排序"
+
+
+def test_slice_document_falls_back_to_text_lines_without_valid_bookmarks() -> None:
+    pages = [(1, "第一章 绪论\n内容"), (2, "更多内容")]
+    bookmarks = [(0, "A", 1), (0, "B", 1)]
+    chunks = slice_document(pages, bookmarks=bookmarks)
+    titles = {chunk["page_no"]: chunk["section_title"] for chunk in chunks}
+    assert titles[1] == "第一章 绪论"
+    assert titles[2] == "第一章 绪论"
+
+
+def test_bookmark_spans_survive_same_page_collapse() -> None:
+    bookmarks = [
+        (0, "第一章 章节甲", 1),
+        (1, "1.1 第一节", 2),
+        (1, "1.2 第二节", 2),
+        (0, "第二章 章节乙", 5),
+    ]
+    spans = _bookmark_spans(bookmarks, 10)
+    table = {title: (start, end) for _level, title, start, end in spans}
+    assert table["第一章 章节甲"] == (1, 4)
+    assert table["1.1 第一节"] == (2, 4)
+    assert table["1.2 第二节"] == (2, 4)
+    assert table["第二章 章节乙"] == (5, 10)
+
+
+def test_bookmark_spans_filter_short_and_out_of_range_items() -> None:
+    bookmarks = [(0, "A", 1), (0, "B", 2), (0, "第一章 正常章节", 3), (0, "无效章节", 99)]
+    spans = _bookmark_spans(bookmarks, 10)
+    assert [title for _level, title, _start, _end in spans] == ["第一章 正常章节"]

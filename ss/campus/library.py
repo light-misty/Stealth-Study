@@ -26,7 +26,7 @@ import shutil
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from ..secrets import state_dir
 from . import models
@@ -38,7 +38,7 @@ from .store import CampusStore
 
 MAX_CHUNK_CHARS = 2000
 MAX_DOC_CHUNKS = 3000
-MAX_EXTRACT_CHARS = 200_000
+MAX_EXTRACT_CHARS = 2_000_000
 MAX_TITLE_CHARS = 40
 RUN_HEADER_MIN_PAGES = 3
 BLANK_PAGE_FAIL_RATIO = 0.8
@@ -125,8 +125,13 @@ def read_pdf_pages(path: str) -> list[tuple[int, str]]:
     return _read_pdf_with_meta(path)[0]
 
 
-def _read_pdf_with_meta(path: str) -> tuple[list[tuple[int, str]], bool]:
-    """`read_pdf_pages` 的完整形态：附带截断标记（T04 §6-1 资料库独立上限）。"""
+def _read_pdf_with_meta(path: str) -> tuple[list[tuple[int, str]], bool, list[tuple[int, str, int]]]:
+    """`read_pdf_pages` 的完整形态：附带截断标记与书签（T04 §6-1/决策二）。
+
+    截断上限是资料库独立口径 `MAX_EXTRACT_CHARS`（2 MB 字符），与会话附件的
+    `attachments.MAX_TEXT_CHARS`（200k）解耦；书签提取同款容错，失败返回空表
+    （切片侧自然回退文本行方案）。
+    """
     try:
         from pypdf import PdfReader
 
@@ -135,7 +140,8 @@ def _read_pdf_with_meta(path: str) -> tuple[list[tuple[int, str]], bool]:
             try:
                 reader.decrypt("")
             except Exception:
-                return [], False
+                return [], False, []
+        bookmarks = _extract_outline(reader)
         pages: list[tuple[int, str]] = []
         total = 0
         truncated = False
@@ -149,9 +155,34 @@ def _read_pdf_with_meta(path: str) -> tuple[list[tuple[int, str]], bool]:
             if total >= MAX_EXTRACT_CHARS:
                 truncated = True
                 break
-        return pages, truncated
+        return pages, truncated, bookmarks
     except Exception:
-        return [], False
+        return [], False, []
+
+
+def _extract_outline(reader: Any) -> list[tuple[int, str, int]]:
+    """pypdf outline 扁平化为 `(level, title, page)`（1 起页码；T04 决策二：书签优先）。"""
+    flat: list[tuple[int, str, int]] = []
+
+    def walk(items: Any, level: int) -> None:
+        for item in items:
+            if isinstance(item, list):
+                walk(item, level + 1)
+                continue
+            title = (getattr(item, "title", "") or "").strip()
+            if not title:
+                continue
+            try:
+                page = reader.get_destination_page_number(item) + 1
+            except Exception:
+                continue
+            flat.append((level, title, page))
+
+    try:
+        walk(reader.outline, 0)
+    except Exception:
+        return []
+    return flat
 
 
 def _read_text_pages(path: Path) -> list[tuple[int, str]]:
@@ -229,13 +260,46 @@ def is_run_header(title: str, pages_seen: set[int]) -> bool:
     return len(pages_seen) >= RUN_HEADER_MIN_PAGES
 
 
-def slice_document(pages: list[tuple[int, str]], *, markdown: bool = False) -> list[dict]:
+def _bookmark_spans(
+    bookmarks: list[tuple[int, str, int]], page_count: int
+) -> list[tuple[int, str, int, int]]:
+    """有效书签 → `(level, title, start_page, end_page)` 跨度（T02 §3 + T04 决策二）。
+
+    条目门槛：规范化标题 ≥`MIN_ROUTER_TITLE_CHARS`（击穿单字母伪目录项的实测缺陷）；
+    跨度到下一个**页码更后**的、层级不深于自身的条目为止——下一项与当前项同页
+    （塌缩）不截止，回退由更大的层级条目或文档末页兜底。
+    """
+    valid = [
+        (level, title, page)
+        for level, title, page in bookmarks
+        if len(normalize_toc_title(title)) >= MIN_ROUTER_TITLE_CHARS and 1 <= page <= page_count
+    ]
+    spans: list[tuple[int, str, int, int]] = []
+    for index, (level, title, page) in enumerate(valid):
+        end = page_count
+        for next_level, _next_title, next_page in valid[index + 1 :]:
+            if next_level <= level and next_page > page:
+                end = next_page - 1
+                break
+        spans.append((level, title, page, max(end, page)))
+    return spans
+
+
+def slice_document(
+    pages: list[tuple[int, str]],
+    *,
+    markdown: bool = False,
+    bookmarks: Optional[list[tuple[int, str, int]]] = None,
+) -> list[dict]:
     """页文本序列 → `doc_chunk` 行 dict 列表（02 §4.6 形状，06 §4.3）。
 
-    `section_title` 取"自文档开头到该片为止最近一次匹配的标题行"（行偏移 ≤ 片
-    全文起始偏移；页内偏移精确继承），运行页眉剔除后不参与归属。超出
-    `MAX_DOC_CHUNKS` 抛 `TooManyChunks` 中止导入。`markdown=True` 时标题行改用
-    `#{1,3}` 形式（MD 伪页，06 §4.2-4），`section_title` 取剥掉井号后的标题文本。
+    `section_title` 归属（06 §4.2-3 + T04 决策二）：**书签优先**——有效书签条目
+    存在时按书签跨度做页级归属（塌缩回退见 `_bookmark_spans`）；无有效书签时用
+    文本行方案：每片取"自文档开头到该片为止最近一次匹配的标题行"（行偏移 ≤ 片
+    全文起始偏移），同一标题出现在 ≥3 个不同页面视为运行页眉剔除。无任何标题的
+    文档 `section_title=NULL`，检索自然分流 L2。超出 `MAX_DOC_CHUNKS` 抛
+    `TooManyChunks` 中止导入。`markdown=True` 时标题行改用 `#{1,3}` 形式
+    （MD 伪页，06 §4.2-4），`section_title` 取剥掉井号后的标题文本。
     """
     page_offsets: dict[int, int] = {}
     offset = 0
@@ -244,29 +308,44 @@ def slice_document(pages: list[tuple[int, str]], *, markdown: bool = False) -> l
         offset += len(text)
 
     candidates: list[tuple[int, int, str]] = []
-    pages_by_title: dict[str, set[int]] = {}
-    for page_no, text in pages:
-        base = page_offsets[page_no]
-        for line in text.splitlines():
-            stripped = line.strip()
-            if not stripped:
-                continue
-            if markdown:
-                match = _MD_HEADING.match(stripped)
-                title_text = match.group(2).strip() if match else ""
-            else:
-                title_text = stripped if PAGE_TITLE_PATTERN.match(stripped) else ""
-            if not title_text or len(title_text) > MAX_TITLE_CHARS:
-                continue
-            line_offset = base + text.find(line)
-            candidates.append((line_offset, page_no, title_text))
-            pages_by_title.setdefault(_title_stem(title_text), set()).add(page_no)
+    spans = (
+        _bookmark_spans(bookmarks, max(page_offsets) if page_offsets else 0) if bookmarks else []
+    )
+    if spans:
+        current: Optional[str] = None
+        current_level = -1
+        current_page = 0
+        for page_no, _text in pages:
+            for span in spans:
+                if span[2] == page_no and (span[0], span[2]) >= (current_level, current_page):
+                    current, current_level, current_page = span[1], span[0], span[2]
+            if current is not None:
+                candidates.append((page_offsets[page_no], page_no, current))
+    else:
+        pages_by_title: dict[str, set[int]] = {}
+        for page_no, text in pages:
+            base = page_offsets[page_no]
+            for line in text.splitlines():
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if markdown:
+                    match = _MD_HEADING.match(stripped)
+                    title_text = match.group(2).strip() if match else ""
+                else:
+                    title_text = stripped if PAGE_TITLE_PATTERN.match(stripped) else ""
+                if not title_text or len(title_text) > MAX_TITLE_CHARS:
+                    continue
+                line_offset = base + text.find(line)
+                candidates.append((line_offset, page_no, title_text))
+                pages_by_title.setdefault(_title_stem(title_text), set()).add(page_no)
+        candidates = [
+            (line_offset, page_no, title)
+            for line_offset, page_no, title in candidates
+            if not is_run_header(title, pages_by_title[_title_stem(title)])
+        ]
 
-    kept = [
-        (line_offset, page_no, title)
-        for line_offset, page_no, title in candidates
-        if not is_run_header(title, pages_by_title[_title_stem(title)])
-    ]
+    kept = candidates
 
     chunks: list[dict] = []
     global_offset = 0
@@ -593,16 +672,21 @@ class CampusLibrary:
     def _parse_into(self, doc_id: str, profile_id: str, path: Path, file_type: str) -> None:
         truncated = False
         pages: list[tuple[int, str]] = []
+        bookmarks: list[tuple[int, str, int]] = []
         try:
             if file_type == models.DocFileType.PDF.value:
-                pages, truncated = _read_pdf_with_meta(str(path))
+                pages, truncated, bookmarks = _read_pdf_with_meta(str(path))
                 if not pages:
                     raise _ParseFailure(FAIL_PDF_BROKEN, 0)
             else:
                 pages = _read_text_pages(path)
                 if not any(text.strip() for _, text in pages):
                     raise _ParseFailure(FAIL_NO_TEXT_LAYER, len(pages))
-            slices = slice_document(pages, markdown=file_type != models.DocFileType.PDF.value)
+            slices = slice_document(
+                pages,
+                markdown=file_type != models.DocFileType.PDF.value,
+                bookmarks=bookmarks if file_type == models.DocFileType.PDF.value else None,
+            )
             page_count = len(pages)
             char_count = sum(len(text) for _, text in pages)
             blank = sum(1 for _, text in pages if not text.strip())

@@ -1,4 +1,4 @@
-"""T08 关键词检索测试（06 §5.1 的 L2/L3 层 + T04 §6-4 IDF 加权 + 02 §5.2 FTS 兜底）。
+﻿"""T08 关键词检索测试（06 §5.1 的 L2/L3 层 + T04 §6-4 IDF 加权 + 02 §5.2 FTS 兜底）。
 
 切片数据直插 `doc_chunk`（默认构造不建 FTS 虚表，不影响 19 表断言）；
 FTS 路径通过 `enable_fts=True` 显式启用后验证探测、维护与运行时降级。
@@ -209,7 +209,7 @@ def test_fts_enabled_builds_virtual_table_and_searches(lib) -> None:
 def test_import_maintains_fts_index(lib, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
         "ss.campus.library._read_pdf_with_meta",
-        lambda p: ([(1, "backpropagation updates the weights")], False),
+        lambda p: ([(1, "backpropagation updates the weights")], False, []),
     )
     fts_lib = CampusLibrary(lib.store, lib_dir=tmp_path / "library", enable_fts=True)
     path = tmp_path / "doc.pdf"
