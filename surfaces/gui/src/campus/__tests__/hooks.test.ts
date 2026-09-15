@@ -262,6 +262,18 @@ describe("useLibraryDocs", () => {
     expect(result.current.items.map((d: SourceDoc) => d.id)).toEqual(["d2"]);
   });
 
+  it("merges a document fetched by the poll back into the list", async () => {
+    apiMock.listLibraryDocs.mockResolvedValue({ items: [doc("d1", "pending")] });
+    const { result } = renderHook(() => useLibraryDocs("p1"));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      result.current.applyDoc(doc("d1", "ready"));
+    });
+    expect(result.current.items[0].parse_status).toBe("ready");
+    expect(result.current.items).toHaveLength(1);
+  });
+
   it("stops polling as soon as the document leaves the pending state", async () => {
     vi.useFakeTimers();
     apiMock.getLibraryDoc

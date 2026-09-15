@@ -262,7 +262,19 @@ export function useLibraryDocs(profileId: string | null) {
     [setData, setError],
   );
 
-  return { items: data, loading, error, retryable, reload, importDoc, retry, remove };
+  /** Merge a document fetched elsewhere (the parse-status poll) into the list. */
+  const applyDoc = useCallback(
+    (updated: SourceDoc) => {
+      setData((prev) =>
+        prev.some((d) => d.id === updated.id)
+          ? prev.map((d) => (d.id === updated.id ? updated : d))
+          : [...prev, updated],
+      );
+    },
+    [setData],
+  );
+
+  return { items: data, loading, error, retryable, reload, importDoc, retry, remove, applyDoc };
 }
 
 /** B3: the only polling in the station — parse status until ready/failed (04 §8). */

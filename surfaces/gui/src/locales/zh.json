@@ -135,7 +135,13 @@
       "ready": "解析完成",
       "failed": "解析失败",
       "ask": "提问",
-      "citation": "引用"
+      "citation": "引用",
+      "title": "资料库",
+      "empty": "还没有导入资料",
+      "retry": "重新解析",
+      "delete": "删除",
+      "ask_placeholder": "向资料提问…",
+      "asking": "检索中…"
     },
     "cet": {
       "assessment": {

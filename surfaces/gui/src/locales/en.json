@@ -138,7 +138,13 @@
       "ready": "Ready",
       "failed": "Parse failed",
       "ask": "Ask",
-      "citation": "Citations"
+      "citation": "Citations",
+      "title": "Library",
+      "empty": "Nothing imported yet",
+      "retry": "Re-parse",
+      "delete": "Delete",
+      "ask_placeholder": "Ask your materials…",
+      "asking": "Searching…"
     },
     "cet": {
       "assessment": {
