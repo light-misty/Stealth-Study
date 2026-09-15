@@ -184,8 +184,45 @@ def _utc_today() -> date:
     return datetime.now(timezone.utc).date()
 
 
+def _utcnow_iso() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+TASK_TRANSITIONS: Mapping[str, frozenset[str]] = {
+    models.PlanTaskStatus.TODO.value: frozenset(
+        {models.PlanTaskStatus.DOING.value, models.PlanTaskStatus.SKIPPED.value}
+    ),
+    models.PlanTaskStatus.DOING.value: frozenset(
+        {models.PlanTaskStatus.REVIEW.value, models.PlanTaskStatus.SKIPPED.value}
+    ),
+    models.PlanTaskStatus.REVIEW.value: frozenset(
+        {models.PlanTaskStatus.DONE.value, models.PlanTaskStatus.REVIEW.value}
+    ),
+    models.PlanTaskStatus.DONE.value: frozenset(),
+    models.PlanTaskStatus.SKIPPED.value: frozenset(),
+}
+
+PLAN_LAG_THRESHOLD = 0.15
+
+
 def _track_label(subject: str) -> str:
     return TRACK_LABELS.get(subject, subject)
+
+
+def _parse_exam_date(raw: str) -> date:
+    """Parse a `YYYY-MM-DD` exam date, refusing absence and garbage with the same code.
+
+    `EXAM_DATE_REQUIRED` is the documented precondition of both F5 and G3 (03 §4.4), so an
+    unparsable stored date fails the request the same way a missing one does instead of
+    inventing a new error code.
+    """
+    text = str(raw or "").strip()
+    if not text:
+        raise CampusError("EXAM_DATE_REQUIRED", "请先设置考试日期")
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        raise CampusError("EXAM_DATE_REQUIRED", f"考试日期无效：{text}") from None
 
 
 def _stage_counts(weeks: int) -> list[int]:
@@ -954,6 +991,93 @@ class CampusService:
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
 
+    # -- G2/G3: board write-back and rescheduling ---------------------------
+
+    def update_task(
+        self,
+        profile: models.ExamProfile,
+        task: models.PlanTask,
+        patch: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Write a board drag back onto `plan_task` (G2, KY-03/ADR-11).
+
+        Status changes must follow the PRD §6.4 machine (`TASK_TRANSITIONS`), anything else is
+        `ILLEGAL_TRANSITION`; re-dating and re-prioritising are not status transitions and stay
+        legal in every state. `board_card_id` is never written here — ADR-11 reserves it for a
+        possible V0.2 read-only sync.
+        """
+        del profile
+        values: dict[str, Any] = {}
+        if "scheduled_date" in patch:
+            values["scheduled_date"] = patch["scheduled_date"]
+        if "priority" in patch:
+            values["priority"] = patch["priority"]
+        if "status" in patch:
+            status = str(patch["status"])
+            if status != task.status and status not in TASK_TRANSITIONS[task.status]:
+                raise CampusError(
+                    "ILLEGAL_TRANSITION",
+                    f"任务状态不可从 {task.status} 流转到 {status}",
+                )
+            values["status"] = status
+            if status == models.PlanTaskStatus.DONE.value and task.status != status:
+                values["completed_at"] = _utcnow_iso()
+        if not values:
+            return task_payload(task)
+        self._store.update("plan_task", task.id, values)
+        row = self._store.get("plan_task", task.id)
+        return task_payload(models.PlanTask.from_row(row))
+
+    def reschedule_plan(
+        self,
+        profile: models.ExamProfile,
+        plan_id: str,
+        new_exam_date: Optional[str],
+    ) -> dict[str, Any]:
+        """Spread the plan's open tasks over the new horizon (G3, KY-04/KY-13).
+
+        Done and doing tasks keep their dates — "已完成任务不丢失" is the whole point of the
+        feature — while todo tasks, in their original relative order, land evenly between today
+        and the new exam date. A track whose completion runs ≥15 points behind the plan's
+        expected pace gets its open tasks boosted to priority 1 (落后轨加权), and the horizon
+        change is persisted on both the plan and the profile so the two never disagree.
+        """
+        row = self._store.get_scoped("study_plan", plan_id, profile.id)
+        if row is None:
+            raise CampusError("FORBIDDEN_PROFILE", f"学习计划不属于当前档案：{plan_id}")
+        plan = models.StudyPlan.from_row(row)
+        provided = str(new_exam_date or "").strip()
+        end = _parse_exam_date(provided or str(profile.exam_date or "").strip())
+        start = _utc_today()
+        if (end - start).days < 1:
+            raise CampusError("EXAM_DATE_REQUIRED", "考试日期需晚于今天")
+        tasks = [
+            models.PlanTask.from_row(item)
+            for item in self._store.list_rows(
+                "plan_task", profile_id=profile.id, where='"plan_id" = ?', params=[plan.id]
+            )
+        ]
+        done = sum(1 for task in tasks if task.status == models.PlanTaskStatus.DONE.value)
+        todo = sorted(
+            (task for task in tasks if task.status == models.PlanTaskStatus.TODO.value),
+            key=lambda task: (task.scheduled_date, task.priority, task.created_at or "", task.id),
+        )
+        lagging = self._lagging_tracks(plan, tasks)
+        span = (end - start).days
+        with self._store.transaction():
+            if provided:
+                self._store.update("exam_profile", profile.id, {"exam_date": end.isoformat()})
+            self._store.update("study_plan", plan.id, {"end_date": end.isoformat()})
+            for index, task in enumerate(todo):
+                offset = round(index * span / (len(todo) - 1)) if len(todo) > 1 else 0
+                values: dict[str, Any] = {
+                    "scheduled_date": (start + timedelta(days=offset)).isoformat()
+                }
+                if task.subject in lagging and task.priority != 1:
+                    values["priority"] = 1
+                self._store.update("plan_task", task.id, values)
+        return {"rescheduled": len(todo), "preserved_done": done}
+
     # -- F5: plan generation ------------------------------------------------
 
     async def generate_plan(self, profile: models.ExamProfile) -> dict[str, Any]:
@@ -1041,10 +1165,47 @@ class CampusService:
         raw = str(profile.exam_date or "").strip()
         if not raw:
             raise CampusError("EXAM_DATE_REQUIRED", "请先设置考试日期")
+        return _parse_exam_date(raw)
+
+    def _lagging_tracks(
+        self, plan: models.StudyPlan, tasks: list[models.PlanTask]
+    ) -> set[str]:
+        """Tracks whose completion runs ≥15 points behind the plan's expected pace (KY-13).
+
+        The expected pace is how far through the plan's own start→end span today sits; when the
+        plan carries no usable span the overall completion rate stands in, so a fresh plan never
+        flags anything and a half-finished one flags the genuinely neglected tracks.
+        """
+        total_by_track: dict[str, int] = {}
+        done_by_track: dict[str, int] = {}
+        for task in tasks:
+            total_by_track[task.subject] = total_by_track.get(task.subject, 0) + 1
+            if task.status == models.PlanTaskStatus.DONE.value:
+                done_by_track[task.subject] = done_by_track.get(task.subject, 0) + 1
+        expected = self._expected_progress(plan)
+        if expected is None:
+            done = sum(done_by_track.values())
+            total = sum(total_by_track.values())
+            expected = done / total if total else 0.0
+        threshold = expected - PLAN_LAG_THRESHOLD
+        return {
+            subject
+            for subject, total in total_by_track.items()
+            if total and done_by_track.get(subject, 0) / total <= threshold
+        }
+
+    @staticmethod
+    def _expected_progress(plan: models.StudyPlan) -> Optional[float]:
         try:
-            return date.fromisoformat(raw)
-        except ValueError:
-            raise CampusError("EXAM_DATE_REQUIRED", f"考试日期无效：{raw}") from None
+            start = date.fromisoformat(str(plan.start_date))
+            end = date.fromisoformat(str(plan.end_date))
+        except (TypeError, ValueError):
+            return None
+        span = (end - start).days
+        if span <= 0:
+            return None
+        elapsed = (_utc_today() - start).days
+        return min(1.0, max(0.0, elapsed / span))
 
     def _plan_tracks(self, profile: models.ExamProfile) -> tuple[str, ...]:
         """The tracks this profile's plan covers, read from the TrackSpec (01 §3.2).

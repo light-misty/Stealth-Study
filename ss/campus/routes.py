@@ -472,6 +472,29 @@ class PlanGenerate(BaseModel):
     profile_id: str
 
 
+class TaskPatch(BaseModel):
+    """G2 body (03 §4.7): a status move, a new date and/or a new priority.
+
+    The status vocabulary is `PlanTaskStatus` and the transition legality is the service's
+    machine (PRD §6.4); the date pattern and the 1-3 priority scale match what the plan
+    generator itself writes, so the board and the plan cannot drift apart.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: Optional[models.PlanTaskStatus] = None
+    scheduled_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+    priority: Optional[int] = Field(default=None, ge=1, le=3)
+
+
+class ReschedulePlan(BaseModel):
+    """G3 body (03 §4.7): the new exam date, or nothing to reuse the profile's."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    new_exam_date: Optional[str] = Field(default=None, pattern=EXAM_DATE_PATTERN)
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -706,5 +729,41 @@ def build_campus_router(manager: Any) -> APIRouter:
                 track=track,
             )
         }
+
+    def scoped_task(
+        task_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.PlanTask:
+        """Resolve a plan task of the request's profile.
+
+        03 §6 defines no task-specific 404 code, so a missing row is answered with the same
+        `FORBIDDEN_PROFILE` as a row owned by another profile — the caller learns nothing about
+        tasks it does not own (G2 docstring in `tests/campus/test_routes_task_patch.py`).
+        """
+        return guard.scoped_row(
+            "plan_task", task_id, profile.id, missing_code="FORBIDDEN_PROFILE"
+        )
+
+    @router.patch("/tasks/{task_id}")
+    def campus_patch_task(
+        body: TaskPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        task: models.PlanTask = Depends(scoped_task),
+    ) -> dict[str, Any]:
+        """G2 — write a board drag back; the PRD §6.4 machine polices status moves."""
+        return _call(
+            campus_service.update_task,
+            profile,
+            task,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.post("/plans/{plan_id}/reschedule")
+    def campus_reschedule_plan(
+        plan_id: str,
+        body: ReschedulePlan,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """G3 — spread the plan's open tasks over the new horizon, keeping finished work."""
+        return _call(campus_service.reschedule_plan, profile, plan_id, body.new_exam_date)
 
     return router
