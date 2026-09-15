@@ -18,6 +18,7 @@ T04 决策二执行：标题行放宽正则（容忍空白 + 编号式），同�
 
 from __future__ import annotations
 
+import asyncio
 import io
 import math
 import re
@@ -55,7 +56,15 @@ FTS_MIN_TERM_CHARS = 3
 L1_MIN_SECTION_RATIO = 0.5
 TOC_MAX_LINES = 200
 ROUTER_MAX_SECTIONS = 3
+MIN_ROUTER_TITLE_CHARS = 4
 RETRIEVAL_TIMEOUT_S = 90
+TEMPERATURE = 0
+
+# QA 组装（06 §5.3：top_k=6、每片截 2000、总量 ≤12000；citations snippet 展示截断）
+QA_TOP_K = DEFAULT_TOP_K
+QA_SNIPPET_CHARS = 2000
+QA_CONTEXT_BUDGET = 12_000
+QA_CITATION_SNIPPET_CHARS = 200
 
 # 02 §5.2：V0.1 默认启用 L1 + L2b（LIKE，零探测成本）；trigram FTS 是可选加速档，
 # 显式 `enable_fts=True` 时才探测 `ENABLE_FTS5` 并建虚表，探测/建表/运行时任何一步
@@ -363,6 +372,102 @@ def _idf_of(total: int, doc_freq: int) -> float:
     return math.log(1 + total / (1 + doc_freq))
 
 
+# ---------------------------------------------------------------------------
+# L1 目录路由与 QA 组装（06 §5.1/§5.2/§5.3；T02 §4.4 的路由解析修复）
+# ---------------------------------------------------------------------------
+
+ROUTER_PROMPT = (
+    "你是检索路由器。以下是资料目录（章节名 → 起始页）：\n{toc}\n"
+    "问题：{query}\n"
+    "只输出与回答该问题最相关的章节名，每行一个，最多 3 行，不要输出其他内容。"
+)
+_PAGE_REF = re.compile(r"[,，]?\s*[（(]?\s*[pP]\.?\s*\d+\s*[)）]?\s*$")
+_TITLE_PUNCT = "·:：.。、,，-—_"
+_PAGE_CITATION = re.compile(r"\[?p\.(\d+)\]?")
+
+
+def strip_page_ref(line: str) -> str:
+    """剥行尾页码引用（T02 §4.4 修复 1：`（p.153）` 式尾注不参与标题匹配）。"""
+    return _PAGE_REF.sub("", line).strip()
+
+
+def normalize_toc_title(title: str) -> str:
+    """目录标题规范化：剥 URL 与行尾页码、去空白、去首尾标点、小写（T02 §3）。"""
+    cleaned = _URL_PART.sub(" ", str(title or ""))
+    cleaned = strip_page_ref(cleaned)
+    return re.sub(r"\s+", "", cleaned).strip(_TITLE_PUNCT).lower()
+
+
+def build_router_prompt(toc: list[tuple[str, int]], query: str) -> str:
+    """L1 章节选择 prompt（06 §5.2 原文形态；目录喂模型前截 `TOC_MAX_LINES` 行）。"""
+    lines = [f"{title}（p.{page}）" for title, page in toc[:TOC_MAX_LINES]]
+    return ROUTER_PROMPT.format(toc="\n".join(lines), query=query)
+
+
+def parse_router_output(text: str, toc: list[tuple[str, int]]) -> list[str]:
+    """模型回复 → 选中的目录章节原文（≤`ROUTER_MAX_SECTIONS`，06 §5.2 + T02 §4.4）。
+
+    逐行剥首尾装饰与行尾页码后，与目录名做双向包含匹配（模型可能微调措辞），
+    同一行的多个命中取规范化标题**最长者**（击穿单字母伪目录项的实测缺陷）；
+    返回目录里的**原始标题**，保证 `section_title IN (...)` 与存储值精确一致。
+    """
+    selected: list[str] = []
+    for raw in (text or "").splitlines():
+        line = raw.strip().strip("-* ").strip()
+        cleaned = strip_page_ref(line)
+        if not cleaned:
+            continue
+        cleaned_normalized = normalize_toc_title(cleaned)
+        best_title: Optional[str] = None
+        best_normalized = ""
+        for title, _page in toc:
+            normalized = normalize_toc_title(title)
+            if len(normalized) < MIN_ROUTER_TITLE_CHARS:
+                continue
+            if normalized in cleaned_normalized or cleaned_normalized in normalized:
+                if len(normalized) > len(best_normalized):
+                    best_title, best_normalized = title, normalized
+        if best_title is not None and best_title not in selected:
+            selected.append(best_title)
+        if len(selected) >= ROUTER_MAX_SECTIONS:
+            break
+    return selected
+
+
+def build_qa_messages(question: str, chunks: list[dict]) -> list[dict]:
+    """QA 上下文组装（06 §5.3-1/2）：每片头部 `[资料名 p.X]`，单片截 2000，总量 ≤12000。"""
+    blocks: list[str] = []
+    used = 0
+    for chunk in chunks:
+        title = chunk.get("doc_title") or "资料"
+        block = f"[{title} p.{chunk['page_no']}]\n{chunk['content'][:QA_SNIPPET_CHARS]}"
+        if used + len(block) > QA_CONTEXT_BUDGET:
+            break
+        blocks.append(block)
+        used += len(block) + 2
+    context = "\n\n".join(blocks)
+    system = "只依据给定片段回答；片段不足以回答时明确说明；引用片段时标注 [p.X]。"
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": f"{context}\n\n问题：{question}"},
+    ]
+
+
+def build_citations(answer: str, chunks: list[dict]) -> list[dict]:
+    """引用反查（06 §5.3-3）：模型输出的 `p.X` 标记反查切片；无标记时兜底附全部切片。"""
+    pages = {int(match) for match in _PAGE_CITATION.findall(answer or "")}
+    matched = [chunk for chunk in chunks if chunk["page_no"] in pages] if pages else []
+    chosen = matched or chunks
+    return [
+        {
+            "doc_id": chunk["doc_id"],
+            "page_no": chunk["page_no"],
+            "snippet": chunk["content"][:QA_CITATION_SNIPPET_CHARS],
+        }
+        for chunk in chosen
+    ]
+
+
 def _utcnow() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -574,19 +679,33 @@ class CampusLibrary:
         top_k: int = DEFAULT_TOP_K,
         doc_id: Optional[str] = None,
     ) -> list[dict]:
-        """三级检索的统一入口（06 §5.1；L1 目录路由在 `_search` 的 `sections` 限域内）。
+        """三级检索的统一入口（06 §5.1：L1 目录路由 → L2 关键词 → L3 全扫）。
 
         返回 `[{doc_id, page_no, chunk_seq, section_title, content, score}]`（06 §4.1）。
         """
-        if doc_id is not None:
-            row = self.store.get_scoped("source_doc", doc_id, profile_id)
-            if row is None:
-                return []
-            doc = models.SourceDoc.from_row(row)
-            if doc.parse_status != models.ParseStatus.READY.value:
-                return []
-        chunks, _used = self._search(profile_id, query, doc_id=doc_id, top_k=top_k)
-        return chunks
+        chunks, _used = self._search_with_route(profile_id, query, doc_id=doc_id, top_k=top_k)
+        return [
+            {key: value for key, value in chunk.items() if key != "doc_title"} for chunk in chunks
+        ]
+
+    def _search_with_route(
+        self,
+        profile_id: str,
+        query: str,
+        *,
+        doc_id: Optional[str] = None,
+        top_k: int = DEFAULT_TOP_K,
+    ) -> tuple[list[dict], str]:
+        """L1 编排（06 §5.1 + T04 决策二）：路由成功走限域；0 命中、低置信、限域空、
+        路由不可用一律回退全库 L2，`used_retrieval` 如实标记。"""
+        sections = self._route_sections(profile_id, doc_id, query) if doc_id is not None else None
+        if sections:
+            scoped, used = self._search(
+                profile_id, query, doc_id=doc_id, top_k=top_k, sections=sections
+            )
+            if scoped:
+                return scoped, used
+        return self._search(profile_id, query, doc_id=doc_id, top_k=top_k)
 
     def _search(
         self,
@@ -623,25 +742,144 @@ class CampusLibrary:
             "toc_route" if sections else "keyword"
         )
 
+    def _route_sections(
+        self, profile_id: str, doc_id: str, query: str
+    ) -> Optional[list[str]]:
+        """L1 目录路由（06 §5.1/§5.2）：返回限域章节原文，`None` 表示回退全库 L2。
+
+        门控：需要 provider 且 `section_title` 非空切片占比 ≥50%；路由是单点辅助
+        调用，模型失败不重试（06 §8-4）；选中章节与问题关键词零重叠视为置信度
+        不足（T04 §6-4），同样回退。
+        """
+        if self._provider is None:
+            return None
+        total = self.store.count("doc_chunk", "doc_id = ?", (doc_id,))
+        if total == 0:
+            return None
+        titled = self.store.count(
+            "doc_chunk", "doc_id = ? AND section_title IS NOT NULL", (doc_id,)
+        )
+        if titled / total < L1_MIN_SECTION_RATIO:
+            return None
+        toc_rows = self.store.query_all(
+            'SELECT "section_title", MIN("page_no") AS "page_no" FROM "doc_chunk" '
+            'WHERE "doc_id" = ? AND "section_title" IS NOT NULL '
+            'GROUP BY "section_title" ORDER BY MIN("page_no") LIMIT ?',
+            (doc_id, TOC_MAX_LINES),
+        )
+        toc = [(row["section_title"], int(row["page_no"])) for row in toc_rows]
+        if not toc:
+            return None
+        model, _fallback = self._pick_model("explain")
+        try:
+            turn = self._provider.complete(
+                model=model,
+                messages=[{"role": "user", "content": build_router_prompt(toc, query)}],
+                temperature=TEMPERATURE,
+                timeout=RETRIEVAL_TIMEOUT_S,
+            )
+        except Exception:
+            return None
+        sections = parse_router_output(turn.text or "", toc)
+        if not sections or not self._route_confident(sections, extract_keywords(query)):
+            return None
+        return sections
+
+    def _route_confident(self, sections: list[str], keywords: list[str]) -> bool:
+        """置信度判定（T04 §6-4）：任一选中章节名与任一问题关键词重叠即视为可信。"""
+        for section in sections:
+            normalized = normalize_toc_title(section)
+            for keyword in keywords:
+                if keyword in normalized:
+                    return True
+        return False
+
+    def _pick_model(self, kind: str, track_type: str = "") -> tuple[str, str]:
+        picker = self._model_picker or models.pick
+        return picker(kind, track_type)
+
+    async def answer_qa(
+        self, profile_id: str, question: str, doc_id: Optional[str] = None
+    ) -> dict:
+        """B6 按页问答（06 §5.3）：检索组装上下文 → provider 生成 → 引用反查。
+
+        `provider.complete` 阻塞，与 `GradingEngine.grade` 同款 `asyncio.to_thread`
+        包裹（06 §1.1「同步请求 + 线程内完成」），T09 端点直接 `await`。
+        """
+        return await asyncio.to_thread(self._answer_qa_sync, profile_id, question, doc_id)
+
+    def _answer_qa_sync(
+        self, profile_id: str, question: str, doc_id: Optional[str] = None
+    ) -> dict:
+        if self._provider is None:
+            raise LibraryError("MODEL_NOT_CONFIGURED", "尚未配置可用模型，无法问答")
+        if doc_id is not None:
+            self._require_ready_doc(profile_id, doc_id)
+        chunks, used = self._search_with_route(
+            profile_id, question, doc_id=doc_id, top_k=QA_TOP_K
+        )
+        model, _fallback = self._pick_model("explain")
+        try:
+            turn = self._provider.complete(
+                model=model,
+                messages=build_qa_messages(question, chunks),
+                temperature=TEMPERATURE,
+                timeout=RETRIEVAL_TIMEOUT_S,
+            )
+        except Exception as exc:
+            name = type(exc).__name__.lower()
+            if "timeout" in name or "timeout" in str(exc).lower():
+                raise LibraryError("MODEL_TIMEOUT", "模型调用超时") from exc
+            raise LibraryError("MODEL_OUTPUT_INVALID", "模型调用失败") from exc
+        answer = turn.text or ""
+        return {
+            "answer": answer,
+            "citations": build_citations(answer, chunks),
+            "used_retrieval": used,
+            "chunks_used": len(chunks),
+        }
+
+    def _require_ready_doc(self, profile_id: str, doc_id: str) -> None:
+        """QA 前置检查：跨档案 `DOC_NOT_FOUND`、未解析 `DOC_NOT_READY`、扫描件
+        `DOC_SCAN_EMPTY`（03 §4.2 B6 错误码）。"""
+        row = self.store.get_scoped("source_doc", doc_id, profile_id)
+        if row is None:
+            raise LibraryError("DOC_NOT_FOUND", f"资料不存在：{doc_id}")
+        doc = models.SourceDoc.from_row(row)
+        if doc.parse_status == models.ParseStatus.READY.value:
+            return
+        if (
+            doc.parse_status == models.ParseStatus.FAILED.value
+            and doc.fail_reason == FAIL_NO_TEXT_LAYER
+        ):
+            raise LibraryError("DOC_SCAN_EMPTY", "扫描件无可提取文字层，无法问答")
+        raise LibraryError("DOC_NOT_READY", "资料尚未解析完成，无法问答")
+
     def _scope(
         self,
         profile_id: str,
         doc_id: Optional[str],
         sections: Optional[list[str]],
     ) -> tuple[str, list]:
-        """检索域 SQL（白名单片段拼装，值全部参数化）：doc 限域 / 档案全扫 / L1 限域。"""
+        """检索域 SQL（白名单片段拼装，值全部参数化）：doc 限域 / 档案全扫 / L1 限域。
+
+        列名一律带 `d.` 别名——候选查询 JOIN `source_doc` 后两表同名列不能裸引用。
+        """
         if doc_id is not None:
-            scope, params = '"doc_id" = ?', [doc_id]
+            scope, params = 'd."doc_id" = ?', [doc_id]
         else:
-            scope, params = '"profile_id" = ?', [profile_id]
+            scope, params = 'd."profile_id" = ?', [profile_id]
         if sections:
             placeholders = ", ".join("?" for _ in sections)
-            scope += f' AND "section_title" IN ({placeholders})'
+            scope += f' AND d."section_title" IN ({placeholders})'
             params = params + list(sections)
         return scope, params
 
     def _candidate_rows(self, scope: str, params: list, keywords: list[str]) -> list[sqlite3.Row]:
-        """候选行：FTS 加速档就绪且存在长词元时走 MATCH，否则 LIKE 全扫兜底。"""
+        """候选行：FTS 加速档就绪且存在长词元时走 MATCH，否则 LIKE 全扫兜底。
+
+        JOIN `source_doc` 带出 `title AS doc_title`，供 QA 片段头部 `[资料名 p.X]`。
+        """
         if self._fts_ready:
             terms = [keyword for keyword in keywords if len(keyword) >= FTS_MIN_TERM_CHARS]
             if terms:
@@ -650,31 +888,40 @@ class CampusLibrary:
                 except Exception:
                     self._fts_ready = False
         likes = " OR ".join('"content" LIKE ?' for _ in keywords)
-        sql = f'SELECT * FROM "doc_chunk" WHERE {scope} AND ({likes})'
+        sql = (
+            'SELECT d.*, s."title" AS "doc_title" FROM "doc_chunk" d '
+            'JOIN "source_doc" s ON s."id" = d."doc_id" '
+            f"WHERE {scope} AND ({likes})"
+        )
         return self.store.query_all(sql, (*params, *[f"%{keyword}%" for keyword in keywords]))
 
     def _fts_match(self, terms: list[str], scope: str, params: list) -> list[sqlite3.Row]:
         match = " OR ".join(f'"{term}"' for term in terms)
         sql = (
-            'SELECT * FROM "doc_chunk" WHERE rowid IN '
+            'SELECT d.*, s."title" AS "doc_title" FROM "doc_chunk" d '
+            'JOIN "source_doc" s ON s."id" = d."doc_id" '
+            "WHERE d.\"rowid\" IN "
             "(SELECT rowid FROM doc_chunk_fts WHERE doc_chunk_fts MATCH ?) "
             f"AND {scope}"
         )
         return self.store.query_all(sql, (match, *params))
 
     def _idf(self, scope: str, params: list, keywords: list[str]) -> dict[str, float]:
-        total = self.store.scalar(f'SELECT COUNT(*) FROM "doc_chunk" WHERE {scope}', params) or 0
+        total = self.store.scalar(
+            f'SELECT COUNT(*) FROM "doc_chunk" d WHERE {scope}', params
+        ) or 0
         idf: dict[str, float] = {}
         for keyword in keywords:
             doc_freq = self.store.scalar(
-                f'SELECT COUNT(*) FROM "doc_chunk" WHERE {scope} AND "content" LIKE ?',
+                f'SELECT COUNT(*) FROM "doc_chunk" d WHERE {scope} AND d."content" LIKE ?',
                 (*params, f"%{keyword}%"),
             )
             idf[keyword] = _idf_of(total, doc_freq or 0)
         return idf
 
     def _chunk_dict(self, row: sqlite3.Row, score: float) -> dict:
-        """检索行 → 06 §4.1 返回形状；`chunk_seq` 取页内切片序（与导入一致）。"""
+        """检索行 → 06 §4.1 返回形状（附 `doc_title` 供 QA 片段头）；`chunk_seq`
+        取页内切片序（按 char_start 计数，与导入时的页内序一致）。"""
         chunk_seq = self.store.scalar(
             'SELECT COUNT(*) FROM "doc_chunk" WHERE "doc_id" = ? AND "page_no" = ? '
             'AND "char_start" < ?',
@@ -687,6 +934,7 @@ class CampusLibrary:
             "section_title": row["section_title"],
             "content": row["content"],
             "score": score,
+            "doc_title": row["doc_title"] if "doc_title" in row.keys() else None,
         }
 
     # ---- FTS5 加速档（02 §5.2 L2a；探测/建表/运行时失败均退回 LIKE） ----
