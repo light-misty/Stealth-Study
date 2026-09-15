@@ -1,4 +1,216 @@
 {
+  "campus": {
+    "nav": {
+      "cet": "CET 备考台",
+      "kaoyan": "考研备考台",
+      "cert": "证书备考台"
+    },
+    "track": {
+      "cet": {
+        "name": "CET 四六级",
+        "tagline": "听力 · 阅读 · 写作 · 翻译"
+      },
+      "kaoyan": {
+        "name": "考研",
+        "tagline": "政治 · 英语 · 数学 · 专业课"
+      },
+      "cert": {
+        "name": "证书",
+        "tagline": "知识树 · 刷题 · 批改"
+      }
+    },
+    "common": {
+      "mastery": {
+        "unknown": "未掌握",
+        "fuzzy": "模糊",
+        "mastered": "已掌握"
+      },
+      "attribution": {
+        "concept_unclear": "概念不清",
+        "misread": "审题失误",
+        "calculation_or_operation": "计算或操作失误",
+        "out_of_scope": "超纲",
+        "time_short": "时间不足",
+        "pending": "待判定"
+      },
+      "subject": {
+        "listening": "听力",
+        "reading": "阅读",
+        "writing": "写作",
+        "translation": "翻译",
+        "vocab": "词汇",
+        "politics": "政治",
+        "english": "英语",
+        "math": "数学",
+        "major": "专业课"
+      },
+      "stage": {
+        "foundation": "基础",
+        "intensive": "强化",
+        "pastpaper": "真题",
+        "sprint": "冲刺"
+      },
+      "days_left_other": "还剩 {{count}} 天",
+      "ai_notice": "AI 生成，仅供参考"
+    },
+    "profile": {
+      "create": "新建备考档案",
+      "switch": "切换档案",
+      "archive": "归档",
+      "title_label": "档案名称",
+      "exam_date_label": "考试日期",
+      "target_score_label": "目标分数",
+      "daily_minutes_label": "每日时长（分钟）",
+      "empty": "还没有备考档案，先新建一个开始吧"
+    },
+    "settings": {
+      "title": "备考台设置",
+      "daily_minutes": "每日学习时长",
+      "push_time": "推送时间",
+      "review_intensity": "复习强度",
+      "intensity_light": "轻量",
+      "intensity_standard": "标准",
+      "intensity_intense": "高强度"
+    },
+    "grading": {
+      "submit": "提交批改",
+      "dimensions": "分项得分",
+      "errors": "错误清单",
+      "model_outline": "范文要点",
+      "degrade_notice_1": "弱模型批改，结果仅供参考",
+      "degrade_notice_2": "批改降级，结果仅供参考",
+      "degrade_notice_3": "多次解析失败，结果仅供参考"
+    },
+    "mistake": {
+      "title": "错题本",
+      "attribution": "归因",
+      "resolved": "已解决",
+      "stats": "错题统计"
+    },
+    "review": {
+      "due_today": "今日待复习",
+      "correct": "答对",
+      "wrong": "答错",
+      "interval": "下次复习：{{days}} 天后"
+    },
+    "question": {
+      "import": "导入题库",
+      "create": "新建题目",
+      "filter": "筛选",
+      "qtype": "题型"
+    },
+    "library": {
+      "import": "导入资料",
+      "parsing": "解析中…",
+      "ready": "解析完成",
+      "failed": "解析失败",
+      "ask": "提问",
+      "citation": "引用"
+    },
+    "cet": {
+      "assessment": {
+        "start": "开始定级",
+        "resume": "继续定级",
+        "finish": "完成定级"
+      },
+      "vocab": {
+        "today_new": "今日新词",
+        "today_review": "今日复习",
+        "mnemonic": "生成助记"
+      },
+      "mock": {
+        "start": "开始模考",
+        "stage_writing": "写作",
+        "stage_listening": "听力",
+        "stage_reading_translation": "阅读与翻译",
+        "locked": "已锁定",
+        "submit": "交卷"
+      }
+    },
+    "kaoyan": {
+      "plan": {
+        "generate": "生成计划",
+        "reorder": "重排计划",
+        "tracks": "四轨"
+      },
+      "progress": {
+        "streak_other": "连续学习 {{count}} 天",
+        "heatmap": "热力图"
+      },
+      "school": {
+        "profile": "院校档案",
+        "extract": "从简章提取"
+      }
+    },
+    "cert": {
+      "tree": {
+        "generate": "生成知识树",
+        "coverage": "覆盖率",
+        "weak_top5": "薄弱 TOP5"
+      },
+      "practice": {
+        "title": "刷题",
+        "submit": "提交"
+      },
+      "deadline": {
+        "banner": "倒计时",
+        "reference_notice": "以官方公告为准",
+        "create_reminders": "创建提醒"
+      }
+    },
+    "privacy": {
+      "title": "隐私与数据",
+      "data_dir": "数据目录",
+      "db_size": "数据库大小",
+      "clear": "清除本地数据"
+    },
+    "export": {
+      "title": "导出与导入",
+      "md": "导出 Markdown",
+      "json": "导出 JSON",
+      "csv": "导出 CSV",
+      "wipe": "一键清除"
+    },
+    "error": {
+      "profile_required": "缺少档案参数",
+      "profile_not_found": "档案不存在",
+      "profile_read_only": "档案已结课，拒绝写入",
+      "forbidden_profile": "该资源不属于当前档案",
+      "duplicate_title": "同名档案已存在",
+      "duplicate_node": "同类型考试节点已存在",
+      "exam_date_required": "请先设置考试日期",
+      "file_too_large": "文件超过大小上限",
+      "unsupported_type": "不支持的文件类型",
+      "disk_full": "磁盘空间不足",
+      "doc_not_found": "资料不存在",
+      "doc_not_ready": "资料尚未解析完成",
+      "doc_scan_empty": "疑似扫描件，无可提取文字层",
+      "parse_error": "导入内容格式错误",
+      "question_not_found": "题目不存在",
+      "point_not_found": "知识点不存在",
+      "attempt_not_found": "作答记录不存在",
+      "rq_not_found": "复习队列项不存在",
+      "mock_not_found": "模考不存在",
+      "assessment_not_found": "定级测评不存在",
+      "item_not_found": "复习素材不存在",
+      "invalid_attribution": "错因取值非法",
+      "invalid_level": "掌握度取值非法",
+      "illegal_transition": "任务状态流转非法",
+      "illegal_stage": "模考阶段流转非法",
+      "stage_locked": "该阶段已锁定",
+      "mock_submitted": "模考已交卷",
+      "pause_exceeded": "暂停时长已超上限",
+      "assessment_finished": "定级测评已结束",
+      "model_not_configured": "尚未配置可用模型",
+      "model_timeout": "模型调用超时",
+      "model_output_invalid": "模型输出无法解析",
+      "rubric_not_found": "评分标准不存在",
+      "automation_unavailable": "自动化任务存储不可用",
+      "export_not_found": "导出文件不存在",
+      "no_task_data": "暂无任务数据，无法生成周报",
+      "schema_version_error": "数据版本高于当前应用版本"
+    }
+  },
   "boot": {
     "starting": "正在启动…",
     "restoring": "正在恢复你的会话…"
@@ -281,7 +493,8 @@
       "personas": "同事",
       "context": "上下文优化",
       "skills": "技能",
-      "memory": "记忆"
+      "memory": "记忆",
+      "campus": "备考台"
     },
     "general_title": "通用",
     "general_sub": "OpenWorker 在本机的外观与行为。",

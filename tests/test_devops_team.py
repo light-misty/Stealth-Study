@@ -40,19 +40,19 @@ def test_lead_observes_but_cannot_deploy(tmp_path):
     assert "shell" in lead.tools
     prompt = lead.manifest.system_prompt
     assert "observer" in prompt.lower()
-    assert "read-only" in prompt.lower()
-    assert "a human executes" in prompt.lower()
+    assert "只读" in prompt.lower()
+    assert "由人类执行" in prompt.lower()
 
 
 def test_standing_watch_contract_lines(tmp_path):
     prompt = _reg(tmp_path).get("devops-lead").manifest.system_prompt
     # Case-ledger dedup: sweeps update cases, only new judgment files items.
-    assert "never re-file" in prompt
+    assert "它不会获得新的看板条目" in prompt
     # Deploy correlation is the product.
-    assert "what shipped" in prompt.lower()
+    assert "什么发布了" in prompt.lower()
     # Interim caps (budgets deferred): bounded cadence, bounded staffing.
-    assert "Never tighter than 10" in prompt
-    assert "THREE workers" in prompt
+    assert "绝不短于 10" in prompt
+    assert "最多 三个 工人" in prompt
     # Ops notes are the deployment seam; without them the lead must not guess.
     assert "OPSWATCH" in prompt
     # The one-time board chip (seventeenth pass).
@@ -65,11 +65,11 @@ def test_workers_carry_the_load_bearing_rules(tmp_path):
         prompt = reg.get(pid).manifest.system_prompt
         flat = " ".join(prompt.split())  # prompts hard-wrap; match across newlines
         assert "ask_user" in flat  # the "never use" line
-        assert "UNTRUSTED INPUT" in flat
-        assert "never the value" in flat  # secrets stay radioactive
+        assert "不可信任的输入" in flat
+        assert "绝不记录值" in flat  # secrets stay radioactive
     # Lane separation is written down, not vibes.
-    assert "SYMPTOM side" in reg.get("logs-worker").manifest.system_prompt
-    assert "PLATFORM side" in reg.get("infra-worker").manifest.system_prompt
-    assert "CHANGE side" in reg.get("change-worker").manifest.system_prompt
+    assert "症状侧" in reg.get("logs-worker").manifest.system_prompt
+    assert "平台侧" in reg.get("infra-worker").manifest.system_prompt
+    assert "变更侧" in reg.get("change-worker").manifest.system_prompt
     # The infra worker never applies.
     assert "terraform apply" in reg.get("infra-worker").manifest.system_prompt

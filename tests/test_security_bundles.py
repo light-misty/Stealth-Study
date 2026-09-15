@@ -77,9 +77,9 @@ def test_prompts_carry_the_positioning_guardrails(tmp_path):
     for pid in BUNDLES:
         prompt = reg.get(pid).manifest.system_prompt.lower()
         assert "todo_write" in prompt
-        assert "drive" in prompt  # drives scanners; value is judgment/remediation
-    assert "read-only" in reg.get("cloud-posture").manifest.system_prompt.lower()
-    assert "never print a discovered secret" in reg.get("security").manifest.system_prompt.lower()
+        assert "驱动" in prompt  # drives scanners; value is judgment/remediation
+    assert "只读" in reg.get("cloud-posture").manifest.system_prompt.lower()
+    assert "绝不输出发现的机密值" in reg.get("security").manifest.system_prompt.lower()
 
 
 def test_security_prompt_forbids_silently_skipping_a_check(tmp_path):
@@ -89,7 +89,7 @@ def test_security_prompt_forbids_silently_skipping_a_check(tmp_path):
     the prompt and is pinned here."""
     reg = _reg(tmp_path)
     prompt = reg.get("security").manifest.system_prompt.lower()
-    assert "never silently skip" in prompt
+    assert "静默跳过检查" in prompt
     assert "coverage" in prompt  # every review reports what ran and what didn't
     assert "request_tool" in prompt  # asking is the first option, not skipping
 
@@ -139,10 +139,10 @@ def test_bundles_offer_a_report_page_rather_than_assuming_one(tmp_path):
     for pid in BUNDLES:
         prompt = reg.get(pid).manifest.system_prompt.lower()
         assert "ask_user" in prompt, pid  # opt-in, not automatic
-        assert "self-contained" in prompt, pid  # opens anywhere, offline
+        assert "自包含" in prompt, pid  # opens anywhere, offline
         assert "artifact:" in prompt, pid  # linked the way the GUI can open it
         # The counts ride in the question so the user chooses with the gist in hand.
-        assert "headline counts" in prompt, pid
+        assert "标题计数" in prompt, pid
 
 
 def test_report_page_inherits_the_secret_and_evidence_rules(tmp_path):
@@ -157,7 +157,7 @@ def test_report_page_inherits_the_secret_and_evidence_rules(tmp_path):
 
     reg = _reg(tmp_path)
     security = flat("security")
-    assert "never a secret's value" in security
-    assert "coverage note reproduced in full" in security
+    assert "绝有机密值" in security
+    assert "完整复现 coverage 笔记" in security
     for pid in ("cloud-posture", "dep-audit"):
-        assert "evidence per claim" in flat(pid), pid
+        assert "每个声明有证据" in flat(pid), pid

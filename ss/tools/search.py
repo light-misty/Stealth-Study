@@ -113,7 +113,13 @@ def search_tools(workspace: str) -> list:
             # Do not rely solely on a workspace's .gitignore: the Python fallback
             # always omits these generated/dependency directories too. Exclusions come
             # last because ripgrep resolves conflicting globs with the later one winning.
+            # rg matches globs against the full candidate path, ancestors included, so
+            # a dir name on the search root's own path (a temp dir under AppData, a
+            # workspace named "dist") must not exclude the search itself.
+            root_parts = {part.lower() for part in base.parts}
             for ignored in sorted(_IGNORE_DIRS):
+                if ignored.lower() in root_parts:
+                    continue
                 cmd += ["--glob", f"!**/{ignored}/**"]
             cmd.append(str(base))
             try:
@@ -146,12 +152,17 @@ def _rel(path: str, root: Path) -> str:
         return path
 
 
+_RG_LINE = re.compile(r"^(.+?):(\d+):(.*)$")
+
+
 def _parse_rg(stdout: str, root: Path, n: int) -> dict[str, Any]:
     matches: list[dict[str, Any]] = []
     for line in stdout.splitlines():
-        parts = line.split(":", 2)
-        if len(parts) == 3:
-            f, ln, txt = parts
+        # Non-greedy so a Windows drive colon (C:\…) or a text-bearing colon doesn't
+        # swallow the line-number field.
+        m = _RG_LINE.match(line)
+        if m:
+            f, ln, txt = m.group(1), m.group(2), m.group(3)
             matches.append(
                 {
                     "file": _rel(f, root),

@@ -57,7 +57,6 @@ T10_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/assessments/{assessment_id}"),
     ("PATCH", "/assessments/{assessment_id}"),
     ("POST", "/assessments/{assessment_id}/finish"),
-    ("POST", "/plans/generate"),
     ("GET", "/vocab/today"),
     ("PATCH", "/vocab/{vid}"),
     ("POST", "/vocab/import"),
@@ -69,9 +68,21 @@ T10_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("POST", "/mock-exams/{mock_exam_id}/submit"),
 )
 
-DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS
-
 TODAY = "2026-09-15"
+
+T11_NEW: tuple[tuple[str, str], ...] = (
+    ("POST", "/plans/generate"),
+    ("PATCH", "/tasks/{task_id}"),
+    ("POST", "/plans/{plan_id}/reschedule"),
+    ("GET", "/progress"),
+    ("POST", "/weekly-reports/generate"),
+    ("GET", "/weekly-reports"),
+    ("GET", "/school-profile"),
+    ("PATCH", "/school-profile"),
+    ("POST", "/school-profile/extract"),
+)
+T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS + T11_NEW
+DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS
 
 
 def essay_payload() -> str:
@@ -122,7 +133,7 @@ def test_route_inventory_matches_the_t09_contract() -> None:
         for route in router.routes
         for method in route.methods
     }
-    for method, path in T09_ENDPOINTS:
+    for method, path in T11_ENDPOINTS:
         assert (method, path) in declared, f"{method} {path} is not registered"
 
 
