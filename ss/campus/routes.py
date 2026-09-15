@@ -44,6 +44,7 @@ from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
 from .service import (
     MAX_DIFFICULTY,
     MIN_DIFFICULTY,
+    VOCAB_MASTERY_ALIASES,
     CampusError,
     CampusService,
     ModelInventory,
@@ -511,6 +512,44 @@ class AssessmentPatch(BaseModel):
     answers: dict[str, Optional[str]]
 
 
+class VocabPatch(BaseModel):
+    """F7 body (03 §4.6): the self-reported mastery mark.
+
+    03's vocabulary is `known|fuzzy|unknown` while the stored column is `unknown|fuzzy|mastered`
+    (02 §4.11); both spellings are accepted and the service stores the column form.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    mastery: str
+
+    @field_validator("mastery")
+    @classmethod
+    def _mastery_must_be_known(cls, value: str) -> str:
+        if value not in VOCAB_MASTERY_ALIASES:
+            raise ValueError(f"mastery must be one of {sorted(VOCAB_MASTERY_ALIASES)}")
+        return value
+
+
+class VocabImport(BaseModel):
+    """F8 body (03 §4.6): a custom word list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    format: Literal["csv", "md"]
+    content: str
+
+
+class VocabRef(BaseModel):
+    """F9 body (03 §4.6): the word to build a mnemonic for."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    vocab_id: str
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -837,6 +876,49 @@ def build_campus_router(manager: Any) -> APIRouter:
         """F5 — generate a day-by-day plan up to the exam date (shared across stations)."""
         del body
         return await _async_call(campus_service.generate_plan, profile)
+
+    # -- F6-F9：高频词（03 §4.6 CET-02/04/06）------------------------------
+
+    def scoped_vocab(
+        vid: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.VocabItem:
+        """Resolve a word of the request's profile (F7)."""
+        return guard.scoped_row("vocab_item", vid, profile.id, missing_code="ITEM_NOT_FOUND")
+
+    @router.get("/vocab/today")
+    def campus_vocab_today(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """F6 — the day's new words (≤30, by real-exam frequency) and the due reviews."""
+        return _call(campus_service.vocab_today, profile)
+
+    @router.post("/vocab/import")
+    def campus_import_vocab(
+        body: VocabImport,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F8 — import a custom MD/CSV word list (PRD CET2 验收②)."""
+        return _call(campus_service.import_vocabulary, profile, body.format, body.content)
+
+    @router.post("/vocab/mnemonic")
+    async def campus_vocab_mnemonic(
+        body: VocabRef,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """F9 — build a mnemonic and remember it (body carries no `profile_id`, so the query does)."""
+        vocab = guard.scoped_row(
+            "vocab_item", body.vocab_id, profile.id, missing_code="ITEM_NOT_FOUND"
+        )
+        return await _async_call(campus_service.vocab_mnemonic, profile, vocab)
+
+    @router.patch("/vocab/{vid}")
+    def campus_patch_vocab(
+        body: VocabPatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        vocab: models.VocabItem = Depends(scoped_vocab),
+    ) -> dict[str, Any]:
+        """F7 — mark a word known/fuzzy/unknown; "不认识" joins tomorrow's review queue."""
+        return _call(campus_service.set_vocab_mastery, profile, vocab, body.mastery)
 
     # -- G1：今日建议 / 自建看板（03 §4.7）---------------------------------
 

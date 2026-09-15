@@ -30,6 +30,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
+from ..memory import Scope
 from ..secrets import state_dir
 from . import models, rubrics, tracks
 from .config import DEFAULT_DAILY_MINUTES
@@ -229,6 +230,28 @@ PLAN_FALLBACK_MINUTES = 30
 PLAN_FALLBACK_TITLE = "{subject} 巩固练习"
 PLAN_FALLBACK_DETAIL = "按科目骨架轮转补齐的当日最低任务（模型未给出这一天）"
 
+NEW_WORD_LIMIT = 30
+VOCAB_MASTERY_ALIASES: Mapping[str, str] = {
+    "known": models.MasteryLevel.MASTERED.value,
+    "mastered": models.MasteryLevel.MASTERED.value,
+    "fuzzy": models.MasteryLevel.FUZZY.value,
+    "unknown": models.MasteryLevel.UNKNOWN.value,
+}
+
+VOCAB_FIELDS: tuple[str, ...] = ("word", "phonetic", "meaning", "example")
+
+_VOCAB_LABELS: Mapping[str, str] = {
+    "word": "word",
+    "单词": "word",
+    "词": "word",
+    "phonetic": "phonetic",
+    "音标": "phonetic",
+    "meaning": "meaning",
+    "释义": "meaning",
+    "example": "example",
+    "例句": "example",
+}
+
 
 class CampusError(Exception):
     """A business failure carrying one documented code, its message and any extra detail.
@@ -283,6 +306,11 @@ def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
     payload = asdict(attempt)
     payload["grading_json"] = _decode(payload.get("grading_json"), None)
     return payload
+
+
+def vocab_payload(vocab: models.VocabItem) -> dict[str, Any]:
+    """One word card; every column is scalar, so the body is the row itself (02 §4.11)."""
+    return asdict(vocab)
 
 
 def task_payload(task: models.PlanTask) -> dict[str, Any]:
@@ -650,6 +678,83 @@ def _fill_plan_days(
     return filled
 
 
+def parse_vocabulary(fmt: str, content: str) -> list[dict[str, str]]:
+    """Parse an F8 word-list payload into `{word, phonetic, meaning, example}` rows.
+
+    Two shapes, one vocabulary (03 §4.6 F8):
+    * `md` — one word per line (PRD CET2 验收②), optionally `word|音标|释义|例句` with `|`;
+    * `csv` — a header row using the same labels, then one word per row.
+
+    Blank lines and `#` comments are skipped; anything else unusable raises `PARSE_ERROR` with the
+    physical line number, and the whole payload is validated before the first insert.
+    """
+    if not isinstance(content, str) or not content.strip():
+        raise CampusError("PARSE_ERROR", "导入内容为空", line=1)
+    if fmt == "md":
+        rows = _parse_markdown_vocabulary(content)
+    elif fmt == "csv":
+        rows = _parse_csv_vocabulary(content)
+    else:
+        raise CampusError("PARSE_ERROR", f"不支持的内容格式：{fmt}", line=1)
+    if not rows:
+        raise CampusError("PARSE_ERROR", "未解析到任何单词", line=1)
+    return rows
+
+
+def _parse_markdown_vocabulary(content: str) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for number, raw in enumerate(content.splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        cells = [cell.strip() for cell in _OPTION_SEPARATOR.split(line)]
+        if len(cells) > len(VOCAB_FIELDS):
+            raise CampusError("PARSE_ERROR", f"第 {number} 行字段过多：{line}", line=number)
+        if not cells[0]:
+            raise CampusError("PARSE_ERROR", f"第 {number} 行缺少单词", line=number)
+        rows.append(dict(zip(VOCAB_FIELDS, cells)))
+    return rows
+
+
+def _parse_csv_vocabulary(content: str) -> list[dict[str, str]]:
+    reader = csv.reader(io.StringIO(content))
+    header = next(reader, None)
+    if not header:
+        raise CampusError("PARSE_ERROR", "导入内容为空", line=1)
+    columns = [_VOCAB_LABELS.get(cell.strip()) for cell in header]
+    if any(column is None for column in columns):
+        raise CampusError("PARSE_ERROR", "第 1 行表头含未知字段", line=1)
+    if len(set(columns)) != len(columns):
+        raise CampusError("PARSE_ERROR", "第 1 行表头字段重复", line=1)
+    if "word" not in columns:
+        raise CampusError("PARSE_ERROR", "第 1 行表头缺少必填字段：word", line=1)
+    rows: list[dict[str, str]] = []
+    for row in reader:
+        line = reader.line_num
+        if not any(cell.strip() for cell in row):
+            continue
+        if len(row) != len(header):
+            raise CampusError("PARSE_ERROR", f"第 {line} 行列数与表头不一致", line=line)
+        fields = {str(column): cell.strip() for column, cell in zip(columns, row)}
+        if not fields.get("word"):
+            raise CampusError("PARSE_ERROR", f"第 {line} 行缺少单词", line=line)
+        rows.append(fields)
+    return rows
+
+
+def build_mnemonic_messages(vocab: models.VocabItem) -> list[dict[str, str]]:
+    """The F9 助记 prompt — one line, no chatter (05 §3.1 技能包语气)."""
+    system = (
+        "你在为备考四六级的学生生成单词助记。只输出一句中文助记（拆词 / 谐音 / 词根任选其一），"
+        "不超过 60 字，不要任何其他文字。"
+    )
+    detail = "、".join(
+        part for part in (vocab.phonetic or "", vocab.meaning or "") if part
+    )
+    user = f"单词：{vocab.word}" + (f"（{detail}）" if detail else "")
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
 def _utcnow() -> str:
     """The campus timestamp format of 02 §1.3 (ISO 8601 UTC to the second)."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -865,6 +970,8 @@ class CampusService:
         self._caller = (
             ManagerCaller(provider_host, self.model_for_task) if provider_host is not None else None
         )
+        self._memory_store = getattr(provider_host, "memory_store", None)
+        self._memory_settings = getattr(provider_host, "memory_settings", None)
 
     @property
     def inventory(self) -> ModelInventory:
@@ -1601,7 +1708,189 @@ class CampusService:
                 )
         return {"plan_id": plan_id, "task_count": len(tasks), "first_date": start.isoformat()}
 
+    # -- F6-F9: high-frequency vocabulary (CET-02/04/06) --------------------
+
+    def vocab_today(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """The day's word list: new words plus the reviews that are due (F6).
+
+        New words are capped at 30 (PRD CET2's "每天只背 30 个词"), ordered by the real-exam
+        frequency (`freq_rank`, unknown ranks last) and excluding anything already queued for
+        review — a word the student is reviewing must not reappear as new. Due reviews inline the
+        word itself so the card can render without a second request.
+        """
+        queued = {
+            row["item_id"]
+            for row in self._store.list_rows(
+                "review_queue",
+                profile_id=profile.id,
+                where='"item_type" = ? AND "status" = ?',
+                params=[models.ReviewItemType.VOCAB.value, models.ReviewStatus.PENDING.value],
+            )
+        }
+        unknown_rows = self._store.list_rows(
+            "vocab_item",
+            profile_id=profile.id,
+            where='"mastery" = ?',
+            params=[models.MasteryLevel.UNKNOWN.value],
+            order_by="created_at, rowid",
+        )
+        candidates = [row for row in unknown_rows if row["id"] not in queued]
+        candidates.sort(key=lambda row: (row["freq_rank"] is None, row["freq_rank"] or 0))
+        review_items: list[dict[str, Any]] = []
+        for row in self._store.list_rows(
+            "review_queue",
+            profile_id=profile.id,
+            where='"item_type" = ? AND "status" = ? AND "due_at" <= ?',
+            params=[
+                models.ReviewItemType.VOCAB.value,
+                models.ReviewStatus.PENDING.value,
+                _utcnow(),
+            ],
+            order_by="due_at, rowid",
+        ):
+            word = self._store.get_scoped("vocab_item", row["item_id"], profile.id)
+            if word is None:
+                continue
+            review_items.append(
+                {
+                    **asdict(models.ReviewItem.from_row(row)),
+                    "payload": vocab_payload(models.VocabItem.from_row(word)),
+                }
+            )
+        return {
+            "new_items": [
+                vocab_payload(models.VocabItem.from_row(row))
+                for row in candidates[:NEW_WORD_LIMIT]
+            ],
+            "review_items": review_items,
+        }
+
+    def set_vocab_mastery(
+        self, profile: models.ExamProfile, vocab: models.VocabItem, mastery: str
+    ) -> dict[str, Any]:
+        """Record a self-reported mastery mark, queueing "不认识" for tomorrow (F7).
+
+        The API vocabulary of 03 §4.6 (`known`) and the column vocabulary of 02 §4.11
+        (`mastered`) are two names for the same state; both are accepted and the column form is
+        stored. Queueing is idempotent — marking a word unknown twice leaves one pending item —
+        and the interval progression itself belongs to T13's `review_scheduler` (D6).
+        """
+        stored = VOCAB_MASTERY_ALIASES[mastery]
+        self._store.update("vocab_item", vocab.id, {"mastery": stored})
+        if stored == models.MasteryLevel.UNKNOWN.value:
+            self._enqueue_vocab_review(profile.id, vocab.id)
+        return self.vocab(vocab.id)
+
+    def import_vocabulary(
+        self, profile: models.ExamProfile, fmt: str, content: str
+    ) -> dict[str, int]:
+        """Import a custom word list, counting words already stored as skipped (F8)."""
+        imported = 0
+        skipped = 0
+        for row in parse_vocabulary(fmt, content):
+            word = row["word"]
+            if self._vocab_exists(profile.id, word):
+                skipped += 1
+                continue
+            self._store.insert(
+                "vocab_item",
+                {
+                    "profile_id": profile.id,
+                    "word": word,
+                    "phonetic": row.get("phonetic") or "",
+                    "meaning": row.get("meaning") or "",
+                    "example": row.get("example") or "",
+                    "example_source": models.ExampleSource.AI.value,
+                },
+            )
+            imported += 1
+        return {"imported": imported, "skipped": skipped}
+
+    async def vocab_mnemonic(
+        self, profile: models.ExamProfile, vocab: models.VocabItem
+    ) -> dict[str, Any]:
+        """Generate a mnemonic and remember it through the existing memory chain (F9).
+
+        The write goes through the manager's memory store and respects the user's Memory switch
+        (01 §4.2: campus never opens `coworker.db` itself) — with Memory off the mnemonic is still
+        returned, just not remembered, and the response says so instead of pretending.
+        """
+        if self.model_for_task(models.CampusTask.EXPLAIN.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        mnemonic = (
+            await asyncio.to_thread(
+                self._require_caller().complete,
+                models.CampusTask.EXPLAIN.value,
+                build_mnemonic_messages(vocab),
+            )
+        ).strip()
+        if not mnemonic:
+            raise CampusError("MODEL_OUTPUT_INVALID", "助记输出为空")
+        saved, memory_id = self._remember_mnemonic(vocab, mnemonic)
+        return {"mnemonic": mnemonic, "saved": saved, "memory_id": memory_id}
+
+    def vocab(self, vocab_id: str) -> dict[str, Any]:
+        """One word body, or `ITEM_NOT_FOUND` (03 §6's code for a missing review source)."""
+        row = self._store.get("vocab_item", vocab_id)
+        if row is None:
+            raise CampusError("ITEM_NOT_FOUND", f"单词不存在：{vocab_id}")
+        return vocab_payload(models.VocabItem.from_row(row))
+
     # -- internals ---------------------------------------------------------
+
+    def _enqueue_vocab_review(self, profile_id: str, vocab_id: str) -> None:
+        """Put a word into tomorrow's review queue once, never twice."""
+        existing = self._store.query_one(
+            'SELECT "id" FROM "review_queue" WHERE "profile_id" = ? AND "item_type" = ? '
+            'AND "item_id" = ? AND "status" = ?',
+            (
+                profile_id,
+                models.ReviewItemType.VOCAB.value,
+                vocab_id,
+                models.ReviewStatus.PENDING.value,
+            ),
+        )
+        if existing is not None:
+            return
+        due = datetime.now(timezone.utc) + timedelta(days=1)
+        self._store.insert(
+            "review_queue",
+            {
+                "profile_id": profile_id,
+                "item_type": models.ReviewItemType.VOCAB.value,
+                "item_id": vocab_id,
+                "due_at": due.strftime("%Y-%m-%dT00:00:00Z"),
+                "interval_days": 1,
+                "streak_right": 0,
+                "ease": 2.5,
+                "status": models.ReviewStatus.PENDING.value,
+            },
+        )
+
+    def _vocab_exists(self, profile_id: str, word: str) -> bool:
+        row = self._store.query_one(
+            'SELECT "id" FROM "vocab_item" WHERE "profile_id" = ? AND "word" = ?',
+            (profile_id, word),
+        )
+        return row is not None
+
+    def _remember_mnemonic(self, vocab: models.VocabItem, mnemonic: str) -> tuple[bool, Optional[int]]:
+        """Write the mnemonic through the manager's memory store, honouring the Memory switch."""
+        settings = self._memory_settings
+        if settings is not None and not getattr(settings, "enabled", False):
+            return False, None
+        store = self._memory_store
+        if store is None:
+            return False, None
+        try:
+            item = store.add(
+                f"背单词助记（{vocab.word}）：{mnemonic}",
+                scope=Scope.GLOBAL,
+                summary=f"{vocab.word} 的助记",
+            )
+        except Exception:
+            return False, None
+        return True, getattr(item, "id", None)
 
     def _plan_skeleton(self, profile: models.ExamProfile) -> tuple[str, ...]:
         """The station's declared subjects, falling back to the profile's own list.
