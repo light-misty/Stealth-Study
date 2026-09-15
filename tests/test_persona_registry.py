@@ -1,12 +1,27 @@
 """Phase 1 gate — persona registry lifecycle (installed → enabled → surfaced + default),
 plus the shipping lineup (owner calls 2026-08-21): Chat removed, Code disabled by default,
-ships:false personas hidden outside internal builds (OPENWORKER_UNSHIPPED=1)."""
+ships:false personas hidden outside internal builds (OPENWORKER_UNSHIPPED=1).
+
+T21 备考台六人设扩大了发布 lineup：它们**不写 `ships`**（缺省 True）、`group: general`、
+不填 `team`，因此发布构建即可见——这正是 05 §1 硬约束 1 要防的反面（照抄既有
+`ships: false` 模板会让人设集体隐身）。下面的精确名单同步扩到十项，作为该陷阱的回归网。
+"""
 
 from __future__ import annotations
 
 import pytest
 
 from ss.personas.registry import DEFAULT_PERSONA_ID, PersonaRegistry
+
+# T21 备考台六人设：manifest 落盘于 ss/personas/builtin/<id>/（05 §2 目录布局）。
+CAMPUS_PERSONAS = (
+    "cert-instructor",
+    "cet-examiner",
+    "cet-grader",
+    "kaoyan-planner",
+    "kaoyan-subject-tutor",
+    "study-companion",
+)
 
 
 def _reg(tmp_path) -> PersonaRegistry:
@@ -30,15 +45,23 @@ def test_builtins_present(tmp_path):
 
 
 def test_release_lineup(tmp_path, monkeypatch):
-    # A release build (no flag) offers exactly OpenWorker + the security coworkers;
-    # Code is listed in Settings but disabled + unsurfaced (the recovery path).
+    # A release build (no flag) offers exactly OpenWorker + the six campus personas + the
+    # three security coworkers; Code is listed in Settings but disabled + unsurfaced (the
+    # recovery path). Campus personas are visible because they leave `ships` unset.
     monkeypatch.delenv("OPENWORKER_UNSHIPPED", raising=False)
     reg = _reg(tmp_path)
     assert [e["name"] for e in reg.sidebar()] == [
-        "cowork", "cloud-posture", "dep-audit", "security",
+        "cowork",
+        "cert-instructor", "cet-examiner", "cet-grader",
+        "cloud-posture", "dep-audit",
+        "kaoyan-planner", "kaoyan-subject-tutor",
+        "security", "study-companion",
     ]
     listed = {p["id"]: p for p in reg.list_all()}
-    assert set(listed) == {"cowork", "code", "cloud-posture", "dep-audit", "security"}
+    assert set(listed) == {
+        "cowork", "code", "cloud-posture", "dep-audit", "security",
+        *CAMPUS_PERSONAS,
+    }
     assert listed["code"]["enabled"] is False and listed["code"]["surfaced"] is False
     assert listed["cloud-posture"]["group"] == "security"
     assert listed["cowork"]["group"] == "general"
@@ -70,6 +93,7 @@ def test_sidebar_defaults_to_surfaced_builtins(tmp_path, internal):
     assert set(ids) == {
         "cowork", "ops", "security", "cloud-posture", "dep-audit",
         "swe-lead", "devsecops-lead", "devops-lead", "triage-lead",
+        *CAMPUS_PERSONAS,
     }
     assert not any(
         i in ids
