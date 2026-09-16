@@ -35,13 +35,18 @@ function formatArgs(args: unknown[]): string {
   return args.map(formatValue).join(" ");
 }
 
+export interface CaptureOptions {
+  // 新条目入队成功后回调（供上传调度做条数触发）
+  onEntry?: (entry: LogEntry) => void;
+}
+
 export interface LoggerHandle {
   store: LogStore;
   // 恢复原始 console 并移除全局监听，供测试隔离使用
   stop(): void;
 }
 
-export function initLogCapture(store: LogStore): LoggerHandle {
+export function initLogCapture(store: LogStore, options: CaptureOptions = {}): LoggerHandle {
   const stopFns: Array<() => void> = [];
 
   function record(level: LogLevel, args: unknown[], stack?: string): void {
@@ -51,8 +56,8 @@ export function initLogCapture(store: LogStore): LoggerHandle {
       message: formatArgs(args),
       ...(stack ? { stack } : {}),
     };
-    // 异步入队：异常时也不阻塞主流程
-    void store.add(entry);
+    // 异步入队：异常时也不阻塞主流程；入队成功后通知上传调度
+    void store.add(entry).then(() => options.onEntry?.(entry));
   }
 
   function wrap(method: "log" | "debug" | "info" | "warn" | "error", level: LogLevel): void {

@@ -2540,3 +2540,26 @@ export async function nameCurrentProject(
   });
   return r.json();
 }
+
+// -- 前端日志上传 ---------------------------------------------------------------
+
+export interface FrontendLogEntry {
+  ts: string;
+  level: string;
+  message: string;
+  stack?: string;
+}
+
+/** 批量上传前端日志到本地 sidecar；网络异常或非 2xx 均视为失败（调用方负责重试）。 */
+export async function uploadLogsBatch(entries: FrontendLogEntry[]): Promise<boolean> {
+  try {
+    const res = await fetch(`${httpBase()}/v1/logs/frontend`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logs: entries }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
