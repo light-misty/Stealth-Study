@@ -404,7 +404,7 @@ class CampusStore:
         with self._lock:
             self._conn.close()
 
-    def wipe(self) -> int:
+    def wipe(self, *, target: Optional[int] = None) -> int:
         """Delete `campus.db` and rebuild an empty schema, returning the bytes freed (02 §7.1).
 
         The connection is closed before the files go and reopened after, so this object stays
@@ -412,7 +412,10 @@ class CampusStore:
         re-wired after a wipe. `-wal`/`-shm` siblings and the pre-migration backups
         (`campus.db.bak-v*`, 02 §3.3) go with the database; no file outside campus's own set is
         touched, and a wipe requested from inside an open transaction is refused rather than
-        leaving a half-applied one behind.
+        leaving a half-applied one behind. The optional `target` (T14's restore path, 02 §7.4)
+        rebuilds at exactly that schema version instead of the current one, so a restore can
+        replay an older export into its own era and then migrate forward through the real
+        migration chain.
         """
         with self._lock:
             if self._depth:
@@ -426,8 +429,36 @@ class CampusStore:
             self._conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
             self._conn.row_factory = sqlite3.Row
             self._conn.execute("PRAGMA journal_mode=WAL").fetchone()
-            self.migrate()
+            if target is None:
+                self.migrate()
+            else:
+                self._rebuild_schema(target)
             return freed
+
+    def _rebuild_schema(self, target: int) -> None:
+        """Build the empty schema of exactly `target`, stamping it into `schema_meta`.
+
+        The restore path needs the database of the export's own version — replaying a v1
+        package straight into a v2 schema would silently skip the data work the v2 migration
+        exists to do — so the rebuild runs the migration chain from nothing instead of
+        `migrate()`'s stored-version jump, and no backup is taken because the database was
+        just destroyed on purpose.
+        """
+        if target not in _MIGRATIONS or not 1 <= target <= CURRENT_SCHEMA_VERSION:
+            raise ValueError(f"cannot rebuild campus.db at schema v{target}")
+        self._conn.execute(SCHEMA_META_DDL)
+        self._conn.execute("BEGIN")
+        try:
+            for version in range(1, target + 1):
+                _MIGRATIONS[version](self._conn)
+            self._conn.execute(
+                "INSERT INTO schema_meta (key, version, applied_at) VALUES (?, ?, ?)",
+                (SCHEMA_VERSION_KEY, target, _utcnow()),
+            )
+            self._conn.execute("COMMIT")
+        except Exception:
+            self._conn.execute("ROLLBACK")
+            raise
 
     def _database_paths(self) -> list[str]:
         """The database plus every file sqlite keeps beside it."""

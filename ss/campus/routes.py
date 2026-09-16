@@ -37,6 +37,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, Mapping, NoReturn, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import FileResponse
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -787,6 +788,29 @@ class MockPause(BaseModel):
     seconds: int = Field(gt=0, le=MOCK_PAUSE_BUDGET_SECONDS)
 
 
+class ExportCreate(BaseModel):
+    """I4 body (03 §4.9): the station that triggers the export, and the file format.
+
+    `profile_id` rides the body for the guard; the json package itself is a whole-database
+    backup (02 §7.4) while md and csv report only this profile's data.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    format: Literal["md", "json", "csv"]
+
+
+class WipeRequest(BaseModel):
+    """I6 body (03 §4.9): absent or empty for the bare wipe of 02 §7.1; `restore_filename`
+    (T14, INF-03 — I6 as I4's inverse per 07 §2) restores the named json backup package
+    right after the wipe instead of leaving an empty database behind."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    restore_filename: Optional[str] = Field(default=None, min_length=1, max_length=128)
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -1509,5 +1533,27 @@ def build_campus_router(manager: Any) -> APIRouter:
     ) -> dict[str, Any]:
         """I3 — one-click install; repeat installs return the same task ids."""
         return _call(campus_service.install_automation_template, profile, tpl_id)
+
+    # -- I4-I6：导出 / 下载 / 一键清除（03 §4.9，INF-02/03）--------------------
+
+    @router.post("/exports")
+    def campus_create_export(
+        body: ExportCreate,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """I4 — write one export file into `campus/exports/`, hand back its name and path."""
+        return _call(campus_service.create_export, profile, body.format)
+
+    @router.get("/exports/{filename}")
+    def campus_download_export(filename: str) -> Any:
+        """I5 — stream a whitelisted export back as an attachment download."""
+        target, media = _call(campus_service.resolve_export, filename)
+        return FileResponse(target, media_type=media, filename=target.name)
+
+    @router.post("/exports/wipe")
+    def campus_wipe_exports(body: Optional[WipeRequest] = None) -> dict[str, Any]:
+        """I6 — bare `{wiped: true}` clear, or wipe-then-restore for a named backup package."""
+        restore = body.restore_filename if body is not None else None
+        return _call(campus_service.wipe_campus_data, restore_filename=restore)
 
     return router

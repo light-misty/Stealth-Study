@@ -34,7 +34,7 @@ from typing import Any, Mapping, Optional
 from ..automation.models import Schedule, ScheduledTask
 from ..memory import Scope
 from ..secrets import state_dir
-from . import automation_templates, models, reminders, review_scheduler, rubrics, tracks
+from . import automation_templates, models, reminders, review_scheduler, rubrics, store, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
@@ -90,6 +90,60 @@ PROFILE_MUTABLE_FIELDS: tuple[str, ...] = (
 )
 
 JSON_PROFILE_FIELDS: frozenset[str] = frozenset({"subjects"})
+
+EXPORT_FORMATS: tuple[str, ...] = ("md", "json", "csv")
+
+EXPORT_TABLE_ORDER: tuple[str, ...] = (
+    "exam_profile",
+    "school_profile",
+    "source_doc",
+    "doc_chunk",
+    "knowledge_point",
+    "mastery",
+    "study_plan",
+    "plan_task",
+    "vocab_item",
+    "question_bank_item",
+    "attempt",
+    "mistake_book",
+    "review_queue",
+    "mock_exam",
+    "assessment",
+    "weekly_report",
+    "cert_deadline",
+    "app_state",
+)
+
+EXPORT_MEDIA_TYPES: Mapping[str, str] = {
+    "md": "text/markdown",
+    "json": "application/json",
+    "csv": "text/csv",
+}
+
+BACKUP_KIND = "stealth-study-campus-backup"
+
+EXPORT_FILENAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:md|json|csv)$")
+
+EXPORT_RESERVED_STEMS = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{index}" for index in range(1, 10)}
+    | {f"LPT{index}" for index in range(1, 10)}
+)
+
+CSV_ATTEMPT_COLUMNS: tuple[str, ...] = (
+    "id",
+    "created_at",
+    "track_type",
+    "subject",
+    "question_id",
+    "session_type",
+    "mock_exam_id",
+    "is_correct",
+    "score",
+    "max_score",
+    "degrade_level",
+    "model_used",
+)
 
 QUESTION_FIELDS: tuple[str, ...] = (
     "subject",
@@ -1366,6 +1420,270 @@ class CampusService:
         freed = self._store.wipe()
         freed += _remove_tree(root, root / "campus")
         return {"cleared": True, "freed_bytes": freed}
+
+    # -- I4-I6: exports (03 §4.9, INF-02/03) ---------------------------------
+
+    def exports_dir(self) -> Path:
+        """The export drop zone of PRD §6.1: `state_dir()/campus/exports/`."""
+        return Path(state_dir()) / "campus" / "exports"
+
+    def create_export(self, profile: models.ExamProfile, fmt: str) -> dict[str, Any]:
+        """Write one export file into `campus/exports/` and name it back (I4).
+
+        The json package is a whole-database backup (02 §7.4: the 18 data tables behind
+        `schema_meta`, one array each, with the schema version carried as a field) so a
+        restore can rebuild everything losslessly; md and csv are human-readable views of
+        this profile only. Download names are safe by construction: every component of the
+        filename is generated here, never user-supplied.
+        """
+        if fmt not in EXPORT_FORMATS:
+            raise CampusError("UNSUPPORTED_TYPE", f"不支持的导出格式：{fmt}")
+        directory = self.exports_dir()
+        directory.mkdir(parents=True, exist_ok=True)
+        stem = f"campus-{profile.track_type}-{profile.id[:8]}-{self._export_stamp()}"
+        name = f"{stem}.{fmt}"
+        counter = 2
+        while (directory / name).exists():
+            name = f"{stem}-{counter}.{fmt}"
+            counter += 1
+        target = directory / name
+        body = self._export_body(profile, fmt)
+        target.write_bytes(body.encode("utf-8-sig" if fmt == "csv" else "utf-8"))
+        return {"filename": name, "path": str(target)}
+
+    def resolve_export(self, filename: str) -> tuple[Path, str]:
+        """The whitelisted on-disk export for `filename`, or `EXPORT_NOT_FOUND` (I5).
+
+        The pattern refuses separators, leading dots, reserved device stems and anything
+        without an export extension outright; the resolved-path containment check then keeps
+        a name that slipped past the pattern from pointing outside `campus/exports/`. Every
+        failure answers with the same code, so odd names leak no extra information.
+        """
+        name = str(filename or "")
+        stem = name.rsplit(".", 1)[0].upper()
+        if not EXPORT_FILENAME_RE.match(name) or stem in EXPORT_RESERVED_STEMS:
+            raise CampusError("EXPORT_NOT_FOUND", f"导出文件不存在：{name}")
+        directory = self.exports_dir().resolve()
+        target = (directory / name).resolve()
+        if target.parent != directory or not target.is_file():
+            raise CampusError("EXPORT_NOT_FOUND", f"导出文件不存在：{name}")
+        return target, EXPORT_MEDIA_TYPES[target.suffix.lstrip(".")]
+
+    def wipe_campus_data(self, *, restore_filename: Optional[str] = None) -> dict[str, Any]:
+        """I6 — the 02 §7.1 one-click clear, or the INF-03 restore that rides on it.
+
+        Bare (the A10 implementation, `{wiped: true}` per 03 §4.9): the database and the whole
+        `campus/` tree go. With `restore_filename` (07 §2 registers I6 as I4's inverse, 02
+        §7.4), the package is read and fully validated BEFORE anything is destroyed, the wipe
+        rebuilds the schema at the package's own version, the rows replay in one transaction,
+        and `migrate()` walks the result up to the current version — which is how a
+        lower-version package earns its migration notice. `campus/exports/` survives a
+        restore, so the backup being restored from is never destroyed by the restore itself.
+        """
+        if restore_filename is None:
+            root = Path(state_dir())
+            self._store.wipe()
+            _remove_tree(root, root / "campus")
+            return {"wiped": True}
+        package = self._load_restore_package(restore_filename)
+        self._store.wipe(target=package["schema_version"])
+        rows_inserted = 0
+        try:
+            with self._store.transaction():
+                for table in EXPORT_TABLE_ORDER:
+                    for row in package["tables"].get(table, ()):
+                        self._store.insert(table, dict(row))
+                        rows_inserted += 1
+        except CampusError:
+            raise
+        except Exception as exc:
+            raise CampusError("PARSE_ERROR", f"恢复写入失败：{exc}") from exc
+        migration: Optional[dict[str, int]] = None
+        if package["schema_version"] < store.CURRENT_SCHEMA_VERSION:
+            migration = {"from": package["schema_version"], "to": self._store.migrate()}
+        counts = {table: self._store.count(table) for table in EXPORT_TABLE_ORDER}
+        recorded = package.get("row_counts")
+        counts_match = recorded == counts if isinstance(recorded, dict) else None
+        _remove_tree(Path(state_dir()), Path(state_dir()) / "campus" / "library")
+        return {
+            "wiped": True,
+            "restored": {"rows": rows_inserted, "tables": counts, "counts_match": counts_match},
+            "schema_migration": migration,
+        }
+
+    def _load_restore_package(self, filename: str) -> dict[str, Any]:
+        """Read and fully validate a restore package before the wipe destroys anything.
+
+        Every refusal here happens while the live database is still untouched, so a bad
+        package can never leave the user with nothing. A package newer than this app answers
+        `SCHEMA_VERSION_ERROR` (03 §6's defensive case); everything malformed — JSON
+        decoding, an unknown table or column, a row without its primary key — answers
+        `PARSE_ERROR`. `schema_meta` itself is refused as a replay table: the version it
+        records travels as the package's `schema_version` field instead. Duplicate primary
+        keys are refused here too — the only replay failure the validation cannot otherwise
+        see coming, and the one that would strike after the wipe has already destroyed the
+        live rows.
+        """
+        target, media = self.resolve_export(filename)
+        if media != "application/json":
+            raise CampusError("PARSE_ERROR", "恢复包必须是 json 导出文件")
+        try:
+            payload = json.loads(target.read_text(encoding="utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise CampusError("PARSE_ERROR", f"恢复包不是有效 JSON：{exc}") from exc
+        if not isinstance(payload, dict):
+            raise CampusError("PARSE_ERROR", "恢复包必须是 JSON 对象")
+        version = payload.get("schema_version")
+        if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+            raise CampusError("PARSE_ERROR", f"恢复包缺少有效的 schema_version：{version!r}")
+        if version > store.CURRENT_SCHEMA_VERSION:
+            raise CampusError(
+                "SCHEMA_VERSION_ERROR",
+                f"恢复包 schema v{version} 新于当前应用 v{store.CURRENT_SCHEMA_VERSION}，"
+                "请先升级应用再恢复",
+            )
+        tables = payload.get("tables")
+        if not isinstance(tables, dict):
+            raise CampusError("PARSE_ERROR", "恢复包缺少 tables 行集")
+        for name, rows in tables.items():
+            if name not in models.ROW_MODELS or name == "schema_meta":
+                raise CampusError("PARSE_ERROR", f"恢复包含未知表：{name}")
+            columns = models.TABLE_COLUMNS[name]
+            if not isinstance(rows, list):
+                raise CampusError("PARSE_ERROR", f"{name} 的行集必须是数组")
+            seen_ids: Optional[set[str]] = set() if "id" in columns else None
+            for row in rows:
+                if not isinstance(row, dict):
+                    raise CampusError("PARSE_ERROR", f"{name} 存在非对象行")
+                unknown = sorted(set(row) - set(columns))
+                if unknown:
+                    raise CampusError("PARSE_ERROR", f"{name} 存在未知列：{unknown}")
+                if seen_ids is not None:
+                    row_id = row.get("id")
+                    if not row_id:
+                        raise CampusError("PARSE_ERROR", f"{name} 存在缺少 id 的行")
+                    if row_id in seen_ids:
+                        raise CampusError("PARSE_ERROR", f"{name} 存在重复 id：{row_id}")
+                    seen_ids.add(row_id)
+        return {
+            "schema_version": version,
+            "tables": tables,
+            "row_counts": payload.get("row_counts"),
+        }
+
+    def _export_stamp(self) -> str:
+        return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    def _export_body(self, profile: models.ExamProfile, fmt: str) -> str:
+        if fmt == "json":
+            return json.dumps(self._backup_package(), ensure_ascii=False, indent=2)
+        if fmt == "md":
+            return self._profile_markdown(profile)
+        return self._attempts_csv(profile)
+
+    def _backup_package(self) -> dict[str, Any]:
+        """The 02 §7.4 restore package: one array per data table plus the schema version."""
+        tables: dict[str, list[dict[str, Any]]] = {}
+        counts: dict[str, int] = {}
+        for table in EXPORT_TABLE_ORDER:
+            rows = [
+                {key: row[key] for key in row.keys()}
+                for row in self._store.query_all(f'SELECT * FROM "{table}"')
+            ]
+            tables[table] = rows
+            counts[table] = len(rows)
+        return {
+            "kind": BACKUP_KIND,
+            "schema_version": store.CURRENT_SCHEMA_VERSION,
+            "exported_at": _utcnow(),
+            "row_counts": counts,
+            "tables": tables,
+        }
+
+    def _profile_markdown(self, profile: models.ExamProfile) -> str:
+        """The human-readable study report of this profile (INF-02's Markdown face)."""
+        progress = self.progress(profile)
+        coverage = self.mastery_coverage(profile.id)
+        deadlines = self.list_deadlines(profile.id)["items"]
+        questions = self._store.count("question_bank_item", '"profile_id" = ?', [profile.id])
+        attempts = self._store.count("attempt", '"profile_id" = ?', [profile.id])
+        correct = self._store.count(
+            "attempt", '"profile_id" = ? AND "is_correct" = 1', [profile.id]
+        )
+        mistakes = self._store.count("mistake_book", '"profile_id" = ?', [profile.id])
+        unresolved = self._store.count(
+            "mistake_book", '"profile_id" = ? AND "resolved" = 0', [profile.id]
+        )
+        vocab_levels: dict[str, int] = {}
+        for row in self._store.list_rows("vocab_item", profile_id=profile.id):
+            vocab_levels[row["mastery"]] = vocab_levels.get(row["mastery"], 0) + 1
+        vocab_total = sum(vocab_levels.values())
+        plans = self._store.count("study_plan", '"profile_id" = ?', [profile.id])
+        tasks = self._store.count("plan_task", '"profile_id" = ?', [profile.id])
+        tasks_done = self._store.count(
+            "plan_task",
+            '"profile_id" = ? AND "status" = ?',
+            [profile.id, models.PlanTaskStatus.DONE.value],
+        )
+        due = len(review_scheduler.due_items(self._store, profile.id))
+        lines = [
+            f"# 学习数据导出 — {profile.title}",
+            "",
+            f"- 导出时间：{_utcnow()}",
+            f"- 轨道：{profile.track_type} / 状态：{profile.status}",
+            f"- 考试日期：{profile.exam_date or '未设置'} / 目标分：{profile.target_score or '未设置'}",
+            "",
+            "## 学习进度",
+            f"- 连续打卡：{progress['streak_days']} 天",
+        ]
+        for subject, entry in progress["by_track"].items():
+            lines.append(f"- {subject}：{entry['done']}/{entry['total']}（{entry['rate']:.0%}）")
+        lines += ["", "## 知识点掌握", f"- 覆盖率：{coverage['coverage']:.0%}"]
+        weak = coverage.get("weak_top5") or []
+        if weak:
+            for item in weak:
+                lines.append(f"- 薄弱：{item['title']}（{item['level']}）")
+        else:
+            lines.append("- 薄弱：暂无已评级知识点")
+        lines += [
+            "",
+            "## 题库与作答",
+            f"- 题目：{questions} 题 / 作答：{attempts} 次 / 判对：{correct} 次",
+            "",
+            "## 错题本",
+            f"- 累计：{mistakes} 条 / 未解决：{unresolved} 条",
+            "",
+            "## 词汇",
+            f"- 共 {vocab_total} 词（mastered {vocab_levels.get(models.MasteryLevel.MASTERED.value, 0)}"
+            f" / fuzzy {vocab_levels.get(models.MasteryLevel.FUZZY.value, 0)}"
+            f" / unknown {vocab_levels.get(models.MasteryLevel.UNKNOWN.value, 0)}）",
+            "",
+            "## 复习队列",
+            f"- 今日到期：{due} 项",
+            "",
+            "## 学习计划",
+            f"- 计划：{plans} 份 / 任务：{tasks} 项（已完成 {tasks_done} 项）",
+            "",
+            "## 考试节点",
+        ]
+        if deadlines:
+            for item in deadlines:
+                lines.append(f"- {item['node_type']} {item['date']}：剩 {item['days_left']} 天")
+        else:
+            lines.append("- 暂无考试节点")
+        return "\n".join(lines) + "\n"
+
+    def _attempts_csv(self, profile: models.ExamProfile) -> str:
+        """The profile's attempt log as one flat CSV (INF-02's spreadsheet face)."""
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(CSV_ATTEMPT_COLUMNS)
+        rows = self._store.list_rows(
+            "attempt", profile_id=profile.id, order_by="created_at ASC, rowid ASC"
+        )
+        for row in rows:
+            writer.writerow([row[column] for column in CSV_ATTEMPT_COLUMNS])
+        return buffer.getvalue()
 
     # -- E1-E4: question bank ----------------------------------------------
 
