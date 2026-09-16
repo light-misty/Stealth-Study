@@ -2,15 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   askLibrary,
   deleteLibraryDoc,
+  generateWeeklyReport,
   getAppState,
   getCapabilities,
   getLibraryDoc,
+  getProgress,
   getReminders,
   importLibraryDoc,
   listDueReviews,
   listLibraryDocs,
   listMistakes,
   listProfiles,
+  listTasks,
+  listWeeklyReports,
   patchAppState,
   patchMistake,
   retryLibraryDoc,
@@ -25,8 +29,11 @@ import type {
   LibraryQAAnswer,
   MistakeBookEntry,
   MistakeFilters,
+  PlanTask,
+  ProgressReport,
   ReviewDueItem,
   SourceDoc,
+  WeeklyReport,
 } from "./types";
 import { campusErrorInfo } from "./utils";
 
@@ -314,13 +321,13 @@ export function useLibraryQA(profileId: string | null, docId?: string) {
   const [error, setError] = useState<unknown>(null);
 
   const ask = useCallback(
-    async (question: string) => {
+    async (question: string, docOverride?: string) => {
       const trimmed = question.trim();
       if (!profileId || !trimmed) return null;
       setAsking(true);
       setError(null);
       try {
-        const res = await askLibrary(profileId, trimmed, docId);
+        const res = await askLibrary(profileId, trimmed, docOverride ?? docId);
         setAnswer(res);
         return res;
       } catch (err) {
@@ -360,4 +367,56 @@ export function useDeadlineViews(profileId: string | null) {
     [],
   );
   return { views: data, loading, error, reload };
+}
+
+/** G1: the plan task list behind the kaoyan board (read-only display, ADR-11). */
+export function usePlanTasks(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<PlanTask[]>(
+    () => (profileId ? listTasks(profileId).then((res) => res?.items ?? []) : Promise.resolve([])),
+    [profileId],
+    [],
+  );
+  return { items: data, loading, error, retryable, reload };
+}
+
+/** G4: the four-track progress report (rings, streak, heatmap). */
+export function usePlanProgress(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<ProgressReport | null>(
+    () => (profileId ? getProgress(profileId) : Promise.resolve(null)),
+    [profileId],
+    null,
+  );
+  return { progress: data, loading, error, retryable, reload };
+}
+
+/** G5/G6: the weekly report list plus a manual generate; G5 upserts per week. */
+export function useWeeklyReports(profileId: string | null) {
+  const { data, setData, loading, error, retryable, reload } = useAsync<WeeklyReport[]>(
+    () =>
+      profileId
+        ? listWeeklyReports(profileId).then((res) => res?.items ?? [])
+        : Promise.resolve([]),
+    [profileId],
+    [],
+  );
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<unknown>(null);
+
+  const generate = useCallback(async () => {
+    if (!profileId || generating) return null;
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const report = await generateWeeklyReport(profileId);
+      setData((prev) => [report, ...prev.filter((item) => item.id !== report.id)]);
+      return report;
+    } catch (err) {
+      setGenError(err);
+      return null;
+    } finally {
+      setGenerating(false);
+    }
+  }, [profileId, generating, setData]);
+
+  return { items: data, loading, error, retryable, reload, generate, generating, genError };
 }

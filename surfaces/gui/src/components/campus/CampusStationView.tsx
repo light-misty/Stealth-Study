@@ -12,7 +12,10 @@ import { LibraryPanel } from "./LibraryPanel";
 import { MistakeBookPanel } from "./MistakeBookPanel";
 import { ProfileCreateCard } from "./ProfileCreateCard";
 import { ProfileSwitcher } from "./ProfileSwitcher";
-import { QAChatPanel } from "./QAChatPanel";
+import { MajorQAView } from "./kaoyan/MajorQAView";
+import { PlanPanel } from "./kaoyan/PlanPanel";
+import { SubjectTutorChat } from "./kaoyan/SubjectTutorChat";
+import { WeeklyReportView } from "./kaoyan/WeeklyReportView";
 import { ReviewQueuePanel } from "./ReviewQueuePanel";
 import { AssessmentFlow } from "./cet/AssessmentFlow";
 import { CommonErrorsCard } from "./cet/CommonErrorsCard";
@@ -42,8 +45,10 @@ const SHARED_PANELS: readonly PanelSpec[] = [
   { key: "review", render: ({ profileId }) => <ReviewQueuePanel profileId={profileId} /> },
 ];
 
-// 04 §2.1 puts the library and its Q&A on the kaoyan track. Tracks get their own entry so
-// T17/T18/T19 can append their business panels without touching this file's logic.
+// 04 §2.1 puts the library and its Q&A on the kaoyan track. The kaoyan Q&A slot is the
+// T18 MajorQAView (document picker + clickable page citations) rather than the shared
+// QAChatPanel. Tracks get their own entry so T17/T18/T19 can append their business panels
+// without touching this file's logic.
 const LIBRARY_PANELS: readonly PanelSpec[] = [
   {
     key: "library",
@@ -53,10 +58,16 @@ const LIBRARY_PANELS: readonly PanelSpec[] = [
   },
   {
     key: "qa",
-    render: ({ profileId, selectedDocId }) => (
-      <QAChatPanel profileId={profileId} docId={selectedDocId ?? undefined} />
-    ),
+    render: ({ profileId }) => <MajorQAView profileId={profileId} />,
   },
+];
+
+// T18 kaoyan business panels: the combined plan editor + read-only board (KY-01/03,
+// ADR-11), the weekly report view (KY-12) and the per-subject grading chat (KY-05/06).
+const KAOYAN_PANELS: readonly PanelSpec[] = [
+  { key: "plan", render: ({ profileId }) => <PlanPanel profileId={profileId} /> },
+  { key: "weekly", render: ({ profileId }) => <WeeklyReportView profileId={profileId} /> },
+  { key: "tutor", render: ({ profileId }) => <SubjectTutorChat profileId={profileId} /> },
 ];
 
 // CET-01 … CET-13 in track order: placement, vocabulary, listening, essay/translation
@@ -76,7 +87,7 @@ const CET_PANELS: readonly PanelSpec[] = [
 
 const TRACK_PANELS: Record<CampusTrack, readonly PanelSpec[]> = {
   cet: [...SHARED_PANELS, ...CET_PANELS],
-  kaoyan: [...SHARED_PANELS, ...LIBRARY_PANELS],
+  kaoyan: [...SHARED_PANELS, ...LIBRARY_PANELS, ...KAOYAN_PANELS],
   cert: SHARED_PANELS,
 };
 

@@ -236,8 +236,51 @@
     "kaoyan": {
       "plan": {
         "generate": "生成计划",
+        "generating": "生成中…",
         "reorder": "重排计划",
+        "rescheduling": "重排中…",
+        "new_exam_date": "新考试日期（可选）",
+        "generated": "已生成 {{total}} 项任务，始于 {{date}}",
+        "rescheduled": "已重排 {{moved}} 项任务，保留已完成 {{kept}} 项",
         "tracks": "四轨"
+      },
+      "board": {
+        "no_plan": "还没有计划，先用上方按钮生成一份",
+        "week_of": "{{date}} 当周",
+        "group_summary": "{{total}} 项 · {{done}} 已完成",
+        "overall": "总体",
+        "status": {
+          "todo": "待开始",
+          "doing": "进行中",
+          "review": "复核中",
+          "done": "已完成",
+          "skipped": "已跳过"
+        }
+      },
+      "weekly": {
+        "generate": "生成本周周报",
+        "generating": "生成中…",
+        "empty": "还没有周报，点上方按钮生成一份",
+        "top_mistakes": "高频错点",
+        "no_mistakes": "本周没有错题记录",
+        "suggestion": "下周建议"
+      },
+      "tutor": {
+        "subject": "科目",
+        "kind_label": "批改类型",
+        "kind": {
+          "essay_material": "材料分析题",
+          "essay": "作文",
+          "short_answer": "简答题",
+          "translation": "翻译"
+        },
+        "answer": "把你的作答粘贴进来",
+        "submit": "提交批改",
+        "submitting": "批改中…"
+      },
+      "major_qa": {
+        "title": "专业课资料问答",
+        "doc_all": "全部资料"
       },
       "progress": {
         "streak_other": "连续学习 {{count}} 天",

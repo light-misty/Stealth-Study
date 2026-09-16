@@ -240,8 +240,51 @@
     "kaoyan": {
       "plan": {
         "generate": "Generate plan",
+        "generating": "Generating…",
         "reorder": "Reorder plan",
+        "rescheduling": "Rescheduling…",
+        "new_exam_date": "New exam date (optional)",
+        "generated": "Generated {{total}} tasks, starting {{date}}",
+        "rescheduled": "Rescheduled {{moved}} tasks, {{kept}} done tasks kept",
         "tracks": "Tracks"
+      },
+      "board": {
+        "no_plan": "No plan yet — generate one above",
+        "week_of": "Week of {{date}}",
+        "group_summary": "{{total}} tasks · {{done}} done",
+        "overall": "Overall",
+        "status": {
+          "todo": "To do",
+          "doing": "In progress",
+          "review": "Reviewing",
+          "done": "Done",
+          "skipped": "Skipped"
+        }
+      },
+      "weekly": {
+        "generate": "Generate this week's report",
+        "generating": "Generating…",
+        "empty": "No reports yet — generate one above",
+        "top_mistakes": "Top mistake points",
+        "no_mistakes": "No mistakes recorded this week",
+        "suggestion": "Next week's suggestion"
+      },
+      "tutor": {
+        "subject": "Subject",
+        "kind_label": "Grading kind",
+        "kind": {
+          "essay_material": "Material analysis",
+          "essay": "Essay",
+          "short_answer": "Short answer",
+          "translation": "Translation"
+        },
+        "answer": "Paste your answer here",
+        "submit": "Submit for grading",
+        "submitting": "Grading…"
+      },
+      "major_qa": {
+        "title": "Major document Q&A",
+        "doc_all": "All documents"
       },
       "progress": {
         "streak_one": "{{count}}-day streak",
