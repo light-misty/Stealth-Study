@@ -184,6 +184,15 @@ TREE_SYSTEM_PROMPT = (
 )
 
 _MASTERY_LEVELS: frozenset[str] = frozenset(item.value for item in models.MasteryLevel)
+MISTAKE_FIELDS: tuple[str, ...] = ("attribution", "note", "resolved", "point_id")
+_ATTRIBUTIONS: frozenset[str] = frozenset(item.value for item in models.Attribution)
+
+# I1:03 §4.9 只列三台备考人设，顺序按轨道声明去重（cet → kaoyan → cert）。
+CAMPUS_PERSONA_IDS: tuple[str, ...] = tuple(
+    dict.fromkeys(
+        persona for spec in tracks.TRACKS.values() for persona in spec.default_personas
+    )
+)
 _MASTERY_WEAK_ORDER: Mapping[str, int] = {
     models.MasteryLevel.UNKNOWN.value: 0,
     models.MasteryLevel.FUZZY.value: 1,
@@ -1215,6 +1224,85 @@ def validate_generated_questions(text: Optional[str], count: int) -> list[dict[s
                 "answer": answer,
                 "max_score": 1,
                 "source": models.QuestionSource.AI.value,
+            }
+        )
+    return normalized
+
+
+ATTRIBUTION_SYSTEM_PROMPT = (
+    "你是备考复盘教练。根据每题的错误片段判断最可能的一个错因，"
+    "只能从 concept_unclear / misread / calculation_or_operation / out_of_scope / "
+    "time_short / pending 中选一个；证据不足时选 pending 并在 note 里说明原因。"
+    "只输出一个 JSON 对象，不要任何其他文字，schema："
+    '{"items": [{"attempt_id": "id", "suggestion": "misread", "confidence_note": "简短依据"}]}'
+)
+
+MAX_ATTRIBUTION_ATTEMPTS = 20
+
+
+def build_attribution_messages(attempts: list[Any]) -> list[dict[str, str]]:
+    """D7 归因建议 prompt（05 §4.3 study-companion 的 mistake-attribution 技能）。
+
+    每条作答给出 id / 科目 / 作答原文 / 批改错误片段，让模型只在已有证据上判断——
+    归因是"建议"，落库由用户在 D2 确认（CERT-08 v1.1 B④）。
+    """
+    lines: list[str] = []
+    for row in attempts:
+        grading = _grading_of(row)
+        fragments = [
+            str(error.get("fragment") or "").strip()
+            for error in (grading.get("errors") or [])
+            if isinstance(error, Mapping) and str(error.get("fragment") or "").strip()
+        ]
+        lines.append(
+            "\n".join(
+                [
+                    f"- attempt_id: {row['id']}",
+                    f"  科目: {row['subject']}",
+                    f"  作答: {str(row['user_answer'] or '')[:400]}",
+                    f"  错误片段: {'；'.join(fragments) or '（无）'}",
+                ]
+            )
+        )
+    user = "请为下面每条作答给出一个错因建议：\n\n" + "\n\n".join(lines)
+    return [
+        {"role": "system", "content": ATTRIBUTION_SYSTEM_PROMPT},
+        {"role": "user", "content": user},
+    ]
+
+
+def validate_attribution_suggestions(text: Optional[str], attempt_ids: list[str]) -> list[dict]:
+    """Parse and validate D7's output, or `MODEL_OUTPUT_INVALID` (ADR-03 不静默)。
+
+    建议里出现请求之外的 attempt_id、或落在枚举外的错因，一律拒绝——这两个字段是前端
+    回填选择器的输入，收下一条脏数据就把别人的归因写到当前档案上。数量允许少于请求
+    （建议本就可能只覆盖一部分作答）。
+    """
+    payload, reason = extract_json(text)
+    items = payload.get("items") if isinstance(payload, Mapping) else None
+    if not isinstance(items, list) or not items:
+        raise CampusError("MODEL_OUTPUT_INVALID", f"归因输出无法解析（{reason or 'items 缺失'}）")
+    allowed = {attribution.value for attribution in models.Attribution}
+    requested = set(attempt_ids)
+    normalized: list[dict] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, Mapping):
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 条不是对象")
+        attempt_id = str(item.get("attempt_id") or "").strip()
+        suggestion = str(item.get("suggestion") or "").strip()
+        if attempt_id not in requested:
+            raise CampusError(
+                "MODEL_OUTPUT_INVALID", f"第 {index + 1} 条的 attempt_id 不在请求中：{attempt_id}"
+            )
+        if suggestion not in allowed:
+            raise CampusError(
+                "MODEL_OUTPUT_INVALID", f"第 {index + 1} 条的 suggestion 非法：{suggestion}"
+            )
+        normalized.append(
+            {
+                "attempt_id": attempt_id,
+                "suggestion": suggestion,
+                "confidence_note": str(item.get("confidence_note") or "").strip(),
             }
         )
     return normalized
@@ -3149,6 +3237,184 @@ class CampusService:
             self._provider_host, profile, tpl_id, push_time=str(push_time)
         )
         return {"task_ids": task_ids}
+
+    # -- D1-D3 / D7：错题本与归因建议（03 §4.4 G-16、CERT-08/09）-------------
+
+    def list_mistakes(
+        self,
+        profile: models.ExamProfile,
+        *,
+        attribution: Optional[str] = None,
+        resolved: Optional[int] = None,
+        point_id: Optional[str] = None,
+        track_type: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 50,
+    ) -> dict[str, Any]:
+        """D1 — one page of the mistake book, newest wrong first (G-16/CERT-08)."""
+        filters = [
+            pair
+            for pair in (
+                ("attribution", attribution),
+                ("resolved", resolved),
+                ("point_id", point_id),
+                ("track_type", track_type),
+            )
+            if pair[1] is not None and pair[1] != ""
+        ]
+        where = " AND ".join(f'"{name}" = ?' for name, _ in filters) or None
+        params = [value for _, value in filters]
+        total = self._store.count(
+            "mistake_book",
+            " AND ".join(['"profile_id" = ?', *(f'"{name}" = ?' for name, _ in filters)]),
+            [profile.id, *params],
+        )
+        rows = self._store.list_rows(
+            "mistake_book",
+            profile_id=profile.id,
+            where=where,
+            params=params,
+            order_by="last_wrong_at DESC, rowid DESC",
+            limit=page_size,
+            offset=(page - 1) * page_size,
+        )
+        return {
+            "items": [
+                asdict(models.MistakeBookEntry.from_row(row)) for row in rows
+            ],
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    def update_mistake(
+        self,
+        profile: models.ExamProfile,
+        mistake: models.MistakeBookEntry,
+        patch: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """D2 — the user's own re-attribution / note / resolve on one entry (CERT-08).
+
+        Only `MISTAKE_FIELDS` is honoured, mirroring `update_profile`: the row's attempt and
+        track decide what the entry means, so a patch that tried to rewrite them is dropped
+        rather than silently accepted.
+        """
+        values: dict[str, Any] = {}
+        for name in MISTAKE_FIELDS:
+            if name not in patch:
+                continue
+            value = patch[name]
+            if name == "attribution":
+                value = str(value or "")
+                if value not in _ATTRIBUTIONS:
+                    raise CampusError("INVALID_ATTRIBUTION", f"错因取值非法：{value}")
+            elif name == "point_id":
+                value = self._require_point(profile.id, value)
+            elif name == "resolved":
+                value = 1 if int(value) else 0
+            else:
+                value = str(value or "")
+            values[name] = value
+        if not values:
+            return asdict(mistake)
+        with self._store.transaction():
+            self._store.update("mistake_book", mistake.id, values)
+            if values.get("attribution") and values["attribution"] != models.Attribution.PENDING.value:
+                self._store.update(
+                    "mistake_book", mistake.id, {"attribution_confidence": None}
+                )
+        row = self._store.get("mistake_book", mistake.id)
+        return asdict(models.MistakeBookEntry.from_row(row))
+
+    def mistake_stats(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """D3 — the attribution histogram over the profile's unresolved mistakes (CERT-09).
+
+        `resolved` rows are excluded on purpose: the card answers "what am I still getting
+        wrong", and a closed entry no longer needs an attribution to act on. The winner is the
+        highest count with a stable alphabetical tie-break, so the same data always reports the
+        same top错因.
+        """
+        rows = self._store.query_all(
+            'SELECT "attribution", COUNT(*) AS "n" FROM "mistake_book" '
+            'WHERE "profile_id" = ? AND "resolved" = 0 GROUP BY "attribution"',
+            (profile.id,),
+        )
+        distribution = {
+            str(row["attribution"] or models.Attribution.PENDING.value): int(row["n"])
+            for row in rows
+        }
+        ranked = sorted(distribution.items(), key=lambda item: (-item[1], item[0]))
+        return {
+            "distribution": distribution,
+            "top_attribution": ranked[0][0] if ranked else None,
+        }
+
+    async def suggest_attributions(
+        self, profile: models.ExamProfile, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """D7 — AI-suggested attributions for graded attempts, advisory only (CERT-08 v1.1 B④).
+
+        Nothing is written: the suggestions come back for the client to pre-fill the picker,
+        and the user's confirmation is what reaches D2. Every requested attempt is resolved
+        through the profile scope first, so one foreign id fails the whole call instead of
+        having its errors read on someone else's behalf.
+        """
+        attempt_ids = [str(value) for value in payload.get("attempt_ids") or []]
+        attempts = [self._require_attempt(profile.id, attempt_id) for attempt_id in attempt_ids]
+        model = self.model_for_task(models.CampusTask.EXPLAIN.value)
+        if model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        try:
+            turn = await asyncio.to_thread(
+                self._require_provider().complete,
+                model=model,
+                messages=build_attribution_messages(attempts),
+                temperature=0,
+                timeout=PROVIDER_TIMEOUT_S,
+            )
+        except CampusError:
+            raise
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower() or "timeout" in str(exc).lower():
+                raise CampusError("MODEL_TIMEOUT", "模型调用超时") from exc
+            raise CampusError("MODEL_OUTPUT_INVALID", "模型调用失败") from exc
+        return {"items": validate_attribution_suggestions(getattr(turn, "text", None), attempt_ids)}
+
+    def _require_attempt(self, profile_id: str, attempt_id: str) -> Any:
+        """Resolve one attempt inside the profile scope (`FORBIDDEN_PROFILE` for anyone else's)."""
+        row = self._store.get_scoped("attempt", attempt_id, profile_id)
+        if row is None:
+            if self._store.get("attempt", attempt_id) is not None:
+                raise CampusError("FORBIDDEN_PROFILE", f"作答记录不属于当前档案：{attempt_id}")
+            raise CampusError("ATTEMPT_NOT_FOUND", f"作答记录不存在：{attempt_id}")
+        return row
+
+    # -- I1：备考人设只读清单（03 §4.9 G-12）--------------------------------
+
+    def campus_personas(self) -> dict[str, Any]:
+        """I1 — the persona bundles the three stations declare, with live availability (G-12).
+
+        The kernel registry stays the single source of truth for names, icons and taglines
+        (05 §3); this endpoint is a read-only filter over it. The list is always the six
+        declared ids — an id the user disabled in Settings reports `available: false` instead
+        of disappearing, so the station can say why the picker is short.
+        """
+        from ..personas.registry import get_registry
+
+        registry = get_registry()
+        items: list[dict[str, Any]] = []
+        for persona_id in CAMPUS_PERSONA_IDS:
+            entry = registry.get(persona_id)
+            items.append(
+                {
+                    "id": persona_id,
+                    "name": entry.name if entry is not None else persona_id,
+                    "icon": entry.icon if entry is not None else "",
+                    "tagline": entry.tagline if entry is not None else "",
+                    "available": entry is not None and registry.is_enabled(persona_id),
+                }
+            )
+        return {"items": items}
 
     # -- F10-F14: the proctored mock exam (CET-13/14) -----------------------
 

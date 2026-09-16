@@ -53,6 +53,7 @@ from . import models, tracks
 from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
 from .service import (
     DEFAULT_QUESTION_COUNT,
+    MAX_ATTRIBUTION_ATTEMPTS,
     MAX_DIFFICULTY,
     MAX_LIBRARY_UPLOAD_BYTES,
     MAX_QUESTION_COUNT,
@@ -428,6 +429,41 @@ class LibraryQuestionGen(BaseModel):
     doc_id: Optional[str] = None
     point_id: Optional[str] = None
     count: int = Field(default=DEFAULT_QUESTION_COUNT, ge=1, le=MAX_QUESTION_COUNT)
+
+
+class MistakePatch(BaseModel):
+    """D2 body (03 §4.4): the user's own re-attribution, note or resolve.
+
+    `resolved` is a 0/1 flag on the row (02 §4.14), so the range is enforced here rather than
+    letting `resolved: 7` reach the column. `attribution` stays a plain string for the same
+    reason `MasteryPatch.level` does: an unknown value must come back as the documented
+    `INVALID_ATTRIBUTION` (400) and not as the framework's 422. `point_id` is validated against
+    the profile's tree by the service (`POINT_NOT_FOUND`), the gate question creation uses.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    attribution: Optional[str] = None
+    note: Optional[str] = None
+    resolved: Optional[int] = Field(default=None, ge=0, le=1)
+    point_id: Optional[str] = None
+
+
+class AttributionRequest(BaseModel):
+    """D7 body (03 §4.4): the graded attempts to judge — never more than one prompt's worth."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    attempt_ids: list[str] = Field(min_length=1, max_length=MAX_ATTRIBUTION_ATTEMPTS)
+
+    @field_validator("attempt_ids")
+    @classmethod
+    def _ids_must_carry_content(cls, value: list[str]) -> list[str]:
+        cleaned = [item.strip() for item in value]
+        if any(not item for item in cleaned):
+            raise ValueError("attempt_ids must not contain blank ids")
+        return cleaned
 
 
 class QuestionImport(BaseModel):
@@ -1068,6 +1104,80 @@ def build_campus_router(manager: Any) -> APIRouter:
             body.model_dump(mode="json", exclude_unset=True),
         )
 
+    # -- D 组：错题本与归因建议（03 §4.4 G-16、CERT-08/09）--------------------
+
+    def scoped_mistake(
+        mistake_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.MistakeBookEntry:
+        """Resolve a mistake row of the request's profile (`FORBIDDEN_PROFILE` otherwise).
+
+        03 §4.4 does not name a code for a missing 错题本 entry; `ITEM_NOT_FOUND` is the table's
+        row-level "this sub-resource is not yours / not there" member, which is exactly the split
+        `scoped_row` decides (08 §4 P-3).
+        """
+        return guard.scoped_row(
+            "mistake_book", mistake_id, profile.id, missing_code="ITEM_NOT_FOUND"
+        )
+
+    @router.get("/mistakes")
+    def campus_list_mistakes(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        attribution: Optional[models.Attribution] = Query(default=None),
+        resolved: Optional[int] = Query(default=None, ge=0, le=1),
+        point_id: Optional[str] = None,
+        track_type: Optional[models.TrackType] = None,
+        page: int = Query(default=1, ge=1),
+        page_size: int = Query(default=50, ge=1, le=MAX_PAGE_SIZE),
+    ) -> dict[str, Any]:
+        """D1 — one page of the mistake book, newest wrong first (G-16)."""
+        return _call(
+            campus_service.list_mistakes,
+            profile,
+            attribution=attribution.value if attribution is not None else None,
+            resolved=resolved,
+            point_id=point_id,
+            track_type=track_type.value if track_type is not None else None,
+            page=page,
+            page_size=page_size,
+        )
+
+    @router.get("/mistakes/stats")
+    def campus_mistake_stats(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """D3 — the attribution histogram over the unresolved entries (CERT-09)."""
+        return _call(campus_service.mistake_stats, profile)
+
+    @router.patch("/mistakes/{mistake_id}")
+    def campus_patch_mistake(
+        body: MistakePatch,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        mistake: models.MistakeBookEntry = Depends(scoped_mistake),
+    ) -> dict[str, Any]:
+        """D2 — re-attribute, annotate or resolve one entry (CERT-08)."""
+        return _call(
+            campus_service.update_mistake,
+            profile,
+            mistake,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
+    @router.post("/review/attributions")
+    async def campus_suggest_attributions(
+        body: AttributionRequest,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """D7 — AI attribution suggestions; advisory only, nothing is stored (CERT-08 v1.1 B④).
+
+        Read-shape on purpose: the endpoint explains, and the user's confirmation is what reaches
+        D2, so a `finished` profile can still get its mistakes explained.
+        """
+        return await _async_call(
+            campus_service.suggest_attributions,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
+
     # -- E 组：题库与作答（03 §4.5）----------------------------------------
 
     def scoped_question(
@@ -1665,6 +1775,11 @@ def build_campus_router(manager: Any) -> APIRouter:
         )
 
     # -- I2-I3：自动化模板（03 §4.9 G-18）-----------------------------------
+
+    @router.get("/personas")
+    def campus_personas() -> dict[str, Any]:
+        """I1 — the备考人设 the three stations declare, with live availability (G-12)."""
+        return _call(campus_service.campus_personas)
 
     @router.get("/automation-templates")
     def campus_list_automation_templates() -> dict[str, Any]:

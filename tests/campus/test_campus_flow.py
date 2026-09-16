@@ -119,10 +119,19 @@ B_GROUP: tuple[tuple[str, str], ...] = (
     ("POST", "/qa"),
     ("POST", "/qa/generate-questions"),
 )
+# D 组错题本与归因建议 + I1 人设清单：同样是 03 §4 立项而长期未挂载的三组之一
+# （T09 §5-13 / T13 §6-1 / VO.1 验收登记），联调阶段补齐。
+D_GROUP: tuple[tuple[str, str], ...] = (
+    ("GET", "/mistakes"),
+    ("GET", "/mistakes/stats"),
+    ("PATCH", "/mistakes/{mistake_id}"),
+    ("POST", "/review/attributions"),
+    ("GET", "/personas"),
+)
 T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS + T11_NEW
 T13_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS + T13_NEW
 T14_ENDPOINTS: tuple[tuple[str, str], ...] = T13_ENDPOINTS + T12_ENDPOINTS + T14_NEW
-DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T14_ENDPOINTS + B_GROUP
+DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T14_ENDPOINTS + B_GROUP + D_GROUP
 
 
 def essay_payload() -> str:
