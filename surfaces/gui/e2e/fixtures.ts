@@ -2326,18 +2326,48 @@ export async function mockApi(page: import("@playwright/test").Page) {
     const campusMatch = p.match(/\/v1\/campus(\/.*)?$/);
     if (campusMatch) {
       const sub = campusMatch[1] || "";
-      /** The station always sends `profile_id` on the query string, in the body or as multipart. */
+      /** The carriers the real `ProfileGuard` reads, in its own order: query, then JSON body,
+       * then multipart form. There is deliberately NO fallback to the stored active profile —
+       * the backend answers `PROFILE_REQUIRED` instead, and inferring it here is exactly what
+       * let every sub-resource call (B3-B5, C2, F2/F4/F11-F14, G2/G3, H3/H9 …) look healthy in
+       * the mock suite while the real backend refused all of them with a 400. */
       const askedProfile = (): string | null => {
         const fromQuery = new URL(req.url()).searchParams.get("profile_id");
         if (fromQuery) return fromQuery;
-        // `postDataJSON()` THROWS on a multipart body (B1 uploads the file as a form), so the
-        // content type decides whether the body may be parsed as JSON at all.
-        if ((req.headers()["content-type"] ?? "").includes("application/json")) {
+        const contentType = req.headers()["content-type"] ?? "";
+        if (contentType.includes("application/json")) {
           const fromBody = req.postDataJSON()?.profile_id;
           if (typeof fromBody === "string" && fromBody) return fromBody;
         }
-        return campusActiveProfileId;
+        if (contentType.includes("form")) {
+          const raw = req.postData() ?? "";
+          const matched = raw.match(/name="profile_id"\r?\n\r?\n([^\r\n]+)/);
+          if (matched) return matched[1];
+        }
+        return null;
       };
+      /** The endpoints that are not profile-scoped: 03 §4.1's global group, I1/I2 and the I5
+       * export download (whose own path carries the file name), and the A3-A5 profile ones
+       * (their `{pid}` path segment IS the profile the guard resolves). */
+      const PROFILE_FREE = new Set([
+        "/health",
+        "/profiles",
+        "/app-state",
+        "/capabilities",
+        "/privacy",
+        "/privacy/data",
+        "/personas",
+        "/automation-templates",
+      ]);
+      const profileScoped =
+        !PROFILE_FREE.has(sub) && !sub.startsWith("/profiles/") && !sub.startsWith("/exports");
+      const pid = askedProfile();
+      if (profileScoped && !pid) {
+        return json(
+          { detail: { code: "PROFILE_REQUIRED", message: "缺少档案参数 profile_id", retryable: false } },
+          400,
+        );
+      }
 
       // Health — the T06 mount smoke.
       if (sub === "/health" && m === "GET") {
@@ -2437,7 +2467,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
         const n = campusNext("doc");
         const doc = {
           id: `doc-${n}`,
-          profile_id: askedProfile() ?? "",
+          profile_id: pid ?? "",
           title: "notes",
           file_path: `doc-${n}/notes.md`,
           file_type: "md",
@@ -2489,7 +2519,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
         const b = req.postDataJSON() || {};
         const attempt = {
           id: `attempt-${campusNext("attempt")}`,
-          profile_id: askedProfile() ?? "",
+          profile_id: pid ?? "",
           subject: b.subject ?? "writing",
           answer: b.answer ?? "",
           kind: b.kind ?? "essay",

@@ -58,7 +58,7 @@ describe("ReviewQueuePanel", () => {
     await waitFor(() => expect(screen.getAllByTestId("campus-review-item")).toHaveLength(2));
 
     fireEvent.click(screen.getAllByTestId("campus-review-correct")[0]);
-    await waitFor(() => expect(apiMock.submitReviewResult).toHaveBeenCalledWith("r1", true));
+    await waitFor(() => expect(apiMock.submitReviewResult).toHaveBeenCalledWith("p1", "r1", true));
     await waitFor(() => expect(rowIds()).toEqual(["r2"]));
   });
 
@@ -67,7 +67,7 @@ describe("ReviewQueuePanel", () => {
     await waitFor(() => expect(screen.getAllByTestId("campus-review-item")).toHaveLength(2));
 
     fireEvent.click(screen.getAllByTestId("campus-review-wrong")[1]);
-    await waitFor(() => expect(apiMock.submitReviewResult).toHaveBeenCalledWith("r2", false));
+    await waitFor(() => expect(apiMock.submitReviewResult).toHaveBeenCalledWith("p1", "r2", false));
     await waitFor(() => expect(rowIds()).toEqual(["r1"]));
   });
 

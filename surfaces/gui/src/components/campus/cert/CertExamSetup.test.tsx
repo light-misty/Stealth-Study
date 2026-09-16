@@ -140,7 +140,7 @@ describe("CertExamSetup", () => {
 
     fireEvent.click(within(nodeOf("d1")).getByTestId("campus-cert-setup-remind"));
 
-    await waitFor(() => expect(apiMock.createDeadlineReminders).toHaveBeenCalledWith("d1"));
+    await waitFor(() => expect(apiMock.createDeadlineReminders).toHaveBeenCalledWith("p1", "d1"));
     await waitFor(() =>
       expect(within(nodeOf("d1")).queryByTestId("campus-cert-setup-remind")).toBeNull(),
     );

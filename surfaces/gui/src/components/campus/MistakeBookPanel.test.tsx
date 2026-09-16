@@ -37,8 +37,9 @@ describe("MistakeBookPanel", () => {
     apiMock.listMistakes.mockReset();
     apiMock.patchMistake.mockReset();
     apiMock.listMistakes.mockResolvedValue({ items: [mistake("m1"), mistake("m2")], total: 2 });
-    apiMock.patchMistake.mockImplementation((id: string, patch: { attribution: string }) =>
-      Promise.resolve(mistake(id, patch.attribution)),
+    apiMock.patchMistake.mockImplementation(
+      (_profileId: string, id: string, patch: { attribution: string }) =>
+        Promise.resolve(mistake(id, patch.attribution)),
     );
   });
 
@@ -75,7 +76,7 @@ describe("MistakeBookPanel", () => {
     const select = screen.getAllByTestId("campus-mistake-attribution")[0] as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "misread" } });
 
-    await waitFor(() => expect(apiMock.patchMistake).toHaveBeenCalledWith("m1", { attribution: "misread" }));
+    await waitFor(() => expect(apiMock.patchMistake).toHaveBeenCalledWith("p1", "m1", { attribution: "misread" }));
     await waitFor(() =>
       expect((screen.getAllByTestId("campus-mistake-attribution")[0] as HTMLSelectElement).value).toBe(
         "misread",

@@ -45,7 +45,7 @@ export function PlanEditor({
     setNotice(null);
     setErr(null);
     try {
-      const result = await reschedulePlan(planId, examDate || undefined);
+      const result = await reschedulePlan(profileId, planId, examDate || undefined);
       setNotice(
         t("campus.kaoyan.plan.rescheduled", {
           moved: result.rescheduled,

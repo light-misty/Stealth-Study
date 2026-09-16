@@ -84,7 +84,7 @@ export function GradingWorkshopBody({
   };
 
   const openDetail = (attemptId: string) => {
-    getAttempt(attemptId).then((res) => setDetail(res));
+    getAttempt(profileId, attemptId).then((res) => setDetail(res));
   };
 
   return (

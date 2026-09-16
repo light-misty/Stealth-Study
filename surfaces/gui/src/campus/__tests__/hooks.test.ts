@@ -197,7 +197,7 @@ describe("useDueReviews", () => {
     await act(async () => {
       await result.current.submit("r1", true);
     });
-    expect(apiMock.submitReviewResult).toHaveBeenCalledWith("r1", true);
+    expect(apiMock.submitReviewResult).toHaveBeenCalledWith("p1", "r1", true);
     expect(result.current.items.map((i: ReviewDueItem) => i.id)).toEqual(["r2"]);
   });
 
@@ -227,7 +227,7 @@ describe("useMistakes", () => {
     await act(async () => {
       await result.current.setAttribution("m1", "misread");
     });
-    expect(apiMock.patchMistake).toHaveBeenCalledWith("m1", { attribution: "misread" });
+    expect(apiMock.patchMistake).toHaveBeenCalledWith("p1", "m1", { attribution: "misread" });
     expect(result.current.items[0].attribution).toBe("misread");
   });
 
@@ -288,7 +288,7 @@ describe("useLibraryDocs", () => {
       .mockResolvedValueOnce(doc("d1", "pending"))
       .mockResolvedValueOnce(doc("d1", "ready"));
     const seen: string[] = [];
-    const stop = pollDocReady("d1", 1000, (d) => seen.push(d.parse_status));
+    const stop = pollDocReady("p1", "d1", 1000, (d) => seen.push(d.parse_status));
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);

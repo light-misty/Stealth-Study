@@ -83,7 +83,7 @@ describe("PlanEditor", () => {
     fireEvent.change(screen.getByTestId("campus-plan-date"), { target: { value: "2027-01-05" } });
     fireEvent.click(screen.getByTestId("campus-plan-reschedule"));
     await waitFor(() => expect(screen.getByTestId("campus-plan-notice")).toBeTruthy());
-    expect(apiMock.reschedulePlan).toHaveBeenCalledWith("plan-1", "2027-01-05");
+    expect(apiMock.reschedulePlan).toHaveBeenCalledWith("p1", "plan-1", "2027-01-05");
     expect(screen.getByTestId("campus-plan-notice").textContent).toContain("12");
     expect(screen.getByTestId("campus-plan-notice").textContent).toContain("3");
     expect(onMutated).toHaveBeenCalledTimes(1);
@@ -95,7 +95,7 @@ describe("PlanEditor", () => {
 
     fireEvent.click(screen.getByTestId("campus-plan-reschedule"));
     await waitFor(() => expect(apiMock.reschedulePlan).toHaveBeenCalled());
-    expect(apiMock.reschedulePlan).toHaveBeenCalledWith("plan-1", undefined);
+    expect(apiMock.reschedulePlan).toHaveBeenCalledWith("p1", "plan-1", undefined);
   });
 
   it("locks both actions while a request is in flight", async () => {

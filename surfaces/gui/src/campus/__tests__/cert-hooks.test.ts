@@ -170,7 +170,7 @@ describe("useKnowledgeTree", () => {
     await act(async () => {
       await result.current.removePoint("c1");
     });
-    expect(apiMock.deleteKnowledgePoint).toHaveBeenCalledWith("c1");
+    expect(apiMock.deleteKnowledgePoint).toHaveBeenCalledWith("p1", "c1");
     await waitFor(() => expect(apiMock.getKnowledgeTree).toHaveBeenCalledTimes(2));
   });
 
@@ -297,7 +297,7 @@ describe("useCertDeadlines", () => {
     await act(async () => {
       ids = (await result.current.createReminders("n1")) ?? [];
     });
-    expect(apiMock.createDeadlineReminders).toHaveBeenCalledWith("n1");
+    expect(apiMock.createDeadlineReminders).toHaveBeenCalledWith("p1", "n1");
     expect(ids).toEqual(["a1", "a2", "a3"]);
     expect(result.current.items.find((i) => i.id === "n1")?.automation_ids).toEqual([
       "a1",

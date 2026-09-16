@@ -75,7 +75,7 @@ describe("LibraryPanel", () => {
     await waitFor(() => expect(screen.getByTestId("campus-library-row")).toBeTruthy());
 
     fireEvent.click(screen.getByTestId("campus-library-retry"));
-    await waitFor(() => expect(apiMock.retryLibraryDoc).toHaveBeenCalledWith("d1"));
+    await waitFor(() => expect(apiMock.retryLibraryDoc).toHaveBeenCalledWith("p1", "d1"));
     await waitFor(() =>
       expect(screen.getByTestId("campus-library-row").getAttribute("data-parse-status")).toBe("ready"),
     );

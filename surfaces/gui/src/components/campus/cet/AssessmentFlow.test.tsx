@@ -169,7 +169,7 @@ describe("AssessmentFlow", () => {
     fireEvent.click(screen.getByTestId("campus-cet-assessment-finish"));
 
     await waitFor(() => expect(screen.getByTestId("campus-cet-assessment-result")).toBeTruthy());
-    expect(apiMock.finishAssessment).toHaveBeenCalledWith("a1");
+    expect(apiMock.finishAssessment).toHaveBeenCalledWith("p1", "a1");
     expect(screen.getByTestId("campus-cet-assessment-estimate").textContent).toContain("288.4");
     const gaps = screen.getAllByTestId("campus-cet-assessment-gap");
     expect(gaps).toHaveLength(3);

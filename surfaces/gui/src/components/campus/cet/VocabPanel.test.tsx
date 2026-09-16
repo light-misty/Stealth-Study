@@ -146,7 +146,7 @@ describe("VocabPanel", () => {
     fireEvent.click(screen.getAllByTestId("campus-cet-vocab-mnemonic").find(
       (el) => el.getAttribute("data-vocab") === "v1",
     )!);
-    expect(apiMock.makeMnemonic).toHaveBeenCalledWith("v1");
+    expect(apiMock.makeMnemonic).toHaveBeenCalledWith("p1", "v1");
     const busy = screen
       .getAllByTestId("campus-cet-vocab-mnemonic")
       .find((el) => el.getAttribute("data-vocab") === "v1") as HTMLButtonElement;

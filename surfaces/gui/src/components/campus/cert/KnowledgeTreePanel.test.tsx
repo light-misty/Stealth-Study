@@ -234,7 +234,7 @@ describe("KnowledgeTreePanel", () => {
     await waitFor(() => expect(rowIds()).toEqual(["c1", "s1", "k1", "c2"]));
 
     fireEvent.click(within(rowOf("c2")).getByTestId("campus-cert-tree-delete"));
-    await waitFor(() => expect(apiMock.deleteKnowledgePoint).toHaveBeenCalledWith("c2"));
+    await waitFor(() => expect(apiMock.deleteKnowledgePoint).toHaveBeenCalledWith("p1", "c2"));
     await waitFor(() => expect(apiMock.getKnowledgeTree).toHaveBeenCalledTimes(2));
   });
 

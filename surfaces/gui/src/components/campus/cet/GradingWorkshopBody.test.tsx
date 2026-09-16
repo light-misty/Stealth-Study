@@ -194,7 +194,7 @@ describe("GradingWorkshopBody", () => {
     await waitFor(() =>
       expect(screen.getByTestId("campus-cet-grading-history-detail")).toBeTruthy(),
     );
-    expect(apiMock.getAttempt).toHaveBeenCalledWith("h1");
+    expect(apiMock.getAttempt).toHaveBeenCalledWith("p1", "h1");
     expect(screen.getByTestId("campus-cet-grading-history-detail").textContent).toContain(
       "The chart shows...",
     );

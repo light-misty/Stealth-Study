@@ -30,7 +30,7 @@ export function LibraryPanel({
   const startPolling = useCallback(
     (docId: string) => {
       if (stops.current[docId]) return;
-      stops.current[docId] = pollDocReady(docId, 1500, (doc) => {
+      stops.current[docId] = pollDocReady(profileId, docId, 1500, (doc) => {
         applyDoc(doc);
         if (doc.parse_status !== "pending") {
           stops.current[docId]?.();
@@ -38,7 +38,7 @@ export function LibraryPanel({
         }
       });
     },
-    [applyDoc],
+    [applyDoc, profileId],
   );
 
   useEffect(() => {

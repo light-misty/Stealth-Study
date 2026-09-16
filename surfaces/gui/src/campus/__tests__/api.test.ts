@@ -153,7 +153,7 @@ describe("campus api transport", () => {
 
   it("maps 204 responses to null", async () => {
     installFetch(204);
-    const result = await api.deleteLibraryDoc("d1");
+    const result = await api.deleteLibraryDoc("p1", "d1");
     expect(result).toBeNull();
   });
 
@@ -186,8 +186,10 @@ describe("campus api transport", () => {
 
   it("advances mock exam stages only through legal transitions", async () => {
     const calls = installFetch(200, { id: "m1", current_stage: "listening" });
-    await api.advanceMockStage("m1", "listening");
-    expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/mock-exams/m1/stage");
+    await api.advanceMockStage("p1", "m1", "listening");
+    expect(calls[0].url).toBe(
+      "http://127.0.0.1:8765/v1/campus/mock-exams/m1/stage?profile_id=p1",
+    );
     expect(JSON.parse(String(calls[0].init.body))).toEqual({ to: "listening" });
   });
 
@@ -202,14 +204,14 @@ describe("campus api transport", () => {
       stage_expired: false,
       server_now: "2026-09-16T00:01:00Z",
     });
-    const view = await api.getMockExam("m1");
+    const view = await api.getMockExam("p1", "m1");
     expect(view.locked_stages).toEqual(["writing"]);
 
     installFetch(200, { id: "m1", current_stage: "writing", locked_stages: "[]" });
     expect((await api.createMockExam("p1", "paper")).locked_stages).toEqual([]);
 
     installFetch(200, { id: "m1", current_stage: "writing", locked_stages: [] });
-    expect((await api.advanceMockStage("m1", "listening")).locked_stages).toEqual([]);
+    expect((await api.advanceMockStage("p1", "m1", "listening")).locked_stages).toEqual([]);
   });
 
   it("patches the assessment draft with the profile guard field the backend requires", async () => {
@@ -225,9 +227,53 @@ describe("campus api transport", () => {
 
   it("reports the paused seconds on the pause call (backend MockPause body)", async () => {
     const calls = installFetch(200, { id: "m1" });
-    await api.pauseMockExam("m1", 90);
+    await api.pauseMockExam("p1", "m1", 90);
     expect(calls[0].init.method).toBe("POST");
-    expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/mock-exams/m1/pause");
+    expect(calls[0].url).toBe(
+      "http://127.0.0.1:8765/v1/campus/mock-exams/m1/pause?profile_id=p1",
+    );
     expect(JSON.parse(String(calls[0].init.body))).toEqual({ seconds: 90 });
+  });
+
+  it("carries profile_id on every sub-resource call the backend guards", async () => {
+    // 03 §1 makes profile_id the cross-cutting parameter and `ProfileGuard` answers
+    // PROFILE_REQUIRED when it cannot find one. None of these paths names the profile (the
+    // `{pid}` segment does that for A3-A5) and none of their body schemas has a profile_id
+    // field, so the query string is the only carrier. Omitting it is invisible in a mocked
+    // suite — the fixture used to infer the active profile — while the real server 400s, which
+    // is why this table exists: it pins the carrier for every one of them.
+    const cases: [string, (profileId: string) => Promise<unknown>][] = [
+      ["/v1/campus/library/doc-1", (p) => api.getLibraryDoc(p, "doc-1")],
+      ["/v1/campus/library/doc-1", (p) => api.deleteLibraryDoc(p, "doc-1")],
+      ["/v1/campus/library/doc-1/retry", (p) => api.retryLibraryDoc(p, "doc-1")],
+      ["/v1/campus/grading/attempt-1", (p) => api.getAttempt(p, "attempt-1")],
+      ["/v1/campus/mistakes/mistake-1", (p) => api.patchMistake(p, "mistake-1", { resolved: 1 })],
+      ["/v1/campus/review/rq-1/result", (p) => api.submitReviewResult(p, "rq-1", true)],
+      ["/v1/campus/questions/q-1", (p) => api.patchQuestion(p, "q-1", { stem: "修订题干" })],
+      ["/v1/campus/questions/q-1", (p) => api.deleteQuestion(p, "q-1")],
+      ["/v1/campus/assessments/a-1", (p) => api.getAssessment(p, "a-1")],
+      ["/v1/campus/assessments/a-1/finish", (p) => api.finishAssessment(p, "a-1")],
+      ["/v1/campus/vocab/mnemonic", (p) => api.makeMnemonic(p, "v-1")],
+      ["/v1/campus/mock-exams/m-1", (p) => api.getMockExam(p, "m-1")],
+      ["/v1/campus/mock-exams/m-1/stage", (p) => api.advanceMockStage(p, "m-1", "listening")],
+      ["/v1/campus/mock-exams/m-1/pause", (p) => api.pauseMockExam(p, "m-1", 30)],
+      ["/v1/campus/mock-exams/m-1/submit", (p) => api.submitMockExam(p, "m-1")],
+      ["/v1/campus/tasks/t-1", (p) => api.patchTask(p, "t-1", { status: "done" })],
+      ["/v1/campus/plans/plan-1/reschedule", (p) => api.reschedulePlan(p, "plan-1")],
+      [
+        "/v1/campus/knowledge-points/kp-1",
+        (p) => api.patchKnowledgePoint(p, "kp-1", { title: "章节" }),
+      ],
+      ["/v1/campus/knowledge-points/kp-1", (p) => api.deleteKnowledgePoint(p, "kp-1")],
+      ["/v1/campus/deadlines/d-1/reminders", (p) => api.createDeadlineReminders(p, "d-1")],
+    ];
+    for (const [path, run] of cases) {
+      const calls = installFetch(200, {});
+      await run("profile-9");
+      expect(calls, path).toHaveLength(1);
+      const url = new URL(calls[0].url);
+      expect(url.pathname, path).toBe(path);
+      expect(url.searchParams.get("profile_id"), path).toBe("profile-9");
+    }
   });
 });

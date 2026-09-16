@@ -169,17 +169,18 @@ export function useDueReviews(profileId: string | null) {
 
   const submit = useCallback(
     async (reviewId: string, correct: boolean) => {
+      if (!profileId) return null;
       const snapshot = data;
       setData((prev) => prev.filter((item) => item.id !== reviewId));
       try {
-        return await submitReviewResult(reviewId, correct);
+        return await submitReviewResult(profileId, reviewId, correct);
       } catch (err) {
         setData(snapshot);
         setError(err);
         return null;
       }
     },
-    [data, setData, setError],
+    [profileId, data, setData, setError],
   );
 
   return { items: data, loading, error, retryable, reload, submit };
@@ -208,13 +209,14 @@ export function useMistakes(profileId: string | null, filters: MistakeFilters = 
 
   const setAttribution = useCallback(
     async (id: string, attribution: Attribution) => {
+      if (!profileId) return null;
       const snapshot = data.items;
       setData((prev) => ({
         ...prev,
         items: prev.items.map((item) => (item.id === id ? { ...item, attribution } : item)),
       }));
       try {
-        const updated = await patchMistake(id, { attribution });
+        const updated = await patchMistake(profileId, id, { attribution });
         setData((prev) => ({
           ...prev,
           items: prev.items.map((item) => (item.id === id ? updated : item)),
@@ -226,7 +228,7 @@ export function useMistakes(profileId: string | null, filters: MistakeFilters = 
         return null;
       }
     },
-    [data.items, setData, setError],
+    [profileId, data.items, setData, setError],
   );
 
   return { items: data.items, total: data.total, loading, error, retryable, reload, setAttribution };
@@ -259,9 +261,10 @@ export function useLibraryDocs(profileId: string | null) {
 
   const retry = useCallback(
     async (docId: string) => {
+      if (!profileId) return null;
       setError(null);
       try {
-        const updated = await retryLibraryDoc(docId);
+        const updated = await retryLibraryDoc(profileId, docId);
         setData((prev) => prev.map((d) => (d.id === docId ? updated : d)));
         return updated;
       } catch (err) {
@@ -269,14 +272,15 @@ export function useLibraryDocs(profileId: string | null) {
         return null;
       }
     },
-    [setData, setError],
+    [profileId, setData, setError],
   );
 
   const remove = useCallback(
     async (docId: string) => {
+      if (!profileId) return false;
       setError(null);
       try {
-        await deleteLibraryDoc(docId);
+        await deleteLibraryDoc(profileId, docId);
         setData((prev) => prev.filter((d) => d.id !== docId));
         return true;
       } catch (err) {
@@ -284,7 +288,7 @@ export function useLibraryDocs(profileId: string | null) {
         return false;
       }
     },
-    [setData, setError],
+    [profileId, setData, setError],
   );
 
   /** Merge a document fetched elsewhere (the parse-status poll) into the list. */
@@ -304,6 +308,7 @@ export function useLibraryDocs(profileId: string | null) {
 
 /** B3: the only polling in the station — parse status until ready/failed (04 §8). */
 export function pollDocReady(
+  profileId: string,
   docId: string,
   intervalMs = 1500,
   onUpdate?: (doc: SourceDoc) => void,
@@ -319,7 +324,7 @@ export function pollDocReady(
     if (stopped) return;
     attempts += 1;
     try {
-      const doc = await getLibraryDoc(docId);
+      const doc = await getLibraryDoc(profileId, docId);
       onUpdate?.(doc);
       if (doc?.parse_status === "ready" || doc?.parse_status === "failed" || attempts >= maxAttempts) {
         stop();
@@ -440,9 +445,10 @@ export function useKnowledgeTree(profileId: string | null) {
 
   const removePoint = useCallback(
     async (pointId: string) => {
+      if (!profileId) return null;
       setError(null);
       try {
-        const res = await deleteKnowledgePoint(pointId);
+        const res = await deleteKnowledgePoint(profileId, pointId);
         // Orphaned children re-root server-side (H3), so refetch instead of splicing.
         reload();
         return res;
@@ -512,9 +518,10 @@ export function useCertDeadlines(profileId: string | null) {
 
   const createReminders = useCallback(
     async (deadlineId: string) => {
+      if (!profileId) return null;
       setError(null);
       try {
-        const res = await createDeadlineReminders(deadlineId);
+        const res = await createDeadlineReminders(profileId, deadlineId);
         const ids = res?.automation_ids ?? [];
         setData((prev) =>
           prev.map((item) => (item.id === deadlineId ? { ...item, automation_ids: ids } : item)),

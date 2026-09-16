@@ -219,19 +219,25 @@ export async function listLibraryDocs(
   return request(`/v1/campus/library${qs({ profile_id: profileId, parse_status: parseStatus })}`);
 }
 
-export async function getLibraryDoc(docId: string): Promise<SourceDoc> {
-  return request(`/v1/campus/library/${docId}`);
+export async function getLibraryDoc(profileId: string, docId: string): Promise<SourceDoc> {
+  return request(`/v1/campus/library/${docId}${qs({ profile_id: profileId })}`);
 }
 
-export async function deleteLibraryDoc(docId: string): Promise<{ deleted: boolean } | null> {
-  return request(`/v1/campus/library/${docId}`, { method: "DELETE" });
+export async function deleteLibraryDoc(
+  profileId: string,
+  docId: string,
+): Promise<{ deleted: boolean } | null> {
+  return request(`/v1/campus/library/${docId}${qs({ profile_id: profileId })}`, {
+    method: "DELETE",
+  });
 }
 
 export async function retryLibraryDoc(
+  profileId: string,
   docId: string,
   idempotencyKey?: string,
 ): Promise<SourceDoc> {
-  return request(`/v1/campus/library/${docId}/retry`, {
+  return request(`/v1/campus/library/${docId}/retry${qs({ profile_id: profileId })}`, {
     method: "POST",
     headers: idempotencyHeaders(idempotencyKey),
   });
@@ -276,8 +282,8 @@ export async function submitGrading(input: GradingSubmitInput): Promise<GradeRes
   });
 }
 
-export async function getAttempt(attemptId: string): Promise<Attempt> {
-  return request(`/v1/campus/grading/${attemptId}`);
+export async function getAttempt(profileId: string, attemptId: string): Promise<Attempt> {
+  return request(`/v1/campus/grading/${attemptId}${qs({ profile_id: profileId })}`);
 }
 
 export async function listGradingHistory(
@@ -317,8 +323,12 @@ export async function listMistakes(
   );
 }
 
-export async function patchMistake(id: string, patch: MistakePatch): Promise<MistakeBookEntry> {
-  return request(`/v1/campus/mistakes/${id}`, {
+export async function patchMistake(
+  profileId: string,
+  id: string,
+  patch: MistakePatch,
+): Promise<MistakeBookEntry> {
+  return request(`/v1/campus/mistakes/${id}${qs({ profile_id: profileId })}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
@@ -347,10 +357,11 @@ export async function listDueReviews(
 }
 
 export async function submitReviewResult(
+  profileId: string,
   reviewId: string,
   correct: boolean,
 ): Promise<ReviewItem> {
-  return request(`/v1/campus/review/${reviewId}/result`, {
+  return request(`/v1/campus/review/${reviewId}/result${qs({ profile_id: profileId })}`, {
     method: "POST",
     body: JSON.stringify({ correct }),
   });
@@ -418,12 +429,24 @@ export async function createQuestion(
   });
 }
 
-export async function patchQuestion(qid: string, patch: QuestionPatch): Promise<QuestionBankItem> {
-  return request(`/v1/campus/questions/${qid}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function patchQuestion(
+  profileId: string,
+  qid: string,
+  patch: QuestionPatch,
+): Promise<QuestionBankItem> {
+  return request(`/v1/campus/questions/${qid}${qs({ profile_id: profileId })}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
 }
 
-export async function deleteQuestion(qid: string): Promise<{ deleted: boolean }> {
-  return request(`/v1/campus/questions/${qid}`, { method: "DELETE" });
+export async function deleteQuestion(
+  profileId: string,
+  qid: string,
+): Promise<{ deleted: boolean }> {
+  return request(`/v1/campus/questions/${qid}${qs({ profile_id: profileId })}`, {
+    method: "DELETE",
+  });
 }
 
 export async function submitAttempt(input: AttemptSubmitInput): Promise<Attempt> {
@@ -450,8 +473,11 @@ export async function createAssessment(
   });
 }
 
-export async function getAssessment(assessmentId: string): Promise<Assessment> {
-  return request(`/v1/campus/assessments/${assessmentId}`);
+export async function getAssessment(
+  profileId: string,
+  assessmentId: string,
+): Promise<Assessment> {
+  return request(`/v1/campus/assessments/${assessmentId}${qs({ profile_id: profileId })}`);
 }
 
 export async function patchAssessment(
@@ -465,8 +491,13 @@ export async function patchAssessment(
   });
 }
 
-export async function finishAssessment(assessmentId: string): Promise<AssessmentFinishResult> {
-  return request(`/v1/campus/assessments/${assessmentId}/finish`, { method: "POST" });
+export async function finishAssessment(
+  profileId: string,
+  assessmentId: string,
+): Promise<AssessmentFinishResult> {
+  return request(`/v1/campus/assessments/${assessmentId}/finish${qs({ profile_id: profileId })}`, {
+    method: "POST",
+  });
 }
 
 export async function generatePlan(profileId: string): Promise<PlanGenerationResult> {
@@ -504,8 +535,11 @@ export async function importVocab(
   });
 }
 
-export async function makeMnemonic(vocabId: string): Promise<{ mnemonic: string }> {
-  return request("/v1/campus/vocab/mnemonic", {
+export async function makeMnemonic(
+  profileId: string,
+  vocabId: string,
+): Promise<{ mnemonic: string }> {
+  return request(`/v1/campus/vocab/mnemonic${qs({ profile_id: profileId })}`, {
     method: "POST",
     body: JSON.stringify({ vocab_id: vocabId }),
   });
@@ -543,33 +577,48 @@ export async function createMockExam(
   );
 }
 
-export async function getMockExam(mockExamId: string): Promise<MockExamView> {
-  return decodeMockExam(await request(`/v1/campus/mock-exams/${mockExamId}`));
+export async function getMockExam(
+  profileId: string,
+  mockExamId: string,
+): Promise<MockExamView> {
+  return decodeMockExam(
+    await request(`/v1/campus/mock-exams/${mockExamId}${qs({ profile_id: profileId })}`),
+  );
 }
 
 export async function advanceMockStage(
+  profileId: string,
   mockExamId: string,
   to: Exclude<MockStage, "writing" | "graded">,
 ): Promise<MockExam> {
   return decodeMockExam(
-    await request(`/v1/campus/mock-exams/${mockExamId}/stage`, {
+    await request(`/v1/campus/mock-exams/${mockExamId}/stage${qs({ profile_id: profileId })}`, {
       method: "POST",
       body: JSON.stringify({ to }),
     }),
   );
 }
 
-export async function pauseMockExam(mockExamId: string, seconds: number): Promise<MockExamView> {
+export async function pauseMockExam(
+  profileId: string,
+  mockExamId: string,
+  seconds: number,
+): Promise<MockExamView> {
   return decodeMockExam(
-    await request(`/v1/campus/mock-exams/${mockExamId}/pause`, {
+    await request(`/v1/campus/mock-exams/${mockExamId}/pause${qs({ profile_id: profileId })}`, {
       method: "POST",
       body: JSON.stringify({ seconds }),
     }),
   );
 }
 
-export async function submitMockExam(mockExamId: string): Promise<MockSubmitResult> {
-  return request(`/v1/campus/mock-exams/${mockExamId}/submit`, { method: "POST" });
+export async function submitMockExam(
+  profileId: string,
+  mockExamId: string,
+): Promise<MockSubmitResult> {
+  return request(`/v1/campus/mock-exams/${mockExamId}/submit${qs({ profile_id: profileId })}`, {
+    method: "POST",
+  });
 }
 
 export async function listTasks(
@@ -586,15 +635,23 @@ export async function listTasks(
   );
 }
 
-export async function patchTask(taskId: string, patch: TaskPatch): Promise<PlanTask> {
-  return request(`/v1/campus/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify(patch) });
+export async function patchTask(
+  profileId: string,
+  taskId: string,
+  patch: TaskPatch,
+): Promise<PlanTask> {
+  return request(`/v1/campus/tasks/${taskId}${qs({ profile_id: profileId })}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
 }
 
 export async function reschedulePlan(
+  profileId: string,
   planId: string,
   newExamDate?: string,
 ): Promise<RescheduleResult> {
-  return request(`/v1/campus/plans/${planId}/reschedule`, {
+  return request(`/v1/campus/plans/${planId}/reschedule${qs({ profile_id: profileId })}`, {
     method: "POST",
     body: JSON.stringify({ new_exam_date: newExamDate }),
   });
@@ -659,19 +716,23 @@ export async function createKnowledgePoint(
 }
 
 export async function patchKnowledgePoint(
+  profileId: string,
   pointId: string,
   patch: KnowledgePointPatch,
 ): Promise<KnowledgePoint> {
-  return request(`/v1/campus/knowledge-points/${pointId}`, {
+  return request(`/v1/campus/knowledge-points/${pointId}${qs({ profile_id: profileId })}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   });
 }
 
 export async function deleteKnowledgePoint(
+  profileId: string,
   pointId: string,
 ): Promise<{ deleted: boolean; orphaned_children: number }> {
-  return request(`/v1/campus/knowledge-points/${pointId}`, { method: "DELETE" });
+  return request(`/v1/campus/knowledge-points/${pointId}${qs({ profile_id: profileId })}`, {
+    method: "DELETE",
+  });
 }
 
 export async function generateKnowledgeTree(
@@ -726,9 +787,12 @@ export async function listDeadlines(
 }
 
 export async function createDeadlineReminders(
+  profileId: string,
   deadlineId: string,
 ): Promise<{ automation_ids: string[] }> {
-  return request(`/v1/campus/deadlines/${deadlineId}/reminders`, { method: "POST" });
+  return request(`/v1/campus/deadlines/${deadlineId}/reminders${qs({ profile_id: profileId })}`, {
+    method: "POST",
+  });
 }
 
 export async function getReminders(profileId: string): Promise<{

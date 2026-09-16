@@ -60,7 +60,7 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
       return;
     }
     let alive = true;
-    getMockExam(savedId).then(
+    getMockExam(profileId, savedId).then(
       (res) => {
         if (!alive) return;
         setView(res);
@@ -109,7 +109,7 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
       (res) => {
         window.localStorage.setItem(draftKeyFor(profileId), res.id);
         loadDrafts(res.id);
-        return getMockExam(res.id).then((fresh) => {
+        return getMockExam(profileId, res.id).then((fresh) => {
           setView(fresh);
           setRemaining(fresh.remaining_seconds);
           setPhase("ongoing");
@@ -141,7 +141,7 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
     );
     pausedAtRef.current = null;
     setPaused(false);
-    pauseMockExam(view.id, seconds).then((fresh) => {
+    pauseMockExam(profileId, view.id, seconds).then((fresh) => {
       setView(fresh);
       setRemaining(fresh.remaining_seconds);
     });
@@ -153,9 +153,9 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
       view.current_stage === "writing" ? "listening" : "reading_translation";
     setBusy(true);
     setError(null);
-    advanceMockStage(view.id, next).then(
+    advanceMockStage(profileId, view.id, next).then(
       () =>
-        getMockExam(view.id).then((fresh) => {
+        getMockExam(profileId, view.id).then((fresh) => {
           setView(fresh);
           setRemaining(fresh.remaining_seconds);
           loadDrafts(fresh.id);
@@ -172,7 +172,7 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
     if (!view || busy) return;
     setBusy(true);
     setError(null);
-    submitMockExam(view.id).then(
+    submitMockExam(profileId, view.id).then(
       (res) => {
         setResult(res);
         window.localStorage.removeItem(draftKeyFor(profileId));

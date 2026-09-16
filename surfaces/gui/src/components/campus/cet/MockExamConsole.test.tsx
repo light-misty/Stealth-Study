@@ -102,7 +102,7 @@ describe("MockExamConsole", () => {
     nowSpy.mockReturnValue(1_006_000);
     fireEvent.click(screen.getByTestId("campus-mock-resume"));
     await waitFor(() =>
-      expect(apiMock.pauseMockExam).toHaveBeenCalledWith("m1", 6),
+      expect(apiMock.pauseMockExam).toHaveBeenCalledWith("p1", "m1", 6),
     );
   });
 
@@ -141,7 +141,7 @@ describe("MockExamConsole", () => {
         "listening",
       ),
     );
-    expect(apiMock.advanceMockStage).toHaveBeenCalledWith("m1", "listening");
+    expect(apiMock.advanceMockStage).toHaveBeenCalledWith("p1", "m1", "listening");
     expect(
       (screen.getByTestId("campus-mock-essay") as HTMLTextAreaElement).disabled,
     ).toBe(true);
@@ -163,7 +163,7 @@ describe("MockExamConsole", () => {
     fireEvent.click(screen.getByTestId("campus-mock-submit"));
 
     await waitFor(() => expect(screen.getByTestId("campus-mock-result")).toBeTruthy());
-    expect(apiMock.submitMockExam).toHaveBeenCalledWith("m1");
+    expect(apiMock.submitMockExam).toHaveBeenCalledWith("p1", "m1");
     expect(screen.getByTestId("campus-mock-estimate").textContent).toContain("512.5");
     expect(window.localStorage.getItem(draftKey)).toBeNull();
     expect(

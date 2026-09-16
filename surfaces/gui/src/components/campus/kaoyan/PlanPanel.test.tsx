@@ -95,7 +95,7 @@ describe("PlanPanel", () => {
     await waitFor(() =>
       expect(screen.getByTestId("campus-kaoyan-task-t-todo").textContent).toContain("2026-09-15"),
     );
-    expect(apiMock.reschedulePlan).toHaveBeenCalledWith("plan-1", undefined);
+    expect(apiMock.reschedulePlan).toHaveBeenCalledWith("p1", "plan-1", undefined);
     expect(screen.getByTestId("campus-kaoyan-task-t-done").textContent).toContain("2026-09-07");
   });
 

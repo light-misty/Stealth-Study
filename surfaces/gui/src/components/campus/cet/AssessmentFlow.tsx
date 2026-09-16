@@ -64,7 +64,7 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
     let alive = true;
     setPhase("loading");
     setError(null);
-    getAssessment(savedId).then(
+    getAssessment(profileId, savedId).then(
       (res) => {
         if (!alive) return;
         if (res.status === "finished" && res.scores) {
@@ -163,7 +163,7 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
     }
     setBusy(true);
     setError(null);
-    finishAssessment(current.id).then(
+    finishAssessment(profileId, current.id).then(
       (res) => {
         setResult(res);
         window.localStorage.removeItem(draftKeyFor(profileId));

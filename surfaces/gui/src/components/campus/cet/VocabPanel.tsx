@@ -93,7 +93,7 @@ export function VocabPanel({ profileId }: { profileId: string }) {
     if (mnemonicBusy) return;
     setMnemonicError(null);
     setMnemonicBusy(vocabId);
-    makeMnemonic(vocabId).then(
+    makeMnemonic(profileId, vocabId).then(
       (res) => {
         setMnemonics((cur) => ({ ...cur, [vocabId]: res.mnemonic }));
         setMnemonicBusy(null);
