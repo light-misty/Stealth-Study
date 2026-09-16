@@ -187,6 +187,18 @@
         "mastery_mastered": "Mastered",
         "mastery_error": "Mark failed; reverted to the previous state"
       },
+      "listening": {
+        "loading": "Loading listening questions",
+        "empty": "No listening questions yet; import or generate some first",
+        "progress": "Question {{index}}/{{total}}",
+        "submit": "Submit answer",
+        "next": "Next question",
+        "correct": "Correct",
+        "wrong": "Incorrect",
+        "standard_answer": "Standard answer",
+        "score": "Score {{score}}/{{max}}",
+        "pending": "Subjective answer graded"
+      },
       "mock": {
         "start": "Start mock exam",
         "stage_writing": "Writing",

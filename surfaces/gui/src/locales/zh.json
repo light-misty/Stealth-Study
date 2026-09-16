@@ -183,6 +183,18 @@
         "mastery_mastered": "已掌握",
         "mastery_error": "标记失败，已恢复原状态"
       },
+      "listening": {
+        "loading": "听力题加载中",
+        "empty": "题库暂无听力题，先去导入题库或生成题目吧",
+        "progress": "第 {{index}}/{{total}} 题",
+        "submit": "提交答案",
+        "next": "下一题",
+        "correct": "回答正确",
+        "wrong": "回答错误",
+        "standard_answer": "标准答案",
+        "score": "得分 {{score}}/{{max}}",
+        "pending": "主观题已同步批改"
+      },
       "mock": {
         "start": "开始模考",
         "stage_writing": "写作",
