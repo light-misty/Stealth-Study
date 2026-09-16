@@ -34,7 +34,7 @@ from typing import Any, Mapping, Optional
 from ..automation.models import Schedule, ScheduledTask
 from ..memory import Scope
 from ..secrets import state_dir
-from . import automation_templates, models, reminders, review_scheduler, rubrics, tracks
+from . import automation_templates, models, reminders, review_scheduler, rubrics, store, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
@@ -90,6 +90,60 @@ PROFILE_MUTABLE_FIELDS: tuple[str, ...] = (
 )
 
 JSON_PROFILE_FIELDS: frozenset[str] = frozenset({"subjects"})
+
+EXPORT_FORMATS: tuple[str, ...] = ("md", "json", "csv")
+
+EXPORT_TABLE_ORDER: tuple[str, ...] = (
+    "exam_profile",
+    "school_profile",
+    "source_doc",
+    "doc_chunk",
+    "knowledge_point",
+    "mastery",
+    "study_plan",
+    "plan_task",
+    "vocab_item",
+    "question_bank_item",
+    "attempt",
+    "mistake_book",
+    "review_queue",
+    "mock_exam",
+    "assessment",
+    "weekly_report",
+    "cert_deadline",
+    "app_state",
+)
+
+EXPORT_MEDIA_TYPES: Mapping[str, str] = {
+    "md": "text/markdown",
+    "json": "application/json",
+    "csv": "text/csv",
+}
+
+BACKUP_KIND = "stealth-study-campus-backup"
+
+EXPORT_FILENAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:md|json|csv)$")
+
+EXPORT_RESERVED_STEMS = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{index}" for index in range(1, 10)}
+    | {f"LPT{index}" for index in range(1, 10)}
+)
+
+CSV_ATTEMPT_COLUMNS: tuple[str, ...] = (
+    "id",
+    "created_at",
+    "track_type",
+    "subject",
+    "question_id",
+    "session_type",
+    "mock_exam_id",
+    "is_correct",
+    "score",
+    "max_score",
+    "degrade_level",
+    "model_used",
+)
 
 QUESTION_FIELDS: tuple[str, ...] = (
     "subject",
@@ -1366,6 +1420,180 @@ class CampusService:
         freed = self._store.wipe()
         freed += _remove_tree(root, root / "campus")
         return {"cleared": True, "freed_bytes": freed}
+
+    # -- I4-I6: exports (03 §4.9, INF-02/03) ---------------------------------
+
+    def exports_dir(self) -> Path:
+        """The export drop zone of PRD §6.1: `state_dir()/campus/exports/`."""
+        return Path(state_dir()) / "campus" / "exports"
+
+    def create_export(self, profile: models.ExamProfile, fmt: str) -> dict[str, Any]:
+        """Write one export file into `campus/exports/` and name it back (I4).
+
+        The json package is a whole-database backup (02 §7.4: the 18 data tables behind
+        `schema_meta`, one array each, with the schema version carried as a field) so a
+        restore can rebuild everything losslessly; md and csv are human-readable views of
+        this profile only. Download names are safe by construction: every component of the
+        filename is generated here, never user-supplied.
+        """
+        if fmt not in EXPORT_FORMATS:
+            raise CampusError("UNSUPPORTED_TYPE", f"不支持的导出格式：{fmt}")
+        directory = self.exports_dir()
+        directory.mkdir(parents=True, exist_ok=True)
+        stem = f"campus-{profile.track_type}-{profile.id[:8]}-{self._export_stamp()}"
+        name = f"{stem}.{fmt}"
+        counter = 2
+        while (directory / name).exists():
+            name = f"{stem}-{counter}.{fmt}"
+            counter += 1
+        target = directory / name
+        body = self._export_body(profile, fmt)
+        target.write_bytes(body.encode("utf-8-sig" if fmt == "csv" else "utf-8"))
+        return {"filename": name, "path": str(target)}
+
+    def resolve_export(self, filename: str) -> tuple[Path, str]:
+        """The whitelisted on-disk export for `filename`, or `EXPORT_NOT_FOUND` (I5).
+
+        The pattern refuses separators, leading dots, reserved device stems and anything
+        without an export extension outright; the resolved-path containment check then keeps
+        a name that slipped past the pattern from pointing outside `campus/exports/`. Every
+        failure answers with the same code, so odd names leak no extra information.
+        """
+        name = str(filename or "")
+        stem = name.rsplit(".", 1)[0].upper()
+        if not EXPORT_FILENAME_RE.match(name) or stem in EXPORT_RESERVED_STEMS:
+            raise CampusError("EXPORT_NOT_FOUND", f"导出文件不存在：{name}")
+        directory = self.exports_dir().resolve()
+        target = (directory / name).resolve()
+        if target.parent != directory or not target.is_file():
+            raise CampusError("EXPORT_NOT_FOUND", f"导出文件不存在：{name}")
+        return target, EXPORT_MEDIA_TYPES[target.suffix.lstrip(".")]
+
+    def wipe_campus_data(self) -> dict[str, Any]:
+        """Wipe the database and the whole `campus/` tree, I6's `{wiped: true}` (02 §7.1).
+
+        The clear itself is the A10 implementation shared verbatim; I6 is the same operation
+        surfaced where the exports live so a backup cycle (export → wipe → restore) stays on
+        one group of endpoints.
+        """
+        root = Path(state_dir())
+        self._store.wipe()
+        _remove_tree(root, root / "campus")
+        return {"wiped": True}
+
+    def _export_stamp(self) -> str:
+        return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    def _export_body(self, profile: models.ExamProfile, fmt: str) -> str:
+        if fmt == "json":
+            return json.dumps(self._backup_package(), ensure_ascii=False, indent=2)
+        if fmt == "md":
+            return self._profile_markdown(profile)
+        return self._attempts_csv(profile)
+
+    def _backup_package(self) -> dict[str, Any]:
+        """The 02 §7.4 restore package: one array per data table plus the schema version."""
+        tables: dict[str, list[dict[str, Any]]] = {}
+        counts: dict[str, int] = {}
+        for table in EXPORT_TABLE_ORDER:
+            rows = [
+                {key: row[key] for key in row.keys()}
+                for row in self._store.query_all(f'SELECT * FROM "{table}"')
+            ]
+            tables[table] = rows
+            counts[table] = len(rows)
+        return {
+            "kind": BACKUP_KIND,
+            "schema_version": store.CURRENT_SCHEMA_VERSION,
+            "exported_at": _utcnow(),
+            "row_counts": counts,
+            "tables": tables,
+        }
+
+    def _profile_markdown(self, profile: models.ExamProfile) -> str:
+        """The human-readable study report of this profile (INF-02's Markdown face)."""
+        progress = self.progress(profile)
+        coverage = self.mastery_coverage(profile.id)
+        deadlines = self.list_deadlines(profile.id)["items"]
+        questions = self._store.count("question_bank_item", '"profile_id" = ?', [profile.id])
+        attempts = self._store.count("attempt", '"profile_id" = ?', [profile.id])
+        correct = self._store.count(
+            "attempt", '"profile_id" = ? AND "is_correct" = 1', [profile.id]
+        )
+        mistakes = self._store.count("mistake_book", '"profile_id" = ?', [profile.id])
+        unresolved = self._store.count(
+            "mistake_book", '"profile_id" = ? AND "resolved" = 0', [profile.id]
+        )
+        vocab_levels: dict[str, int] = {}
+        for row in self._store.list_rows("vocab_item", profile_id=profile.id):
+            vocab_levels[row["mastery"]] = vocab_levels.get(row["mastery"], 0) + 1
+        vocab_total = sum(vocab_levels.values())
+        plans = self._store.count("study_plan", '"profile_id" = ?', [profile.id])
+        tasks = self._store.count("plan_task", '"profile_id" = ?', [profile.id])
+        tasks_done = self._store.count(
+            "plan_task",
+            '"profile_id" = ? AND "status" = ?',
+            [profile.id, models.PlanTaskStatus.DONE.value],
+        )
+        due = len(review_scheduler.due_items(self._store, profile.id))
+        lines = [
+            f"# 学习数据导出 — {profile.title}",
+            "",
+            f"- 导出时间：{_utcnow()}",
+            f"- 轨道：{profile.track_type} / 状态：{profile.status}",
+            f"- 考试日期：{profile.exam_date or '未设置'} / 目标分：{profile.target_score or '未设置'}",
+            "",
+            "## 学习进度",
+            f"- 连续打卡：{progress['streak_days']} 天",
+        ]
+        for subject, entry in progress["by_track"].items():
+            lines.append(f"- {subject}：{entry['done']}/{entry['total']}（{entry['rate']:.0%}）")
+        lines += ["", "## 知识点掌握", f"- 覆盖率：{coverage['coverage']:.0%}"]
+        weak = coverage.get("weak_top5") or []
+        if weak:
+            for item in weak:
+                lines.append(f"- 薄弱：{item['title']}（{item['level']}）")
+        else:
+            lines.append("- 薄弱：暂无已评级知识点")
+        lines += [
+            "",
+            "## 题库与作答",
+            f"- 题目：{questions} 题 / 作答：{attempts} 次 / 判对：{correct} 次",
+            "",
+            "## 错题本",
+            f"- 累计：{mistakes} 条 / 未解决：{unresolved} 条",
+            "",
+            "## 词汇",
+            f"- 共 {vocab_total} 词（mastered {vocab_levels.get(models.MasteryLevel.MASTERED.value, 0)}"
+            f" / fuzzy {vocab_levels.get(models.MasteryLevel.FUZZY.value, 0)}"
+            f" / unknown {vocab_levels.get(models.MasteryLevel.UNKNOWN.value, 0)}）",
+            "",
+            "## 复习队列",
+            f"- 今日到期：{due} 项",
+            "",
+            "## 学习计划",
+            f"- 计划：{plans} 份 / 任务：{tasks} 项（已完成 {tasks_done} 项）",
+            "",
+            "## 考试节点",
+        ]
+        if deadlines:
+            for item in deadlines:
+                lines.append(f"- {item['node_type']} {item['date']}：剩 {item['days_left']} 天")
+        else:
+            lines.append("- 暂无考试节点")
+        return "\n".join(lines) + "\n"
+
+    def _attempts_csv(self, profile: models.ExamProfile) -> str:
+        """The profile's attempt log as one flat CSV (INF-02's spreadsheet face)."""
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(CSV_ATTEMPT_COLUMNS)
+        rows = self._store.list_rows(
+            "attempt", profile_id=profile.id, order_by="created_at ASC, rowid ASC"
+        )
+        for row in rows:
+            writer.writerow([row[column] for column in CSV_ATTEMPT_COLUMNS])
+        return buffer.getvalue()
 
     # -- E1-E4: question bank ----------------------------------------------
 

@@ -103,9 +103,15 @@ T13_NEW: tuple[tuple[str, str], ...] = (
     ("GET", "/automation-templates"),
     ("POST", "/automation-templates/{tpl_id}/install"),
 )
+T14_NEW: tuple[tuple[str, str], ...] = (
+    ("POST", "/exports"),
+    ("GET", "/exports/{filename}"),
+    ("POST", "/exports/wipe"),
+)
 T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS + T11_NEW
 T13_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS + T13_NEW
-DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T13_ENDPOINTS + T12_ENDPOINTS
+T14_ENDPOINTS: tuple[tuple[str, str], ...] = T13_ENDPOINTS + T12_ENDPOINTS + T14_NEW
+DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T14_ENDPOINTS
 
 
 def essay_payload() -> str:
