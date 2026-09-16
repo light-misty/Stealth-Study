@@ -175,6 +175,19 @@
         "rescheduled": "已重排 {{moved}} 项任务，保留已完成 {{kept}} 项",
         "tracks": "四轨"
       },
+      "board": {
+        "no_plan": "还没有计划，先用上方按钮生成一份",
+        "week_of": "{{date}} 当周",
+        "group_summary": "{{total}} 项 · {{done}} 已完成",
+        "overall": "总体",
+        "status": {
+          "todo": "待开始",
+          "doing": "进行中",
+          "review": "复核中",
+          "done": "已完成",
+          "skipped": "已跳过"
+        }
+      },
       "progress": {
         "streak_other": "连续学习 {{count}} 天",
         "heatmap": "热力图"

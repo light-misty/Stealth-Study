@@ -178,6 +178,19 @@
         "rescheduled": "Rescheduled {{moved}} tasks, {{kept}} done tasks kept",
         "tracks": "Tracks"
       },
+      "board": {
+        "no_plan": "No plan yet — generate one above",
+        "week_of": "Week of {{date}}",
+        "group_summary": "{{total}} tasks · {{done}} done",
+        "overall": "Overall",
+        "status": {
+          "todo": "To do",
+          "doing": "In progress",
+          "review": "Reviewing",
+          "done": "Done",
+          "skipped": "Skipped"
+        }
+      },
       "progress": {
         "streak_one": "{{count}}-day streak",
         "streak_other": "{{count}}-day streak",
