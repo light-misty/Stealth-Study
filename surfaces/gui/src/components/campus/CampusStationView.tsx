@@ -14,6 +14,13 @@ import { ProfileCreateCard } from "./ProfileCreateCard";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { QAChatPanel } from "./QAChatPanel";
 import { ReviewQueuePanel } from "./ReviewQueuePanel";
+import { AssessmentFlow } from "./cet/AssessmentFlow";
+import { CommonErrorsCard } from "./cet/CommonErrorsCard";
+import { EssayGradingPanel } from "./cet/EssayGradingPanel";
+import { ListeningDrill } from "./cet/ListeningDrill";
+import { MockExamConsole } from "./cet/MockExamConsole";
+import { TranslationGradingPanel } from "./cet/TranslationGradingPanel";
+import { VocabPanel } from "./cet/VocabPanel";
 
 // The shell the three stations share (04 §3.1). Everything track-specific lives in these
 // two lookup tables — the component itself never branches on the track, per the layering
@@ -52,8 +59,23 @@ const LIBRARY_PANELS: readonly PanelSpec[] = [
   },
 ];
 
+// CET-01 … CET-13 in track order: placement, vocabulary, listening, essay/translation
+// grading, the mock-exam console and the common-mistakes summary.
+const CET_PANELS: readonly PanelSpec[] = [
+  { key: "assessment", render: ({ profileId }) => <AssessmentFlow profileId={profileId} /> },
+  { key: "vocab", render: ({ profileId }) => <VocabPanel profileId={profileId} /> },
+  { key: "listening", render: ({ profileId }) => <ListeningDrill profileId={profileId} /> },
+  { key: "essay", render: ({ profileId }) => <EssayGradingPanel profileId={profileId} /> },
+  {
+    key: "translation",
+    render: ({ profileId }) => <TranslationGradingPanel profileId={profileId} />,
+  },
+  { key: "mock", render: ({ profileId }) => <MockExamConsole profileId={profileId} /> },
+  { key: "common-errors", render: ({ profileId }) => <CommonErrorsCard profileId={profileId} /> },
+];
+
 const TRACK_PANELS: Record<CampusTrack, readonly PanelSpec[]> = {
-  cet: SHARED_PANELS,
+  cet: [...SHARED_PANELS, ...CET_PANELS],
   kaoyan: [...SHARED_PANELS, ...LIBRARY_PANELS],
   cert: SHARED_PANELS,
 };

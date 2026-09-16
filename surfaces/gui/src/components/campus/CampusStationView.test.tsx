@@ -17,6 +17,24 @@ vi.mock("../../campus/api", async (importOriginal) => {
     listDueReviews: vi.fn(),
     listLibraryDocs: vi.fn(),
     getReminders: vi.fn(),
+    createAssessment: vi.fn(),
+    getAssessment: vi.fn(),
+    patchAssessment: vi.fn(),
+    finishAssessment: vi.fn(),
+    listVocabToday: vi.fn(),
+    setVocabMastery: vi.fn(),
+    makeMnemonic: vi.fn(),
+    listQuestions: vi.fn(),
+    submitAttempt: vi.fn(),
+    submitGrading: vi.fn(),
+    getAttempt: vi.fn(),
+    listGradingHistory: vi.fn(),
+    getCommonErrors: vi.fn(),
+    createMockExam: vi.fn(),
+    getMockExam: vi.fn(),
+    advanceMockStage: vi.fn(),
+    pauseMockExam: vi.fn(),
+    submitMockExam: vi.fn(),
   };
 });
 
@@ -58,6 +76,10 @@ describe("CampusStationView", () => {
     apiMock.listLibraryDocs.mockResolvedValue({ items: [] });
     apiMock.getReminders.mockResolvedValue({ banner: [], expired: [] });
     apiMock.patchProfile.mockResolvedValue(profile("p1"));
+    apiMock.listVocabToday.mockResolvedValue({ new_items: [], review_items: [] });
+    apiMock.listQuestions.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 50 });
+    apiMock.listGradingHistory.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 10 });
+    apiMock.getCommonErrors.mockResolvedValue({ top3: [] });
   });
 
   it("renders the station shell for a track once a profile exists", async () => {
@@ -140,6 +162,17 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="kaoyan" />);
     await waitFor(() => expect(screen.getByTestId("campus-library-panel")).toBeTruthy());
     expect(screen.getByTestId("campus-qa-panel")).toBeTruthy();
+  });
+
+  it("mounts the CET panels on the cet track", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    expect(screen.getByTestId("campus-cet-assessment-start")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-vocab-empty")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-listening-empty")).toBeTruthy();
+    expect(screen.getAllByTestId("campus-cet-grading-text")).toHaveLength(2);
+    expect(screen.getByTestId("campus-mock-start")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-common-errors")).toBeTruthy();
   });
 
   it("archives a profile through the switcher and refreshes the list", async () => {
