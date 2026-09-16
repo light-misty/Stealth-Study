@@ -18,7 +18,6 @@ on:
       - "**/*.jpeg"
       - "**/*.gif"
       - "**/*.svg"
-      - "LICENSE*"
       - "assets/**"
 
 jobs:

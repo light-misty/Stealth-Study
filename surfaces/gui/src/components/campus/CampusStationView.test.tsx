@@ -17,6 +17,30 @@ vi.mock("../../campus/api", async (importOriginal) => {
     listDueReviews: vi.fn(),
     listLibraryDocs: vi.fn(),
     getReminders: vi.fn(),
+    getKnowledgeTree: vi.fn(),
+    getMasteryCoverage: vi.fn(),
+    listDeadlines: vi.fn(),
+    listTasks: vi.fn(),
+    getProgress: vi.fn(),
+    listWeeklyReports: vi.fn(),
+    createAssessment: vi.fn(),
+    getAssessment: vi.fn(),
+    patchAssessment: vi.fn(),
+    finishAssessment: vi.fn(),
+    listVocabToday: vi.fn(),
+    setVocabMastery: vi.fn(),
+    makeMnemonic: vi.fn(),
+    listQuestions: vi.fn(),
+    submitAttempt: vi.fn(),
+    submitGrading: vi.fn(),
+    getAttempt: vi.fn(),
+    listGradingHistory: vi.fn(),
+    getCommonErrors: vi.fn(),
+    createMockExam: vi.fn(),
+    getMockExam: vi.fn(),
+    advanceMockStage: vi.fn(),
+    pauseMockExam: vi.fn(),
+    submitMockExam: vi.fn(),
   };
 });
 
@@ -57,7 +81,17 @@ describe("CampusStationView", () => {
     apiMock.listDueReviews.mockResolvedValue({ items: [] });
     apiMock.listLibraryDocs.mockResolvedValue({ items: [] });
     apiMock.getReminders.mockResolvedValue({ banner: [], expired: [] });
+    apiMock.getKnowledgeTree.mockResolvedValue({ roots: [] });
+    apiMock.getMasteryCoverage.mockResolvedValue({ coverage: 0, weak_top5: [] });
+    apiMock.listDeadlines.mockResolvedValue({ items: [] });
+    apiMock.listTasks.mockResolvedValue({ items: [] });
+    apiMock.getProgress.mockResolvedValue({ by_track: {}, streak_days: 0, heatmap: [] });
+    apiMock.listWeeklyReports.mockResolvedValue({ items: [] });
     apiMock.patchProfile.mockResolvedValue(profile("p1"));
+    apiMock.listVocabToday.mockResolvedValue({ new_items: [], review_items: [] });
+    apiMock.listQuestions.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 50 });
+    apiMock.listGradingHistory.mockResolvedValue({ items: [], total: 0, page: 1, page_size: 10 });
+    apiMock.getCommonErrors.mockResolvedValue({ top3: [] });
   });
 
   it("renders the station shell for a track once a profile exists", async () => {
@@ -130,7 +164,7 @@ describe("CampusStationView", () => {
     expect(screen.getByTestId("campus-deadline-reference")).toBeTruthy();
   });
 
-  it("mounts the shared panels on every track and the library only where configured", async () => {
+  it("mounts the shared panels on every track and the kaoyan panels only where configured", async () => {
     render(<CampusStationView track="cet" />);
     await waitFor(() => expect(screen.getByTestId("campus-mistake-panel")).toBeTruthy());
     expect(screen.getByTestId("campus-review-queue")).toBeTruthy();
@@ -139,7 +173,30 @@ describe("CampusStationView", () => {
 
     render(<CampusStationView track="kaoyan" />);
     await waitFor(() => expect(screen.getByTestId("campus-library-panel")).toBeTruthy());
-    expect(screen.getByTestId("campus-qa-panel")).toBeTruthy();
+    expect(screen.getByTestId("campus-major-qa-view")).toBeTruthy();
+    await waitFor(() => expect(screen.getByTestId("campus-plan-editor")).toBeTruthy());
+    expect(screen.getByTestId("campus-weekly-view")).toBeTruthy();
+    expect(screen.getByTestId("campus-tutor-chat")).toBeTruthy();
+    expect(screen.queryByTestId("campus-qa-panel")).toBeNull();
+  });
+
+  it("mounts the CET panels on the cet track", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    expect(screen.getByTestId("campus-cet-assessment-start")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-vocab-empty")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-listening-empty")).toBeTruthy();
+    expect(screen.getAllByTestId("campus-cet-grading-text")).toHaveLength(2);
+    expect(screen.getByTestId("campus-mock-start")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-common-errors")).toBeTruthy();
+  });
+
+  it("mounts the cert panels on the certificate station", async () => {
+    render(<CampusStationView track="cert" />);
+    await waitFor(() => expect(screen.getByTestId("campus-cert-tree-panel")).toBeTruthy());
+    expect(screen.getByTestId("campus-cert-grading-panel")).toBeTruthy();
+    expect(screen.getByTestId("campus-cert-setup-panel")).toBeTruthy();
+    expect(screen.queryByTestId("campus-library-panel")).toBeNull();
   });
 
   it("archives a profile through the switcher and refreshes the list", async () => {

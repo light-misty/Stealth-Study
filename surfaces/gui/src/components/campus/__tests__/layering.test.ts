@@ -10,7 +10,7 @@ import zh from "../../../locales/zh.json";
 // Sources are pulled in as raw text through Vite's glob, which keeps this file free of
 // node built-ins (the production `tsc` pass typechecks everything under src/).
 
-const componentSources = import.meta.glob("../*.tsx", {
+const componentSources = import.meta.glob("../**/*.tsx", {
   query: "?raw",
   import: "default",
   eager: true,
@@ -64,7 +64,7 @@ describe("campus layering rules", () => {
 
   it("keeps campus components off the legacy app api", () => {
     const offenders = componentFiles
-      .filter(([, source]) => /from\s+"\.\.\/api"/.test(source))
+      .filter(([, source]) => /from\s+"(?:\.\.\/)+api"/.test(source))
       .map(([path]) => path);
     expect(offenders, `legacy api imports: ${offenders.join(", ")}`).toEqual([]);
   });

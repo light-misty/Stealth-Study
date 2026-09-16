@@ -12,8 +12,21 @@ import { LibraryPanel } from "./LibraryPanel";
 import { MistakeBookPanel } from "./MistakeBookPanel";
 import { ProfileCreateCard } from "./ProfileCreateCard";
 import { ProfileSwitcher } from "./ProfileSwitcher";
-import { QAChatPanel } from "./QAChatPanel";
+import { MajorQAView } from "./kaoyan/MajorQAView";
+import { PlanPanel } from "./kaoyan/PlanPanel";
+import { SubjectTutorChat } from "./kaoyan/SubjectTutorChat";
+import { WeeklyReportView } from "./kaoyan/WeeklyReportView";
 import { ReviewQueuePanel } from "./ReviewQueuePanel";
+import { AssessmentFlow } from "./cet/AssessmentFlow";
+import { CommonErrorsCard } from "./cet/CommonErrorsCard";
+import { EssayGradingPanel } from "./cet/EssayGradingPanel";
+import { ListeningDrill } from "./cet/ListeningDrill";
+import { MockExamConsole } from "./cet/MockExamConsole";
+import { TranslationGradingPanel } from "./cet/TranslationGradingPanel";
+import { VocabPanel } from "./cet/VocabPanel";
+import { CertExamSetup } from "./cert/CertExamSetup";
+import { KnowledgeTreePanel } from "./cert/KnowledgeTreePanel";
+import { SubjectiveGradingPanel } from "./cert/SubjectiveGradingPanel";
 
 // The shell the three stations share (04 §3.1). Everything track-specific lives in these
 // two lookup tables — the component itself never branches on the track, per the layering
@@ -35,8 +48,10 @@ const SHARED_PANELS: readonly PanelSpec[] = [
   { key: "review", render: ({ profileId }) => <ReviewQueuePanel profileId={profileId} /> },
 ];
 
-// 04 §2.1 puts the library and its Q&A on the kaoyan track. Tracks get their own entry so
-// T17/T18/T19 can append their business panels without touching this file's logic.
+// 04 §2.1 puts the library and its Q&A on the kaoyan track. The kaoyan Q&A slot is the
+// T18 MajorQAView (document picker + clickable page citations) rather than the shared
+// QAChatPanel. Tracks get their own entry so T17/T18/T19 can append their business panels
+// without touching this file's logic.
 const LIBRARY_PANELS: readonly PanelSpec[] = [
   {
     key: "library",
@@ -46,16 +61,43 @@ const LIBRARY_PANELS: readonly PanelSpec[] = [
   },
   {
     key: "qa",
-    render: ({ profileId, selectedDocId }) => (
-      <QAChatPanel profileId={profileId} docId={selectedDocId ?? undefined} />
-    ),
+    render: ({ profileId }) => <MajorQAView profileId={profileId} />,
   },
 ];
 
+const CERT_PANELS: readonly PanelSpec[] = [
+  { key: "cert_tree", render: ({ profileId }) => <KnowledgeTreePanel profileId={profileId} /> },
+  { key: "cert_grading", render: ({ profileId }) => <SubjectiveGradingPanel profileId={profileId} /> },
+  { key: "cert_setup", render: ({ profileId }) => <CertExamSetup profileId={profileId} /> },
+];
+
+// T18 kaoyan business panels: the combined plan editor + read-only board (KY-01/03,
+// ADR-11), the weekly report view (KY-12) and the per-subject grading chat (KY-05/06).
+const KAOYAN_PANELS: readonly PanelSpec[] = [
+  { key: "plan", render: ({ profileId }) => <PlanPanel profileId={profileId} /> },
+  { key: "weekly", render: ({ profileId }) => <WeeklyReportView profileId={profileId} /> },
+  { key: "tutor", render: ({ profileId }) => <SubjectTutorChat profileId={profileId} /> },
+];
+
+// CET-01 … CET-13 in track order: placement, vocabulary, listening, essay/translation
+// grading, the mock-exam console and the common-mistakes summary.
+const CET_PANELS: readonly PanelSpec[] = [
+  { key: "assessment", render: ({ profileId }) => <AssessmentFlow profileId={profileId} /> },
+  { key: "vocab", render: ({ profileId }) => <VocabPanel profileId={profileId} /> },
+  { key: "listening", render: ({ profileId }) => <ListeningDrill profileId={profileId} /> },
+  { key: "essay", render: ({ profileId }) => <EssayGradingPanel profileId={profileId} /> },
+  {
+    key: "translation",
+    render: ({ profileId }) => <TranslationGradingPanel profileId={profileId} />,
+  },
+  { key: "mock", render: ({ profileId }) => <MockExamConsole profileId={profileId} /> },
+  { key: "common-errors", render: ({ profileId }) => <CommonErrorsCard profileId={profileId} /> },
+];
+
 const TRACK_PANELS: Record<CampusTrack, readonly PanelSpec[]> = {
-  cet: SHARED_PANELS,
-  kaoyan: [...SHARED_PANELS, ...LIBRARY_PANELS],
-  cert: SHARED_PANELS,
+  cet: [...SHARED_PANELS, ...CET_PANELS],
+  kaoyan: [...SHARED_PANELS, ...LIBRARY_PANELS, ...KAOYAN_PANELS],
+  cert: [...SHARED_PANELS, ...CERT_PANELS],
 };
 
 const TRACK_BANNERS: Record<CampusTrack, (args: { profile: ExamProfile }) => ReactElement | null> =

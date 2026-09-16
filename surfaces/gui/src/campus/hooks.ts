@@ -1,32 +1,57 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   askLibrary,
+  createDeadline,
+  createDeadlineReminders,
+  createKnowledgePoint,
+  deleteKnowledgePoint,
   deleteLibraryDoc,
+  generateWeeklyReport,
   getAppState,
   getCapabilities,
+  getKnowledgeTree,
   getLibraryDoc,
+  getMasteryCoverage,
+  getProgress,
   getReminders,
   importLibraryDoc,
+  listDeadlines,
   listDueReviews,
   listLibraryDocs,
   listMistakes,
   listProfiles,
+  listTasks,
+  listWeeklyReports,
   patchAppState,
   patchMistake,
   retryLibraryDoc,
+  setMastery,
+  submitGrading,
   submitReviewResult,
 } from "./api";
 import type {
   Attribution,
   CampusTrack,
   CapabilitiesReport,
+  CertDeadline,
+  DeadlineCreateInput,
   DeadlineView,
   ExamProfile,
+  GradeResult,
+  GradingSubmitInput,
+  KnowledgePoint,
+  KnowledgePointNode,
   LibraryQAAnswer,
+  Mastery,
+  MasteryCoverage,
+  MasteryLevel,
   MistakeBookEntry,
   MistakeFilters,
+  PlanTask,
+  ProgressReport,
   ReviewDueItem,
   SourceDoc,
+  WeeklyReport,
 } from "./types";
 import { campusErrorInfo } from "./utils";
 
@@ -314,13 +339,13 @@ export function useLibraryQA(profileId: string | null, docId?: string) {
   const [error, setError] = useState<unknown>(null);
 
   const ask = useCallback(
-    async (question: string) => {
+    async (question: string, docOverride?: string) => {
       const trimmed = question.trim();
       if (!profileId || !trimmed) return null;
       setAsking(true);
       setError(null);
       try {
-        const res = await askLibrary(profileId, trimmed, docId);
+        const res = await askLibrary(profileId, trimmed, docOverride ?? docId);
         setAnswer(res);
         return res;
       } catch (err) {
@@ -360,4 +385,234 @@ export function useDeadlineViews(profileId: string | null) {
     [],
   );
   return { views: data, loading, error, reload };
+}
+
+/** Put a created point back into the nested tree; an unknown parent falls back to a root. */
+const insertPoint = (roots: KnowledgePointNode[], created: KnowledgePoint): KnowledgePointNode[] => {
+  const entry: KnowledgePointNode = { ...created, children: [] };
+  let attached = false;
+  const walk = (nodes: KnowledgePointNode[]): KnowledgePointNode[] =>
+    nodes.map((node) => {
+      if (node.id === created.parent_id) {
+        attached = true;
+        return { ...node, children: [...node.children, entry] };
+      }
+      return { ...node, children: walk(node.children) };
+    });
+  const next = walk(roots);
+  return attached ? next : [...roots, entry];
+};
+
+/** H1/H2/H3/H5: the knowledge tree plus its point-level mutations. */
+export function useKnowledgeTree(profileId: string | null) {
+  const { data, setData, setError, loading, error, retryable, reload } = useAsync<
+    KnowledgePointNode[]
+  >(
+    () =>
+      profileId
+        ? getKnowledgeTree(profileId).then((res) => res?.roots ?? [])
+        : Promise.resolve([]),
+    [profileId],
+    [],
+  );
+
+  const addPoint = useCallback(
+    async (input: { title: string; parentId?: string | null; desc?: string }) => {
+      if (!profileId) return null;
+      setError(null);
+      try {
+        const created = await createKnowledgePoint({
+          profileId,
+          title: input.title,
+          parent_id: input.parentId ?? null,
+          desc: input.desc,
+        });
+        const entry: KnowledgePointNode = { ...created, children: [] };
+        setData((prev) => insertPoint(prev, created));
+        return entry;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [profileId, setData, setError],
+  );
+
+  const removePoint = useCallback(
+    async (pointId: string) => {
+      setError(null);
+      try {
+        const res = await deleteKnowledgePoint(pointId);
+        // Orphaned children re-root server-side (H3), so refetch instead of splicing.
+        reload();
+        return res;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [reload, setError],
+  );
+
+  const setLevel = useCallback(
+    async (pointId: string, level: MasteryLevel) => {
+      if (!profileId) return null;
+      setError(null);
+      try {
+        return await setMastery(profileId, { pointId, level });
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [profileId, setError],
+  );
+
+  return { roots: data, loading, error, retryable, reload, addPoint, removePoint, setLevel };
+}
+
+/** H6: mastery coverage progress and the weak top5. */
+export function useMasteryCoverage(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<MasteryCoverage | null>(
+    () => (profileId ? getMasteryCoverage(profileId) : Promise.resolve(null)),
+    [profileId],
+    null,
+  );
+  return { data, loading, error, retryable, reload };
+}
+
+/** H7/H8/H9: the exam node timeline with create and one-shot reminder actions. */
+export function useCertDeadlines(profileId: string | null) {
+  const { data, setData, setError, loading, error, retryable, reload } = useAsync<
+    (CertDeadline & { days_left: number })[]
+  >(
+    () =>
+      profileId
+        ? listDeadlines(profileId).then((res) => res?.items ?? [])
+        : Promise.resolve([]),
+    [profileId],
+    [],
+  );
+
+  const createNode = useCallback(
+    async (input: DeadlineCreateInput) => {
+      if (!profileId) return null;
+      setError(null);
+      try {
+        const created = await createDeadline(input);
+        reload();
+        return created;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [profileId, reload, setError],
+  );
+
+  const createReminders = useCallback(
+    async (deadlineId: string) => {
+      setError(null);
+      try {
+        const res = await createDeadlineReminders(deadlineId);
+        const ids = res?.automation_ids ?? [];
+        setData((prev) =>
+          prev.map((item) => (item.id === deadlineId ? { ...item, automation_ids: ids } : item)),
+        );
+        return ids;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [setData, setError],
+  );
+
+  return { items: data, loading, error, retryable, reload, createNode, createReminders };
+}
+
+/** G1: the plan task list behind the kaoyan board (read-only display, ADR-11). */
+export function usePlanTasks(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<PlanTask[]>(
+    () => (profileId ? listTasks(profileId).then((res) => res?.items ?? []) : Promise.resolve([])),
+    [profileId],
+    [],
+  );
+  return { items: data, loading, error, retryable, reload };
+}
+
+/** G4: the four-track progress report (rings, streak, heatmap). */
+export function usePlanProgress(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<ProgressReport | null>(
+    () => (profileId ? getProgress(profileId) : Promise.resolve(null)),
+    [profileId],
+    null,
+  );
+  return { progress: data, loading, error, retryable, reload };
+}
+
+/** G5/G6: the weekly report list plus a manual generate; G5 upserts per week. */
+export function useWeeklyReports(profileId: string | null) {
+  const { data, setData, loading, error, retryable, reload } = useAsync<WeeklyReport[]>(
+    () =>
+      profileId
+        ? listWeeklyReports(profileId).then((res) => res?.items ?? [])
+        : Promise.resolve([]),
+    [profileId],
+    [],
+  );
+  const [generating, setGenerating] = useState(false);
+  const [genError, setGenError] = useState<unknown>(null);
+
+  const generate = useCallback(async () => {
+    if (!profileId || generating) return null;
+    setGenerating(true);
+    setGenError(null);
+    try {
+      const report = await generateWeeklyReport(profileId);
+      setData((prev) => [report, ...prev.filter((item) => item.id !== report.id)]);
+      return report;
+    } catch (err) {
+      setGenError(err);
+      return null;
+    } finally {
+      setGenerating(false);
+    }
+  }, [profileId, generating, setData]);
+
+  return { items: data, loading, error, retryable, reload, generate, generating, genError };
+}
+
+/** The stored level of one point, from the H5 upsert echo. */
+export type { Mastery };
+
+/** C1: one subjective grading run, with a synchronous busy guard against double submits. */
+export function useGrading(profileId: string | null) {
+  const [result, setResult] = useState<GradeResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const busyRef = useRef(false);
+
+  const submit = useCallback(
+    async (input: Omit<GradingSubmitInput, "profileId">) => {
+      if (!profileId || busyRef.current) return null;
+      busyRef.current = true;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await submitGrading({ ...input, profileId });
+        setResult(res);
+        return res;
+      } catch (err) {
+        setError(err);
+        return null;
+      } finally {
+        busyRef.current = false;
+        setLoading(false);
+      }
+    },
+    [profileId],
+  );
+
+  return { result, loading, error, retryable: campusErrorInfo(error).retryable, submit };
 }
