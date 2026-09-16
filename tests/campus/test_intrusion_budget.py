@@ -40,6 +40,19 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/locales/zh.json",
     "surfaces/gui/src/locales/en.json",
     "ss/server/app.py",
+    # logging-system 分支登记：统一日志配置、启动初始化、上传端点与前端日志模块
+    "ss/logging_setup.py",
+    "ss/server/run.py",
+    "surfaces/gui/src/api.ts",
+    "surfaces/gui/src/main.tsx",
+    "surfaces/gui/src/logging/capture.ts",
+    "surfaces/gui/src/logging/index.ts",
+    "surfaces/gui/src/logging/store.ts",
+    "surfaces/gui/src/logging/upload.ts",
+    "pyproject.toml",
+    ".gitignore",
+    "docs/logging-system-test-report.md",
+    "docs/superpowers/specs/2026-09-16-logging-system-design.md",
     # The campus e2e harness: `fixtures.ts` is shared test infrastructure every spec routes
     # through (the same category as `app.py`), and `campus.spec.ts` is the campus smoke itself.
     # Listed by file — not by directory — so the other 60 specs stay outside the budget. The live
