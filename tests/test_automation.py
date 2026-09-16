@@ -439,6 +439,23 @@ def test_unseen_runs_counted_and_cleared_by_mark_seen(tmp_path, monkeypatch):
     assert not manager.mark_automation_seen("task-nope")["ok"]
 
 
+def test_unseen_failed_follows_insertion_order_within_one_timestamp(tmp_path, monkeypatch):
+    """Two runs sharing one started_at must still resolve unseen_failed to the run written
+    LAST: started_at cannot order them, so the store has to break the tie itself."""
+    monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
+    from ss.server.manager import SessionManager
+
+    manager = SessionManager(data_dir=tmp_path / "data")
+    t = manager.task_store.save(_task())
+    same_instant = 1_700_000_000.0
+    manager.task_store.add_run(TaskRun(task_id=t.id, status="ok", started_at=same_instant))
+    manager.task_store.add_run(TaskRun(task_id=t.id, status="error", started_at=same_instant))
+
+    row = manager.list_automations()["tasks"][0]
+    assert row["unseen_runs"] == 2
+    assert row["unseen_failed"] is True  # newest unseen run errored
+
+
 @pytest.mark.asyncio
 async def test_scheduled_run_broadcasts_run_started_event(tmp_path, monkeypatch):
     """UX-026: the moment a scheduled run starts, every /ws/events socket hears
