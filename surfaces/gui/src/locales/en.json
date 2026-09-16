@@ -220,7 +220,21 @@
         "stage_listening": "Listening",
         "stage_reading_translation": "Reading & translation",
         "locked": "Locked",
-        "submit": "Submit"
+        "submit": "Submit",
+        "loading": "Loading mock exam",
+        "paper_title": "CET mock paper",
+        "intro": "Timed stages for writing, listening and reading & translation; each stage locks when it ends",
+        "timer_label": "Time left in this stage",
+        "stage_expired_label": "This stage has ended",
+        "advance": "End this stage",
+        "pause": "Pause",
+        "resume": "Resume",
+        "answer_writing": "Writing answer",
+        "answer_listening": "Listening answer",
+        "answer_reading": "Reading & translation answer",
+        "result_title": "Mock exam result",
+        "estimate": "Estimated score",
+        "fast_forward": "Fast-forward (debug)"
       }
     },
     "kaoyan": {

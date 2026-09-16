@@ -216,7 +216,21 @@
         "stage_listening": "听力",
         "stage_reading_translation": "阅读与翻译",
         "locked": "已锁定",
-        "submit": "交卷"
+        "submit": "交卷",
+        "loading": "模考加载中",
+        "paper_title": "CET 模拟卷",
+        "intro": "按写作、听力、阅读与翻译三阶段计时作答，阶段结束自动收卡锁定",
+        "timer_label": "本阶段剩余时间",
+        "stage_expired_label": "本阶段时间已到",
+        "advance": "结束本阶段",
+        "pause": "暂停",
+        "resume": "继续",
+        "answer_writing": "写作作答",
+        "answer_listening": "听力作答",
+        "answer_reading": "阅读与翻译作答",
+        "result_title": "模考成绩",
+        "estimate": "预计总分",
+        "fast_forward": "快进（调试）"
       }
     },
     "kaoyan": {
