@@ -198,16 +198,16 @@
       },
       "tutor": {
         "subject": "科目",
-        "kind": "批改类型",
-        "answer": "把你的作答粘贴进来",
-        "submit": "提交批改",
-        "submitting": "批改中…",
+        "kind_label": "批改类型",
         "kind": {
           "essay_material": "材料分析题",
           "essay": "作文",
           "short_answer": "简答题",
           "translation": "翻译"
-        }
+        },
+        "answer": "把你的作答粘贴进来",
+        "submit": "提交批改",
+        "submitting": "批改中…"
       },
       "major_qa": {
         "title": "专业课资料问答",

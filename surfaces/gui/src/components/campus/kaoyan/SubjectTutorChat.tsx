@@ -65,7 +65,7 @@ export function SubjectTutorChat({ profileId }: { profileId: string }) {
           </select>
         </label>
         <label className="flex items-center gap-1">
-          {t("campus.kaoyan.tutor.kind")}
+          {t("campus.kaoyan.tutor.kind_label")}
           <select
             className="rounded-lg border border-line bg-panel px-2 py-1 text-[12px] text-ink"
             data-testid="campus-tutor-kind"

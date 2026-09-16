@@ -10,7 +10,7 @@ import zh from "../../../locales/zh.json";
 // Sources are pulled in as raw text through Vite's glob, which keeps this file free of
 // node built-ins (the production `tsc` pass typechecks everything under src/).
 
-const componentSources = import.meta.glob("../*.tsx", {
+const componentSources = import.meta.glob("../**/*.tsx", {
   query: "?raw",
   import: "default",
   eager: true,

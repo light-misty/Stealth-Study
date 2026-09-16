@@ -201,16 +201,16 @@
       },
       "tutor": {
         "subject": "Subject",
-        "kind": "Grading kind",
-        "answer": "Paste your answer here",
-        "submit": "Submit for grading",
-        "submitting": "Grading…",
+        "kind_label": "Grading kind",
         "kind": {
           "essay_material": "Material analysis",
           "essay": "Essay",
           "short_answer": "Short answer",
           "translation": "Translation"
-        }
+        },
+        "answer": "Paste your answer here",
+        "submit": "Submit for grading",
+        "submitting": "Grading…"
       },
       "major_qa": {
         "title": "Major document Q&A",
