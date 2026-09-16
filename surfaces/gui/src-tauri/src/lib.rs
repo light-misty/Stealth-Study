@@ -180,25 +180,49 @@ fn server_bin() -> PathBuf {
     if let Ok(p) = std::env::var("COWORKER_SERVER_BIN") {
         return PathBuf::from(p);
     }
-    let exe_name = if cfg!(windows) {
-        "ss-server.exe"
+    // 服务器产物在仓库中以 `openworker-server` 为准（pyproject 入口、PyInstaller spec 与
+    // 打包脚本均如此）；仅极少数旧构建/旧 venv 残留 `ss-server`。同时接受两种名字，
+    // 才能保证 dev 环境与生产安装包都能命中 sidecar。
+    let exe_names: &[&str] = if cfg!(windows) {
+        &["ss-server.exe", "openworker-server.exe"]
     } else {
-        "ss-server"
+        &["ss-server", "openworker-server"]
     };
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
+            let mut candidates = Vec::<PathBuf>::new();
             // macOS: Contents/MacOS/<app> → Contents/Resources/sidecar/; Windows: resources
             // unpack next to the exe, so <install>/sidecar/.
-            let mut candidates = vec![dir.join("sidecar").join(exe_name)];
             if let Some(contents) = dir.parent() {
-                candidates.push(contents.join("Resources").join("sidecar").join(exe_name));
+                for n in exe_names {
+                    candidates.push(contents.join("Resources").join("sidecar").join(n));
+                }
             }
-            candidates.push(dir.join(exe_name)); // legacy onefile externalBin slot
+            for n in exe_names {
+                candidates.push(dir.join("sidecar").join(n));
+            }
+            for n in exe_names {
+                candidates.push(dir.join(n)); // legacy onefile externalBin slot
+            }
             for c in candidates {
                 if c.exists() {
                     return c;
                 }
             }
+        }
+    }
+    // Dev fallback: the repo venv, relative to this crate (`src-tauri` → repo-root `.venv`;
+    // `bin/` on POSIX, `Scripts\` on Windows).
+    for n in exe_names {
+        let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        if cfg!(windows) {
+            p.push("../../../.venv/Scripts");
+        } else {
+            p.push("../../../.venv/bin");
+        }
+        p.push(n);
+        if p.exists() {
+            return p;
         }
     }
     let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -812,7 +836,7 @@ pub fn run() {
 
             // 2. Build the window, injecting the sidecar endpoints before the SPA loads.
             //    Overlay title bar (macOS): traffic lights float over the edge-to-edge UI.
-            let mut builder =
+            let builder =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                     .title("Stealth Study")
                     .inner_size(1360.0, 900.0)
@@ -826,15 +850,15 @@ pub fn run() {
                     .disable_drag_drop_handler()
                     .initialization_script(&inject);
             #[cfg(target_os = "macos")]
-            {
-                builder = builder
+            let builder = builder
                     .title_bar_style(tauri::TitleBarStyle::Overlay)
                     .hidden_title(true)
                     // Nudge the traffic lights down + in so they sit vertically centered in a
                     // roomier top strip, aligned with the sidebar toggle and title rather than
                     // jammed against the top edge.
                     .traffic_light_position(tauri::LogicalPosition::new(19.0, 24.0));
-            }
+            #[cfg(not(target_os = "macos"))]
+            let builder = builder;
             let win = builder.build()?;
 
             // Close-to-tray: hide instead of quitting so the sidecar keeps running.
