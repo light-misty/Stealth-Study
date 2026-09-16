@@ -28,6 +28,10 @@ vi.mock("../api", async (importOriginal) => {
     deleteLibraryDoc: vi.fn(),
     askLibrary: vi.fn(),
     getReminders: vi.fn(),
+    listTasks: vi.fn(),
+    getProgress: vi.fn(),
+    listWeeklyReports: vi.fn(),
+    generateWeeklyReport: vi.fn(),
   };
 });
 
@@ -41,8 +45,12 @@ import {
   useLibraryDocs,
   useLibraryQA,
   useMistakes,
+  usePlanProgress,
+  usePlanTasks,
   useProfiles,
+  useWeeklyReports,
 } from "../hooks";
+import type { PlanTask, ProgressReport, WeeklyReport } from "../types";
 
 const apiMock = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
@@ -358,5 +366,152 @@ describe("useCapabilities", () => {
     const { result } = renderHook(() => useCapabilities());
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.capabilities?.current_model).toBe("gpt-4o-mini");
+  });
+});
+
+const planTask = (
+  id: string,
+  overrides: Partial<PlanTask> = {},
+): PlanTask => ({
+  id,
+  plan_id: "plan-1",
+  profile_id: "p1",
+  title: `task-${id}`,
+  detail: "",
+  subject: "politics",
+  scheduled_date: "2026-09-07",
+  est_minutes: 60,
+  priority: 2,
+  status: "todo",
+  board_card_id: null,
+  completed_at: null,
+  created_at: "2026-09-01T00:00:00Z",
+  updated_at: "2026-09-01T00:00:00Z",
+  ...overrides,
+});
+
+const weeklyReport = (id: string, overrides: Partial<WeeklyReport> = {}): WeeklyReport => ({
+  id,
+  profile_id: "p1",
+  week_start: "2026-09-07",
+  week_end: "2026-09-13",
+  completion_rate: { overall: 0.5, politics: 0.4, english: 0.6 },
+  top_mistake_points: [{ point_id: "kp1", title: "马原", count: 3 }],
+  suggestion: "下周优先补政治",
+  content_md: "# 一、总览\n…",
+  created_at: "2026-09-13T00:00:00Z",
+  ...overrides,
+});
+
+const progressReport = (): ProgressReport => ({
+  by_track: {
+    overall: { done: 5, total: 20, rate: 0.25 },
+    politics: { done: 2, total: 10, rate: 0.2 },
+  },
+  streak_days: 3,
+  heatmap: [{ date: "2026-09-10", count: 2 }],
+});
+
+describe("usePlanTasks", () => {
+  it("loads the plan tasks for the profile", async () => {
+    apiMock.listTasks.mockResolvedValue({ items: [planTask("t1"), planTask("t2")] });
+    const { result } = renderHook(() => usePlanTasks("p1"));
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(apiMock.listTasks).toHaveBeenCalledWith("p1");
+    expect(result.current.items.map((task: PlanTask) => task.id)).toEqual(["t1", "t2"]);
+  });
+
+  it("skips the request without a profile", async () => {
+    const { result } = renderHook(() => usePlanTasks(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.items).toEqual([]);
+    expect(apiMock.listTasks).not.toHaveBeenCalled();
+  });
+
+  it("surfaces a structured error and reloads on demand", async () => {
+    apiMock.listTasks.mockRejectedValue(new CampusApiError("PROFILE_NOT_FOUND", "gone", false, 404));
+    const { result } = renderHook(() => usePlanTasks("p1"));
+    await waitFor(() => expect(result.current.error).toBeTruthy());
+    expect(result.current.retryable).toBe(false);
+
+    apiMock.listTasks.mockResolvedValue({ items: [planTask("t1")] });
+    await act(async () => {
+      result.current.reload();
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+    expect(result.current.error).toBeNull();
+  });
+});
+
+describe("usePlanProgress", () => {
+  it("loads the progress report", async () => {
+    apiMock.getProgress.mockResolvedValue(progressReport());
+    const { result } = renderHook(() => usePlanProgress("p1"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(apiMock.getProgress).toHaveBeenCalledWith("p1");
+    expect(result.current.progress?.streak_days).toBe(3);
+  });
+
+  it("skips the request without a profile", async () => {
+    const { result } = renderHook(() => usePlanProgress(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.progress).toBeNull();
+    expect(apiMock.getProgress).not.toHaveBeenCalled();
+  });
+});
+
+describe("useWeeklyReports", () => {
+  it("loads the report list and prepends a generated report", async () => {
+    apiMock.listWeeklyReports.mockResolvedValue({ items: [weeklyReport("w1")] });
+    apiMock.generateWeeklyReport.mockResolvedValue(weeklyReport("w2"));
+    const { result } = renderHook(() => useWeeklyReports("p1"));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.generate();
+    });
+    expect(apiMock.generateWeeklyReport).toHaveBeenCalledWith("p1");
+    expect(result.current.items.map((report: WeeklyReport) => report.id)).toEqual(["w2", "w1"]);
+    expect(result.current.generating).toBe(false);
+  });
+
+  it("replaces the same week entry on regenerate (UPSERT keeps the row id)", async () => {
+    apiMock.listWeeklyReports.mockResolvedValue({ items: [weeklyReport("w1")] });
+    apiMock.generateWeeklyReport.mockResolvedValue(weeklyReport("w1", { suggestion: "更新" }));
+    const { result } = renderHook(() => useWeeklyReports("p1"));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.generate();
+    });
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.items[0].suggestion).toBe("更新");
+  });
+
+  it("reports the generate error and keeps the list", async () => {
+    apiMock.listWeeklyReports.mockResolvedValue({ items: [weeklyReport("w1")] });
+    apiMock.generateWeeklyReport.mockRejectedValue(
+      new CampusApiError("NO_TASK_DATA", "empty", false, 409),
+    );
+    const { result } = renderHook(() => useWeeklyReports("p1"));
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    await act(async () => {
+      await result.current.generate();
+    });
+    expect(result.current.genError).toBeTruthy();
+    expect(result.current.items).toHaveLength(1);
+  });
+
+  it("does not fire a generate without a profile", async () => {
+    apiMock.listWeeklyReports.mockResolvedValue({ items: [] });
+    const { result } = renderHook(() => useWeeklyReports(null));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.generate();
+    });
+    expect(apiMock.generateWeeklyReport).not.toHaveBeenCalled();
   });
 });

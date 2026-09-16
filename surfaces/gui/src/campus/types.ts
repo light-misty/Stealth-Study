@@ -132,10 +132,19 @@ export const GRADING_KINDS = [
 ] as const;
 export type GradingKind = (typeof GRADING_KINDS)[number];
 
+export const SCORING_KINDS = ["short_answer", "essay_material", "lesson_plan", "practical"] as const;
+export type ScoringKind = (typeof SCORING_KINDS)[number];
+
 export const CAMPUS_TASKS = ["grading", "question", "explain"] as const;
 export type CampusTask = (typeof CAMPUS_TASKS)[number];
 
 export type DegradeLevel = 0 | 1 | 2 | 3;
+
+/** The D-30/D-7/D-1 bands of `deadline_snapshot` plus the due-today and overdue states. */
+export type DeadlineTier = "normal" | "d30" | "d7" | "d1" | "today" | "overdue";
+
+/** The three states of a CERT scoring point (06 §3.5 rubric contract). */
+export type ScoringState = "hit" | "partial" | "miss";
 
 export interface ExamProfile {
   id: string;
@@ -372,6 +381,17 @@ export interface MockExam {
   updated_at: string;
 }
 
+export interface MockExamView extends MockExam {
+  remaining_seconds: number;
+  stage_expired: boolean;
+  server_now: string;
+}
+
+export interface AttemptFeedback extends Attempt {
+  pending_grading: boolean;
+  standard_answer?: string | null;
+}
+
 export interface AssessmentScores {
   listening: number;
   reading: number;
@@ -388,6 +408,22 @@ export interface Assessment {
   answers: Record<string, string>;
   scores: AssessmentScores | null;
   finished_at: string | null;
+  questions?: AssessmentQuestion[];
+}
+
+export interface AssessmentQuestion {
+  id: string;
+  profile_id?: string;
+  subject?: string;
+  stem?: string;
+  qtype?: QuestionType;
+  point_id?: string | null;
+  options?: QuestionOption[] | null;
+  max_score?: number;
+  difficulty?: number | null;
+  source?: QuestionSource;
+  doc_id?: string | null;
+  created_at?: string;
 }
 
 export interface WeeklyReport {
@@ -420,6 +456,7 @@ export interface DeadlineView {
   date: string;
   days_left: number;
   is_reference: boolean;
+  tier?: DeadlineTier;
 }
 
 export interface Citation {
@@ -540,13 +577,19 @@ export interface VocabToday {
 
 export interface MockSubmitResult {
   estimate_score: number | null;
-  by_section: Record<string, number>;
+  by_section: Record<string, MockSectionScore>;
   attempt_ids: string[];
 }
 
+export interface MockSectionScore {
+  earned: number;
+  max: number;
+  ratio: number | null;
+}
+
 export interface AssessmentGapRow {
-  subject: string;
-  score: number;
+  section: string;
+  current: number;
   target: number;
   gap: number;
 }

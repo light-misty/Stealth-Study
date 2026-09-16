@@ -5,11 +5,13 @@ import {
   campusErrorKey,
   COUNTDOWN_HIGHLIGHT_DAYS,
   daysUntil,
+  deadlineTier,
   degradeNoticeKey,
   formatPercent,
   isCountdownHighlight,
   nextIntervalDays,
   REVIEW_LADDER,
+  scoringStateOf,
 } from "../utils";
 
 describe("nextIntervalDays (simplified SM-2 ladder, 01 §3)", () => {
@@ -102,6 +104,40 @@ describe("campusErrorInfo", () => {
   it("maps an error code onto its i18n key", () => {
     expect(campusErrorKey("MODEL_TIMEOUT")).toBe("campus.error.model_timeout");
     expect(campusErrorKey("unknown")).toBe("campus.error.unknown");
+  });
+});
+
+describe("deadlineTier (mirrors ss/campus/reminders.tier)", () => {
+  it("maps the documented D-30/D-7/D-1 bands plus due/overdue", () => {
+    expect(deadlineTier(1)).toBe("d1");
+    expect(deadlineTier(2)).toBe("d7");
+    expect(deadlineTier(7)).toBe("d7");
+    expect(deadlineTier(8)).toBe("d30");
+    expect(deadlineTier(30)).toBe("d30");
+    expect(deadlineTier(31)).toBe("normal");
+    expect(deadlineTier(0)).toBe("today");
+    expect(deadlineTier(-1)).toBe("overdue");
+  });
+
+  it("keeps junk input on the plain tier instead of throwing", () => {
+    expect(deadlineTier(Number.NaN)).toBe("normal");
+  });
+});
+
+describe("scoringStateOf (CERT scoring points, hit/partial/miss)", () => {
+  it("maps the backend 1 / 0.5 / 0 scores onto the three states", () => {
+    expect(scoringStateOf(1, 1)).toBe("hit");
+    expect(scoringStateOf(0.5, 1)).toBe("partial");
+    expect(scoringStateOf(0, 1)).toBe("miss");
+  });
+
+  it("stays robust against float jitter and junk input", () => {
+    expect(scoringStateOf(0.9999999, 1)).toBe("hit");
+    expect(scoringStateOf(2, 2)).toBe("hit");
+    expect(scoringStateOf(0.3, 1)).toBe("partial");
+    expect(scoringStateOf(Number.NaN, 1)).toBe("miss");
+    expect(scoringStateOf(1, 0)).toBe("miss");
+    expect(scoringStateOf(-1, 1)).toBe("miss");
   });
 });
 
