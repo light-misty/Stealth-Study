@@ -41,11 +41,15 @@ beforeEach(() => {
     return null;
   });
   (globalThis as any).__TAURI__ = { core: { invoke }, event: { listen: async () => () => {} } };
+  // These tests exercise the voice PATH, which the launch flag gates (04 §4.7): flip it on
+  // for the suite; the flag-off behavior has its own file (Composer.micFlag.test.tsx).
+  localStorage.setItem("ocw.flag.voice", "1");
 });
 
 afterEach(() => {
   cleanup();
   delete (globalThis as any).__TAURI__;
+  localStorage.removeItem("ocw.flag.voice");
 });
 
 describe("Composer voice input (§37)", () => {

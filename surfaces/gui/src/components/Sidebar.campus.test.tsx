@@ -92,20 +92,33 @@ describe("Sidebar campus nav rows (04 §4.3)", () => {
   it("keeps the stations out of the persona accordion fallback", () => {
     stubFetch(stubRoutes);
     render(<Sidebar {...baseProps} />);
-    const accordion = document.querySelector(".space-y-1\\.5");
-    expect(accordion).toBeTruthy();
+
+    // The three rows sit together in the fixed nav block, right after Automations —
+    // never inside the scroll area that hosts the persona accordions (04 §4.3's warning
+    // about the SURFACES fallback at the top of the file).
+    const wrap = (id: string) => screen.getByTestId(id).closest("div");
+    const campusWrap = wrap("nav-campus-cet");
+    expect(campusWrap).toBeTruthy();
     for (const track of TRACKS) {
-      expect(accordion!.contains(screen.getByTestId(`nav-campus-${track}`))).toBe(false);
+      expect(wrap(`nav-campus-${track}`)).toBe(campusWrap);
+    }
+    expect(wrap("nav-automations")!.nextElementSibling).toBe(campusWrap);
+
+    const scrollArea = document.querySelector("div.flex-1.overflow-y-auto");
+    expect(scrollArea).toBeTruthy();
+    for (const track of TRACKS) {
+      expect(scrollArea!.contains(screen.getByTestId(`nav-campus-${track}`))).toBe(false);
     }
   });
 
   it("highlights only the active track's row", () => {
     stubFetch(stubRoutes);
     render(<Sidebar {...baseProps} campusActive="kaoyan" />);
-    const active = screen.getByTestId("nav-campus-kaoyan");
-    expect(active.className).toContain("bg-chromeHover");
+    const activeRow = (id: string) =>
+      screen.getByTestId(id).className.match(/(?:^|\s)bg-chromeHover(?:\s|$)/) !== null;
+    expect(activeRow("nav-campus-kaoyan")).toBe(true);
     for (const track of TRACKS.filter((t) => t !== "kaoyan")) {
-      expect(screen.getByTestId(`nav-campus-${track}`).className).not.toContain("bg-chromeHover");
+      expect(activeRow(`nav-campus-${track}`)).toBe(false);
     }
   });
 

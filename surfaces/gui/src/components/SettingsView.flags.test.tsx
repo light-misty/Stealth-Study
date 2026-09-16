@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 vi.mock("../campus/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../campus/api")>();
@@ -22,12 +22,9 @@ import { SettingsView } from "./SettingsView";
 const apiMock = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
 function goOffline() {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => {
-      throw new Error("offline");
-    }),
-  );
+  // A fetch that never settles: sections keep their loading state, nothing throws, and
+  // the assertions below only depend on the nav and the flag — not on loaded data.
+  vi.stubGlobal("fetch", vi.fn(async () => new Promise<Response>(() => {})));
 }
 
 afterEach(() => {
@@ -67,11 +64,12 @@ describe("SettingsView flag double-state (INF-07)", () => {
   it("keeps every existing tab reachable with the flags off (F-4)", () => {
     goOffline();
     render(<SettingsView />);
+    const nav = within(screen.getByRole("navigation"));
 
     for (const label of ["General", "Models", "Context optimization", "Skills", "Memory", "Coworkers"]) {
-      fireEvent.click(screen.getByText(label));
-      expect(screen.queryByText("Voice input")).toBeNull();
+      fireEvent.click(nav.getByText(label));
+      expect(nav.queryByText("Voice input")).toBeNull();
     }
-    expect(screen.getByText("Exam prep")).toBeTruthy();
+    expect(nav.getByText("Exam prep")).toBeTruthy();
   });
 });
