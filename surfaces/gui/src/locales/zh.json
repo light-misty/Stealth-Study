@@ -167,7 +167,12 @@
     "kaoyan": {
       "plan": {
         "generate": "生成计划",
+        "generating": "生成中…",
         "reorder": "重排计划",
+        "rescheduling": "重排中…",
+        "new_exam_date": "新考试日期（可选）",
+        "generated": "已生成 {{total}} 项任务，始于 {{date}}",
+        "rescheduled": "已重排 {{moved}} 项任务，保留已完成 {{kept}} 项",
         "tracks": "四轨"
       },
       "progress": {

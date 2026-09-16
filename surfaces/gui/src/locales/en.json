@@ -170,7 +170,12 @@
     "kaoyan": {
       "plan": {
         "generate": "Generate plan",
+        "generating": "Generating…",
         "reorder": "Reorder plan",
+        "rescheduling": "Rescheduling…",
+        "new_exam_date": "New exam date (optional)",
+        "generated": "Generated {{total}} tasks, starting {{date}}",
+        "rescheduled": "Rescheduled {{moved}} tasks, {{kept}} done tasks kept",
         "tracks": "Tracks"
       },
       "progress": {
