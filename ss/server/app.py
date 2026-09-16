@@ -169,6 +169,11 @@ from ..teams.model import BoardNotFoundError as TeamsBoardNotFoundError
 from .manager import SessionManager, _approval_body
 
 
+def _request_user_id(request: Request) -> str:
+    """从请求中尽力推导当前用户身份供日志记录：优先 X-SS-Actor 头，其次 profile_id。"""
+    return request.headers.get("x-ss-actor") or request.query_params.get("profile_id") or ""
+
+
 def create_app(manager: SessionManager) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
@@ -250,11 +255,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         # 该中间件注册在最外层，保证 401 等早期响应也携带 X-Request-ID。
         request_id = secrets.token_hex(4)
         rid_token = request_id_var.set(request_id)
-        user_id = (
-            request.headers.get("x-ss-actor")
-            or request.query_params.get("profile_id")
-            or ""
-        )
+        user_id = _request_user_id(request)
         uid_token = user_id_var.set(user_id)
         response = None
         try:
