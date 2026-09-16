@@ -51,7 +51,7 @@ bedrock = ["boto3>=1.34"]
 
 [project.scripts]
 openworker = "ss.cli:main"
-openworker-server = "ss.server.run:main"
+ss-server = "ss.server.run:main"
 openworker-connectors = "ss.connectors.cli:main"
 # The board as an open surface (OPE-100): `ocw board …` / `ocw journal …`,
 # including `ocw board mcp` — the stdio MCP server external harnesses attach to.

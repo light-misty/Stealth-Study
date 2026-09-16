@@ -812,7 +812,7 @@ pub fn run() {
 
             // 2. Build the window, injecting the sidecar endpoints before the SPA loads.
             //    Overlay title bar (macOS): traffic lights float over the edge-to-edge UI.
-            let mut builder =
+            let builder =
                 WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
                     .title("Stealth Study")
                     .inner_size(1360.0, 900.0)
@@ -826,15 +826,15 @@ pub fn run() {
                     .disable_drag_drop_handler()
                     .initialization_script(&inject);
             #[cfg(target_os = "macos")]
-            {
-                builder = builder
+            let builder = builder
                     .title_bar_style(tauri::TitleBarStyle::Overlay)
                     .hidden_title(true)
                     // Nudge the traffic lights down + in so they sit vertically centered in a
                     // roomier top strip, aligned with the sidebar toggle and title rather than
                     // jammed against the top edge.
                     .traffic_light_position(tauri::LogicalPosition::new(19.0, 24.0));
-            }
+            #[cfg(not(target_os = "macos"))]
+            let builder = builder;
             let win = builder.build()?;
 
             // Close-to-tray: hide instead of quitting so the sidecar keeps running.
