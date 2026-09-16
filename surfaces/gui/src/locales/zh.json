@@ -150,6 +150,11 @@
         "resume": "继续定级",
         "finish": "完成定级"
       },
+      "errors": {
+        "title": "老毛病 TOP3",
+        "empty": "批改满 3 次后，这里会汇总你的高频错误",
+        "times_other": "出现 {{count}} 次"
+      },
       "vocab": {
         "today_new": "今日新词",
         "today_review": "今日复习",

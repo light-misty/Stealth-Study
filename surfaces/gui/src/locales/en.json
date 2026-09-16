@@ -153,6 +153,12 @@
         "resume": "Resume assessment",
         "finish": "Finish assessment"
       },
+      "errors": {
+        "title": "Common mistakes TOP3",
+        "empty": "Your most frequent mistakes show up here after 3 graded runs",
+        "times_one": "{{count}} time",
+        "times_other": "{{count}} times"
+      },
       "vocab": {
         "today_new": "New words today",
         "today_review": "Review today",
