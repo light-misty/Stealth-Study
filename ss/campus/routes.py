@@ -33,10 +33,12 @@ business failure travels out of `service.py` as a `CampusError` and comes back t
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any, Literal, Mapping, NoReturn, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import (
     BaseModel,
@@ -50,7 +52,10 @@ from pydantic import (
 from . import models, tracks
 from .config import MAX_DAILY_MINUTES, MIN_DAILY_MINUTES, load_campus_config
 from .service import (
+    DEFAULT_QUESTION_COUNT,
     MAX_DIFFICULTY,
+    MAX_LIBRARY_UPLOAD_BYTES,
+    MAX_QUESTION_COUNT,
     MIN_DIFFICULTY,
     MOCK_PAUSE_BUDGET_SECONDS,
     VOCAB_MASTERY_ALIASES,
@@ -384,6 +389,45 @@ class QuestionOption(BaseModel):
         if not cleaned:
             raise ValueError("option key and text must not be blank")
         return cleaned
+
+
+class LibraryAsk(BaseModel):
+    """B6 body (03 §4.2): the question, optionally narrowed to one document.
+
+    `doc_id` absent means the whole profile library is in scope (`CampusLibrary.retrieve`
+    decides between the doc-limited and the profile-wide scan), which is why the field is
+    optional rather than required.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    question: str = Field(min_length=1, max_length=4000)
+    doc_id: Optional[str] = None
+
+    @field_validator("question")
+    @classmethod
+    def _question_must_carry_content(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("question must not be blank")
+        return cleaned
+
+
+class LibraryQuestionGen(BaseModel):
+    """B7 body (03 §4.2): where the questions come from, and how many.
+
+    Both anchors are optional — a knowledge point names the topic, a document grounds it, and
+    with neither the profile's whole library (or just the profile title) is the source. `count`
+    is bounded by `MAX_QUESTION_COUNT` so one call cannot fill the bank with filler.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    profile_id: str
+    doc_id: Optional[str] = None
+    point_id: Optional[str] = None
+    count: int = Field(default=DEFAULT_QUESTION_COUNT, ge=1, le=MAX_QUESTION_COUNT)
 
 
 class QuestionImport(BaseModel):
@@ -921,6 +965,108 @@ def build_campus_router(manager: Any) -> APIRouter:
     def campus_wipe_data() -> dict[str, Any]:
         """A10 — clear local campus data: `campus.db` rebuilt empty plus the `campus/` tree."""
         return _call(campus_service.wipe_data)
+
+    # -- B 组：资料库与按页问答（03 §4.2 G-07/G-10/G-11、KY-09/KY-10）--------
+
+    def scoped_doc(
+        doc_id: str, profile: models.ExamProfile = Depends(guard.get_profile)
+    ) -> models.SourceDoc:
+        """Resolve a document of the request's profile (`FORBIDDEN_PROFILE` for anyone else's)."""
+        return guard.scoped_row("source_doc", doc_id, profile.id, missing_code="DOC_NOT_FOUND")
+
+    @router.post("/library/import")
+    def campus_import_library_doc(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        file: UploadFile = File(...),
+    ) -> dict[str, Any]:
+        """B1 — upload a PDF/MD/TXT into the profile's library and parse it (G-10).
+
+        The body is multipart, so `profile_id` rides the form and the guard reads it there. The
+        upload is staged in a temp file because the parse needs a real path (`pypdf` reads from
+        disk); the staging file is removed on every exit path, including a refused or failed
+        parse. The size cap is enforced while streaming so an oversized upload never lands on
+        disk at all — `MAX_LIBRARY_UPLOAD_BYTES` is the same number the service re-checks.
+        """
+        suffix = Path(file.filename or "").suffix
+        staged: Optional[Path] = None
+        try:
+            with NamedTemporaryFile(delete=False, suffix=suffix) as handle:
+                staged = Path(handle.name)
+                written = 0
+                while True:
+                    chunk = file.file.read(1 << 20)
+                    if not chunk:
+                        break
+                    written += len(chunk)
+                    if written > MAX_LIBRARY_UPLOAD_BYTES:
+                        raise_campus_error(
+                            "FILE_TOO_LARGE",
+                            f"文件超过 {MAX_LIBRARY_UPLOAD_BYTES // (1024 * 1024)}MB 上限",
+                        )
+                    handle.write(chunk)
+            return _call(
+                campus_service.import_library_doc, profile, str(staged), file.filename
+            )
+        finally:
+            if staged is not None:
+                staged.unlink(missing_ok=True)
+
+    @router.get("/library")
+    def campus_list_library_docs(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+        parse_status: Optional[models.ParseStatus] = Query(default=None),
+    ) -> dict[str, Any]:
+        """B2 — the profile's documents, newest first, optionally by parse status (G-07)."""
+        return _call(
+            campus_service.list_library_docs,
+            profile,
+            parse_status=parse_status.value if parse_status is not None else None,
+        )
+
+    @router.get("/library/{doc_id}")
+    def campus_get_library_doc(
+        doc: models.SourceDoc = Depends(scoped_doc),
+    ) -> dict[str, Any]:
+        """B3 — one document; the client polls this for `parse_status` (G-10)."""
+        return asdict(doc)
+
+    @router.delete("/library/{doc_id}")
+    def campus_delete_library_doc(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        doc: models.SourceDoc = Depends(scoped_doc),
+    ) -> dict[str, Any]:
+        """B4 — delete the row, its chunks and the stored file (G-11)."""
+        return _call(campus_service.delete_library_doc, profile, doc.id)
+
+    @router.post("/library/{doc_id}/retry")
+    def campus_retry_library_doc(
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        doc: models.SourceDoc = Depends(scoped_doc),
+    ) -> dict[str, Any]:
+        """B5 — re-parse a failed document; a scanned one is `DOC_SCAN_EMPTY` (G-10)."""
+        return _call(campus_service.retry_library_doc, profile, doc.id)
+
+    @router.post("/qa")
+    async def campus_library_qa(
+        body: LibraryAsk,
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """B6 — answer one question against the library, with page citations (KY-09)."""
+        return await _async_call(
+            campus_service.ask_library, profile, body.model_dump(mode="json", exclude_unset=True)
+        )
+
+    @router.post("/qa/generate-questions")
+    async def campus_generate_library_questions(
+        body: LibraryQuestionGen,
+        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+    ) -> dict[str, Any]:
+        """B7 — generate question-bank items from a document or knowledge point (KY-10/CERT-06)."""
+        return await _async_call(
+            campus_service.generate_library_questions,
+            profile,
+            body.model_dump(mode="json", exclude_unset=True),
+        )
 
     # -- E 组：题库与作答（03 §4.5）----------------------------------------
 

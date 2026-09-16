@@ -108,10 +108,21 @@ T14_NEW: tuple[tuple[str, str], ...] = (
     ("GET", "/exports/{filename}"),
     ("POST", "/exports/wipe"),
 )
+# B 组资料库与按页问答：03 §4.2 立项（T08 交付了 `library.py` 库层，但端点一直未挂载，
+# 联调阶段补齐）。清单与 `routes.py` 的 B 段逐条对应。
+B_GROUP: tuple[tuple[str, str], ...] = (
+    ("POST", "/library/import"),
+    ("GET", "/library"),
+    ("GET", "/library/{doc_id}"),
+    ("DELETE", "/library/{doc_id}"),
+    ("POST", "/library/{doc_id}/retry"),
+    ("POST", "/qa"),
+    ("POST", "/qa/generate-questions"),
+)
 T11_ENDPOINTS: tuple[tuple[str, str], ...] = T09_ENDPOINTS + T10_ENDPOINTS + T11_NEW
 T13_ENDPOINTS: tuple[tuple[str, str], ...] = T11_ENDPOINTS + T13_NEW
 T14_ENDPOINTS: tuple[tuple[str, str], ...] = T13_ENDPOINTS + T12_ENDPOINTS + T14_NEW
-DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T14_ENDPOINTS
+DELIVERED_ENDPOINTS: tuple[tuple[str, str], ...] = T14_ENDPOINTS + B_GROUP
 
 
 def essay_payload() -> str:

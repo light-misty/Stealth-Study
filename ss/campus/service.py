@@ -46,7 +46,7 @@ from .grading import (
     GradingEngine,
     extract_json,
 )
-from .library import FAIL_NO_TEXT_LAYER
+from .library import FAIL_NO_TEXT_LAYER, CampusLibrary, LibraryError
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -164,6 +164,13 @@ JSON_QUESTION_FIELDS: frozenset[str] = frozenset({"options", "answer_meta"})
 QUESTION_REQUIRED_FIELDS: tuple[str, ...] = ("stem", "subject")
 
 POINT_FIELDS: tuple[str, ...] = ("title", "desc", "order_index", "parent_id")
+
+
+# -- B 组资料库：导入校验（03 §4.2 B1 与 attachments 同 10MB 上限）--------
+LIBRARY_UPLOAD_SUFFIXES: frozenset[str] = frozenset({".pdf", ".md", ".txt"})
+MAX_LIBRARY_UPLOAD_BYTES = 10 * 1024 * 1024
+# 导入前必须留出的空闲余量：解析过程会再写一份切片与库文件，写满磁盘会让整台机器遭殃
+MIN_LIBRARY_FREE_BYTES = 16 * 1024 * 1024
 
 TREE_MAX_CHARS = 20000
 TREE_MAX_DEPTH = 3
@@ -1113,6 +1120,106 @@ def validate_assessment_items(text: Optional[str]) -> list[dict[str, Any]]:
     return normalized
 
 
+LIBRARY_QUESTION_SYSTEM_PROMPT = (
+    "你是备考教研员。根据用户给出的资料片段或主题出题，题目必须能由给定材料作答，"
+    "不要引入材料之外的事实；材料不足时降低题目难度而不是编造。"
+    "只输出一个 JSON 对象，不要任何其他文字，schema："
+    '{"items": [{"subject": "reading", "qtype": "single", "stem": "题干", '
+    '"options": [{"key": "A", "text": "选项"}, {"key": "B", "text": "选项"}], "answer": "A"}]}'
+)
+
+DEFAULT_QUESTION_COUNT = 5
+MAX_QUESTION_COUNT = 20
+QUESTION_GEN_TOP_K = 6
+QUESTION_GEN_CONTEXT_CHARS = 6000
+
+
+def build_library_question_messages(
+    topic: str, chunks: list[dict[str, Any]], count: int
+) -> list[dict[str, str]]:
+    """B7 出题 prompt（03 §4.2 / KY-10 / CERT-06）：资料片段是唯一事实来源。
+
+    片段可以为空——只有主题时仍让模型出一组通用题，而不是直接拒绝：`doc_id` 与
+    `point_id` 都是可选的，调用方可能只想按知识点名出一组自测题。
+    """
+    context = "\n\n".join(
+        f"[片段 {index + 1}｜p.{chunk.get('page_no')}]\n{chunk.get('content', '')}"
+        for index, chunk in enumerate(chunks)
+    )[:QUESTION_GEN_CONTEXT_CHARS]
+    user = (
+        f"主题：{topic}\n题量：{count} 道\n\n"
+        f"资料片段：\n{context or '（没有可用片段，请按主题出一组通用自测题）'}\n\n"
+        "字段约束：subject 只能取 listening / reading / writing / translation / vocab / "
+        "politics / english / math / major；qtype 只能取 single / multiple / judge / blank / "
+        "short_answer / essay / material / lesson_plan / practical；单选题与多选题必须给出"
+        "至少两个选项，answer 写正确选项的 key（多选题用逗号分隔），其余题型 answer 写参考答案。"
+    )
+    return [
+        {"role": "system", "content": LIBRARY_QUESTION_SYSTEM_PROMPT},
+        {"role": "user", "content": user},
+    ]
+
+
+def validate_generated_questions(text: Optional[str], count: int) -> list[dict[str, Any]]:
+    """Parse and validate B7's output, or `MODEL_OUTPUT_INVALID` (ADR-03 不静默)。
+
+    少于请求量是允许的（模型给出 3 道可用题仍值得入库），空结果与超量则拒绝：前者说明模型
+    没有按 schema 作答，后者说明它忽略了题量预算。落库字段与手动录入、导入两条路径完全一致，
+    题库的行形状不因来源而异。
+    """
+    payload, reason = extract_json(text)
+    items = payload.get("items") if isinstance(payload, Mapping) else None
+    if not isinstance(items, list) or not items:
+        raise CampusError("MODEL_OUTPUT_INVALID", f"出题输出无法解析（{reason or 'items 缺失'}）")
+    if len(items) > count:
+        raise CampusError("MODEL_OUTPUT_INVALID", f"出题数量超出请求：{len(items)} > {count}")
+    subjects = {subject.value for subject in models.Subject}
+    qtypes = {qtype.value for qtype in models.QuestionType}
+    choice_types = {models.QuestionType.SINGLE.value, models.QuestionType.MULTIPLE.value}
+    normalized: list[dict[str, Any]] = []
+    for index, item in enumerate(items):
+        if not isinstance(item, Mapping):
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题不是对象")
+        subject = str(item.get("subject") or "").strip()
+        stem = str(item.get("stem") or "").strip()
+        answer = str(item.get("answer") or "").strip()
+        qtype = str(item.get("qtype") or models.QuestionType.SINGLE.value).strip()
+        if subject not in subjects:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题 subject 非法：{subject}")
+        if qtype not in qtypes:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题题型非法：{qtype}")
+        if not stem or not answer:
+            raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题字段缺失")
+        options = item.get("options")
+        if qtype in choice_types:
+            if not isinstance(options, list):
+                raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题缺少选项")
+            options = [
+                {
+                    "key": str(option.get("key") or "").strip(),
+                    "text": str(option.get("text") or "").strip(),
+                }
+                for option in options
+                if isinstance(option, Mapping)
+            ]
+            if len(options) < 2 or any(not option["key"] or not option["text"] for option in options):
+                raise CampusError("MODEL_OUTPUT_INVALID", f"第 {index + 1} 题选项不完整")
+        else:
+            options = None
+        normalized.append(
+            {
+                "subject": subject,
+                "qtype": qtype,
+                "stem": stem,
+                "options": options,
+                "answer": answer,
+                "max_score": 1,
+                "source": models.QuestionSource.AI.value,
+            }
+        )
+    return normalized
+
+
 class ManagerCaller:
     """One plain provider call through the sidecar's client — the non-grading AI path.
 
@@ -2032,6 +2139,166 @@ class CampusService:
                 for type_name, count in ranked
             ]
         }
+
+    # -- B 组：资料库与按页问答（03 §4.2 G-07/G-10/G-11、KY-09/KY-10）----------
+
+    @property
+    def library(self) -> CampusLibrary:
+        """A `CampusLibrary` handle bound to this service's store.
+
+        Built per call instead of cached in `__init__`: the sidecar installs its
+        `ProviderClient` lazily, and `CampusLibrary` decides between the L1 目录路由 and the
+        L2 keyword path from `provider is None` — a key added in Settings must change that
+        decision on the next request rather than after a restart. Construction is cheap
+        (`enable_fts` stays off, so nothing touches the database).
+        """
+        provider = (
+            getattr(self._provider_host, "provider", None)
+            if self._provider_host is not None
+            else None
+        )
+        return CampusLibrary(self._store, provider=provider, model_picker=self._library_picker)
+
+    def _library_picker(self, kind: str, track_type: str = "") -> tuple[str, str]:
+        """The model the library would run a task on, plus the static list's floor (06 §2.2)."""
+        del track_type
+        task = models.task_for_kind(kind)
+        model = self.model_for_task(task)
+        if model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return model, models.pick_for_task(task)[1]
+
+    def _library_call(self, fn: Any, *args: Any, **kwargs: Any) -> Any:
+        """Run one library-layer call, translating `LibraryError` into the documented code."""
+        try:
+            return fn(*args, **kwargs)
+        except LibraryError as exc:
+            raise CampusError(exc.code, exc.message, **exc.extra) from exc
+
+    def list_library_docs(
+        self, profile: models.ExamProfile, *, parse_status: Optional[str] = None
+    ) -> dict[str, Any]:
+        """B2 — the profile's imported documents, newest first (03 §4.2)."""
+        rows = self._store.list_rows(
+            "source_doc",
+            profile_id=profile.id,
+            where='"parse_status" = ?' if parse_status else None,
+            params=[parse_status] if parse_status else None,
+            order_by="imported_at DESC, rowid DESC",
+        )
+        return {"items": [asdict(models.SourceDoc.from_row(row)) for row in rows]}
+
+    def import_library_doc(
+        self, profile: models.ExamProfile, file_path: str, filename: Optional[str] = None
+    ) -> dict[str, Any]:
+        """B1 — validate the upload, then copy + parse it into the library (G-10).
+
+        The refusals the endpoint owes the caller (015/413/507) are decided here so they travel
+        out as one documented error family; the copy and the parse belong to `CampusLibrary`.
+        `filename` is the client's own name for the upload — the route stages the body in a temp
+        file, so without it every imported document would be titled `tmpab12cd`.
+        """
+        path = Path(file_path)
+        suffix = path.suffix.lower()
+        if suffix not in LIBRARY_UPLOAD_SUFFIXES:
+            raise CampusError("UNSUPPORTED_TYPE", f"不支持的文件类型：{suffix or '（无扩展名）'}")
+        try:
+            size = path.stat().st_size
+        except OSError as exc:
+            raise CampusError("PARSE_ERROR", f"上传文件不可读：{exc}") from exc
+        if size > MAX_LIBRARY_UPLOAD_BYTES:
+            limit = MAX_LIBRARY_UPLOAD_BYTES // (1024 * 1024)
+            raise CampusError("FILE_TOO_LARGE", f"文件超过 {limit}MB 上限")
+        free = shutil.disk_usage(state_dir()).free
+        if free < size + MIN_LIBRARY_FREE_BYTES:
+            raise CampusError("DISK_FULL", "磁盘剩余空间不足，已拒绝导入")
+        return self._library_call(self.library.import_pdf, profile.id, str(path), filename)
+
+    def retry_library_doc(self, profile: models.ExamProfile, doc_id: str) -> dict[str, Any]:
+        """B5 — re-run the parse; a scanned document is refused instead of burning another pass."""
+        return self._library_call(self.library.retry_parse, profile.id, doc_id)
+
+    def delete_library_doc(self, profile: models.ExamProfile, doc_id: str) -> dict[str, Any]:
+        """B4 — drop the row, its chunks and the stored file (02 §5.3 order)."""
+        self._library_call(self.library.delete_doc, profile.id, doc_id)
+        return {"deleted": True}
+
+    async def ask_library(self, profile: models.ExamProfile, payload: Mapping[str, Any]) -> dict:
+        """B6 — answer one question against the library, citations included (KY-09).
+
+        `doc_id` is optional: absent means the whole profile library is in scope. The
+        readiness gate (missing / unpacked / scanned) lives in the library layer so B6 and B7
+        refuse the same documents for the same reasons.
+        """
+        doc_id = str(payload.get("doc_id") or "").strip() or None
+        question = str(payload.get("question") or "").strip()
+        try:
+            return await self.library.answer_qa(profile.id, question, doc_id)
+        except LibraryError as exc:
+            raise CampusError(exc.code, exc.message, **exc.extra) from exc
+
+    async def generate_library_questions(
+        self, profile: models.ExamProfile, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """B7 — generate question-bank items from a document (or a knowledge point).
+
+        Retrieval picks the grounding <em>context</em> from the profile's library, so the
+        generated questions stay inside material the student actually owns; `point_id` and
+        `doc_id` are both optional, and with neither the whole library (or, failing that, just
+        the topic string) is the source. Every accepted item is inserted through the same
+        `_insert_question` path as manual entry, inside one transaction, so a rejected batch
+        leaves the bank untouched.
+        """
+        doc_id = str(payload.get("doc_id") or "").strip() or None
+        point_id = self._require_point(profile.id, payload.get("point_id"))
+        count = int(payload.get("count") or DEFAULT_QUESTION_COUNT)
+        library = self.library
+        if doc_id is not None:
+            self._library_call(library.require_ready_doc, profile.id, doc_id)
+        topic = self._question_topic(profile, doc_id, point_id)
+        chunks = library.retrieve(profile.id, topic, top_k=QUESTION_GEN_TOP_K, doc_id=doc_id)
+        model = self.model_for_task(models.CampusTask.QUESTION.value)
+        if model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        messages = build_library_question_messages(topic, chunks, count)
+        try:
+            turn = await asyncio.to_thread(
+                self._require_provider().complete,
+                model=model,
+                messages=messages,
+                temperature=0,
+                timeout=PROVIDER_TIMEOUT_S,
+            )
+        except CampusError:
+            raise
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower() or "timeout" in str(exc).lower():
+                raise CampusError("MODEL_TIMEOUT", "模型调用超时") from exc
+            raise CampusError("MODEL_OUTPUT_INVALID", "模型调用失败") from exc
+        items = validate_generated_questions(getattr(turn, "text", None), count)
+        created: list[dict[str, Any]] = []
+        with self._store.transaction():
+            for item in items:
+                created.append(
+                    self._insert_question(
+                        profile.id, {**item, "point_id": point_id, "doc_id": doc_id}
+                    )
+                )
+        return {"items": created}
+
+    def _question_topic(
+        self, profile: models.ExamProfile, doc_id: Optional[str], point_id: Optional[str]
+    ) -> str:
+        """The retrieval query / prompt topic: the point, else the document, else the profile."""
+        if point_id:
+            row = self._store.get_scoped("knowledge_point", point_id, profile.id)
+            if row is not None:
+                return str(row["title"])
+        if doc_id:
+            row = self._store.get_scoped("source_doc", doc_id, profile.id)
+            if row is not None:
+                return str(row["title"])
+        return profile.title
 
     # -- G1: today's suggestion and the self-built board -------------------
 

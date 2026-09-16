@@ -3,9 +3,11 @@
 01 §6 registers exactly nine campus intrusion points in existing files; the frontend ones
 touch App.tsx / Sidebar.tsx / SettingsView.tsx / Composer.tsx / Onboarding.tsx / flags.ts
 (plus the locales and the backend mount in app.py). Anything else modified in the
-production tree — outside the campus-owned `surfaces/gui/src/campus/**` additions, the
-locales and the tests — means the "addition only" rule (PRD v1.1 B⑤: no spreading into
-the 24 voice-adjacent files) has been violated and the diff must go back through review.
+production tree — outside the campus-owned trees (`ss/campus/**`,
+`surfaces/gui/src/campus/**`, `surfaces/gui/src/components/campus/**`) plus the registered
+e2e harness files, the locales and the tests — means the "addition only" rule (PRD v1.1 B⑤:
+no spreading into the 24 voice-adjacent files) has been violated and the diff must go back
+through review.
 
 Pure `git diff --name-status` assertion, no GUI needed; skipped when there is no base
 revision to compare against (a checkout already on the base, a shallow clone without the
@@ -38,9 +40,15 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/locales/zh.json",
     "surfaces/gui/src/locales/en.json",
     "ss/server/app.py",
+    # The campus e2e harness: `fixtures.ts` is shared test infrastructure every spec routes
+    # through (the same category as `app.py`), and `campus.spec.ts` is the campus smoke itself.
+    # Listed by file — not by directory — so the other 60 specs stay outside the budget.
+    "surfaces/gui/e2e/fixtures.ts",
+    "surfaces/gui/e2e/campus.spec.ts",
 }
 
 CAMPUS_OWNED_PREFIXES = (
+    "ss/campus/",
     "surfaces/gui/src/campus/",
     "surfaces/gui/src/components/campus/",
     "tests/",

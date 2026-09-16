@@ -599,25 +599,36 @@ class CampusLibrary:
 
     # ---- 导入（B1 库层：落盘 + 建行 + 同步解析，06 §6.1 判定时机） ----
 
-    def import_pdf(self, profile_id: str, file_path: str) -> dict:
+    def import_pdf(
+        self, profile_id: str, file_path: str, filename: Optional[str] = None
+    ) -> dict:
+        """Import one file; `filename` is what the document is called afterwards.
+
+        The endpoint stages the upload in a temp file (the parse needs a real path), so this
+        layer would otherwise name every document after the stage (`tmpab12cd.md`) and the UI
+        would show that instead of 考研英语真题.pdf. `Path(...).name` keeps a crafted name from
+        escaping the per-document directory; without `filename` the staged name is used, which
+        is what the direct library tests want.
+        """
         src = Path(file_path)
         if not src.is_file():
             raise LibraryError("PARSE_ERROR", f"文件不存在：{src}")
         file_type = _FILE_TYPES.get(src.suffix.lower())
         if file_type is None:
             raise LibraryError("UNSUPPORTED_TYPE", f"不支持的文件类型：{src.suffix}")
+        stored = Path(filename).name if filename else src.name
         doc_id = self.store.new_id()
         dest_dir = self._lib_dir / profile_id / doc_id
         dest_dir.mkdir(parents=True, exist_ok=True)
-        dest = dest_dir / src.name
+        dest = dest_dir / stored
         shutil.copy2(src, dest)
         self.store.insert(
             "source_doc",
             {
                 "id": doc_id,
                 "profile_id": profile_id,
-                "title": src.stem,
-                "file_path": f"{doc_id}/{src.name}",
+                "title": Path(stored).stem,
+                "file_path": f"{doc_id}/{stored}",
                 "file_type": file_type,
                 "parse_status": models.ParseStatus.PENDING.value,
                 "imported_at": _utcnow(),
@@ -923,11 +934,25 @@ class CampusLibrary:
             "chunks_used": len(chunks),
         }
 
+    def require_ready_doc(self, profile_id: str, doc_id: str) -> None:
+        """Public entry to the readiness gate, for callers outside this module (B7).
+
+        Same three refusals as B6 — cross-profile `DOC_NOT_FOUND`, unparsed `DOC_NOT_READY`,
+        scanned `DOC_SCAN_EMPTY` — so a question-generation request against a scanned or
+        still-parsing document is refused in exactly the words an ask would use.
+        """
+        self._require_ready_doc(profile_id, doc_id)
+
     def _require_ready_doc(self, profile_id: str, doc_id: str) -> None:
-        """QA 前置检查：跨档案 `DOC_NOT_FOUND`、未解析 `DOC_NOT_READY`、扫描件
+        """QA 前置检查：跨档案 `FORBIDDEN_PROFILE`、未解析 `DOC_NOT_READY`、扫描件
         `DOC_SCAN_EMPTY`（03 §4.2 B6 错误码）。"""
         row = self.store.get_scoped("source_doc", doc_id, profile_id)
         if row is None:
+            # Another profile's document is refused as FORBIDDEN_PROFILE — the same answer the
+            # router's `scoped_row` gives 08 §4 P-3's B-group probe. Collapsing the two cases
+            # into DOC_NOT_FOUND would make "gone" and "not yours" indistinguishable.
+            if self.store.get("source_doc", doc_id) is not None:
+                raise LibraryError("FORBIDDEN_PROFILE", f"资料不属于当前档案：{doc_id}")
             raise LibraryError("DOC_NOT_FOUND", f"资料不存在：{doc_id}")
         doc = models.SourceDoc.from_row(row)
         if doc.parse_status == models.ParseStatus.READY.value:
