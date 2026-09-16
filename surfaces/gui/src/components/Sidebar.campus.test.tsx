@@ -3,8 +3,11 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Sidebar } from "./Sidebar";
 import type { SessionInfo } from "../types";
 
-// The bottom-left anchor (§26). With cloud sign-in off (G-06) it is a plain "More"
-// button: no "Not signed in" label, no sign-in item inside the menu it opens.
+// 04 §4.3 (intrusion point #3): the three campus stations are first-class nav rows after
+// Automations — never entries in the SURFACES persona fallback. Labels go through
+// campus.nav.* (04 §7.2 folded the sidebar.campus_* sketch into that namespace), the
+// active track carries the same row highlight as nav-automations, and a click hands the
+// track back to the app via onOpenCampus.
 
 function stubFetch(routes: { match: string; method?: string; json: unknown }[]) {
   vi.stubGlobal(
@@ -64,6 +67,8 @@ const baseProps = {
   inboxActive: false,
 };
 
+const TRACKS = ["cet", "kaoyan", "cert"] as const;
+
 const stubRoutes = [
   { match: "/v1/personas", method: "GET", json: { personas: [] } },
   { match: "/v1/settings", method: "GET", json: { nav_layout: "flat" } },
@@ -73,44 +78,44 @@ const stubRoutes = [
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  localStorage.removeItem("ocw.flag.login");
 });
 
-const openMenu = () => fireEvent.click(screen.getByTestId("account-row"));
-
-describe("Sidebar bottom-left anchor (G-06)", () => {
-  it("is a plain More button with no sign-in affordance when the flag is off", async () => {
+describe("Sidebar campus nav rows (04 §4.3)", () => {
+  it("renders one nav row per station with stable test ids", () => {
     stubFetch(stubRoutes);
     render(<Sidebar {...baseProps} />);
-    await screen.findByText("hi there");
-
-    const row = screen.getByTestId("account-row");
-    expect(row.textContent).toContain("More");
-    expect(row.textContent).not.toContain("Not signed in");
-    expect(row.getAttribute("aria-label")).toBe("More");
-
-    openMenu();
-    expect(screen.getByTestId("account-menu")).toBeTruthy();
-    expect(screen.queryByTestId("account-sign-in")).toBeNull();
-    expect(screen.queryByText(/one-click connections need/)).toBeNull();
-    expect(screen.queryByText("Sign in to OpenWorker")).toBeNull();
-    // The menu is still the way to Inbox / Connectors / Settings / Activity.
-    expect(screen.getByText("Inbox")).toBeTruthy();
-    expect(screen.getByText("Settings")).toBeTruthy();
+    for (const track of TRACKS) {
+      expect(screen.getByTestId(`nav-campus-${track}`)).toBeTruthy();
+    }
   });
 
-  it("falls back to the signed-out account row and sign-in item when the flag is on", async () => {
-    localStorage.setItem("ocw.flag.login", "1");
+  it("keeps the stations out of the persona accordion fallback", () => {
     stubFetch(stubRoutes);
     render(<Sidebar {...baseProps} />);
-    await screen.findByText("hi there");
+    const accordion = document.querySelector(".space-y-1\\.5");
+    expect(accordion).toBeTruthy();
+    for (const track of TRACKS) {
+      expect(accordion!.contains(screen.getByTestId(`nav-campus-${track}`))).toBe(false);
+    }
+  });
 
-    const row = screen.getByTestId("account-row");
-    expect(row.textContent).toContain("Not signed in");
-    expect(row.textContent).not.toContain("More");
+  it("highlights only the active track's row", () => {
+    stubFetch(stubRoutes);
+    render(<Sidebar {...baseProps} campusActive="kaoyan" />);
+    const active = screen.getByTestId("nav-campus-kaoyan");
+    expect(active.className).toContain("bg-chromeHover");
+    for (const track of TRACKS.filter((t) => t !== "kaoyan")) {
+      expect(screen.getByTestId(`nav-campus-${track}`).className).not.toContain("bg-chromeHover");
+    }
+  });
 
-    openMenu();
-    expect(screen.getByTestId("account-sign-in")).toBeTruthy();
-    expect(screen.getByText(/one-click connections need/)).toBeTruthy();
+  it("hands the clicked track back through onOpenCampus", () => {
+    stubFetch(stubRoutes);
+    const onOpenCampus = vi.fn();
+    render(<Sidebar {...baseProps} onOpenCampus={onOpenCampus} />);
+    fireEvent.click(screen.getByTestId("nav-campus-cet"));
+    fireEvent.click(screen.getByTestId("nav-campus-kaoyan"));
+    fireEvent.click(screen.getByTestId("nav-campus-cert"));
+    expect(onOpenCampus.mock.calls).toEqual([["cet"], ["kaoyan"], ["cert"]]);
   });
 });

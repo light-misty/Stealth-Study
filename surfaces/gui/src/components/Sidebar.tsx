@@ -137,12 +137,17 @@ interface Props {
   // setup-row picker (UX-029).
   onOpenPersona: (id: string) => void;
   onOpenScheduled: () => void;
+  // Campus stations (04 §4.3): one nav row per exam-prep track, App maps it to the
+  // surface of the same name.
+  onOpenCampus: (track: "cet" | "kaoyan" | "cert") => void;
   // Scheduled-band row click: open the Automations surface ON that automation (UX-023).
   onOpenAutomation: (id: string) => void;
   onOpenIntegrations: () => void;
   onOpenAudit: () => void;
   onOpenInbox: () => void;
   scheduledActive: boolean;
+  // Which campus track's nav row is highlighted, or null outside the campus surfaces.
+  campusActive: string | null;
   integrationsActive: boolean;
   auditActive: boolean;
   inboxActive: boolean;
@@ -1065,6 +1070,29 @@ export function Sidebar(props: Props) {
           <Icon name="clock" size={15} className="shrink-0" />
           <span className="flex-1">{t("sidebar.automations")}</span>
         </button>
+      </div>
+
+      {/* Campus stations (04 §4.3): one row per exam-prep track, same quiet nav-row idiom
+          as the rows above. Labels ride the campus.nav.* keys (04 §7.2 folded the
+          sidebar.campus_* sketch into that namespace); book/clock/shield are existing
+          IconName members, so no new icon types. */}
+      <div className="px-2.5 mt-1">
+        {([["cet", "book"], ["kaoyan", "clock"], ["cert", "shield"]] as const).map(
+          ([track, icon]) => (
+            <button
+              key={track}
+              className={
+                "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-left hover:bg-chromeHover hover:text-ink " +
+                (props.campusActive === track ? "text-ink bg-chromeHover" : "text-muted")
+              }
+              data-testid={"nav-campus-" + track}
+              onClick={() => props.onOpenCampus(track)}
+            >
+              <Icon name={icon} size={15} className="shrink-0" />
+              <span className="flex-1">{t(`campus.nav.${track}`)}</span>
+            </button>
+          ),
+        )}
       </div>
 
       {/* Scroll area: Pinned band + the RECENT header (with group/filter control), then the body —

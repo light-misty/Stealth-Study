@@ -73,6 +73,7 @@ import { RightRail } from "./components/RightRail";
 import { IntegrationsView } from "./components/IntegrationsView";
 import { SettingsView } from "./components/SettingsView";
 import { PersonaView } from "./components/PersonaView";
+import { CampusStationView } from "./components/campus/CampusStationView";
 import { AuditView } from "./components/AuditView";
 import { InboxView } from "./components/InboxView";
 import { ApprovalCard } from "./components/ApprovalCard";
@@ -261,10 +262,10 @@ export function App() {
   const [gateCreate, setGateCreate] = useState(false);
   // Which Settings section the full-page Settings surface opens on (§ Settings-as-page).
   const [settingsTab, setSettingsTab] = useState<
-    "appearance" | "models" | "skills" | "voice" | "memory" | "personas"
+    "appearance" | "models" | "skills" | "voice" | "memory" | "personas" | "campus"
   >("appearance");
   const openSettings = (
-    tab: "appearance" | "models" | "skills" | "voice" | "memory" | "personas" = "appearance",
+    tab: "appearance" | "models" | "skills" | "voice" | "memory" | "personas" | "campus" = "appearance",
   ) => {
     setSettingsTab(tab);
     setSurface("settings");
@@ -275,6 +276,7 @@ export function App() {
   const [modelReady, setModelReady] = useState(true);
   const [surface, setSurface] = useState<
     "session" | "scheduled" | "integrations" | "audit" | "inbox" | "persona" | "settings"
+    | "cet" | "kaoyan" | "cert"
   >("session");
   // A remembered Scheduled-detail target must not outlive the surface (see the
   // scheduledOpenId comment above): nav re-entry lands on the list, never a
@@ -1738,6 +1740,7 @@ export function App() {
           openPersona(id, "session");
         }}
         onOpenScheduled={() => setSurface("scheduled")}
+        onOpenCampus={(track) => setSurface(track)}
         onOpenAutomation={(id) => {
           setScheduledOpenId(id);
           setSurface("scheduled");
@@ -1746,6 +1749,9 @@ export function App() {
         onOpenAudit={() => setSurface("audit")}
         onOpenInbox={() => setSurface("inbox")}
         scheduledActive={surface === "scheduled"}
+        campusActive={
+          surface === "cet" || surface === "kaoyan" || surface === "cert" ? surface : null
+        }
         integrationsActive={surface === "integrations"}
         auditActive={surface === "audit"}
         inboxActive={surface === "inbox"}
@@ -1790,6 +1796,12 @@ export function App() {
           }
           onOpenIntegrations={() => setSurface("integrations")}
         />
+      ) : surface === "cet" ? (
+        <CampusStationView track="cet" />
+      ) : surface === "kaoyan" ? (
+        <CampusStationView track="kaoyan" />
+      ) : surface === "cert" ? (
+        <CampusStationView track="cert" />
       ) : (
       <div className={"main" + (surface === "session" && agent !== "chat" && !railHidden ? " rail-open" : "")}>
         <div className="main-topbar">
