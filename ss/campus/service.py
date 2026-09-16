@@ -23,6 +23,7 @@ import asyncio
 import csv
 import io
 import json
+import os
 import re
 import shutil
 from dataclasses import asdict, dataclass
@@ -30,9 +31,10 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
+from ..automation.models import Schedule, ScheduledTask
 from ..memory import Scope
 from ..secrets import state_dir
-from . import models, rubrics, tracks
+from . import automation_templates, models, reminders, review_scheduler, rubrics, tracks
 from .config import DEFAULT_DAILY_MINUTES
 from .grading import (
     PROVIDER_TIMEOUT_S,
@@ -44,6 +46,7 @@ from .grading import (
     GradingEngine,
     extract_json,
 )
+from .library import FAIL_NO_TEXT_LAYER
 from .store import CampusStore
 
 ACTIVE_PROFILE_KEY = "active_profile_id"
@@ -67,6 +70,12 @@ CASCADE_TABLES: tuple[str, ...] = (
     "school_profile",
     "knowledge_point",
 )
+
+REVIEW_SOURCE_TABLES: Mapping[str, str] = {
+    models.ReviewItemType.MISTAKE.value: "mistake_book",
+    models.ReviewItemType.VOCAB.value: "vocab_item",
+    models.ReviewItemType.KNOWLEDGE_POINT.value: "knowledge_point",
+}
 
 PROFILE_MUTABLE_FIELDS: tuple[str, ...] = (
     "title",
@@ -99,6 +108,33 @@ QUESTION_FIELDS: tuple[str, ...] = (
 JSON_QUESTION_FIELDS: frozenset[str] = frozenset({"options", "answer_meta"})
 
 QUESTION_REQUIRED_FIELDS: tuple[str, ...] = ("stem", "subject")
+
+POINT_FIELDS: tuple[str, ...] = ("title", "desc", "order_index", "parent_id")
+
+TREE_MAX_CHARS = 20000
+TREE_MAX_DEPTH = 3
+
+TREE_SYSTEM_PROMPT = (
+    "你是证书教研员。把用户给出的考纲文本抽成「章-节-点」三层知识点树。"
+    "节点名使用考纲原文措辞，不改写、不缩写；层级以考纲编号体系（一/（一）/1.）为准；"
+    "拿不准归属的点挂到最近的章节并标记 ambiguous 为 true，宁缺毋滥。"
+    "只输出一个 JSON 对象，不要任何其他文字，schema："
+    '{"sections": [{"title": "章", "children": [{"title": "节", "children": [{"title": "点"}]}]}]}'
+)
+
+_MASTERY_LEVELS: frozenset[str] = frozenset(item.value for item in models.MasteryLevel)
+_MASTERY_WEAK_ORDER: Mapping[str, int] = {
+    models.MasteryLevel.UNKNOWN.value: 0,
+    models.MasteryLevel.FUZZY.value: 1,
+}
+
+MASTERY_DOWNGRADE: Mapping[str, str] = {
+    models.MasteryLevel.MASTERED.value: models.MasteryLevel.FUZZY.value,
+    models.MasteryLevel.FUZZY.value: models.MasteryLevel.UNKNOWN.value,
+    models.MasteryLevel.UNKNOWN.value: models.MasteryLevel.UNKNOWN.value,
+}
+
+GENERAL_SUBJECT = "general"
 
 MIN_DIFFICULTY = 1
 MAX_DIFFICULTY = 5
@@ -427,6 +463,11 @@ def attempt_payload(attempt: models.Attempt) -> dict[str, Any]:
 def vocab_payload(vocab: models.VocabItem) -> dict[str, Any]:
     """One word card; every column is scalar, so the body is the row itself (02 §4.11)."""
     return asdict(vocab)
+
+
+def review_payload(item: models.ReviewItem) -> dict[str, Any]:
+    """One queue row; every column is scalar, so the body is the row itself (02 §4.15)."""
+    return asdict(item)
 
 
 def mock_payload(mock: models.MockExam) -> dict[str, Any]:
@@ -1104,11 +1145,13 @@ class CampusService:
         *,
         inventory: Optional[ModelInventory] = None,
         provider_host: Any = None,
+        automation_store: Any = None,
     ) -> None:
         self._store = campus_store
         self._config = config
         self._inventory = inventory if inventory is not None else ModelInventory()
         self._provider_host = provider_host
+        self._automation_store = automation_store
         self._grader = (
             ManagerGrader(provider_host, self.model_for_task, config.grading_start_level)
             if provider_host is not None
@@ -1462,7 +1505,9 @@ class CampusService:
                 subject=question.subject,
             )
         )
-        self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
+        with self._store.transaction():
+            self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
+            self._apply_mastery_downgrade(profile.id, question, result)
         if not result.ok:
             code = "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID"
             raise CampusError(code, f"批改失败（{result.fail_reason}）")
@@ -1490,7 +1535,8 @@ class CampusService:
         The rubric is resolved first so an unknown `rubric_id` costs nothing, then a usable model
         is checked before the attempt is written: a missing model is `MODEL_NOT_CONFIGURED` with
         no side effect, while a model call that fails leaves the attempt behind with its
-        degradation trace (T07 §6-3/§6-6).
+        degradation trace (T07 §6-3/§6-6). The CERT-15 mastery downgrade runs in the same
+        transaction as the grading write, so the response and the side effect land together.
         """
         kind = str(payload["kind"])
         answer = str(payload["answer"])
@@ -1520,7 +1566,9 @@ class CampusService:
                 custom_rubric=rubric_text,
             )
         )
-        self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
+        with self._store.transaction():
+            self._store.update("attempt", attempt_id, self._grading_columns(result, kind))
+            self._apply_mastery_downgrade(profile.id, question, result)
         if not result.ok:
             raise CampusError(
                 "MODEL_TIMEOUT" if result.fail_reason == "MODEL_TIMEOUT" else "MODEL_OUTPUT_INVALID",
@@ -1556,6 +1604,44 @@ class CampusService:
             "band": result.band,
             "upgraded_demo": result.upgraded_demo,
         }
+
+    def _apply_mastery_downgrade(
+        self,
+        profile_id: str,
+        question: Optional[models.QuestionBankItem],
+        result: GradeResult,
+    ) -> None:
+        """CERT-15: one fully missed scoring point drags the point's mastery down a state.
+
+        Runs inside the caller's transaction together with the attempt write, so a grading
+        that fails to land never leaves the tree marked "待加强" behind.
+        """
+        if question is None or not question.point_id or not result.scoring_points:
+            return
+        misses = [
+            str(point["point"])
+            for point in result.scoring_points
+            if point.get("status") == "miss"
+        ]
+        if not misses:
+            return
+        point_id = str(question.point_id)
+        row = self._mastery_row(profile_id, point_id, None)
+        level = row["level"] if row is not None else models.MasteryLevel.UNKNOWN.value
+        next_level = MASTERY_DOWNGRADE.get(level, models.MasteryLevel.UNKNOWN.value)
+        evidence = "未命中得分点：" + "；".join(misses)
+        if row is None:
+            self._store.insert(
+                "mastery",
+                {
+                    "profile_id": profile_id,
+                    "point_id": point_id,
+                    "level": next_level,
+                    "evidence": evidence,
+                },
+            )
+        else:
+            self._store.update("mastery", row["id"], {"level": next_level, "evidence": evidence})
 
     def attempt_history(
         self,
@@ -1659,6 +1745,263 @@ class CampusService:
             order_by="scheduled_date, priority, created_at, rowid",
         )
         return [task_payload(models.PlanTask.from_row(row)) for row in rows]
+
+    # -- H1-H6: the knowledge tree and mastery (03 §4.8) --------------------
+
+    def knowledge_tree(self, profile_id: str) -> dict[str, Any]:
+        """The profile's tree as nested `KnowledgePointNode`s (H1).
+
+        `question_count`/`mistake_count` are counted from their owning tables at request
+        time — the tree endpoint is exactly where CERT-01 wants the truth, and maintained
+        counters would go stale the moment any future writer forgets to bump them.
+        """
+        rows = self._store.list_rows(
+            "knowledge_point", profile_id=profile_id, order_by="order_index, created_at, id"
+        )
+        question_counts = self._count_by_point("question_bank_item", profile_id)
+        mistake_counts = self._count_by_point("mistake_book", profile_id)
+        nodes: dict[str, dict[str, Any]] = {}
+        links: list[tuple[str, Optional[str]]] = []
+        roots: list[dict[str, Any]] = []
+        for row in rows:
+            point = models.KnowledgePoint.from_row(row)
+            nodes[point.id] = {
+                **asdict(point),
+                "question_count": question_counts.get(point.id, 0),
+                "mistake_count": mistake_counts.get(point.id, 0),
+                "children": [],
+            }
+            links.append((point.id, point.parent_id))
+        for point_id, parent_id in links:
+            parent = nodes.get(parent_id) if parent_id else None
+            if parent is None:
+                roots.append(nodes[point_id])
+            else:
+                parent["children"].append(nodes[point_id])
+        return {"roots": roots}
+
+    def create_knowledge_point(
+        self, profile_id: str, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Create one manual point under an optional parent (H2)."""
+        parent_id = self._require_point(profile_id, payload.get("parent_id"))
+        point_id = self._store.insert(
+            "knowledge_point",
+            {
+                "profile_id": profile_id,
+                "title": str(payload["title"]).strip(),
+                "parent_id": parent_id,
+                "desc": payload.get("desc"),
+                "order_index": int(payload.get("order_index") or 0),
+                "source": models.KnowledgeSource.MANUAL.value,
+            },
+        )
+        row = self._store.get("knowledge_point", point_id)
+        return self._point_payload(row, *self._point_counts(profile_id, point_id))
+
+    def update_knowledge_point(
+        self,
+        profile_id: str,
+        point: models.KnowledgePoint,
+        patch: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Rename, reorder or re-parent one point (H3).
+
+        A re-parent may never make the tree cyclic: a point cannot take itself or one of
+        its descendants as the parent, which is refused before the write happens.
+        """
+        values = {key: patch[key] for key in POINT_FIELDS if key in patch}
+        if "title" in values:
+            values["title"] = str(values["title"]).strip()
+        if "parent_id" in values and values["parent_id"] is not None:
+            parent_id = self._require_point(profile_id, values["parent_id"])
+            if parent_id == point.id or self._is_descendant(profile_id, point.id, parent_id):
+                raise CampusError("ILLEGAL_TRANSITION", "父节点不能是自身或其后代")
+            values["parent_id"] = parent_id
+        if values:
+            self._store.update("knowledge_point", point.id, values)
+        row = self._store.get("knowledge_point", point.id)
+        return self._point_payload(row, *self._point_counts(profile_id, point.id))
+
+    def delete_knowledge_point(
+        self, profile_id: str, point: models.KnowledgePoint
+    ) -> dict[str, Any]:
+        """Delete a point; its children are promoted to top level, its mastery rows go too (H3)."""
+        children = self._store.list_rows(
+            "knowledge_point", profile_id=profile_id, where='"parent_id" = ?', params=[point.id]
+        )
+        with self._store.transaction():
+            for child in children:
+                self._store.update("knowledge_point", child["id"], {"parent_id": None})
+            self._store.delete_where("mastery", '"point_id" = ?', (point.id,))
+            self._store.delete("knowledge_point", point.id)
+        return {"deleted": True, "orphaned_children": len(children)}
+
+    async def generate_knowledge_tree(
+        self, profile: models.ExamProfile, payload: Mapping[str, Any]
+    ) -> dict[str, Any]:
+        """Extract the chapter-section-point tree from a syllabus (H4, CERT-02).
+
+        The extraction discipline of 05 §4.8 travels as the system prompt; the model's
+        JSON is validated and inserted as one transaction, so a malformed tree leaves
+        nothing behind.
+        """
+        model = self.model_for_task(models.CampusTask.EXPLAIN.value)
+        if model is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        text = self._tree_source_text(profile.id, payload)
+        messages = [
+            {"role": "system", "content": TREE_SYSTEM_PROMPT},
+            {"role": "user", "content": text},
+        ]
+        try:
+            turn = await asyncio.to_thread(
+                self._require_provider().complete,
+                model=model,
+                messages=messages,
+                temperature=0,
+                timeout=90,
+            )
+        except CampusError:
+            raise
+        except Exception as exc:
+            if "timeout" in type(exc).__name__.lower() or "timeout" in str(exc).lower():
+                raise CampusError("MODEL_TIMEOUT", "模型调用超时") from exc
+            raise CampusError("MODEL_OUTPUT_INVALID", "模型调用失败") from exc
+        data, _reason = extract_json(getattr(turn, "text", None))
+        sections = self._tree_sections(data)
+        with self._store.transaction():
+            created, roots = self._insert_tree_sections(profile.id, sections)
+        return {"created": created, "roots": roots}
+
+    def set_mastery(self, profile_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """UPSERT one mastery row keyed by (profile, point, dimension) (H5)."""
+        level = str(payload.get("level") or "")
+        if level not in _MASTERY_LEVELS:
+            raise CampusError("INVALID_LEVEL", f"掌握度取值非法：{level}")
+        point_id = self._require_point(profile_id, payload.get("point_id"))
+        dimension = payload.get("dimension")
+        row = self._mastery_row(profile_id, point_id, dimension)
+        if row is None:
+            mastery_id = self._store.insert(
+                "mastery",
+                {
+                    "profile_id": profile_id,
+                    "level": level,
+                    "point_id": point_id,
+                    "dimension": dimension,
+                },
+            )
+            row = self._store.get("mastery", mastery_id)
+        else:
+            self._store.update("mastery", row["id"], {"level": level})
+            row = self._store.get("mastery", row["id"])
+        return asdict(models.Mastery.from_row(row))
+
+    def mastery_coverage(self, profile_id: str) -> dict[str, Any]:
+        """The rated share of the tree plus the weakest rated points (H6, CERT-03)."""
+        points = self._store.list_rows("knowledge_point", profile_id=profile_id)
+        titles = {row["id"]: row["title"] for row in points}
+        rated = [
+            row
+            for row in self._store.list_rows("mastery", profile_id=profile_id)
+            if row["point_id"] in titles and row["dimension"] is None
+        ]
+        coverage = round(len(rated) / len(points), 2) if points else 0.0
+        weak = sorted(
+            (
+                {
+                    "point_id": row["point_id"],
+                    "title": titles[row["point_id"]],
+                    "level": row["level"],
+                }
+                for row in rated
+                if row["level"] != models.MasteryLevel.MASTERED.value
+            ),
+            key=lambda item: (_MASTERY_WEAK_ORDER.get(item["level"], 0), item["title"]),
+        )
+        return {"coverage": coverage, "weak_top5": weak[:5]}
+
+    # -- H7-H10: exam nodes and in-app reminders (03 §4.8) ------------------
+
+    def create_deadline(self, profile_id: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        """Record one node of the exam timeline; one node of each type per profile (H7)."""
+        node_type = str(payload["node_type"])
+        if (
+            self._store.query_one(
+                'SELECT "id" FROM "cert_deadline" WHERE "profile_id" = ? AND "node_type" = ?',
+                (profile_id, node_type),
+            )
+            is not None
+        ):
+            raise CampusError("DUPLICATE_NODE", f"同类型考试节点已存在：{node_type}")
+        deadline_id = self._store.insert(
+            "cert_deadline",
+            {
+                "profile_id": profile_id,
+                "node_type": node_type,
+                "date": str(payload["date"]),
+                "is_reference": 1 if payload.get("is_reference") else 0,
+            },
+        )
+        return self._deadline_payload(self._store.get("cert_deadline", deadline_id))
+
+    def list_deadlines(self, profile_id: str) -> dict[str, Any]:
+        """The node timeline, oldest first, each with its live countdown (H8)."""
+        rows = self._store.list_rows(
+            "cert_deadline", profile_id=profile_id, order_by="date, id"
+        )
+        today = reminders.today()
+        return {
+            "items": [
+                {
+                    **self._deadline_payload(row),
+                    "days_left": reminders.days_left(row["date"], today=today),
+                }
+                for row in rows
+            ]
+        }
+
+    def create_deadline_reminders(self, deadline: models.CertDeadline) -> dict[str, Any]:
+        """Create the D-30/D-7/D-1 `once` tasks through the existing TaskStore (H9, CERT-13).
+
+        Pressing the button again returns the stored ids instead of duplicating tasks, and
+        a fire moment that already passed is not created at all: `compute_next_run` refuses
+        past once tasks, so such a row would only clutter the automation list.
+        """
+        if self._automation_store is None:
+            raise CampusError("AUTOMATION_UNAVAILABLE")
+        existing = _decode(deadline.automation_ids, [])
+        if existing:
+            return {"automation_ids": [str(task_id) for task_id in existing]}
+        label = reminders.node_label(deadline.node_type)
+        ids: list[str] = []
+        try:
+            for offset, fire_at in reminders.reminder_fire_dates(deadline.date):
+                task = ScheduledTask(
+                    title=f"{label}提醒（D-{offset}）",
+                    instructions=(
+                        f"用户备考的证书节点「{label}」定于 {deadline.date}。"
+                        f"今天是该节点的 D-{offset} 应用内提醒：请生成一条 50 字以内的中文提醒，"
+                        "包含节点名、日期与剩余天数，提醒用户及时处理，不要执行其他操作。"
+                    ),
+                    schedule=Schedule(kind="once", fire_at=fire_at, timezone="local"),
+                    workspace=os.getcwd(),
+                    origin_surface="campus",
+                )
+                self._automation_store.save(task)
+                ids.append(task.id)
+        except CampusError:
+            raise
+        except Exception as exc:
+            raise CampusError("AUTOMATION_UNAVAILABLE", f"自动化任务存储不可用：{exc}") from exc
+        if ids:
+            self._store.update("cert_deadline", deadline.id, {"automation_ids": _encode(ids)})
+        return {"automation_ids": ids}
+
+    def reminders(self, profile_id: str) -> dict[str, Any]:
+        """The banner data source: upcoming nodes plus the due-today and overdue ones (H10)."""
+        return reminders.deadline_snapshot(self._store, profile_id)
 
     # -- F1-F4: the level assessment (CET-01) ------------------------------
 
@@ -2095,6 +2438,132 @@ class CampusService:
         if row is None:
             raise CampusError("ITEM_NOT_FOUND", f"单词不存在：{vocab_id}")
         return vocab_payload(models.VocabItem.from_row(row))
+
+    # -- D4-D6: the review queue (G-17/CET-05, scheduler of T13) ------------
+
+    def enqueue_review(
+        self, profile: models.ExamProfile, item_type: str, item_id: str
+    ) -> dict[str, Any]:
+        """Put one source item into tomorrow's queue, never twice (D4).
+
+        The source must exist and belong to the profile (`ITEM_NOT_FOUND` / `FORBIDDEN_PROFILE`).
+        A still-pending row is returned unchanged so re-joining never resets progress —
+        02 §4.15 keeps one pending row per item and rides repeats through the UPSERT —
+        while a `done` history row starts a fresh cycle at the ladder's first step.
+        """
+        table = REVIEW_SOURCE_TABLES[item_type]
+        if self._store.get_scoped(table, item_id, profile.id) is None:
+            if self._store.get(table, item_id) is not None:
+                raise CampusError("FORBIDDEN_PROFILE", f"{table} 不属于当前档案：{item_id}")
+            raise CampusError("ITEM_NOT_FOUND", f"复习素材不存在：{item_id}")
+        existing = self._store.query_one(
+            'SELECT * FROM "review_queue" WHERE "profile_id" = ? AND "item_type" = ? '
+            'AND "item_id" = ? AND "status" = ?',
+            (profile.id, item_type, item_id, models.ReviewStatus.PENDING.value),
+        )
+        if existing is not None:
+            return review_payload(models.ReviewItem.from_row(existing))
+        row_id = self._store.insert(
+            "review_queue",
+            {
+                "profile_id": profile.id,
+                "item_type": item_type,
+                "item_id": item_id,
+                "due_at": (datetime.now(timezone.utc) + timedelta(days=1)).strftime(
+                    "%Y-%m-%dT00:00:00Z"
+                ),
+                "interval_days": 1,
+                "streak_right": 0,
+                "ease": 2.5,
+                "status": models.ReviewStatus.PENDING.value,
+            },
+        )
+        return review_payload(models.ReviewItem.from_row(self._store.get("review_queue", row_id)))
+
+    def review_due(
+        self, profile: models.ExamProfile, *, as_of: Optional[str] = None
+    ) -> dict[str, Any]:
+        """The due queue with the source content inlined (D5).
+
+        The scheduler owns the pull (pending, `due_at <= as_of`, oldest first, profile
+        isolated); this layer only adds each source's body so a review card renders
+        without a second request. A row whose source has disappeared — an individually
+        deleted question, say — is skipped instead of failing the whole pull.
+        """
+        items: list[dict[str, Any]] = []
+        for item in review_scheduler.due_items(self._store, profile.id, as_of=as_of):
+            source = self._store.get_scoped(
+                REVIEW_SOURCE_TABLES[item.item_type], item.item_id, profile.id
+            )
+            if source is None:
+                continue
+            items.append({**review_payload(item), "payload": self._source_payload(item.item_type, source)})
+        return {"items": items}
+
+    def review_result(
+        self, profile: models.ExamProfile, item: models.ReviewItem, correct: bool
+    ) -> dict[str, Any]:
+        """Record one review's outcome and reschedule it (D6, the SM-2 progression)."""
+        del profile
+        updated = review_scheduler.apply_result(item, correct)
+        self._store.update(
+            "review_queue",
+            item.id,
+            {
+                "due_at": updated.due_at,
+                "interval_days": updated.interval_days,
+                "streak_right": updated.streak_right,
+                "ease": updated.ease,
+                "status": updated.status,
+                "last_reviewed_at": updated.last_reviewed_at,
+            },
+        )
+        return review_payload(updated)
+
+    def _source_payload(self, item_type: str, source: Any) -> dict[str, Any]:
+        """The inlined body of a queue row's source, per its item type (D5)."""
+        if item_type == models.ReviewItemType.VOCAB.value:
+            return vocab_payload(models.VocabItem.from_row(source))
+        if item_type == models.ReviewItemType.KNOWLEDGE_POINT.value:
+            return asdict(models.KnowledgePoint.from_row(source))
+        return asdict(models.MistakeBookEntry.from_row(source))
+
+    # -- I2-I3: automation templates (G-18, installed through T13) ----------
+
+    def automation_template_catalogue(self) -> dict[str, Any]:
+        """The installable templates (I2, G-18): identity and schedule shape only."""
+        return {"items": automation_templates.catalogue()}
+
+    def install_automation_template(
+        self, profile: models.ExamProfile, tpl_id: str
+    ) -> dict[str, Any]:
+        """One-click install of an automation template (I3, G-18/CET-05/KY-12/CERT-13).
+
+        The tasks are created through the sidecar's existing automation CRUD — campus
+        adds no scheduler of its own (01 §2). The weekly report fires a model call when
+        it runs, so installing it without a usable model is refused up front; the node
+        template computes `once` fire moments from the exam date and cannot be installed
+        without one. Repeat installs return the already-installed task ids unchanged.
+        """
+        task_store = (
+            getattr(self._provider_host, "task_store", None)
+            if self._provider_host is not None
+            else None
+        )
+        if task_store is None:
+            raise CampusError("AUTOMATION_UNAVAILABLE")
+        template = automation_templates.get_template(tpl_id)
+        if template is None:
+            raise CampusError("TEMPLATE_NOT_FOUND", f"自动化模板不存在：{tpl_id}")
+        if template.requires_model and self.model_for_task(models.CampusTask.EXPLAIN.value) is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        if template.requires_exam_date and not str(profile.exam_date or "").strip():
+            raise CampusError("EXAM_DATE_REQUIRED", "考试节点提醒需要先设置考试日期")
+        push_time = self.app_state()["settings"]["push_time"]
+        task_ids = automation_templates.install_template(
+            self._provider_host, profile, tpl_id, push_time=str(push_time)
+        )
+        return {"task_ids": task_ids}
 
     # -- F10-F14: the proctored mock exam (CET-13/14) -----------------------
 
@@ -2970,7 +3439,7 @@ class CampusService:
     def _insert_attempt(
         self,
         profile: models.ExamProfile,
-        question: models.QuestionBankItem,
+        question: Optional[models.QuestionBankItem],
         answer: str,
         session_type: str,
         mock_exam_id: Optional[str],
@@ -2980,9 +3449,9 @@ class CampusService:
         row: dict[str, Any] = {
             "profile_id": profile.id,
             "track_type": profile.track_type,
-            "subject": question.subject,
+            "subject": question.subject if question is not None else GENERAL_SUBJECT,
             "user_answer": answer,
-            "question_id": question.id,
+            "question_id": question.id if question is not None else None,
             "session_type": session_type,
             "mock_exam_id": mock_exam_id,
         }
@@ -3212,3 +3681,172 @@ class CampusService:
         if target.parent.name != "library" or root not in target.parents:
             return
         shutil.rmtree(target, ignore_errors=True)
+
+    def _require_provider(self) -> Any:
+        """The sidecar's `ProviderClient`, or `MODEL_NOT_CONFIGURED` (G-04's safe default)."""
+        provider = (
+            getattr(self._provider_host, "provider", None)
+            if self._provider_host is not None
+            else None
+        )
+        if provider is None:
+            raise CampusError("MODEL_NOT_CONFIGURED")
+        return provider
+
+    def _count_by_point(self, table: str, profile_id: str) -> dict[str, int]:
+        rows = self._store.query_all(
+            f'SELECT "point_id", COUNT(*) AS n FROM "{table}" '
+            'WHERE "profile_id" = ? AND "point_id" IS NOT NULL GROUP BY "point_id"',
+            (profile_id,),
+        )
+        return {row["point_id"]: int(row["n"]) for row in rows}
+
+    def _point_counts(self, profile_id: str, point_id: str) -> tuple[int, int]:
+        questions = self._store.count(
+            "question_bank_item", '"profile_id" = ? AND "point_id" = ?', (profile_id, point_id)
+        )
+        mistakes = self._store.count(
+            "mistake_book", '"profile_id" = ? AND "point_id" = ?', (profile_id, point_id)
+        )
+        return questions, mistakes
+
+    def _point_payload(
+        self, row: Any, question_count: int, mistake_count: int
+    ) -> dict[str, Any]:
+        payload = asdict(models.KnowledgePoint.from_row(row))
+        payload["question_count"] = question_count
+        payload["mistake_count"] = mistake_count
+        return payload
+
+    def _is_descendant(
+        self, profile_id: str, ancestor_id: str, candidate_id: str
+    ) -> bool:
+        parent_by_id = {
+            row["id"]: row["parent_id"]
+            for row in self._store.list_rows("knowledge_point", profile_id=profile_id)
+        }
+        current = parent_by_id.get(candidate_id)
+        seen: set[str] = set()
+        while current is not None and current not in seen:
+            if current == ancestor_id:
+                return True
+            seen.add(current)
+            current = parent_by_id.get(current)
+        return False
+
+    def _tree_source_text(self, profile_id: str, payload: Mapping[str, Any]) -> str:
+        """The pasted text wins; otherwise the doc's chunks are joined in page order."""
+        text = str(payload.get("text") or "").strip()
+        if text:
+            return text
+        doc_id = str(payload.get("doc_id") or "")
+        row = self._store.get_scoped("source_doc", doc_id, profile_id)
+        if row is None:
+            raise CampusError("DOC_NOT_FOUND", f"资料不存在：{doc_id}")
+        chunks = self._store.list_rows(
+            "doc_chunk",
+            profile_id=profile_id,
+            where='"doc_id" = ?',
+            params=[doc_id],
+            order_by="page_no, char_start, id",
+        )
+        if not chunks:
+            doc = models.SourceDoc.from_row(row)
+            if (
+                doc.parse_status == models.ParseStatus.FAILED.value
+                and doc.fail_reason == FAIL_NO_TEXT_LAYER
+            ):
+                raise CampusError("DOC_SCAN_EMPTY", "扫描件无可提取文字层，无法抽取知识树")
+            raise CampusError("DOC_NOT_READY", "资料尚未解析完成，无法抽取知识树")
+        return "\n".join(str(chunk["content"]) for chunk in chunks)[:TREE_MAX_CHARS]
+
+    def _tree_sections(self, data: Any) -> list[dict[str, Any]]:
+        if not isinstance(data, dict) or not isinstance(data.get("sections"), list):
+            raise CampusError("MODEL_OUTPUT_INVALID", "知识树输出无法解析")
+        sections = [
+            section
+            for section in (self._tree_node(item) for item in data["sections"])
+            if section is not None
+        ]
+        if not sections:
+            raise CampusError("MODEL_OUTPUT_INVALID", "知识树输出为空")
+        return sections
+
+    def _tree_node(self, item: Any) -> Optional[dict[str, Any]]:
+        """One validated node: a non-empty title plus its validated children, depth-capped."""
+        if not isinstance(item, dict):
+            return None
+        title = str(item.get("title") or "").strip()
+        if not title:
+            return None
+        children = [
+            child
+            for child in (self._tree_node(raw) for raw in item.get("children") or [])
+            if child is not None
+        ]
+        return {"title": title, "children": children}
+
+    def _insert_tree_sections(
+        self, profile_id: str, sections: list[dict[str, Any]]
+    ) -> tuple[int, list[dict[str, Any]]]:
+        created = 0
+        roots: list[dict[str, Any]] = []
+        for index, section in enumerate(sections):
+            level_created, payload = self._insert_tree_level(
+                profile_id, section, None, index, 1
+            )
+            created += level_created
+            roots.append(payload)
+        return created, roots
+
+    def _insert_tree_level(
+        self,
+        profile_id: str,
+        node: Mapping[str, Any],
+        parent_id: Optional[str],
+        order_index: int,
+        depth: int,
+    ) -> tuple[int, dict[str, Any]]:
+        point_id = self._store.insert(
+            "knowledge_point",
+            {
+                "profile_id": profile_id,
+                "title": str(node["title"]),
+                "parent_id": parent_id,
+                "order_index": order_index,
+                "source": models.KnowledgeSource.AI_GENERATED.value,
+            },
+        )
+        created = 1
+        children: list[dict[str, Any]] = []
+        if depth < TREE_MAX_DEPTH:
+            for index, child in enumerate(node.get("children") or []):
+                level_created, payload = self._insert_tree_level(
+                    profile_id, child, point_id, index, depth + 1
+                )
+                created += level_created
+                children.append(payload)
+        row = self._store.get("knowledge_point", point_id)
+        payload = self._point_payload(row, 0, 0)
+        payload["children"] = children
+        return created, payload
+
+    def _mastery_row(
+        self, profile_id: str, point_id: Optional[str], dimension: Optional[str]
+    ) -> Any:
+        conditions = ['"profile_id" = ?']
+        params: list[Any] = [profile_id]
+        for column, value in (("point_id", point_id), ("dimension", dimension)):
+            if value is None:
+                conditions.append(f'"{column}" IS NULL')
+            else:
+                conditions.append(f'"{column}" = ?')
+                params.append(value)
+        return self._store.query_one(
+            f'SELECT * FROM "mastery" WHERE {" AND ".join(conditions)}', params
+        )
+
+    def _deadline_payload(self, row: Any) -> dict[str, Any]:
+        payload = asdict(models.CertDeadline.from_row(row))
+        payload["automation_ids"] = _decode(payload.get("automation_ids"), [])
+        return payload

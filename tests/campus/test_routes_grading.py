@@ -6,6 +6,9 @@ C 组在 07 文档里没有被点名给任何任务（T09 交付文档 §5-13 �
 C1 的响应形状按 03 §4.3 的 `GradeResult` 契约（`dimensions`/`errors[].offset`/`rubric`）从 T07 引擎的
 `GradeResult` 适配而来；`errors[].offset` 由服务端在原文里定位片段得到（PRD CET4 ② "可点击定位到原文"）。
 批改链本身走 T07 引擎与回放式 provider，不依赖真实模型。
+
+T12 合并注记：文件以 T10 版为基干，末段追加 T12 的 CERT-15 服务端副作用用例——未命中（miss）得分点
+把关联知识点的掌握度在同一次事务里降一档（mastered→fuzzy→unknown），C1 与 E5 共享链路均生效。
 """
 
 from __future__ import annotations
@@ -124,6 +127,42 @@ def seeded_store(campus_db_path: Path) -> store.CampusStore:
         "question_bank_item",
         {"id": "q-foreign", "profile_id": OTHER_ID, "subject": "writing", "stem": "他人题目"},
     )
+    for point_id, title in (("p-1", "德育"), ("p-2", "教学原则"), ("p-3", "学习动机")):
+        instance.insert(
+            "knowledge_point",
+            {"id": point_id, "profile_id": ACTIVE_ID, "title": title},
+        )
+    instance.insert(
+        "mastery",
+        {
+            "id": "mast-p1",
+            "profile_id": ACTIVE_ID,
+            "point_id": "p-1",
+            "level": models.MasteryLevel.MASTERED.value,
+        },
+    )
+    instance.insert(
+        "mastery",
+        {
+            "id": "mast-p2",
+            "profile_id": ACTIVE_ID,
+            "point_id": "p-2",
+            "level": models.MasteryLevel.FUZZY.value,
+        },
+    )
+    for question_id, point_id in (("q-p1", "p-1"), ("q-p2", "p-2"), ("q-p3", "p-3"), ("q-nopoint", None)):
+        instance.insert(
+            "question_bank_item",
+            {
+                "id": question_id,
+                "profile_id": ACTIVE_ID,
+                "subject": models.Subject.MAJOR.value,
+                "stem": f"简答：{question_id}",
+                "qtype": models.QuestionType.SHORT_ANSWER.value,
+                "point_id": point_id,
+                "max_score": 8,
+            },
+        )
     try:
         yield instance
     finally:
@@ -533,3 +572,106 @@ def test_c4_ignores_unparsable_stored_grading(client: TestClient, seeded_store: 
     )
     body = client.get(f"{routes.CAMPUS_PREFIX}/grading/common-errors", params={"profile_id": ACTIVE_ID}).json()
     assert body == {"top3": []}
+
+
+# ---------------------------------------------------------------------------
+# CERT-15 — 未命中得分点降级掌握度（T12 服务端副作用，单事务）
+# ---------------------------------------------------------------------------
+
+
+def variable_scoring_payload(*statuses: str) -> str:
+    return json.dumps(
+        {
+            "scoring_points": [
+                {"point": f"得分点{index}", "status": status, "note": ""}
+                for index, status in enumerate(statuses, start=1)
+            ],
+            "overall_score": 6,
+        }
+    )
+
+
+def test_cert15_downgrades_mastered_to_fuzzy_on_a_miss(
+    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
+    response = _grade(client, kind="short_answer", question_id="q-p1", answer="德育原则是……")
+    assert response.status_code == 200
+    row = seeded_store.get("mastery", "mast-p1")
+    assert row["level"] == models.MasteryLevel.FUZZY.value
+    assert "得分点2" in row["evidence"]
+
+
+def test_cert15_downgrades_fuzzy_to_unknown(
+    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("miss")})
+    assert _grade(client, kind="short_answer", question_id="q-p2", answer="……").status_code == 200
+    row = seeded_store.get("mastery", "mast-p2")
+    assert row["level"] == models.MasteryLevel.UNKNOWN.value
+
+
+def test_cert15_creates_an_unknown_row_when_none_exists(
+    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
+    assert _grade(client, kind="short_answer", question_id="q-p3", answer="……").status_code == 200
+    rows = seeded_store.list_rows(
+        "mastery", profile_id=ACTIVE_ID, where='"point_id" = ?', params=["p-3"]
+    )
+    assert len(rows) == 1
+    assert rows[0]["level"] == models.MasteryLevel.UNKNOWN.value
+    assert rows[0]["dimension"] is None
+    assert "得分点2" in rows[0]["evidence"]
+
+
+def test_cert15_leaves_mastery_alone_when_everything_hits(
+    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "partial")})
+    assert _grade(client, kind="short_answer", question_id="q-p1", answer="……").status_code == 200
+    row = seeded_store.get("mastery", "mast-p1")
+    assert row["level"] == models.MasteryLevel.MASTERED.value
+    assert row["evidence"] == ""
+
+
+def test_cert15_ignores_a_question_without_a_point(
+    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("miss")})
+    before = seeded_store.count("mastery", "profile_id = ?", (ACTIVE_ID,))
+    assert _grade(client, kind="short_answer", question_id="q-nopoint", answer="……").status_code == 200
+    assert seeded_store.count("mastery", "profile_id = ?", (ACTIVE_ID,)) == before
+
+
+def test_cert15_runs_for_e5_subjective_grading_too(
+    client: TestClient, manager: FakeManager, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/attempts",
+        json={"profile_id": ACTIVE_ID, "question_id": "q-p1", "answer": "德育原则是……"},
+    )
+    assert response.status_code == 200
+    assert response.json()["pending_grading"] is True
+    row = seeded_store.get("mastery", "mast-p1")
+    assert row["level"] == models.MasteryLevel.FUZZY.value
+
+
+def test_cert15_lands_in_the_same_transaction_as_the_attempt_write(
+    client: TestClient, manager: FakeManager, monkeypatch, seeded_store: store.CampusStore
+) -> None:
+    manager.provider = FakeProvider({"default": variable_scoring_payload("hit", "miss")})
+    original = store.CampusStore.update
+
+    def failing_update(self, table, row_id, values):
+        if table == "mastery":
+            raise RuntimeError("boom")
+        return original(self, table, row_id, values)
+
+    monkeypatch.setattr(store.CampusStore, "update", failing_update)
+    with pytest.raises(RuntimeError):
+        _grade(client, kind="short_answer", question_id="q-p1", answer="……")
+    row = seeded_store.get("mastery", "mast-p1")
+    assert row["level"] == models.MasteryLevel.MASTERED.value
+    assert row["evidence"] == ""
