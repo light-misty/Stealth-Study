@@ -311,7 +311,6 @@ def build_corpus() -> dict:
         "corpus_version": 1,
         "built_at": manifest["built_at"],
         "source_id": SOURCE["id"],
-        "source_license": SOURCE["license"],
         "source_url": SOURCE["repo_url"],
         "essays": records,
     }
