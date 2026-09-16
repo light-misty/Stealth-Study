@@ -191,6 +191,14 @@
           "skipped": "Skipped"
         }
       },
+      "weekly": {
+        "generate": "Generate this week's report",
+        "generating": "Generating…",
+        "empty": "No reports yet — generate one above",
+        "top_mistakes": "Top mistake points",
+        "no_mistakes": "No mistakes recorded this week",
+        "suggestion": "Next week's suggestion"
+      },
       "progress": {
         "streak_one": "{{count}}-day streak",
         "streak_other": "{{count}}-day streak",

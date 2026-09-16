@@ -4,7 +4,7 @@ import type { PlanTask, ProgressReport, TaskStatus } from "../../../campus/types
 const RING_RADIUS = 26;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
-const TRACK_LABEL_KEYS: Record<string, string> = {
+export const TRACK_LABEL_KEYS: Record<string, string> = {
   overall: "campus.kaoyan.board.overall",
   politics: "campus.common.subject.politics",
   english: "campus.common.subject.english",

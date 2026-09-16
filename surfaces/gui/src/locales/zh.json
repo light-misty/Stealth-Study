@@ -188,6 +188,14 @@
           "skipped": "已跳过"
         }
       },
+      "weekly": {
+        "generate": "生成本周周报",
+        "generating": "生成中…",
+        "empty": "还没有周报，点上方按钮生成一份",
+        "top_mistakes": "高频错点",
+        "no_mistakes": "本周没有错题记录",
+        "suggestion": "下周建议"
+      },
       "progress": {
         "streak_other": "连续学习 {{count}} 天",
         "heatmap": "热力图"
