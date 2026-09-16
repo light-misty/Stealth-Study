@@ -149,9 +149,25 @@
     },
     "cet": {
       "assessment": {
+        "title": "CET placement assessment",
+        "intro": "A quick check of your listening, reading, writing and translation. Answers are saved automatically, so you can resume anytime.",
+        "loading": "Loading assessment",
         "start": "Start assessment",
         "resume": "Resume assessment",
-        "finish": "Finish assessment"
+        "finish": "Finish assessment",
+        "progress": "{{answered}}/{{total}} answered",
+        "question_missing": "This question is missing its content and can be skipped",
+        "saved": "Answers saved",
+        "save_error": "Autosave failed; it will retry with your next answer",
+        "estimate": "Estimated score",
+        "gap_title": "Gap to target score (scaled to 425)",
+        "col_current": "Current",
+        "col_target": "Target",
+        "col_gap": "Gap",
+        "section_listening": "Listening",
+        "section_reading": "Reading",
+        "section_writing_translation": "Writing & Translation",
+        "again": "Take again"
       },
       "errors": {
         "title": "Common mistakes TOP3",

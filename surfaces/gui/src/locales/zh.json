@@ -146,9 +146,25 @@
     },
     "cet": {
       "assessment": {
+        "title": "CET 定级测评",
+        "intro": "快速摸底听力、阅读、写作与翻译水平，作答自动保存，中断后可继续",
+        "loading": "测评加载中",
         "start": "开始定级",
         "resume": "继续定级",
-        "finish": "完成定级"
+        "finish": "完成定级",
+        "progress": "已答 {{answered}}/{{total}} 题",
+        "question_missing": "题目内容缺失，可跳过此题",
+        "saved": "作答已自动保存",
+        "save_error": "自动保存失败，将在下次作答时重试",
+        "estimate": "预计总分",
+        "gap_title": "与目标分的差距（按 425 分折算）",
+        "col_current": "当前",
+        "col_target": "目标",
+        "col_gap": "差距",
+        "section_listening": "听力",
+        "section_reading": "阅读",
+        "section_writing_translation": "写作与翻译",
+        "again": "再测一次"
       },
       "errors": {
         "title": "老毛病 TOP3",
