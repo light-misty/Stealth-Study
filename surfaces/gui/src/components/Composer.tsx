@@ -4,6 +4,7 @@ import type { Attachment, SessionUsage } from "../types";
 import { isPdfFile, readFile } from "../attach";
 import { ProjectBindMenu } from "./ProjectBindMenu";
 import { getSettings, inspectPdf, sessionSkills, type SessionSkillRow } from "../api";
+import { showVoice } from "../flags";
 import { formatTokens, totalTokens } from "../usage";
 import { Dropdown, type Option } from "./Dropdown";
 import { Icon } from "./Icon";
@@ -730,8 +731,11 @@ export function Composer(props: Props) {
             </button>
           ))}
 
-          {/* mic — immediately before send (owner call, DMG #28 walkthrough) */}
-          {isTauri() && (
+          {/* mic — immediately before send (owner call, DMG #28 walkthrough). The voice
+              flag gates the app's single physical voice entry (04 §4.7, PRD G-05): with it
+              off the button never renders, so nothing can start a recording or ask for
+              microphone permission. */}
+          {isTauri() && showVoice() && (
             <button
               className={
                 iconBtn +
