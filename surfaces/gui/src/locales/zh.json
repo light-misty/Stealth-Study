@@ -209,6 +209,10 @@
           "translation": "翻译"
         }
       },
+      "major_qa": {
+        "title": "专业课资料问答",
+        "doc_all": "全部资料"
+      },
       "progress": {
         "streak_other": "连续学习 {{count}} 天",
         "heatmap": "热力图"

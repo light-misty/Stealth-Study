@@ -212,6 +212,10 @@
           "translation": "Translation"
         }
       },
+      "major_qa": {
+        "title": "Major document Q&A",
+        "doc_all": "All documents"
+      },
       "progress": {
         "streak_one": "{{count}}-day streak",
         "streak_other": "{{count}}-day streak",

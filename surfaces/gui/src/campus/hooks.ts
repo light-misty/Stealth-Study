@@ -321,13 +321,13 @@ export function useLibraryQA(profileId: string | null, docId?: string) {
   const [error, setError] = useState<unknown>(null);
 
   const ask = useCallback(
-    async (question: string) => {
+    async (question: string, docOverride?: string) => {
       const trimmed = question.trim();
       if (!profileId || !trimmed) return null;
       setAsking(true);
       setError(null);
       try {
-        const res = await askLibrary(profileId, trimmed, docId);
+        const res = await askLibrary(profileId, trimmed, docOverride ?? docId);
         setAnswer(res);
         return res;
       } catch (err) {
