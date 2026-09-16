@@ -15,6 +15,12 @@ stays untouched.
 The 2026-09-16 stage verification widens it by one module again: `ss/automation/store.py`
 gained a `rowid DESC` tiebreaker so `unseen_failed` follows the newest run when two runs
 share one timestamp. Pinned below for the same reason.
+
+The logging-system branch widens it by one more module and one more `app.py` increment:
+`ss/server/run.py` initializes the unified log config at sidecar startup, and `app.py`
+gains the request-context middleware plus the `POST /v1/logs/frontend` ingest endpoint
+(startup timestamp file naming + 50MB/daily rotation live in new file `ss/logging_setup.py`,
+which the names-status check above deliberately ignores as a pure addition).
 """
 
 from __future__ import annotations
@@ -94,9 +100,12 @@ BACKEND_PATCH = {
     "M\tss/campus/config.py",
     "M\tss/server/app.py",
     "M\tss/automation/store.py",
+    # logging-system 分支：sidecar 启动时初始化统一日志
+    "M\tss/server/run.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
-APP_PY_PATCH = "40\t2\tss/server/app.py"
+# campus 挂载与日志系统两条分支各自的 app.py 增量预算
+APP_PY_PATCHES = {"40\t2\tss/server/app.py", "34\t1\tss/server/app.py"}
 
 
 def test_no_other_backend_module_changed_against_the_base_revision() -> None:
@@ -119,8 +128,8 @@ def test_app_py_keeps_its_registered_budget_against_the_base_revision() -> None:
         pytest.skip("no base revision to compare against from this checkout")
     numstat = _git("diff", "--numstat", base, "--", "ss/server/app.py").strip()
     # Either the mount and the G-06 guard are already in the base (the normal case for a new
-    # feature branch), or `app.py` carries exactly the registered patch and nothing more.
-    assert numstat in {"", APP_PY_PATCH}
+    # feature branch), `app.py` carries exactly one of the registered patches, or nothing.
+    assert numstat in {"", *APP_PY_PATCHES}
 
 
 def test_create_app_serves_the_campus_health_endpoint_behind_the_sidecar_token(
