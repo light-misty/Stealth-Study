@@ -14,6 +14,9 @@ import { ProfileCreateCard } from "./ProfileCreateCard";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { QAChatPanel } from "./QAChatPanel";
 import { ReviewQueuePanel } from "./ReviewQueuePanel";
+import { CertExamSetup } from "./cert/CertExamSetup";
+import { KnowledgeTreePanel } from "./cert/KnowledgeTreePanel";
+import { SubjectiveGradingPanel } from "./cert/SubjectiveGradingPanel";
 
 // The shell the three stations share (04 §3.1). Everything track-specific lives in these
 // two lookup tables — the component itself never branches on the track, per the layering
@@ -52,10 +55,16 @@ const LIBRARY_PANELS: readonly PanelSpec[] = [
   },
 ];
 
+const CERT_PANELS: readonly PanelSpec[] = [
+  { key: "cert_tree", render: ({ profileId }) => <KnowledgeTreePanel profileId={profileId} /> },
+  { key: "cert_grading", render: ({ profileId }) => <SubjectiveGradingPanel profileId={profileId} /> },
+  { key: "cert_setup", render: ({ profileId }) => <CertExamSetup profileId={profileId} /> },
+];
+
 const TRACK_PANELS: Record<CampusTrack, readonly PanelSpec[]> = {
   cet: SHARED_PANELS,
   kaoyan: [...SHARED_PANELS, ...LIBRARY_PANELS],
-  cert: SHARED_PANELS,
+  cert: [...SHARED_PANELS, ...CERT_PANELS],
 };
 
 const TRACK_BANNERS: Record<CampusTrack, (args: { profile: ExamProfile }) => ReactElement | null> =

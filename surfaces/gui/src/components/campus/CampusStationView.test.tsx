@@ -17,6 +17,9 @@ vi.mock("../../campus/api", async (importOriginal) => {
     listDueReviews: vi.fn(),
     listLibraryDocs: vi.fn(),
     getReminders: vi.fn(),
+    getKnowledgeTree: vi.fn(),
+    getMasteryCoverage: vi.fn(),
+    listDeadlines: vi.fn(),
   };
 });
 
@@ -57,6 +60,9 @@ describe("CampusStationView", () => {
     apiMock.listDueReviews.mockResolvedValue({ items: [] });
     apiMock.listLibraryDocs.mockResolvedValue({ items: [] });
     apiMock.getReminders.mockResolvedValue({ banner: [], expired: [] });
+    apiMock.getKnowledgeTree.mockResolvedValue({ roots: [] });
+    apiMock.getMasteryCoverage.mockResolvedValue({ coverage: 0, weak_top5: [] });
+    apiMock.listDeadlines.mockResolvedValue({ items: [] });
     apiMock.patchProfile.mockResolvedValue(profile("p1"));
   });
 
@@ -140,6 +146,14 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="kaoyan" />);
     await waitFor(() => expect(screen.getByTestId("campus-library-panel")).toBeTruthy());
     expect(screen.getByTestId("campus-qa-panel")).toBeTruthy();
+  });
+
+  it("mounts the cert panels on the certificate station", async () => {
+    render(<CampusStationView track="cert" />);
+    await waitFor(() => expect(screen.getByTestId("campus-cert-tree-panel")).toBeTruthy());
+    expect(screen.getByTestId("campus-cert-grading-panel")).toBeTruthy();
+    expect(screen.getByTestId("campus-cert-setup-panel")).toBeTruthy();
+    expect(screen.queryByTestId("campus-library-panel")).toBeNull();
   });
 
   it("archives a profile through the switcher and refreshes the list", async () => {
