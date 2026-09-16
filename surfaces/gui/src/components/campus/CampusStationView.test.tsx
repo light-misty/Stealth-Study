@@ -130,6 +130,27 @@ describe("CampusStationView", () => {
     });
   });
 
+  it("keeps the switcher's create card submittable (opening it is not a request in flight)", async () => {
+    // Regression: one flag used to mean both "the inline card is open" and "a create is running",
+    // so opening the card from the switcher handed `busy` to its submit and the button was
+    // disabled before the user could ever click it. The empty-state path never showed it.
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+    expect(screen.queryByTestId("campus-profile-create-card")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    await waitFor(() => expect(screen.getByTestId("campus-profile-create-card")).toBeTruthy());
+    const submit = screen.getByTestId("campus-profile-create-submit") as HTMLButtonElement;
+    expect(submit.disabled).toBe(false);
+
+    fireEvent.change(screen.getByTestId("campus-profile-create-title"), {
+      target: { value: "第二个档案" },
+    });
+    fireEvent.click(submit);
+    await waitFor(() => expect(apiMock.createProfile).toHaveBeenCalled());
+    expect(apiMock.createProfile.mock.calls[0][0]).toMatchObject({ title: "第二个档案" });
+  });
+
   it("guides the user when no model is configured", async () => {
     apiMock.getCapabilities.mockResolvedValue({
       current_model: null,

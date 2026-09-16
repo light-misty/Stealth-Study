@@ -17,7 +17,13 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "on-first-retry",
+    // Without an action timeout a selector that never appears waits for the whole test timeout
+    // (or forever, when `test.timeout` is disabled), which reads as a hang instead of a failure.
+    // Model latency happens while awaiting a response, not while an action becomes actionable, so
+    // 30s is generous for a click/fill on a live UI.
+    actionTimeout: 30_000,
   },
+  expect: { timeout: 15_000 },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     // The dev server's default API base is 127.0.0.1:8765 — i.e. the real backend (no mocks here).

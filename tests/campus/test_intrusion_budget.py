@@ -42,9 +42,13 @@ REGISTERED_PATCH: set[str] = {
     "ss/server/app.py",
     # The campus e2e harness: `fixtures.ts` is shared test infrastructure every spec routes
     # through (the same category as `app.py`), and `campus.spec.ts` is the campus smoke itself.
-    # Listed by file — not by directory — so the other 60 specs stay outside the budget.
+    # Listed by file — not by directory — so the other 60 specs stay outside the budget. The live
+    # pair is the same deal for `e2e-live/`: the real-backend smoke plus the one config knob
+    # (`actionTimeout`) that keeps a missing selector failing instead of hanging.
     "surfaces/gui/e2e/fixtures.ts",
     "surfaces/gui/e2e/campus.spec.ts",
+    "surfaces/gui/e2e-live/campus.spec.ts",
+    "surfaces/gui/playwright.live.config.ts",
 }
 
 CAMPUS_OWNED_PREFIXES = (

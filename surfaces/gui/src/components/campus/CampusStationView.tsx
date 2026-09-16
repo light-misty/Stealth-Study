@@ -122,10 +122,24 @@ export function CampusStationView({ track }: { track: CampusTrack }) {
 
 function StationBody({ track }: { track: CampusTrack }) {
   const { t } = useTranslation();
-  const { profiles, activeProfile, loading, error, retryable, reload, setActive, createProfile } =
-    useCampusProfile();
+  const {
+    profiles,
+    activeProfile,
+    loading,
+    error,
+    retryable,
+    reload,
+    setActive,
+    createProfile,
+    creating: creatingProfile,
+  } = useCampusProfile();
   const { capabilities } = useCapabilities();
-  const [creating, setCreating] = useState(false);
+  // Two different questions need two different flags: `creatingProfile` is "a create request is
+  // in flight" (the card must not take a second submit), while `showCreateCard` is only "the
+  // switcher's inline card is open". Driving both from one flag left the card's submit disabled
+  // the instant it was opened from the switcher — invisible from the empty state, where the card
+  // is always on screen and nothing ever sets the flag.
+  const [showCreateCard, setShowCreateCard] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
   if (loading) {
@@ -167,11 +181,9 @@ function StationBody({ track }: { track: CampusTrack }) {
       <div className="grid gap-3" data-testid="campus-station-empty" data-track={track}>
         <ProfileCreateCard
           track={track}
-          busy={creating}
+          busy={creatingProfile}
           onCreate={(input) => {
-            void createProfile(input).then((created) => {
-              if (created) setCreating(false);
-            });
+            void createProfile(input);
           }}
         />
       </div>
@@ -190,19 +202,19 @@ function StationBody({ track }: { track: CampusTrack }) {
           profiles={profiles}
           activeId={activeProfile.id}
           onSwitch={(id) => void setActive(id)}
-          onCreate={() => setCreating(true)}
+          onCreate={() => setShowCreateCard(true)}
           onArchive={(id) => void archive(id)}
         />
-        {creating ? (
+        {showCreateCard ? (
           <ProfileCreateCard
             track={track}
-            busy={creating}
+            busy={creatingProfile}
             onCreate={(input) => {
               void createProfile(input).then((created) => {
-                if (created) setCreating(false);
+                if (created) setShowCreateCard(false);
               });
             }}
-            onCancel={() => setCreating(false)}
+            onCancel={() => setShowCreateCard(false)}
           />
         ) : null}
         <EmptyModelGuide capabilities={capabilities} />
