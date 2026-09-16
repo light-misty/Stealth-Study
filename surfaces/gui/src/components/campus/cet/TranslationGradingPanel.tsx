@@ -8,7 +8,12 @@ export function TranslationGradingPanel({ profileId }: { profileId: string }) {
       <div className="text-[13px] font-semibold text-ink">
         {t("campus.cet.translation.title")}
       </div>
-      <GradingWorkshopBody profileId={profileId} kind="translation" historySubject="translation" />
+      <GradingWorkshopBody
+        profileId={profileId}
+        kind="translation"
+        historySubject="translation"
+        testIdPrefix="campus-cet-translation-grading"
+      />
     </div>
   );
 }

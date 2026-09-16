@@ -511,37 +511,61 @@ export async function makeMnemonic(vocabId: string): Promise<{ mnemonic: string 
   });
 }
 
+/** `mock_exam.locked_stages` is a JSON string on the wire (02 §4.16 keeps the column scalar and
+ * `service.mock_payload` returns the row as-is), while the console reads it as `MockStage[]`.
+ * Decoding here — the one place every mock response passes through — keeps the wire shape and
+ * the typed shape from drifting apart, which is what made the locked-stage check work only by
+ * accident against the real backend. */
+const decodeMockExam = <T extends { locked_stages?: unknown }>(mock: T): T => {
+  if (typeof mock?.locked_stages === "string") {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(mock.locked_stages);
+    } catch {
+      parsed = [];
+    }
+    return { ...mock, locked_stages: Array.isArray(parsed) ? parsed : [] };
+  }
+  return mock;
+};
+
 export async function createMockExam(
   profileId: string,
   paperTitle: string,
   idempotencyKey?: string,
 ): Promise<MockExam> {
-  return request("/v1/campus/mock-exams", {
-    method: "POST",
-    body: JSON.stringify({ profile_id: profileId, paper_title: paperTitle }),
-    headers: idempotencyHeaders(idempotencyKey),
-  });
+  return decodeMockExam(
+    await request("/v1/campus/mock-exams", {
+      method: "POST",
+      body: JSON.stringify({ profile_id: profileId, paper_title: paperTitle }),
+      headers: idempotencyHeaders(idempotencyKey),
+    }),
+  );
 }
 
 export async function getMockExam(mockExamId: string): Promise<MockExamView> {
-  return request(`/v1/campus/mock-exams/${mockExamId}`);
+  return decodeMockExam(await request(`/v1/campus/mock-exams/${mockExamId}`));
 }
 
 export async function advanceMockStage(
   mockExamId: string,
   to: Exclude<MockStage, "writing" | "graded">,
 ): Promise<MockExam> {
-  return request(`/v1/campus/mock-exams/${mockExamId}/stage`, {
-    method: "POST",
-    body: JSON.stringify({ to }),
-  });
+  return decodeMockExam(
+    await request(`/v1/campus/mock-exams/${mockExamId}/stage`, {
+      method: "POST",
+      body: JSON.stringify({ to }),
+    }),
+  );
 }
 
 export async function pauseMockExam(mockExamId: string, seconds: number): Promise<MockExamView> {
-  return request(`/v1/campus/mock-exams/${mockExamId}/pause`, {
-    method: "POST",
-    body: JSON.stringify({ seconds }),
-  });
+  return decodeMockExam(
+    await request(`/v1/campus/mock-exams/${mockExamId}/pause`, {
+      method: "POST",
+      body: JSON.stringify({ seconds }),
+    }),
+  );
 }
 
 export async function submitMockExam(mockExamId: string): Promise<MockSubmitResult> {

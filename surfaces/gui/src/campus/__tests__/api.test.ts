@@ -191,6 +191,27 @@ describe("campus api transport", () => {
     expect(JSON.parse(String(calls[0].init.body))).toEqual({ to: "listening" });
   });
 
+  it("decodes the mock exam's JSON-string locked_stages into the array the console reads", async () => {
+    // The backend column is scalar (02 §4.16), so `locked_stages` arrives as '["writing"]'.
+    // Reading it as an array is what makes the sheet lock correct rather than substring luck.
+    installFetch(200, {
+      id: "m1",
+      current_stage: "listening",
+      locked_stages: '["writing"]',
+      remaining_seconds: 900,
+      stage_expired: false,
+      server_now: "2026-09-16T00:01:00Z",
+    });
+    const view = await api.getMockExam("m1");
+    expect(view.locked_stages).toEqual(["writing"]);
+
+    installFetch(200, { id: "m1", current_stage: "writing", locked_stages: "[]" });
+    expect((await api.createMockExam("p1", "paper")).locked_stages).toEqual([]);
+
+    installFetch(200, { id: "m1", current_stage: "writing", locked_stages: [] });
+    expect((await api.advanceMockStage("m1", "listening")).locked_stages).toEqual([]);
+  });
+
   it("patches the assessment draft with the profile guard field the backend requires", async () => {
     const calls = installFetch(200, { id: "a1", status: "draft" });
     await api.patchAssessment("a1", "p1", { q1: "A", q2: "" });

@@ -186,7 +186,11 @@ describe("CampusStationView", () => {
     expect(screen.getByTestId("campus-cet-assessment-start")).toBeTruthy();
     expect(screen.getByTestId("campus-cet-vocab-empty")).toBeTruthy();
     expect(screen.getByTestId("campus-cet-listening-empty")).toBeTruthy();
-    expect(screen.getAllByTestId("campus-cet-grading-text")).toHaveLength(2);
+    // One workshop per grading domain, each with its OWN testid: the station mounts both, so a
+    // shared `campus-cet-grading-*` prefix put duplicate ids in one document.
+    expect(screen.getByTestId("campus-cet-essay-grading-text")).toBeTruthy();
+    expect(screen.getByTestId("campus-cet-translation-grading-text")).toBeTruthy();
+    expect(screen.getAllByTestId("campus-cet-essay-grading-text")).toHaveLength(1);
     expect(screen.getByTestId("campus-mock-start")).toBeTruthy();
     expect(screen.getByTestId("campus-cet-common-errors")).toBeTruthy();
   });

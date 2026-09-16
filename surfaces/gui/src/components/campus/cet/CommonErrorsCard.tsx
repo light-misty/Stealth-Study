@@ -13,9 +13,14 @@ interface CommonErrorRow {
 export function CommonErrorsCard({
   profileId,
   kind,
+  testIdPrefix = "campus-cet",
 }: {
   profileId: string;
   kind?: GradingKind;
+  /** The card sits on the station AND inside both grading workshops, so its testid needs a
+   * per-instance prefix — three copies of `campus-cet-common-errors` in one document is exactly
+   * the ambiguity 04 §2.2's `campus-<domain>-<action>` rule exists to prevent. */
+  testIdPrefix?: string;
 }) {
   const { t } = useTranslation();
   const [rows, setRows] = useState<CommonErrorRow[]>([]);
@@ -52,7 +57,7 @@ export function CommonErrorsCard({
     return (
       <div
         className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
-        data-testid="campus-cet-common-errors-error"
+        data-testid={`${testIdPrefix}-common-errors-error`}
       >
         {t("campus.common.error")}
         {campusErrorInfo(error).retryable ? (
@@ -60,7 +65,7 @@ export function CommonErrorsCard({
             type="button"
             className="ml-2 text-accent"
             onClick={() => setNonce((n) => n + 1)}
-            data-testid="campus-cet-common-errors-retry"
+            data-testid={`${testIdPrefix}-common-errors-retry`}
           >
             {t("campus.common.retry")}
           </button>
@@ -70,10 +75,10 @@ export function CommonErrorsCard({
   }
 
   return (
-    <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5" data-testid="campus-cet-common-errors">
+    <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5" data-testid={`${testIdPrefix}-common-errors`}>
       <div className="text-[13px] font-semibold text-ink">{t("campus.cet.errors.title")}</div>
       {loading ? null : rows.length === 0 ? (
-        <div className="mt-1 text-[12px] text-faint" data-testid="campus-cet-common-errors-empty">
+        <div className="mt-1 text-[12px] text-faint" data-testid={`${testIdPrefix}-common-errors-empty`}>
           {t("campus.cet.errors.empty")}
         </div>
       ) : (
@@ -82,7 +87,7 @@ export function CommonErrorsCard({
             <li
               key={`${row.type}-${index}`}
               className="flex items-start gap-2 text-[12px]"
-              data-testid="campus-cet-common-error"
+              data-testid={`${testIdPrefix}-common-error`}
               data-type={row.type}
               data-count={row.count}
             >

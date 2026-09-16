@@ -387,13 +387,15 @@ export async function mockApi(page: import("@playwright/test").Page) {
       }
     } catch { /* ignore */ }
   });
-  // PRD D6 / G-06 ships cloud sign-in OFF, so the sign-in, one-click and relay-status
-  // flows these specs exercise are only reachable with the flag on (the `ocw.flag.login`
-  // escape hatch flags.ts documents). The shipped default — no sign-in affordance the
-  // user can reach — is pinned by the Vitest login suite (`*.login.test.tsx`).
+  // PRD D6 / G-06 ships cloud sign-in OFF, and G-04/G-05 ships the voice input OFF, so the
+  // sign-in, one-click, relay-status and settings-voice-tab flows these specs exercise are only
+  // reachable with the flags on (the `ocw.flag.*` escape hatches flags.ts documents). The
+  // shipped defaults — no sign-in affordance and no mic the user can reach — are pinned by the
+  // Vitest suites (`*.login.test.tsx`, `flags.test.ts`, `Composer.micFlag.test.tsx`).
   await page.addInitScript(() => {
     try {
       localStorage.setItem("ocw.flag.login", "1");
+      localStorage.setItem("ocw.flag.voice", "1");
     } catch { /* ignore */ }
   });
   const subscriptions: any[] = [
@@ -405,11 +407,78 @@ export async function mockApi(page: import("@playwright/test").Page) {
   // Campus mock state (T23 E2E): mutable per-test so create/grade/plan round-trips reflect
   // through the real UI. Starts empty — every campus E2E case seeds its own profile by
   // driving the real create-path (campus-profile-create-*), mirroring a first-run user.
-  let campusProfiles: any[] = [];
-  const campusLibrary: any[] = [];
+  //
+  // Every shape below mirrors the REAL `/v1/campus/*` responses (verified against a live
+  // `openworker-server`, see the campus contract probe in `docs/dev/交付文档/`): A2/A3 return a
+  // bare `ExamProfile` (not `{profile}`), the list endpoints answer `{items}` (not `{docs}`),
+  // H1 answers `{roots}`, D5/H10 answer `{items}`/`{banner}`, and A8 carries `current_model` +
+  // `tasks[]` (the shape EmptyModelGuide reads). Fabricating a shape the backend never sends is
+  // what let the T23 e2e cases pass while the real UI could not get past profile creation.
+  const campusSettings = {
+    daily_minutes: 60,
+    push_time: "20:00",
+    review_intensity: "standard",
+    task_models: {
+      grading: "anthropic:claude-opus-4-8",
+      question: "gpt-5.6-sol",
+      explain: "anthropic:claude-sonnet-4-6",
+    },
+  };
+  let campusActiveProfileId: string | null = null;
+  const campusProfiles: any[] = [];
+  const campusDocs: any[] = [];
+  const campusAttempts: any[] = [];
+  const campusMistakes: any[] = [];
+  const campusTasks: any[] = [];
+  const campusReports: any[] = [];
   const campusMocks: any[] = [];
-  const campusPlans: any[] = [];
-  let campusCounters = { doc: 0, attempt: 0, tree: 0, report: 0 };
+  const campusPoints: any[] = [];
+  const campusDeadlines: any[] = [];
+  const campusAssessments: any[] = [];
+  const campusVocab: any[] = [];
+  const campusCounter: Record<string, number> = {};
+  const campusNext = (kind: string): number => {
+    campusCounter[kind] = (campusCounter[kind] ?? 0) + 1;
+    return campusCounter[kind];
+  };
+  const campusNow = () => "2026-09-16T00:00:00Z";
+  const campusProfile = (id: string) => campusProfiles.find((row) => row.id === id) ?? null;
+  const campusDoc = (id: string) => campusDocs.find((row) => row.id === id) ?? null;
+  const campusMock = (id: string) => campusMocks.find((row) => row.id === id) ?? null;
+  /** The documented campus error body (03 §1) — `campus/api.ts` unwraps `detail`. */
+  const campusNotFound = (missing: string) => ({
+    detail: { code: "NOT_FOUND", message: `${missing} not found`, retryable: false },
+  });
+  const campusQuestion = (id: string) => ({
+    id,
+    profile_id: campusActiveProfileId ?? "",
+    subject: "reading",
+    qtype: "single",
+    stem: `Generated ${id}`,
+    options: [
+      { key: "A", text: "Option A" },
+      { key: "B", text: "Option B" },
+    ],
+    answer: "A",
+    max_score: 1,
+    source: "ai",
+    created_at: campusNow(),
+    updated_at: campusNow(),
+  });
+  const campusPoint = (id: string, title: string, parentId: string | null) => ({
+    id,
+    profile_id: campusActiveProfileId ?? "",
+    title,
+    parent_id: parentId,
+    desc: null,
+    order_index: 0,
+    source: "ai_generated",
+    question_count: 0,
+    mistake_count: 0,
+    created_at: campusNow(),
+    updated_at: campusNow(),
+    children: [] as unknown[],
+  });
   // Parked unauthorized messages (§19) — mutable so Allow/Dismiss round-trip through the UI.
   // The relay is multi-workspace: parked items carry their team so the Slack page files them
   // under the right workspace card.
@@ -2249,143 +2318,500 @@ export async function mockApi(page: import("@playwright/test").Page) {
       return json({ ok: true });
     }
 
-    // Campus API (T23 E2E): every /v1/campus/* route. Profile is the cross-cutting
-    // campus security boundary — create here so profiles exist for E2E-2/3/4/5/6.
+    // Campus API (T23 E2E): every /v1/campus/* route, shaped like the REAL backend. A2/A3
+    // answer with a bare `ExamProfile` (not `{profile}`), the list endpoints answer `{items}`
+    // (not `{docs}`/`{tasks}`/`{profiles}`), H1 answers `{roots}`, H10 answers `{banner, expired}`,
+    // and A8 carries `current_model` + `tasks[]` — the shape EmptyModelGuide reads. See the campus
+    // contract probe documented in `docs/dev/交付文档/` for how each shape was verified.
     const campusMatch = p.match(/\/v1\/campus(\/.*)?$/);
     if (campusMatch) {
       const sub = campusMatch[1] || "";
+      /** The station always sends `profile_id` on the query string, in the body or as multipart. */
+      const askedProfile = (): string | null => {
+        const fromQuery = new URL(req.url()).searchParams.get("profile_id");
+        if (fromQuery) return fromQuery;
+        // `postDataJSON()` THROWS on a multipart body (B1 uploads the file as a form), so the
+        // content type decides whether the body may be parsed as JSON at all.
+        if ((req.headers()["content-type"] ?? "").includes("application/json")) {
+          const fromBody = req.postDataJSON()?.profile_id;
+          if (typeof fromBody === "string" && fromBody) return fromBody;
+        }
+        return campusActiveProfileId;
+      };
+
       // Health — the T06 mount smoke.
-      if (sub === "/health" && m === "GET") return json({ status: "ok" });
-      // Profiles.
-      if (sub === "/profiles" && m === "GET") return json({ profiles: campusProfiles });
+      if (sub === "/health" && m === "GET") {
+        return json({ status: "ok", schema_version: 1, tracks: ["cet", "kaoyan", "cert"] });
+      }
+
+      // -- A 组：全局与设置 ------------------------------------------------
+      if (sub === "/profiles" && m === "GET") return json({ items: campusProfiles });
       if (sub === "/profiles" && m === "POST") {
         const b = req.postDataJSON() || {};
-        const id = b.id || `campus-e2e-${Date.now()}`;
         const profile = {
-          id,
+          id: `campus-e2e-${campusNext("profile")}`,
           track_type: b.track_type || "cet",
           title: b.title || "新建档案",
-          exam_date: b.exam_date || null,
+          cert_type: b.cert_type ?? null,
+          level: b.level ?? null,
+          exam_date: b.exam_date ?? null,
           target_score: b.target_score ?? null,
+          current_estimate: null,
+          subjects: b.subjects ?? [],
+          daily_minutes: b.daily_minutes ?? 60,
           status: "active",
-          daily_minutes: b.daily_minutes ?? 30,
-          intensity: b.intensity || "normal",
-          push_time: b.push_time || "08:00",
+          created_at: campusNow(),
+          updated_at: campusNow(),
         };
         campusProfiles.push(profile);
-        return json({ profile });
+        // A2 returns the bare profile (03 §4.1) — the context adopts `created.id` directly.
+        return json(profile);
       }
       const pidMatch = sub.match(/^\/profiles\/([^/]+)$/);
       if (pidMatch && m === "GET") {
-        const row = campusProfiles.find((x) => x.id === pidMatch[1]);
-        return json({ profile: row ?? null });
+        const row = campusProfile(pidMatch[1]);
+        if (!row) return json(campusNotFound("profile"), 404);
+        return json(row);
       }
       if (pidMatch && m === "PATCH") {
-        const row = campusProfiles.find((x) => x.id === pidMatch[1]);
-        if (row) Object.assign(row, req.postDataJSON() || {});
-        return json({ profile: row ?? null });
+        const row = campusProfile(pidMatch[1]);
+        if (!row) return json(campusNotFound("profile"), 404);
+        Object.assign(row, req.postDataJSON() || {}, { updated_at: campusNow() });
+        return json(row);
       }
-      // Capabilities — drives EmptyModelGuide vs. ready-station rendering.
-      if (sub === "/capabilities" && m === "GET")
-        return json({ model_ready: true, model: "e2e:mock", features: { voice: false } });
-      // Grading — a no-grade ready result for E2E-2/6.
-      if (sub === "/grading" && m === "POST") {
-        const b = req.postDataJSON() || campusMatch;
-        campusCounters.attempt += 1;
-        const attemptId = `attempt-${campusCounters.attempt}`;
+      if (pidMatch && m === "DELETE") {
+        const i = campusProfiles.findIndex((row) => row.id === pidMatch[1]);
+        if (i < 0) return json(campusNotFound("profile"), 404);
+        campusProfiles.splice(i, 1);
+        return json({ deleted: true, cascade: {} });
+      }
+      if (sub === "/app-state" && m === "GET") {
+        return json({ active_profile_id: campusActiveProfileId, settings: campusSettings });
+      }
+      if (sub === "/app-state" && m === "PATCH") {
+        const b = req.postDataJSON() || {};
+        if (b.active_profile_id !== undefined) campusActiveProfileId = b.active_profile_id;
+        if (b.settings) Object.assign(campusSettings, b.settings);
+        return json({ active_profile_id: campusActiveProfileId, settings: campusSettings });
+      }
+      if (sub === "/capabilities" && m === "GET") {
+        // A8: `current_model` + per-task rows. `tasks` MUST be an array — EmptyModelGuide calls
+        // `.filter` on it unguarded, so the old `{model_ready, model}` shape crashed the station
+        // the moment a profile existed.
+        const taskRow = (task: string, recommended: string, minimum: string) => ({
+          task,
+          recommended,
+          minimum,
+          supported: true,
+          reason: null,
+        });
         return json({
-          attempt_id: attemptId,
-          status: "graded",
-          band: 11,
-          dimension_scores: { content: 4, structure: 4, language: 3 },
-          errors: [{ fragment: "test", suggestion: "demo", type: "拼写" }],
-          upgraded_demo: "improved sentence",
-          model_answer_outline: "outline",
-          degrade_level: 0,
-          model_used: "e2e:mock",
+          current_model: "anthropic:claude-opus-4-8",
+          tasks: [
+            taskRow("grading", "anthropic:claude-opus-4-8", "deepseek:deepseek-v4-pro"),
+            taskRow("question", "gpt-5.6-sol", "zai:glm-5.2"),
+            taskRow("explain", "anthropic:claude-sonnet-4-6", "deepseek:deepseek-v4-flash"),
+          ],
         });
       }
-      // Assessments — resume/continue for E2E-3.
-      if (sub === "/assessments" && m === "POST")
-        return json({ assessment_id: "assess-1", remaining: 15, current_index: 5 });
+      if (sub === "/privacy" && m === "GET") {
+        return json({
+          data_dir: "/tmp/coworker",
+          library_dir: "/tmp/coworker/campus/library",
+          db_size_bytes: 4096,
+          model_endpoints: ["openai"],
+        });
+      }
+      if (sub === "/personas" && m === "GET") {
+        return json({
+          items: [
+            { id: "cet-examiner", name: "CET Examiner", icon: "cet", tagline: "出题与定级", available: true },
+            { id: "study-companion", name: "Study Companion", icon: "companion", tagline: "陪伴式复盘", available: true },
+          ],
+        });
+      }
+
+      // -- B 组：资料库与按页问答 ------------------------------------------
+      if (sub === "/library" && m === "GET") return json({ items: campusDocs });
+      if (sub === "/library/import" && m === "POST") {
+        const n = campusNext("doc");
+        const doc = {
+          id: `doc-${n}`,
+          profile_id: askedProfile() ?? "",
+          title: "notes",
+          file_path: `doc-${n}/notes.md`,
+          file_type: "md",
+          page_count: 1,
+          parse_status: "ready",
+          fail_reason: null,
+          chunk_count: 1,
+          char_count: 24,
+          imported_at: campusNow(),
+        };
+        campusDocs.push(doc);
+        // B1 returns the bare SourceDoc (the hook appends it straight to its list).
+        return json(doc);
+      }
+      const docMatch = sub.match(/^\/library\/([^/]+)$/);
+      if (docMatch && m === "GET") {
+        const row = campusDoc(docMatch[1]);
+        if (!row) return json(campusNotFound("doc"), 404);
+        return json(row);
+      }
+      if (docMatch && m === "DELETE") {
+        const i = campusDocs.findIndex((row) => row.id === docMatch[1]);
+        if (i < 0) return json(campusNotFound("doc"), 404);
+        campusDocs.splice(i, 1);
+        return json({ deleted: true });
+      }
+      if (sub.match(/^\/library\/[^/]+\/retry$/) && m === "POST") {
+        const row = campusDoc(docMatch?.[1] ?? "");
+        if (!row) return json(campusNotFound("doc"), 404);
+        return json(row);
+      }
+      if (sub === "/qa" && m === "POST") {
+        const b = req.postDataJSON() || {};
+        return json({
+          answer: "长难句的主干是 the chart shows a rise。",
+          citations: [
+            { doc_id: campusDocs[0]?.id ?? "doc-1", page_no: 1, snippet: "主干：主语 + 谓语 + 宾语" },
+          ],
+          used_retrieval: b.doc_id ? "toc_route" : "keyword",
+          chunks_used: 1,
+        });
+      }
+      if (sub === "/qa/generate-questions" && m === "POST") {
+        return json({ items: [campusQuestion(`q-${campusNext("question")}`)] });
+      }
+
+      // -- C 组：批改 ------------------------------------------------------
+      if (sub === "/grading" && m === "POST") {
+        const b = req.postDataJSON() || {};
+        const attempt = {
+          id: `attempt-${campusNext("attempt")}`,
+          profile_id: askedProfile() ?? "",
+          subject: b.subject ?? "writing",
+          answer: b.answer ?? "",
+          kind: b.kind ?? "essay",
+          is_correct: null,
+          score: null,
+          max_score: 15,
+          grading_json: null,
+          session_type: "grading",
+          mock_exam_id: null,
+          created_at: campusNow(),
+        };
+        campusAttempts.push(attempt);
+        // C1 shape = `service.grade_payload` (03 §4.3): a flat GradeResult whose `dimensions`
+        // are {name, score, max, comment} and whose `errors` are {original, suggestion, type,
+        // offset} — the result card highlights the original at `offset`.
+        return json({
+          attempt_id: attempt.id,
+          degrade_level: 0,
+          rubric: "四六级作文四档评分",
+          dimensions: [
+            { name: "内容", score: 11, max: 15, comment: "切题但论证单薄" },
+            { name: "结构", score: 4, max: 5, comment: "段落衔接自然" },
+            { name: "语言", score: 4, max: 5, comment: "有个别语法失误" },
+          ],
+          errors: [
+            { original: "The important of", suggestion: "The importance of", type: "搭配", offset: 0 },
+          ],
+          model_answer_outline: "先点题，再举例，最后回扣。",
+          model_used: "anthropic:claude-opus-4-8",
+          notice: null,
+          band: 11,
+          upgraded_demo: "The importance of study cannot be overstated.",
+        });
+      }
+      if (sub === "/grading/history" && m === "GET") {
+        return json({ items: campusAttempts, total: campusAttempts.length, page: 1, page_size: 50 });
+      }
+      if (sub === "/grading/common-errors" && m === "GET") {
+        return json({
+          top3: [
+            { type: "搭配", count: 3, samples: ["The important of"] },
+            { type: "主谓一致", count: 2, samples: ["He go"] },
+          ],
+        });
+      }
+      const attemptMatch = sub.match(/^\/grading\/([^/]+)$/);
+      if (attemptMatch && m === "GET") {
+        const row = campusAttempts.find((item) => item.id === attemptMatch[1]);
+        if (!row) return json(campusNotFound("attempt"), 404);
+        return json(row);
+      }
+
+      // -- D 组：错题本与复习队列 ------------------------------------------
+      if (sub === "/mistakes" && m === "GET") {
+        return json({ items: campusMistakes, total: campusMistakes.length, page: 1, page_size: 50 });
+      }
+      if (sub === "/mistakes/stats" && m === "GET") {
+        return json({ distribution: { concept_unclear: 1 }, top_attribution: "concept_unclear" });
+      }
+      const mistakeMatch = sub.match(/^\/mistakes\/([^/]+)$/);
+      if (mistakeMatch && m === "PATCH") {
+        const row = campusMistakes.find((item) => item.id === mistakeMatch[1]);
+        if (!row) return json(campusNotFound("mistake"), 404);
+        Object.assign(row, req.postDataJSON() || {}, { updated_at: campusNow() });
+        return json(row);
+      }
+      if (sub === "/review/due" && m === "GET") return json({ items: [] });
+      if (sub === "/review/attributions" && m === "POST") {
+        return json({
+          items: [
+            { attempt_id: "attempt-1", suggestion: "concept_unclear", confidence_note: "AI 建议仅供参考" },
+          ],
+        });
+      }
+
+      // -- E 组：题库与作答 ------------------------------------------------
+      if (sub === "/questions" && m === "GET") {
+        return json({ items: [], total: 0, page: 1, page_size: 50 });
+      }
+      if (sub === "/attempts" && m === "POST") {
+        // E5 on an objective question is judged server-side and answers with the key.
+        return json({ id: "attempt-obj", is_correct: 1, standard_answer: "A", pending_grading: false });
+      }
+
+      // -- F 组：CET 台 ----------------------------------------------------
+      if (sub === "/assessments" && m === "POST") {
+        const id = `assess-${campusNext("assessment")}`;
+        const questions = Array.from({ length: 20 }, (_, index) => ({
+          id: `q-${index + 1}`,
+          profile_id: campusActiveProfileId ?? "",
+          subject: index < 6 ? "vocab" : index < 10 ? "listening" : index < 15 ? "reading" : "writing",
+          qtype: "single",
+          stem: `Question ${index + 1}`,
+          options: [
+            { key: "A", text: "Option A" },
+            { key: "B", text: "Option B" },
+          ],
+          max_score: 1,
+          source: "ai",
+        }));
+        const assessment = {
+          id,
+          profile_id: campusActiveProfileId ?? "",
+          started_at: campusNow(),
+          status: "draft",
+          question_ids: questions.map((question) => question.id),
+          answers: {} as Record<string, string>,
+          scores: null,
+          finished_at: null,
+          questions,
+        };
+        campusAssessments.push(assessment);
+        return json(assessment);
+      }
       const assessMatch = sub.match(/^\/assessments\/([^/]+)$/);
       if (assessMatch && m === "GET") {
-        return json({ id: assessMatch[1], current_index: 5, answers: {}, status: "draft" });
+        const row = campusAssessments.find((item) => item.id === assessMatch[1]);
+        if (!row) return json(campusNotFound("assessment"), 404);
+        return json(row);
       }
       if (assessMatch && m === "PATCH") {
-        const b = req.postDataJSON() || {};
-        return json({ id: assessMatch[1], current_index: (b.current_index ?? 5) + 1 });
+        const row = campusAssessments.find((item) => item.id === assessMatch[1]);
+        if (!row) return json(campusNotFound("assessment"), 404);
+        // F3 MERGES the batch and answers with the whole assessment: the resume view reads
+        // `answers` back, so replacing the map would reset E2E-3's counter to 1.
+        row.answers = { ...row.answers, ...(req.postDataJSON()?.answers ?? {}) };
+        return json(row);
       }
-      if (sub.match(/\/assessments\/[^/]+\/finish$/) && m === "POST")
-        return json({ assessment_id: assessMatch?.[1] ?? "assess-1", estimated_band: 425 });
-      // Library / QA — citation path for E2E-5.
-      if (sub === "/library/import" && m === "POST") {
-        campusCounters.doc += 1;
-        const docId = `doc-${campusCounters.doc}`;
-        campusLibrary.push({ id: docId, title: "导入资料", parse_status: "ready", char_count: 100 });
-        return json({ doc_id: docId, parse_status: "ready" });
-      }
-      if (sub === "/library" && m === "GET") return json({ docs: campusLibrary });
-      if (sub === "/qa" && m === "POST")
+      if (sub.match(/^\/assessments\/[^/]+\/finish$/) && m === "POST") {
         return json({
-          answer: "这是根据资料生成的回答。",
-          citations: [{ doc_id: "doc-1", page: 1, snippet: "引用片段" }],
+          scores: { listening: 96.4, reading: 106.5, writing_translation: 85.5, estimate_total: 288.4 },
+          estimate_total: 288.4,
+          gap_table: [{ section: "listening", current: 96.4, target: 107.5, gap: 11.1 }],
         });
-      // Knowledge-tree (CERT) — E2E-6.
-      const treeMatch = sub.match(/^\/knowledge-tree(\/generate)?$/);
-      if (treeMatch && m === "GET")
-        return json({
-          nodes: [
-            { id: "root", title: "英语基础", children: ["n1", "n2"] },
-            { id: "n1", title: "听力", children: [] },
-            { id: "n2", title: "阅读", children: [] },
-          ],
-          coverage: 0.6,
-        });
-      if (treeMatch?.[1] && m === "POST") {
-        campusCounters.tree += 1;
-        return json({ job_id: `tree-job-${campusCounters.tree}` });
       }
-      // Plans (KY) — E2E-4.
+      if (sub === "/vocab/today" && m === "GET") return json({ new_items: campusVocab, review_items: [] });
       if (sub === "/plans/generate" && m === "POST") {
-        const id = `plan-${campusPlans.length + 1}`;
-        const plan = { id, tracks: ["overall", "english", "math", "politics", "major"] };
-        campusPlans.push(plan);
-        return json({ plan: plan, tasks: [] });
+        const planId = `plan-${campusNext("plan")}`;
+        for (const [index, track] of ["overall", "english", "math"].entries()) {
+          campusTasks.push({
+            id: `task-${planId}-${index}`,
+            plan_id: planId,
+            profile_id: campusActiveProfileId ?? "",
+            title: `${track} 任务`,
+            subject: track,
+            scheduled_date: "2026-09-16",
+            detail: null,
+            est_minutes: 60,
+            priority: 1,
+            status: "todo",
+            created_at: campusNow(),
+            updated_at: campusNow(),
+          });
+        }
+        // F5 answers {plan_id, task_count, first_date}; the tasks come back through G1, and the
+        // reorder button stays disabled until `tasks[0].plan_id` exists.
+        return json({ plan_id: planId, task_count: 3, first_date: "2026-09-16" });
       }
-      if (sub === "/tasks" && m === "GET") return json({ tasks: [] });
-      if (sub.match(/\/plans\/[^/]+\/reschedule$/) && m === "POST")
-        return json({ tasks: [] });
-      if (sub === "/weekly-reports" && m === "GET") return json({ reports: [] });
-      if (sub === "/weekly-reports/generate" && m === "POST") {
-        campusCounters.report += 1;
+      if (sub === "/tasks" && m === "GET") return json({ items: campusTasks });
+      if (sub.match(/^\/plans\/[^/]+\/reschedule$/) && m === "POST") {
+        return json({ rescheduled: 3, preserved_done: 1 });
+      }
+      if (sub === "/progress" && m === "GET") {
+        // The board renders one ring per entry here — an empty `by_track` means no rings at all.
         return json({
-          report: {
-            id: `report-${campusCounters.report}`,
-            sections: ["summary", "progress", "mistakes", "suggestions", "next_week"],
+          by_track: {
+            overall: { done: 1, total: 3, rate: 0.33 },
+            english: { done: 0, total: 1, rate: 0 },
           },
+          streak_days: 2,
+          heatmap: [{ date: "2026-09-16", count: 1 }],
         });
       }
-      // Mock exam (CET) — E2E-8.
+      if (sub === "/weekly-reports" && m === "GET") return json({ items: campusReports });
+      if (sub === "/weekly-reports/generate" && m === "POST") {
+        const report = {
+          id: `report-${campusNext("report")}`,
+          profile_id: campusActiveProfileId ?? "",
+          week_start: "2026-09-14",
+          week_end: "2026-09-20",
+          completion_rate: { overall: 0.5, english: 0.4 },
+          top_mistake_points: [{ title: "德育原则", count: 2 }],
+          suggestion: "下周先补写作。",
+          content_md: "## 本周复盘\n\n- 完成 3 项",
+          created_at: campusNow(),
+        };
+        campusReports.unshift(report);
+        // G5 returns the bare WeeklyReport; the hook prepends it to its list.
+        return json(report);
+      }
+      // One id parse for the whole mock-exam group: the plain read AND the four action paths
+      // (`/stage`, `/pause`, `/submit`) all carry the id in the same segment, so matching it
+      // once keeps the action handlers from resolving an empty id and answering 404.
+      const mockPath = sub.match(/^\/mock-exams\/([^/]+)(\/[^/]+)?$/);
+      const mockId = mockPath?.[1] ?? "";
       if (sub === "/mock-exams" && m === "POST") {
-        const id = `mock-${campusMocks.length + 1}`;
-        campusMocks.push({ id, stage: "writing", status: "ongoing" });
-        return json({ mock_exam_id: id, stage: "writing" });
+        const mock = {
+          id: `mock-${campusNext("mock")}`,
+          profile_id: campusActiveProfileId ?? "",
+          paper_title: req.postDataJSON()?.paper_title || "CET mock",
+          started_at: campusNow(),
+          current_stage: "writing",
+          stage_deadline: "2026-09-16T00:30:00Z",
+          paused_seconds: 0,
+          // The backend keeps `locked_stages` a JSON string (`service.mock_payload`, 02 §4.16);
+          // `campus/api.ts` decodes it into the `MockStage[]` the console reads.
+          locked_stages: "[]",
+          status: "ongoing",
+          estimate_score: null,
+          created_at: campusNow(),
+          updated_at: campusNow(),
+          remaining_seconds: 1500,
+          stage_expired: false,
+          server_now: "2026-09-16T00:01:00Z",
+        };
+        campusMocks.push(mock);
+        return json(mock);
       }
-      const mockMatch = sub.match(/^\/mock-exams\/([^/]+)$/);
-      if (mockMatch && m === "GET") {
-        return json({ id: mockMatch[1], stage: "listening", status: "ongoing" });
+      if (mockPath && !mockPath[2] && m === "GET") {
+        const row = campusMock(mockId);
+        if (!row) return json(campusNotFound("mock"), 404);
+        return json(row);
       }
-      if (sub.match(/\/mock-exams\/[^/]+\/stage$/) && m === "POST") {
-        return json({ id: mockMatch?.[1], stage: "reading_translation" });
+      if (sub.match(/^\/mock-exams\/[^/]+\/stage$/) && m === "POST") {
+        const row = campusMock(mockId);
+        if (!row) return json(campusNotFound("mock"), 404);
+        row.locked_stages = JSON.stringify(["writing"]);
+        row.current_stage = req.postDataJSON()?.to ?? "listening";
+        row.stage_deadline = "2026-09-16T01:00:00Z";
+        row.remaining_seconds = 1500;
+        return json(row);
       }
-      if (sub.match(/\/mock-exams\/[^/]+\/submit$/) && m === "POST") {
-        return json({ id: mockMatch?.[1], status: "submitted" });
+      if (sub.match(/^\/mock-exams\/[^/]+\/pause$/) && m === "POST") {
+        const row = campusMock(mockId);
+        if (!row) return json(campusNotFound("mock"), 404);
+        row.paused_seconds += req.postDataJSON()?.seconds ?? 0;
+        return json(row);
       }
-      if (sub.match(/\/mock-exams\/[^/]+\/pause$/) && m === "POST") {
-        return json({ id: mockMatch?.[1], status: "paused" });
+      if (sub.match(/^\/mock-exams\/[^/]+\/submit$/) && m === "POST") {
+        const row = campusMock(mockId);
+        if (!row) return json(campusNotFound("mock"), 404);
+        row.status = "submitted";
+        return json({
+          estimate_score: 512.5,
+          by_section: { listening: { earned: 96.5, max: 248.5, ratio: 0.39 } },
+          attempt_ids: [],
+        });
       }
-      return json({});
+
+      // -- G 组（目标院校）/ H 组：知识树与时间轴 ---------------------------
+      if (sub === "/school-profile" && m === "GET") {
+        return json({
+          id: null,
+          profile_id: campusActiveProfileId ?? "",
+          school: "",
+          major: "",
+          degree_type: null,
+          subjects: [],
+          enroll_count: null,
+          recommend_ratio: null,
+          past_scores: [],
+          books: [],
+          note: "",
+          created_at: null,
+          updated_at: null,
+        });
+      }
+      if (sub === "/knowledge-tree" && m === "GET") return json({ roots: campusPoints });
+      if (sub === "/knowledge-tree/generate" && m === "POST") {
+        // H4 answers {created, roots}; the panel re-reads the tree through H1 afterwards.
+        const root = campusPoint(`kp-${campusNext("point")}`, "第一章 基础", null);
+        const child = campusPoint(`kp-${campusNext("point")}`, "第一节 听力", root.id);
+        root.children = [child];
+        campusPoints.push(root);
+        return json({ created: 2, roots: campusPoints });
+      }
+      if (sub === "/knowledge-points" && m === "POST") {
+        const b = req.postDataJSON() || {};
+        const point = campusPoint(`kp-${campusNext("point")}`, b.title || "知识点", b.parent_id ?? null);
+        campusPoints.push(point);
+        return json(point);
+      }
+      if (sub === "/mastery/coverage" && m === "GET") {
+        return json({
+          coverage: 0.4,
+          weak_top5: [{ point_id: "kp-1", title: "第一节 听力", level: "unknown" }],
+        });
+      }
+      if (sub === "/deadlines" && m === "GET") return json({ items: campusDeadlines });
+      if (sub === "/deadlines" && m === "POST") {
+        const b = req.postDataJSON() || {};
+        const deadline = {
+          id: `deadline-${campusNext("deadline")}`,
+          profile_id: campusActiveProfileId ?? "",
+          node_type: b.node_type || "exam",
+          date: b.date || "2027-03-14",
+          is_reference: b.is_reference ? 1 : 0,
+          automation_ids: [],
+          created_at: campusNow(),
+          updated_at: campusNow(),
+          days_left: 180,
+        };
+        campusDeadlines.push(deadline);
+        return json(deadline);
+      }
+      if (sub.match(/^\/deadlines\/[^/]+\/reminders$/) && m === "POST") {
+        return json({ automation_ids: ["auto-1", "auto-2", "auto-3"] });
+      }
+      if (sub === "/reminders" && m === "GET") return json({ banner: [], expired: [] });
+      if (sub === "/automation-templates" && m === "GET") {
+        return json({
+          items: [{ id: "daily-review", title: "每日复习推送", cron_desc: "每天 20:00", kind: "cron" }],
+        });
+      }
+
+      // Anything unrouted under /v1/campus is a real 404: the backend has no catch-all, and
+      // answering `{}` here is exactly what let the T23 cases pass while the endpoints the
+      // station calls did not exist.
+      return json(
+        { detail: { code: "NOT_FOUND", message: `no campus route: ${m} ${sub}`, retryable: false } },
+        404,
+      );
     }
 
     // Anything else: an empty-but-valid body. GET list endpoints read `?? []`/`?? {}` fallbacks.

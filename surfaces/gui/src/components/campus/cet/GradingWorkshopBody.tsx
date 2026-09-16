@@ -12,10 +12,15 @@ export function GradingWorkshopBody({
   profileId,
   kind,
   historySubject,
+  testIdPrefix = "campus-cet-grading",
 }: {
   profileId: string;
   kind: GradingKind;
   historySubject?: string;
+  /** The station renders one workshop per grading domain (essay, translation), so the testid
+   * prefix is a parameter: sharing `campus-cet-grading-*` between two panels put duplicate
+   * `data-testid` values in one document (04 §2.2 reads a testid as campus-<domain>-<action>). */
+  testIdPrefix?: string;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
@@ -92,14 +97,14 @@ export function GradingWorkshopBody({
           ref={textRef}
           className="mt-2 w-full rounded-lg2 border border-line bg-panel px-3 py-2 text-[12px] text-ink"
           rows={8}
-          data-testid="campus-cet-grading-text"
+          data-testid={`${testIdPrefix}-text`}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
         {submitError ? (
           <div
             className="mt-2 rounded-xl2 border border-warnInk/40 bg-warnSoft px-3 py-2 text-[12px] text-warnInk"
-            data-testid="campus-cet-grading-error"
+            data-testid={`${testIdPrefix}-error`}
           >
             {t("campus.common.error")}
             <span className="ml-1 text-faint">{campusErrorInfo(submitError).message}</span>
@@ -108,7 +113,7 @@ export function GradingWorkshopBody({
               className="ml-2 text-accent"
               onClick={onSubmit}
               disabled={submitting}
-              data-testid="campus-cet-grading-retry"
+              data-testid={`${testIdPrefix}-retry`}
             >
               {t("campus.common.retry")}
             </button>
@@ -118,7 +123,7 @@ export function GradingWorkshopBody({
           <button
             type="button"
             className="rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
-            data-testid="campus-cet-grading-submit"
+            data-testid={`${testIdPrefix}-submit`}
             onClick={onSubmit}
             disabled={submitting || !text.trim()}
           >
@@ -130,9 +135,13 @@ export function GradingWorkshopBody({
       </div>
 
       {result ? (
-        <div className="grid gap-3" data-testid="campus-cet-grading-result">
+        <div className="grid gap-3" data-testid={`${testIdPrefix}-result`}>
           <GradingResultCard result={result} onLocate={locate} />
-          <CommonErrorsCard profileId={profileId} kind={kind} />
+          <CommonErrorsCard
+            profileId={profileId}
+            kind={kind}
+            testIdPrefix={testIdPrefix.replace(/-grading$/, "")}
+          />
         </div>
       ) : null}
 
@@ -143,7 +152,7 @@ export function GradingWorkshopBody({
         {!historyLoaded ? null : history.length === 0 ? (
           <div
             className="mt-1 text-[12px] text-faint"
-            data-testid="campus-cet-grading-history-empty"
+            data-testid={`${testIdPrefix}-history-empty`}
           >
             {t("campus.cet.grading.history_empty")}
           </div>
@@ -154,7 +163,7 @@ export function GradingWorkshopBody({
                 <button
                   type="button"
                   className="flex w-full items-center justify-between rounded-lg2 border border-line px-3 py-1.5 text-left text-[12px] text-muted"
-                  data-testid="campus-cet-grading-history-item"
+                  data-testid={`${testIdPrefix}-history-item`}
                   data-attempt={item.id}
                   onClick={() => openDetail(item.id)}
                 >
@@ -168,7 +177,7 @@ export function GradingWorkshopBody({
         {detail ? (
           <div
             className="mt-2 rounded-lg2 border border-line px-3 py-2 text-[12px]"
-            data-testid="campus-cet-grading-history-detail"
+            data-testid={`${testIdPrefix}-history-detail`}
             data-attempt={detail.id}
           >
             <div className="text-muted">

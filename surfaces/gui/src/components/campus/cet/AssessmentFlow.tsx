@@ -347,7 +347,7 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
             })}
           </div>
           {savedAt > 0 && !saveError ? (
-            <div className="mt-1 text-[12px] text-faint">
+            <div className="mt-1 text-[12px] text-faint" data-testid="campus-cet-assessment-saved">
               {t("campus.cet.assessment.saved")}
             </div>
           ) : null}

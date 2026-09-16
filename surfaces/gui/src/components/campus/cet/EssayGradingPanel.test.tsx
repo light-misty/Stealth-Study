@@ -42,10 +42,10 @@ describe("EssayGradingPanel", () => {
     render(<EssayGradingPanel profileId="p1" />);
     expect(screen.getByText("Essay grading")).toBeTruthy();
 
-    fireEvent.change(screen.getByTestId("campus-cet-grading-text"), {
+    fireEvent.change(screen.getByTestId("campus-cet-essay-grading-text"), {
       target: { value: "My essay." },
     });
-    fireEvent.click(screen.getByTestId("campus-cet-grading-submit"));
+    fireEvent.click(screen.getByTestId("campus-cet-essay-grading-submit"));
     await waitFor(() => expect(apiMock.submitGrading).toHaveBeenCalled());
     expect(apiMock.submitGrading).toHaveBeenCalledWith({
       profileId: "p1",
@@ -53,7 +53,7 @@ describe("EssayGradingPanel", () => {
       answer: "My essay.",
     });
     await waitFor(() =>
-      expect(screen.getByTestId("campus-cet-grading-result")).toBeTruthy(),
+      expect(screen.getByTestId("campus-cet-essay-grading-result")).toBeTruthy(),
     );
   });
 });
