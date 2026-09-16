@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   askLibrary,
+  createDeadline,
+  createDeadlineReminders,
+  createKnowledgePoint,
+  deleteKnowledgePoint,
   deleteLibraryDoc,
   getAppState,
   getCapabilities,
+  getKnowledgeTree,
   getLibraryDoc,
+  getMasteryCoverage,
   getReminders,
   importLibraryDoc,
+  listDeadlines,
   listDueReviews,
   listLibraryDocs,
   listMistakes,
@@ -14,15 +21,23 @@ import {
   patchAppState,
   patchMistake,
   retryLibraryDoc,
+  setMastery,
   submitReviewResult,
 } from "./api";
 import type {
   Attribution,
   CampusTrack,
   CapabilitiesReport,
+  CertDeadline,
+  DeadlineCreateInput,
   DeadlineView,
   ExamProfile,
+  KnowledgePoint,
+  KnowledgePointNode,
   LibraryQAAnswer,
+  Mastery,
+  MasteryCoverage,
+  MasteryLevel,
   MistakeBookEntry,
   MistakeFilters,
   ReviewDueItem,
@@ -361,3 +376,150 @@ export function useDeadlineViews(profileId: string | null) {
   );
   return { views: data, loading, error, reload };
 }
+
+/** Put a created point back into the nested tree; an unknown parent falls back to a root. */
+const insertPoint = (roots: KnowledgePointNode[], created: KnowledgePoint): KnowledgePointNode[] => {
+  const entry: KnowledgePointNode = { ...created, children: [] };
+  let attached = false;
+  const walk = (nodes: KnowledgePointNode[]): KnowledgePointNode[] =>
+    nodes.map((node) => {
+      if (node.id === created.parent_id) {
+        attached = true;
+        return { ...node, children: [...node.children, entry] };
+      }
+      return { ...node, children: walk(node.children) };
+    });
+  const next = walk(roots);
+  return attached ? next : [...roots, entry];
+};
+
+/** H1/H2/H3/H5: the knowledge tree plus its point-level mutations. */
+export function useKnowledgeTree(profileId: string | null) {
+  const { data, setData, setError, loading, error, retryable, reload } = useAsync<
+    KnowledgePointNode[]
+  >(
+    () =>
+      profileId
+        ? getKnowledgeTree(profileId).then((res) => res?.roots ?? [])
+        : Promise.resolve([]),
+    [profileId],
+    [],
+  );
+
+  const addPoint = useCallback(
+    async (input: { title: string; parentId?: string | null; desc?: string }) => {
+      if (!profileId) return null;
+      setError(null);
+      try {
+        const created = await createKnowledgePoint({
+          profileId,
+          title: input.title,
+          parent_id: input.parentId ?? null,
+          desc: input.desc,
+        });
+        const entry: KnowledgePointNode = { ...created, children: [] };
+        setData((prev) => insertPoint(prev, created));
+        return entry;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [profileId, setData, setError],
+  );
+
+  const removePoint = useCallback(
+    async (pointId: string) => {
+      setError(null);
+      try {
+        const res = await deleteKnowledgePoint(pointId);
+        // Orphaned children re-root server-side (H3), so refetch instead of splicing.
+        reload();
+        return res;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [reload, setError],
+  );
+
+  const setLevel = useCallback(
+    async (pointId: string, level: MasteryLevel) => {
+      if (!profileId) return null;
+      setError(null);
+      try {
+        return await setMastery(profileId, { pointId, level });
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [profileId, setError],
+  );
+
+  return { roots: data, loading, error, retryable, reload, addPoint, removePoint, setLevel };
+}
+
+/** H6: mastery coverage progress and the weak top5. */
+export function useMasteryCoverage(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<MasteryCoverage | null>(
+    () => (profileId ? getMasteryCoverage(profileId) : Promise.resolve(null)),
+    [profileId],
+    null,
+  );
+  return { data, loading, error, retryable, reload };
+}
+
+/** H7/H8/H9: the exam node timeline with create and one-shot reminder actions. */
+export function useCertDeadlines(profileId: string | null) {
+  const { data, setData, setError, loading, error, retryable, reload } = useAsync<
+    (CertDeadline & { days_left: number })[]
+  >(
+    () =>
+      profileId
+        ? listDeadlines(profileId).then((res) => res?.items ?? [])
+        : Promise.resolve([]),
+    [profileId],
+    [],
+  );
+
+  const createNode = useCallback(
+    async (input: DeadlineCreateInput) => {
+      if (!profileId) return null;
+      setError(null);
+      try {
+        const created = await createDeadline(input);
+        reload();
+        return created;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [profileId, reload, setError],
+  );
+
+  const createReminders = useCallback(
+    async (deadlineId: string) => {
+      setError(null);
+      try {
+        const res = await createDeadlineReminders(deadlineId);
+        const ids = res?.automation_ids ?? [];
+        setData((prev) =>
+          prev.map((item) => (item.id === deadlineId ? { ...item, automation_ids: ids } : item)),
+        );
+        return ids;
+      } catch (err) {
+        setError(err);
+        return null;
+      }
+    },
+    [setData, setError],
+  );
+
+  return { items: data, loading, error, retryable, reload, createNode, createReminders };
+}
+
+/** The stored level of one point, from the H5 upsert echo. */
+export type { Mastery };
