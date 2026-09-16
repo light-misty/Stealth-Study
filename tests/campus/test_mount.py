@@ -11,6 +11,10 @@ guarded early return to `/v1/cloud/login`, `/v1/cloud/logout`, `/auth/callback` 
 an upstream file — carries the `login_enabled` read that drives it. Both are pinned below, so
 the wider patch still cannot reach any other backend module and the two-line mount itself
 stays untouched.
+
+The 2026-09-16 stage verification widens it by one module again: `ss/automation/store.py`
+gained a `rowid DESC` tiebreaker so `unseen_failed` follows the newest run when two runs
+share one timestamp. Pinned below for the same reason.
 """
 
 from __future__ import annotations
@@ -80,11 +84,17 @@ def test_the_mount_is_the_only_router_include_in_the_file(app_source: list[str])
     assert sum(line.count("build_campus_router") for line in app_source) == 2
 
 
-# The whole registered existing-file patch (01 §6 #9, widened by G-06): `config.py` is the
-# project-owned `login_enabled` read, `app.py` the guarded early returns. A diff outside this
-# list — and outside `ss/campus/`, which the feature owns — means the intrusion has spread and
-# must go back through review.
-BACKEND_PATCH = {"M\tss/campus/config.py", "M\tss/server/app.py"}
+# The whole registered existing-file patch (01 §6 #9, widened by G-06 and again by the
+# 2026-09-16 stage verification): `config.py` is the project-owned `login_enabled` read,
+# `app.py` the guarded early returns, `automation/store.py` the run-ordering fix that keeps
+# `unseen_failed` keyed to the newest run when two runs share a timestamp. A diff outside
+# this list — and outside `ss/campus/`, which the feature owns — means the intrusion has
+# spread and must go back through review.
+BACKEND_PATCH = {
+    "M\tss/campus/config.py",
+    "M\tss/server/app.py",
+    "M\tss/automation/store.py",
+}
 CAMPUS_OWNED_PREFIX = "ss/campus/"
 APP_PY_PATCH = "40\t2\tss/server/app.py"
 
