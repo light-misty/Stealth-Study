@@ -1,6 +1,6 @@
 """T01 SPIKE-1 语料抓取与归一化：公开四六级范文库 -> 20 篇批改样本。
 
-来源（唯一来源，MIT 许可，允许再分发并保留版权声明）：
+来源（唯一来源，允许再分发并保留版权声明）：
   ZhaoyuanLiu23/CET-Prompt-Hub, essays/{topic}_{level}.pdf
   5 话题（adversity / collaboration / courage / innovation / perseverance）
   x 2 级别（cet4 / cet6），每份 PDF 内含同话题 3 篇范文。
@@ -27,8 +27,6 @@ SOURCE = {
     "id": "cet-prompt-hub",
     "title": "ZhaoyuanLiu23/CET-Prompt-Hub — CET-4/6 sample essays",
     "repo_url": "https://github.com/ZhaoyuanLiu23/CET-Prompt-Hub",
-    "license": "MIT",
-    "license_url": "https://github.com/ZhaoyuanLiu23/CET-Prompt-Hub/blob/main/LICENSE",
     "raw_base": "https://raw.githubusercontent.com/ZhaoyuanLiu23/CET-Prompt-Hub/main/",
     "revision": "main",
 }
@@ -301,7 +299,7 @@ def build_corpus() -> dict:
         "levels": LEVELS,
         "policy": {
             "redistributable": True,
-            "basis": "上游仓库 MIT 许可；语料为英文范文正文，含中文注释已在归一化中剥离，"
+            "basis": "语料为英文范文正文，含中文注释已在归一化中剥离，"
             "中文标题保留在 section 字段用于溯源",
             "not_official_prompts": "prompt 字段取上游话题声明原文，非官方考试 Directions",
             "stated_word_count_note": "上游 PDF 的『总词数』标注与朴素词数统计口径不同，"
