@@ -671,6 +671,7 @@ def test_i6_restore_refuses_a_newer_package_without_wiping(exports_dir: Path) ->
         ("unknown_table", 422, "PARSE_ERROR"),
         ("unknown_column", 422, "PARSE_ERROR"),
         ("missing_id", 422, "PARSE_ERROR"),
+        ("duplicate_id", 422, "PARSE_ERROR"),
         ("row_not_object", 422, "PARSE_ERROR"),
         ("tables_missing", 422, "PARSE_ERROR"),
     ],
@@ -692,6 +693,8 @@ def test_i6_restore_refuses_malformed_packages_without_wiping(
         package["tables"]["exam_profile"][0]["ghost"] = 1
     elif case == "missing_id":
         del package["tables"]["exam_profile"][0]["id"]
+    elif case == "duplicate_id":
+        package["tables"]["exam_profile"].append(dict(package["tables"]["exam_profile"][0]))
     elif case == "row_not_object":
         package["tables"]["exam_profile"] = ["not-a-row"]
     elif case == "tables_missing":

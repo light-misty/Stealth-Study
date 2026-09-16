@@ -1519,7 +1519,10 @@ class CampusService:
         `SCHEMA_VERSION_ERROR` (03 §6's defensive case); everything malformed — JSON
         decoding, an unknown table or column, a row without its primary key — answers
         `PARSE_ERROR`. `schema_meta` itself is refused as a replay table: the version it
-        records travels as the package's `schema_version` field instead.
+        records travels as the package's `schema_version` field instead. Duplicate primary
+        keys are refused here too — the only replay failure the validation cannot otherwise
+        see coming, and the one that would strike after the wipe has already destroyed the
+        live rows.
         """
         target, media = self.resolve_export(filename)
         if media != "application/json":
@@ -1548,14 +1551,20 @@ class CampusService:
             columns = models.TABLE_COLUMNS[name]
             if not isinstance(rows, list):
                 raise CampusError("PARSE_ERROR", f"{name} 的行集必须是数组")
+            seen_ids: Optional[set[str]] = set() if "id" in columns else None
             for row in rows:
                 if not isinstance(row, dict):
                     raise CampusError("PARSE_ERROR", f"{name} 存在非对象行")
                 unknown = sorted(set(row) - set(columns))
                 if unknown:
                     raise CampusError("PARSE_ERROR", f"{name} 存在未知列：{unknown}")
-                if "id" in columns and not row.get("id"):
-                    raise CampusError("PARSE_ERROR", f"{name} 存在缺少 id 的行")
+                if seen_ids is not None:
+                    row_id = row.get("id")
+                    if not row_id:
+                        raise CampusError("PARSE_ERROR", f"{name} 存在缺少 id 的行")
+                    if row_id in seen_ids:
+                        raise CampusError("PARSE_ERROR", f"{name} 存在重复 id：{row_id}")
+                    seen_ids.add(row_id)
         return {
             "schema_version": version,
             "tables": tables,
