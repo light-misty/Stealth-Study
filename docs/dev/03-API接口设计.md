@@ -208,7 +208,7 @@ app.include_router(build_campus_router(manager))
 | I3 | `POST /v1/campus/automation-templates/{tpl_id}/install` | `{profile_id}` | `{task_ids: [...]}` | `MODEL_NOT_CONFIGURED`（周报模板需要模型） | G-18/CET-05/KY-12/CERT-13 |
 | I4 | `POST /v1/campus/exports` | `{profile_id, format: "md"\|"json"\|"csv"}` | `{filename, path}`（落 `campus/exports/`） | `PROFILE_NOT_FOUND` | INF-02 |
 | I5 | `GET /v1/campus/exports/{filename}` | — | 文件流（`Content-Disposition` 附件下载） | `EXPORT_NOT_FOUND` | INF-02 |
-| I6 | `POST /v1/campus/exports/wipe` | — | `{wiped: true}`（一键清除：删库删目录后重建空库，02 §7.1） | — | PRD §7.3 |
+| I6 | `POST /v1/campus/exports/wipe` | `{restore_filename?}`（缺省为纯清除；给出时清库后按 02 §7.4 恢复该 json 导出包，07 §2 INF-03"I6 为 I4 的逆过程"） | `{wiped: true}`（恢复时另含 `restored`/`schema_migration`） | `EXPORT_NOT_FOUND`、`PARSE_ERROR`、`SCHEMA_VERSION_ERROR` | PRD §7.3/INF-03 |
 
 **端点合计**：A10 + B7 + C4 + D7 + E5 + F14 + G9 + H10 + I6 = **72 个**。
 
@@ -271,6 +271,7 @@ app.include_router(build_campus_router(manager))
 | `MODEL_OUTPUT_INVALID` | 502 | 是 | 模型返回连续 2 次不可解析（L3 降级已在服务端完成后，此码仅在完全失败时返回） |
 | `RUBRIC_NOT_FOUND` | 404 | 否 | `rubric_id` 无效 |
 | `AUTOMATION_UNAVAILABLE` | 503 | 是 | TaskStore 不可用（罕见） |
+| `TEMPLATE_NOT_FOUND` | 404 | 否 | 自动化模板 id 不存在（T13 交付，VERIFY 阶段回流补录） |
 | `EXPORT_NOT_FOUND` | 404 | 否 | |
 | `SCHEMA_VERSION_ERROR` | 500 | 否 | 库版本新于应用（02 §3.2；实际发生在启动期，此处为防御性） |
 
