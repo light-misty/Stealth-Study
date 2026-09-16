@@ -4,12 +4,16 @@ import { App } from "./App";
 import { initTheme } from "./theme";
 import { platformOS } from "./tauri";
 import { initI18n } from "./i18n";
+import { startLogCapture } from "./logging";
 import "./tailwind.css";
 import "./styles.css";
 
 initTheme();
 // Platform hook for CSS (html[data-platform="windows"] scrollbar styling etc.).
 document.documentElement.dataset.platform = platformOS();
+
+// 初始化前端日志捕获：劫持 console 全量输出并在本地缓存，后续定期上传后端
+startLogCapture();
 
 // A file dropped OUTSIDE a drop target (the composer) must never navigate the webview to the
 // file itself — the browser/WKWebView default. Drop targets stopPropagation-free preventDefault
