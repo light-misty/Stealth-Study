@@ -46,7 +46,8 @@ import { ModelsTab } from "./ManageTabs";
 import { MemorySection } from "./MemorySection";
 import { PersonasTab } from "./PersonasTab";
 import { SkillsTab } from "./SkillsTab";
-import { showPersonas } from "../flags";
+import { CampusSection } from "./campus/CampusSection";
+import { showPersonas, showVoice } from "../flags";
 
 // Settings, restructured (Option 2) into a full-page surface that mirrors IntegrationsView's shell:
 // a left sub-nav (Appearance · Files · Models · Personas) + centered panel, replacing the old
@@ -55,7 +56,15 @@ import { showPersonas } from "../flags";
 // Models + Personas host the existing tab components inside the page shell (field re-skin to follow).
 // "appearance" is the General tab's stable key — callers deep-link with it, so the
 // rename (UX-021) changed only the label. "files" folded into General as a card.
-type SetTab = "appearance" | "models" | "context" | "skills" | "voice" | "memory" | "personas";
+type SetTab =
+  | "appearance"
+  | "models"
+  | "context"
+  | "skills"
+  | "voice"
+  | "memory"
+  | "personas"
+  | "campus";
 
 const CARD = "rounded-xl2 border border-line bg-panel";
 const FIELD_LABEL = "text-[13px] font-medium text-ink";
@@ -78,6 +87,7 @@ const SET_TABS: {
   { key: "voice", labelKey: "settings.tab.voice", icon: "mic" },
   { key: "memory", labelKey: "settings.tab.memory", icon: "archive" },
   { key: "personas", labelKey: "settings.tab.personas", icon: "sparkle" },
+  { key: "campus", labelKey: "settings.tab.campus", icon: "book" },
 ];
 
 export function SettingsView({
@@ -96,7 +106,9 @@ export function SettingsView({
   // deep-link to it (openSettings("personas") callers) so the page never opens on a
   // section with no nav entry.
   const personas = showPersonas();
-  const tabs = personas ? SET_TABS : SET_TABS.filter((tab) => tab.key !== "personas");
+  const tabs = (personas ? SET_TABS : SET_TABS.filter((tab) => tab.key !== "personas")).filter(
+    (tab) => showVoice() || tab.key !== "voice",
+  );
   const wanted = initialTab && (personas || initialTab !== "personas") ? initialTab : "appearance";
   const [tab, setTab] = useState<SetTab>(wanted);
 
@@ -147,7 +159,9 @@ export function SettingsView({
           ) : tab === "skills" ? (
             <SkillsTab onCreateSkill={onCreateSkill} />
           ) : tab === "voice" ? (
-            <VoiceInputSection />
+            showVoice() ? <VoiceInputSection /> : null
+          ) : tab === "campus" ? (
+            <CampusSection />
           ) : tab === "memory" ? (
             <MemorySection />
           ) : (

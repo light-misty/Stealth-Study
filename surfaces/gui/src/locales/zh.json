@@ -90,7 +90,9 @@
       "review_intensity": "复习强度",
       "intensity_light": "轻量",
       "intensity_standard": "标准",
-      "intensity_intense": "高强度"
+      "intensity_intense": "高强度",
+      "save": "保存",
+      "saved": "已保存"
     },
     "grading": {
       "submit": "提交批改",

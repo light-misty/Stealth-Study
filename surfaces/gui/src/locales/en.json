@@ -91,7 +91,9 @@
       "review_intensity": "Review intensity",
       "intensity_light": "Light",
       "intensity_standard": "Standard",
-      "intensity_intense": "Intense"
+      "intensity_intense": "Intense",
+      "save": "Save",
+      "saved": "Saved"
     },
     "grading": {
       "submit": "Submit for grading",
