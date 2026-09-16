@@ -165,9 +165,12 @@ describe("campus api transport", () => {
 
   it("keeps the vocab mastery contract on the backend three-level enum", async () => {
     const calls = installFetch(200, { id: "v1" });
-    await api.setVocabMastery("v1", "mastered");
+    await api.setVocabMastery("v1", "p1", "mastered");
     expect(calls[0].init.method).toBe("PATCH");
-    expect(JSON.parse(String(calls[0].init.body))).toEqual({ mastery: "mastered" });
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({
+      profile_id: "p1",
+      mastery: "mastered",
+    });
   });
 
   it("paginates grading history with snake_case query params", async () => {

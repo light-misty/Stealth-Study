@@ -178,7 +178,14 @@
       "vocab": {
         "today_new": "New words today",
         "today_review": "Review today",
-        "mnemonic": "Generate mnemonic"
+        "mnemonic": "Generate mnemonic",
+        "mnemonic_busy": "Generating…",
+        "mnemonic_error": "Failed to generate the mnemonic; try again",
+        "empty": "No vocabulary due today",
+        "mastery_unknown": "New",
+        "mastery_fuzzy": "Fuzzy",
+        "mastery_mastered": "Mastered",
+        "mastery_error": "Mark failed; reverted to the previous state"
       },
       "mock": {
         "start": "Start mock exam",

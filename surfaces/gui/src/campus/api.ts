@@ -480,10 +480,14 @@ export async function listVocabToday(profileId: string): Promise<VocabToday> {
   return request(`/v1/campus/vocab/today${qs({ profile_id: profileId })}`);
 }
 
-export async function setVocabMastery(vocabId: string, mastery: MasteryLevel): Promise<VocabItem> {
+export async function setVocabMastery(
+  vocabId: string,
+  profileId: string,
+  mastery: MasteryLevel,
+): Promise<VocabItem> {
   return request(`/v1/campus/vocab/${vocabId}`, {
     method: "PATCH",
-    body: JSON.stringify({ mastery }),
+    body: JSON.stringify({ profile_id: profileId, mastery }),
   });
 }
 

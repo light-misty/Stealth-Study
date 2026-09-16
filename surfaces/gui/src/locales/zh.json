@@ -174,7 +174,14 @@
       "vocab": {
         "today_new": "今日新词",
         "today_review": "今日复习",
-        "mnemonic": "生成助记"
+        "mnemonic": "生成助记",
+        "mnemonic_busy": "生成中…",
+        "mnemonic_error": "助记生成失败，可重试",
+        "empty": "今日没有待办词汇",
+        "mastery_unknown": "不认识",
+        "mastery_fuzzy": "模糊",
+        "mastery_mastered": "已掌握",
+        "mastery_error": "标记失败，已恢复原状态"
       },
       "mock": {
         "start": "开始模考",
