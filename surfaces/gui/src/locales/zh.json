@@ -183,7 +183,18 @@
       "tree": {
         "generate": "生成知识树",
         "coverage": "覆盖率",
-        "weak_top5": "薄弱 TOP5"
+        "weak_top5": "薄弱 TOP5",
+        "title": "知识点树",
+        "empty": "还没有知识点，先添加一级节点",
+        "add_root": "添加一级节点",
+        "add_child": "添加子节点",
+        "delete": "删除节点",
+        "title_label": "节点名称",
+        "title_required": "请输入节点名称",
+        "submit": "添加",
+        "cancel": "取消",
+        "stats": "题目 {{questions}} · 错题 {{mistakes}}",
+        "weak_empty": "暂无薄弱点"
       },
       "practice": {
         "title": "刷题",

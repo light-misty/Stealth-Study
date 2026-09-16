@@ -187,7 +187,18 @@
       "tree": {
         "generate": "Generate knowledge tree",
         "coverage": "Coverage",
-        "weak_top5": "Weakest 5"
+        "weak_top5": "Weakest 5",
+        "title": "Knowledge tree",
+        "empty": "No knowledge points yet - add a top-level node",
+        "add_root": "Add top-level node",
+        "add_child": "Add child",
+        "delete": "Delete node",
+        "title_label": "Node title",
+        "title_required": "Node title is required",
+        "submit": "Add",
+        "cancel": "Cancel",
+        "stats": "{{questions}} questions · {{mistakes}} mistakes",
+        "weak_empty": "No weak points"
       },
       "practice": {
         "title": "Practice",
