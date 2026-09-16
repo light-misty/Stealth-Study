@@ -9,3 +9,4 @@ dist/
 .workbuddy/
 scripts/v0-spikes/corpus/
 scripts/v0-spikes/out/
+/log/

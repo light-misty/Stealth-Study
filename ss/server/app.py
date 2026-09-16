@@ -1,4 +1,4 @@
-﻿"""FastAPI app — OpenAI-compatible endpoint + WS session API + REST.
+"""FastAPI app — OpenAI-compatible endpoint + WS session API + REST.
 
 The control plane every surface (GUI/IDE/messaging) rides on. The WS carries the engine
 event stream and the approval channel; `/v1/chat/completions` is the OpenAI-compatible
@@ -159,6 +159,7 @@ from ..attachments import (
 )
 from ..engine import ApprovalOutcome
 from ..inbox import VIS_INBOX, VIS_INLINE
+from ..logging_setup import request_id_var, user_id_var
 from ..permissions import Mode
 from ..providers import AssistantTurn
 from .. import toolchain
@@ -242,6 +243,29 @@ def create_app(manager: SessionManager) -> FastAPI:
         allow_headers=["*"],
     )
     app.state.manager = manager
+
+    @app.middleware("http")
+    async def attach_request_context(request: Request, call_next):
+        # 为每个请求生成短随机 request id，并尽力推导当前用户身份供日志使用。
+        # 该中间件注册在最外层，保证 401 等早期响应也携带 X-Request-ID。
+        request_id = secrets.token_hex(4)
+        rid_token = request_id_var.set(request_id)
+        user_id = (
+            request.headers.get("x-ss-actor")
+            or request.query_params.get("profile_id")
+            or ""
+        )
+        uid_token = user_id_var.set(user_id)
+        response = None
+        try:
+            response = await call_next(request)
+        finally:
+            # 清除 contextvar，防止跨请求泄漏
+            request_id_var.reset(rid_token)
+            user_id_var.reset(uid_token)
+        if response is not None:
+            response.headers["X-Request-ID"] = request_id
+        return response
 
     @app.get("/v1/health")
     def health(request: Request) -> dict[str, Any]:

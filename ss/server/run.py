@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from ..config import load_config
+from ..logging_setup import setup_logging
 from ..permissions import Mode
 from ..secrets import state_dir, write_private_text
 from .app import _WS_MAX_FRAME_BYTES, create_app
@@ -156,6 +157,9 @@ def main(argv=None) -> None:
     # a random free port (to coexist with a hand-run server on 8765), so the
     # managed-connect redirect must follow the real port, not the 8765 default.
     os.environ["COWORKER_PORT"] = str(args.port)
+    # 初始化统一日志：以工作区（--cwd）为根，日志写入其下 log/ 文件夹
+    workspace_root = Path(args.cwd).expanduser().resolve() if args.cwd else Path.cwd()
+    setup_logging(workspace_root)
     generated_token_path = _ensure_api_token(args.port)
     try:
         import uvicorn
