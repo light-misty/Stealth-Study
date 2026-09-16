@@ -195,6 +195,21 @@
         "score": "得分 {{score}}/{{max}}",
         "pending": "主观题已同步批改"
       },
+      "grading": {
+        "input_label": "作答原文",
+        "submit": "提交批改",
+        "submitting": "批改中…",
+        "history_title": "批改历史",
+        "history_empty": "暂无批改记录",
+        "detail_score": "档位得分",
+        "detail_answer": "提交原文"
+      },
+      "essay": {
+        "title": "作文批改"
+      },
+      "translation": {
+        "title": "翻译批改"
+      },
       "mock": {
         "start": "开始模考",
         "stage_writing": "写作",

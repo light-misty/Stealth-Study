@@ -199,6 +199,21 @@
         "score": "Score {{score}}/{{max}}",
         "pending": "Subjective answer graded"
       },
+      "grading": {
+        "input_label": "Your text",
+        "submit": "Submit for grading",
+        "submitting": "Grading…",
+        "history_title": "Grading history",
+        "history_empty": "No graded attempts yet",
+        "detail_score": "Band score",
+        "detail_answer": "Submitted text"
+      },
+      "essay": {
+        "title": "Essay grading"
+      },
+      "translation": {
+        "title": "Translation grading"
+      },
       "mock": {
         "start": "Start mock exam",
         "stage_writing": "Writing",
