@@ -1,5 +1,5 @@
 import { CampusApiError } from "./api";
-import type { DegradeLevel } from "./types";
+import type { DegradeLevel, DeadlineTier, ScoringState } from "./types";
 
 // Shared display helpers for the campus station UI. Kept dependency-free and pure so
 // every panel can be tested without rendering or network access.
@@ -34,6 +34,24 @@ export function daysUntil(date: string | null | undefined, now: Date = new Date(
 
 export function isCountdownHighlight(daysLeft: number): boolean {
   return (COUNTDOWN_HIGHLIGHT_DAYS as readonly number[]).includes(daysLeft);
+}
+
+/** The `deadline_snapshot` band of a countdown (ss/campus/reminders.tier). */
+export function deadlineTier(daysLeft: number): DeadlineTier {
+  if (!Number.isFinite(daysLeft)) return "normal";
+  if (daysLeft < 0) return "overdue";
+  if (daysLeft === 0) return "today";
+  if (daysLeft === 1) return "d1";
+  if (daysLeft <= 7) return "d7";
+  if (daysLeft <= 30) return "d30";
+  return "normal";
+}
+
+/** Three-state reading of a scoring point score (the backend maps hit/partial/miss onto 1/0.5/0). */
+export function scoringStateOf(score: number, max: number): ScoringState {
+  if (!Number.isFinite(score) || !Number.isFinite(max) || max <= 0 || score <= 0) return "miss";
+  if (score / max >= 0.999) return "hit";
+  return "partial";
 }
 
 /** Next interval after a review answer: `streakRight` is the consecutive-correct count. */

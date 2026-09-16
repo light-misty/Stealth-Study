@@ -137,6 +137,12 @@ export type CampusTask = (typeof CAMPUS_TASKS)[number];
 
 export type DegradeLevel = 0 | 1 | 2 | 3;
 
+/** The D-30/D-7/D-1 bands of `deadline_snapshot` plus the due-today and overdue states. */
+export type DeadlineTier = "normal" | "d30" | "d7" | "d1" | "today" | "overdue";
+
+/** The three states of a CERT scoring point (06 §3.5 rubric contract). */
+export type ScoringState = "hit" | "partial" | "miss";
+
 export interface ExamProfile {
   id: string;
   track_type: ProfileTrackType;
@@ -420,6 +426,7 @@ export interface DeadlineView {
   date: string;
   days_left: number;
   is_reference: boolean;
+  tier?: DeadlineTier;
 }
 
 export interface Citation {
