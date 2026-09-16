@@ -372,6 +372,17 @@ export interface MockExam {
   updated_at: string;
 }
 
+export interface MockExamView extends MockExam {
+  remaining_seconds: number;
+  stage_expired: boolean;
+  server_now: string;
+}
+
+export interface AttemptFeedback extends Attempt {
+  pending_grading: boolean;
+  standard_answer?: string | null;
+}
+
 export interface AssessmentScores {
   listening: number;
   reading: number;
@@ -388,6 +399,22 @@ export interface Assessment {
   answers: Record<string, string>;
   scores: AssessmentScores | null;
   finished_at: string | null;
+  questions?: AssessmentQuestion[];
+}
+
+export interface AssessmentQuestion {
+  id: string;
+  profile_id?: string;
+  subject?: string;
+  stem?: string;
+  qtype?: QuestionType;
+  point_id?: string | null;
+  options?: QuestionOption[] | null;
+  max_score?: number;
+  difficulty?: number | null;
+  source?: QuestionSource;
+  doc_id?: string | null;
+  created_at?: string;
 }
 
 export interface WeeklyReport {
@@ -540,13 +567,19 @@ export interface VocabToday {
 
 export interface MockSubmitResult {
   estimate_score: number | null;
-  by_section: Record<string, number>;
+  by_section: Record<string, MockSectionScore>;
   attempt_ids: string[];
 }
 
+export interface MockSectionScore {
+  earned: number;
+  max: number;
+  ratio: number | null;
+}
+
 export interface AssessmentGapRow {
-  subject: string;
-  score: number;
+  section: string;
+  current: number;
   target: number;
   gap: number;
 }

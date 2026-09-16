@@ -36,6 +36,7 @@ import type {
   MistakePatch,
   MistakeStats,
   MockExam,
+  MockExamView,
   MockStage,
   MockSubmitResult,
   Paged,
@@ -455,11 +456,12 @@ export async function getAssessment(assessmentId: string): Promise<Assessment> {
 
 export async function patchAssessment(
   assessmentId: string,
+  profileId: string,
   answers: Record<string, string>,
 ): Promise<Assessment> {
   return request(`/v1/campus/assessments/${assessmentId}`, {
     method: "PATCH",
-    body: JSON.stringify({ answers }),
+    body: JSON.stringify({ profile_id: profileId, answers }),
   });
 }
 
@@ -478,10 +480,14 @@ export async function listVocabToday(profileId: string): Promise<VocabToday> {
   return request(`/v1/campus/vocab/today${qs({ profile_id: profileId })}`);
 }
 
-export async function setVocabMastery(vocabId: string, mastery: MasteryLevel): Promise<VocabItem> {
+export async function setVocabMastery(
+  vocabId: string,
+  profileId: string,
+  mastery: MasteryLevel,
+): Promise<VocabItem> {
   return request(`/v1/campus/vocab/${vocabId}`, {
     method: "PATCH",
-    body: JSON.stringify({ mastery }),
+    body: JSON.stringify({ profile_id: profileId, mastery }),
   });
 }
 
@@ -517,7 +523,7 @@ export async function createMockExam(
   });
 }
 
-export async function getMockExam(mockExamId: string): Promise<MockExam> {
+export async function getMockExam(mockExamId: string): Promise<MockExamView> {
   return request(`/v1/campus/mock-exams/${mockExamId}`);
 }
 
@@ -531,8 +537,11 @@ export async function advanceMockStage(
   });
 }
 
-export async function pauseMockExam(mockExamId: string): Promise<MockExam> {
-  return request(`/v1/campus/mock-exams/${mockExamId}/pause`, { method: "POST" });
+export async function pauseMockExam(mockExamId: string, seconds: number): Promise<MockExamView> {
+  return request(`/v1/campus/mock-exams/${mockExamId}/pause`, {
+    method: "POST",
+    body: JSON.stringify({ seconds }),
+  });
 }
 
 export async function submitMockExam(mockExamId: string): Promise<MockSubmitResult> {

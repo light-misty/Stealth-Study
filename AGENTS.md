@@ -186,7 +186,6 @@ HIU-WorkSpace/
 ├── reports/                    # 评估报告
 ├── ss.egg-info/          # pip install -e 生成的元数据
 ├── pyproject.toml              # Python 项目配置
-├── LICENSE                     # MIT 协议
 └── README.md
 ```
 
