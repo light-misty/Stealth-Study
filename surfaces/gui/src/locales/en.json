@@ -204,6 +204,24 @@
         "title": "Practice",
         "submit": "Submit"
       },
+      "grading": {
+        "title": "Subjective grading",
+        "answer_label": "Your answer",
+        "answer_required": "Enter your answer first",
+        "rubric_label": "Custom rubric (optional)",
+        "submit": "Grade it",
+        "kind": {
+          "short_answer": "Short answer",
+          "essay_material": "Material analysis",
+          "lesson_plan": "Lesson plan",
+          "practical": "Practical"
+        },
+        "state": {
+          "hit": "Hit",
+          "partial": "Partial",
+          "miss": "Miss"
+        }
+      },
       "deadline": {
         "banner": "Countdown",
         "reference_notice": "Subject to the official announcement",

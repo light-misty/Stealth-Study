@@ -200,6 +200,24 @@
         "title": "刷题",
         "submit": "提交"
       },
+      "grading": {
+        "title": "主观题批改",
+        "answer_label": "作答内容",
+        "answer_required": "请先输入作答内容",
+        "rubric_label": "自定义评分标准（可选）",
+        "submit": "开始批改",
+        "kind": {
+          "short_answer": "简答题",
+          "essay_material": "材料分析",
+          "lesson_plan": "教学设计",
+          "practical": "实务题"
+        },
+        "state": {
+          "hit": "命中",
+          "partial": "部分命中",
+          "miss": "未命中"
+        }
+      },
       "deadline": {
         "banner": "倒计时",
         "reference_notice": "以官方公告为准",

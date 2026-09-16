@@ -132,6 +132,9 @@ export const GRADING_KINDS = [
 ] as const;
 export type GradingKind = (typeof GRADING_KINDS)[number];
 
+export const SCORING_KINDS = ["short_answer", "essay_material", "lesson_plan", "practical"] as const;
+export type ScoringKind = (typeof SCORING_KINDS)[number];
+
 export const CAMPUS_TASKS = ["grading", "question", "explain"] as const;
 export type CampusTask = (typeof CAMPUS_TASKS)[number];
 

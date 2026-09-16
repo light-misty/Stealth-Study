@@ -22,6 +22,7 @@ import {
   patchMistake,
   retryLibraryDoc,
   setMastery,
+  submitGrading,
   submitReviewResult,
 } from "./api";
 import type {
@@ -32,6 +33,8 @@ import type {
   DeadlineCreateInput,
   DeadlineView,
   ExamProfile,
+  GradeResult,
+  GradingSubmitInput,
   KnowledgePoint,
   KnowledgePointNode,
   LibraryQAAnswer,
@@ -523,3 +526,34 @@ export function useCertDeadlines(profileId: string | null) {
 
 /** The stored level of one point, from the H5 upsert echo. */
 export type { Mastery };
+
+/** C1: one subjective grading run, with a synchronous busy guard against double submits. */
+export function useGrading(profileId: string | null) {
+  const [result, setResult] = useState<GradeResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const busyRef = useRef(false);
+
+  const submit = useCallback(
+    async (input: Omit<GradingSubmitInput, "profileId">) => {
+      if (!profileId || busyRef.current) return null;
+      busyRef.current = true;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await submitGrading({ ...input, profileId });
+        setResult(res);
+        return res;
+      } catch (err) {
+        setError(err);
+        return null;
+      } finally {
+        busyRef.current = false;
+        setLoading(false);
+      }
+    },
+    [profileId],
+  );
+
+  return { result, loading, error, retryable: campusErrorInfo(error).retryable, submit };
+}
