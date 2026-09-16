@@ -387,6 +387,15 @@ export async function mockApi(page: import("@playwright/test").Page) {
       }
     } catch { /* ignore */ }
   });
+  // PRD D6 / G-06 ships cloud sign-in OFF, so the sign-in, one-click and relay-status
+  // flows these specs exercise are only reachable with the flag on (the `ocw.flag.login`
+  // escape hatch flags.ts documents). The shipped default — no sign-in affordance the
+  // user can reach — is pinned by the Vitest login suite (`*.login.test.tsx`).
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem("ocw.flag.login", "1");
+    } catch { /* ignore */ }
+  });
   const subscriptions: any[] = [
     // One existing subscription (a non-pinned session) so the Slack page's per-workspace
     // "Listening" row has an entry. Relay-mode channels are team-qualified (slack:T…/C…).

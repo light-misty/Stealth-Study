@@ -5,13 +5,6 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures";
 
-// PRD D6 / G-06 ships cloud sign-in OFF by default, so the reachable-entry-point invariant
-// this file guards only holds with `ocw.flag.login` forced on; the shipped default is
-// guarded by the Vitest login suite (`*.login.test.tsx`).
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("ocw.flag.login", "1"));
-});
-
 async function openConnectors(page) {
   await page.goto("/");
   await page.getByTestId("account-row").click();

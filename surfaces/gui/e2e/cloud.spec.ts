@@ -4,14 +4,6 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures";
 
-// PRD D6 / G-06 ships cloud sign-in OFF: no reachable entry point in the default build.
-// These cases guard the upstream sign-in path itself, so they force the flag on (the same
-// escape hatch `flags.ts` documents); the shipped-default side — no account-sign-in, no
-// "Not signed in" copy — is guarded by the Vitest login suite (`*.login.test.tsx`).
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("ocw.flag.login", "1"));
-});
-
 async function openConnectors(page) {
   await page.goto("/");
   await page.getByTestId("account-row").click();
