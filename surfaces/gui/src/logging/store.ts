@@ -136,6 +136,9 @@ export class MemoryLogStore implements LogStore {
   private entries: LogBatch[] = [];
   private seq = 0;
 
+  // 测试/压测可调整上限（如 Infinity 关闭裁剪）
+  constructor(private maxEntries: number = MAX_ENTRIES) {}
+
   async add(entry: LogEntry): Promise<void> {
     this.entries.push({ key: ++this.seq, entry });
     this.trim();
@@ -155,8 +158,8 @@ export class MemoryLogStore implements LogStore {
   }
 
   private trim(): void {
-    if (this.entries.length > MAX_ENTRIES) {
-      this.entries = this.entries.slice(this.entries.length - MAX_ENTRIES);
+    if (this.entries.length > this.maxEntries) {
+      this.entries = this.entries.slice(this.entries.length - this.maxEntries);
     }
   }
 }

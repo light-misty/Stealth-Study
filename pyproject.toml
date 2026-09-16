@@ -74,3 +74,6 @@ testpaths = ["tests"]
 # console script (CI) does not put the root on sys.path the way `python -m pytest` does.
 pythonpath = ["."]
 asyncio_mode = "auto"
+markers = [
+    "stress: 日志系统压力测试（SS_RUN_STRESS=1 时运行）",
+]
