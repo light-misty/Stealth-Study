@@ -401,6 +401,15 @@ export async function mockApi(page: import("@playwright/test").Page) {
     // "Listening" row has an entry. Relay-mode channels are team-qualified (slack:T…/C…).
     { session_id: "wp-1", session_title: "Weekly plan 1", agent: "cowork", channel: "slack:T1DL/C0AAA111", channel_name: "ocw-test", routing_target: null, collision: false },
   ];
+
+  // Campus mock state (T23 E2E): mutable per-test so create/grade/plan round-trips reflect
+  // through the real UI. Starts empty — every campus E2E case seeds its own profile by
+  // driving the real create-path (campus-profile-create-*), mirroring a first-run user.
+  let campusProfiles: any[] = [];
+  const campusLibrary: any[] = [];
+  const campusMocks: any[] = [];
+  const campusPlans: any[] = [];
+  let campusCounters = { doc: 0, attempt: 0, tree: 0, report: 0 };
   // Parked unauthorized messages (§19) — mutable so Allow/Dismiss round-trip through the UI.
   // The relay is multi-workspace: parked items carry their team so the Slack page files them
   // under the right workspace card.
@@ -2238,6 +2247,145 @@ export async function mockApi(page: import("@playwright/test").Page) {
       const i = subscriptions.findIndex((s) => s.session_id === b.session_id && s.channel === b.channel);
       if (i >= 0) subscriptions.splice(i, 1);
       return json({ ok: true });
+    }
+
+    // Campus API (T23 E2E): every /v1/campus/* route. Profile is the cross-cutting
+    // campus security boundary — create here so profiles exist for E2E-2/3/4/5/6.
+    const campusMatch = p.match(/\/v1\/campus(\/.*)?$/);
+    if (campusMatch) {
+      const sub = campusMatch[1] || "";
+      // Health — the T06 mount smoke.
+      if (sub === "/health" && m === "GET") return json({ status: "ok" });
+      // Profiles.
+      if (sub === "/profiles" && m === "GET") return json({ profiles: campusProfiles });
+      if (sub === "/profiles" && m === "POST") {
+        const b = req.postDataJSON() || {};
+        const id = b.id || `campus-e2e-${Date.now()}`;
+        const profile = {
+          id,
+          track_type: b.track_type || "cet",
+          title: b.title || "新建档案",
+          exam_date: b.exam_date || null,
+          target_score: b.target_score ?? null,
+          status: "active",
+          daily_minutes: b.daily_minutes ?? 30,
+          intensity: b.intensity || "normal",
+          push_time: b.push_time || "08:00",
+        };
+        campusProfiles.push(profile);
+        return json({ profile });
+      }
+      const pidMatch = sub.match(/^\/profiles\/([^/]+)$/);
+      if (pidMatch && m === "GET") {
+        const row = campusProfiles.find((x) => x.id === pidMatch[1]);
+        return json({ profile: row ?? null });
+      }
+      if (pidMatch && m === "PATCH") {
+        const row = campusProfiles.find((x) => x.id === pidMatch[1]);
+        if (row) Object.assign(row, req.postDataJSON() || {});
+        return json({ profile: row ?? null });
+      }
+      // Capabilities — drives EmptyModelGuide vs. ready-station rendering.
+      if (sub === "/capabilities" && m === "GET")
+        return json({ model_ready: true, model: "e2e:mock", features: { voice: false } });
+      // Grading — a no-grade ready result for E2E-2/6.
+      if (sub === "/grading" && m === "POST") {
+        const b = req.postDataJSON() || campusMatch;
+        campusCounters.attempt += 1;
+        const attemptId = `attempt-${campusCounters.attempt}`;
+        return json({
+          attempt_id: attemptId,
+          status: "graded",
+          band: 11,
+          dimension_scores: { content: 4, structure: 4, language: 3 },
+          errors: [{ fragment: "test", suggestion: "demo", type: "拼写" }],
+          upgraded_demo: "improved sentence",
+          model_answer_outline: "outline",
+          degrade_level: 0,
+          model_used: "e2e:mock",
+        });
+      }
+      // Assessments — resume/continue for E2E-3.
+      if (sub === "/assessments" && m === "POST")
+        return json({ assessment_id: "assess-1", remaining: 15, current_index: 5 });
+      const assessMatch = sub.match(/^\/assessments\/([^/]+)$/);
+      if (assessMatch && m === "GET") {
+        return json({ id: assessMatch[1], current_index: 5, answers: {}, status: "draft" });
+      }
+      if (assessMatch && m === "PATCH") {
+        const b = req.postDataJSON() || {};
+        return json({ id: assessMatch[1], current_index: (b.current_index ?? 5) + 1 });
+      }
+      if (sub.match(/\/assessments\/[^/]+\/finish$/) && m === "POST")
+        return json({ assessment_id: assessMatch?.[1] ?? "assess-1", estimated_band: 425 });
+      // Library / QA — citation path for E2E-5.
+      if (sub === "/library/import" && m === "POST") {
+        campusCounters.doc += 1;
+        const docId = `doc-${campusCounters.doc}`;
+        campusLibrary.push({ id: docId, title: "导入资料", parse_status: "ready", char_count: 100 });
+        return json({ doc_id: docId, parse_status: "ready" });
+      }
+      if (sub === "/library" && m === "GET") return json({ docs: campusLibrary });
+      if (sub === "/qa" && m === "POST")
+        return json({
+          answer: "这是根据资料生成的回答。",
+          citations: [{ doc_id: "doc-1", page: 1, snippet: "引用片段" }],
+        });
+      // Knowledge-tree (CERT) — E2E-6.
+      const treeMatch = sub.match(/^\/knowledge-tree(\/generate)?$/);
+      if (treeMatch && m === "GET")
+        return json({
+          nodes: [
+            { id: "root", title: "英语基础", children: ["n1", "n2"] },
+            { id: "n1", title: "听力", children: [] },
+            { id: "n2", title: "阅读", children: [] },
+          ],
+          coverage: 0.6,
+        });
+      if (treeMatch?.[1] && m === "POST") {
+        campusCounters.tree += 1;
+        return json({ job_id: `tree-job-${campusCounters.tree}` });
+      }
+      // Plans (KY) — E2E-4.
+      if (sub === "/plans/generate" && m === "POST") {
+        const id = `plan-${campusPlans.length + 1}`;
+        const plan = { id, tracks: ["overall", "english", "math", "politics", "major"] };
+        campusPlans.push(plan);
+        return json({ plan: plan, tasks: [] });
+      }
+      if (sub === "/tasks" && m === "GET") return json({ tasks: [] });
+      if (sub.match(/\/plans\/[^/]+\/reschedule$/) && m === "POST")
+        return json({ tasks: [] });
+      if (sub === "/weekly-reports" && m === "GET") return json({ reports: [] });
+      if (sub === "/weekly-reports/generate" && m === "POST") {
+        campusCounters.report += 1;
+        return json({
+          report: {
+            id: `report-${campusCounters.report}`,
+            sections: ["summary", "progress", "mistakes", "suggestions", "next_week"],
+          },
+        });
+      }
+      // Mock exam (CET) — E2E-8.
+      if (sub === "/mock-exams" && m === "POST") {
+        const id = `mock-${campusMocks.length + 1}`;
+        campusMocks.push({ id, stage: "writing", status: "ongoing" });
+        return json({ mock_exam_id: id, stage: "writing" });
+      }
+      const mockMatch = sub.match(/^\/mock-exams\/([^/]+)$/);
+      if (mockMatch && m === "GET") {
+        return json({ id: mockMatch[1], stage: "listening", status: "ongoing" });
+      }
+      if (sub.match(/\/mock-exams\/[^/]+\/stage$/) && m === "POST") {
+        return json({ id: mockMatch?.[1], stage: "reading_translation" });
+      }
+      if (sub.match(/\/mock-exams\/[^/]+\/submit$/) && m === "POST") {
+        return json({ id: mockMatch?.[1], status: "submitted" });
+      }
+      if (sub.match(/\/mock-exams\/[^/]+\/pause$/) && m === "POST") {
+        return json({ id: mockMatch?.[1], status: "paused" });
+      }
+      return json({});
     }
 
     // Anything else: an empty-but-valid body. GET list endpoints read `?? []`/`?? {}` fallbacks.
