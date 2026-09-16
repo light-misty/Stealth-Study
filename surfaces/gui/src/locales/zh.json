@@ -218,6 +218,14 @@
           "miss": "未命中"
         }
       },
+      "setup": {
+        "title": "考试节点",
+        "date_label": "节点日期",
+        "date_required": "请先选择日期",
+        "create": "添加节点",
+        "reminders_done": "已创建提醒",
+        "empty": "还没有考试节点"
+      },
       "deadline": {
         "banner": "倒计时",
         "reference_notice": "以官方公告为准",

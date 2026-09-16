@@ -222,6 +222,14 @@
           "miss": "Miss"
         }
       },
+      "setup": {
+        "title": "Exam nodes",
+        "date_label": "Node date",
+        "date_required": "Pick a date first",
+        "create": "Add node",
+        "reminders_done": "Reminders created",
+        "empty": "No exam nodes yet"
+      },
       "deadline": {
         "banner": "Countdown",
         "reference_notice": "Subject to the official announcement",
