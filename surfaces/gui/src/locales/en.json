@@ -149,14 +149,70 @@
     },
     "cet": {
       "assessment": {
+        "title": "CET placement assessment",
+        "intro": "A quick check of your listening, reading, writing and translation. Answers are saved automatically, so you can resume anytime.",
+        "loading": "Loading assessment",
         "start": "Start assessment",
         "resume": "Resume assessment",
-        "finish": "Finish assessment"
+        "finish": "Finish assessment",
+        "progress": "{{answered}}/{{total}} answered",
+        "question_missing": "This question is missing its content and can be skipped",
+        "saved": "Answers saved",
+        "save_error": "Autosave failed; it will retry with your next answer",
+        "estimate": "Estimated score",
+        "gap_title": "Gap to target score (scaled to 425)",
+        "col_current": "Current",
+        "col_target": "Target",
+        "col_gap": "Gap",
+        "section_listening": "Listening",
+        "section_reading": "Reading",
+        "section_writing_translation": "Writing & Translation",
+        "again": "Take again"
+      },
+      "errors": {
+        "title": "Common mistakes TOP3",
+        "empty": "Your most frequent mistakes show up here after 3 graded runs",
+        "times_one": "{{count}} time",
+        "times_other": "{{count}} times"
       },
       "vocab": {
         "today_new": "New words today",
         "today_review": "Review today",
-        "mnemonic": "Generate mnemonic"
+        "mnemonic": "Generate mnemonic",
+        "mnemonic_busy": "Generating…",
+        "mnemonic_error": "Failed to generate the mnemonic; try again",
+        "empty": "No vocabulary due today",
+        "mastery_unknown": "New",
+        "mastery_fuzzy": "Fuzzy",
+        "mastery_mastered": "Mastered",
+        "mastery_error": "Mark failed; reverted to the previous state"
+      },
+      "listening": {
+        "loading": "Loading listening questions",
+        "empty": "No listening questions yet; import or generate some first",
+        "progress": "Question {{index}}/{{total}}",
+        "submit": "Submit answer",
+        "next": "Next question",
+        "correct": "Correct",
+        "wrong": "Incorrect",
+        "standard_answer": "Standard answer",
+        "score": "Score {{score}}/{{max}}",
+        "pending": "Subjective answer graded"
+      },
+      "grading": {
+        "input_label": "Your text",
+        "submit": "Submit for grading",
+        "submitting": "Grading…",
+        "history_title": "Grading history",
+        "history_empty": "No graded attempts yet",
+        "detail_score": "Band score",
+        "detail_answer": "Submitted text"
+      },
+      "essay": {
+        "title": "Essay grading"
+      },
+      "translation": {
+        "title": "Translation grading"
       },
       "mock": {
         "start": "Start mock exam",
@@ -164,14 +220,71 @@
         "stage_listening": "Listening",
         "stage_reading_translation": "Reading & translation",
         "locked": "Locked",
-        "submit": "Submit"
+        "submit": "Submit",
+        "loading": "Loading mock exam",
+        "paper_title": "CET mock paper",
+        "intro": "Timed stages for writing, listening and reading & translation; each stage locks when it ends",
+        "timer_label": "Time left in this stage",
+        "stage_expired_label": "This stage has ended",
+        "advance": "End this stage",
+        "pause": "Pause",
+        "resume": "Resume",
+        "answer_writing": "Writing answer",
+        "answer_listening": "Listening answer",
+        "answer_reading": "Reading & translation answer",
+        "result_title": "Mock exam result",
+        "estimate": "Estimated score",
+        "fast_forward": "Fast-forward (debug)"
       }
     },
     "kaoyan": {
       "plan": {
         "generate": "Generate plan",
+        "generating": "Generating…",
         "reorder": "Reorder plan",
+        "rescheduling": "Rescheduling…",
+        "new_exam_date": "New exam date (optional)",
+        "generated": "Generated {{total}} tasks, starting {{date}}",
+        "rescheduled": "Rescheduled {{moved}} tasks, {{kept}} done tasks kept",
         "tracks": "Tracks"
+      },
+      "board": {
+        "no_plan": "No plan yet — generate one above",
+        "week_of": "Week of {{date}}",
+        "group_summary": "{{total}} tasks · {{done}} done",
+        "overall": "Overall",
+        "status": {
+          "todo": "To do",
+          "doing": "In progress",
+          "review": "Reviewing",
+          "done": "Done",
+          "skipped": "Skipped"
+        }
+      },
+      "weekly": {
+        "generate": "Generate this week's report",
+        "generating": "Generating…",
+        "empty": "No reports yet — generate one above",
+        "top_mistakes": "Top mistake points",
+        "no_mistakes": "No mistakes recorded this week",
+        "suggestion": "Next week's suggestion"
+      },
+      "tutor": {
+        "subject": "Subject",
+        "kind_label": "Grading kind",
+        "kind": {
+          "essay_material": "Material analysis",
+          "essay": "Essay",
+          "short_answer": "Short answer",
+          "translation": "Translation"
+        },
+        "answer": "Paste your answer here",
+        "submit": "Submit for grading",
+        "submitting": "Grading…"
+      },
+      "major_qa": {
+        "title": "Major document Q&A",
+        "doc_all": "All documents"
       },
       "progress": {
         "streak_one": "{{count}}-day streak",

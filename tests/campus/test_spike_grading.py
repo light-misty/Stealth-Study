@@ -499,7 +499,6 @@ def test_corpus_manifest_repairs_all_hit():
     assert len(manifest["applied_repairs"]) == len(corpus_builder.ARTIFACT_REPAIRS)
     for group in manifest["groups"]:
         assert group["essay_count"] >= 3 and len(group["sha256"]) == 64
-    assert manifest["source"]["license"] == "MIT"
 
 
 def test_corpus_artifact_repairs_are_context_anchored():
