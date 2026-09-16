@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Optional
 
 import pytest
 from fastapi import FastAPI
@@ -54,6 +54,14 @@ def manager() -> FakeManager:
 @pytest.fixture()
 def seeded_store(campus_db_path: Any) -> store.CampusStore:
     instance = store.CampusStore(campus_db_path)
+    _seed_rich(instance)
+    try:
+        yield instance
+    finally:
+        instance.close()
+
+
+def _seed_rich(instance: store.CampusStore) -> None:
     instance.insert(
         "exam_profile",
         {
@@ -320,10 +328,6 @@ def seeded_store(campus_db_path: Any) -> store.CampusStore:
     )
     instance.set_state("active_profile_id", ACTIVE_ID)
     instance.set_state("campus_settings", {"daily_minutes": 90})
-    try:
-        yield instance
-    finally:
-        instance.close()
 
 
 @pytest.fixture()
@@ -507,18 +511,21 @@ class _SoloWipe:
     test_mount.py): the seeding connection is closed before the request, and the assertions
     open their own connection afterwards."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, seed: Optional[Callable[[store.CampusStore], None]] = None) -> None:
         self.campus_db = secrets.state_dir() / "campus.db"
         seeder = store.CampusStore(self.campus_db)
-        seeder.insert(
-            "exam_profile",
-            {
-                "id": ACTIVE_ID,
-                "track_type": models.TrackType.CET.value,
-                "title": "六级 12 月",
-            },
-        )
-        seeder.set_state("active_profile_id", ACTIVE_ID)
+        if seed is None:
+            seeder.insert(
+                "exam_profile",
+                {
+                    "id": ACTIVE_ID,
+                    "track_type": models.TrackType.CET.value,
+                    "title": "六级 12 月",
+                },
+            )
+            seeder.set_state("active_profile_id", ACTIVE_ID)
+        else:
+            seed(seeder)
         seeder.close()
 
     def client(self) -> TestClient:
@@ -563,3 +570,167 @@ def test_i6_wipe_is_repeatable() -> None:
         assert verifier.count("exam_profile") == 0
     finally:
         verifier.close()
+
+
+# -- I6 恢复：INF-03 备份恢复（02 §7.4，I4 的逆过程） ----------------------
+
+
+def _export_name(client: TestClient, fmt: str = "json") -> str:
+    response = _export(client, fmt)
+    assert response.status_code == 200, response.text
+    return response.json()["filename"]
+
+
+def _restore(client: TestClient, filename: str):
+    return client.post(
+        f"{routes.CAMPUS_PREFIX}/exports/wipe", json={"restore_filename": filename}
+    )
+
+
+def _profile_count(verifier: store.CampusStore) -> int:
+    try:
+        return verifier.count("exam_profile")
+    finally:
+        verifier.close()
+
+
+def test_i6_restore_round_trips_the_whole_database(exports_dir: Path) -> None:
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    name = _export_name(client)
+    package = json.loads((exports_dir / name).read_text(encoding="utf-8"))
+    response = _restore(client, name)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["wiped"] is True
+    assert body["schema_migration"] is None
+    restored = body["restored"]
+    assert restored["counts_match"] is True
+    assert restored["rows"] == sum(package["row_counts"].values())
+    assert restored["tables"] == package["row_counts"]
+    verifier = harness.verify()
+    for table, count in package["row_counts"].items():
+        assert verifier.count(table) == count, table
+    assert verifier.get_state("active_profile_id") == ACTIVE_ID
+    assert _profile_count(verifier) == 3
+    assert (exports_dir / name).is_file()
+
+
+def test_i6_restore_reports_a_migration_for_an_older_package(
+    monkeypatch: pytest.MonkeyPatch, exports_dir: Path
+) -> None:
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    name = _export_name(client)
+    package = json.loads((exports_dir / name).read_text(encoding="utf-8"))
+    assert package["schema_version"] == 1
+
+    def _fake_v2(conn) -> None:
+        conn.execute("ALTER TABLE app_state ADD COLUMN restore_note TEXT DEFAULT ''")
+
+    monkeypatch.setitem(store._MIGRATIONS, 2, _fake_v2)
+    monkeypatch.setattr(store, "CURRENT_SCHEMA_VERSION", 2)
+    response = _restore(client, name)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["schema_migration"] == {"from": 1, "to": 2}
+    assert body["restored"]["counts_match"] is True
+    verifier = harness.verify()
+    try:
+        assert verifier.current_version() == 2
+        assert verifier.query_one('SELECT "restore_note" FROM "app_state"') is not None
+    finally:
+        verifier.close()
+
+
+def test_i6_restore_refuses_a_newer_package_without_wiping(exports_dir: Path) -> None:
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    name = _export_name(client)
+    package = json.loads((exports_dir / name).read_text(encoding="utf-8"))
+    package["schema_version"] = 99
+    (exports_dir / "future.json").write_text(
+        json.dumps(package, ensure_ascii=False), encoding="utf-8"
+    )
+    response = _restore(client, "future.json")
+    assert response.status_code == 500, response.text
+    assert _detail(response)["code"] == "SCHEMA_VERSION_ERROR"
+    assert _profile_count(harness.verify()) == 3
+    verifier = harness.verify()
+    try:
+        assert verifier.get_state("active_profile_id") == ACTIVE_ID
+    finally:
+        verifier.close()
+
+
+@pytest.mark.parametrize(
+    ("case", "status", "code"),
+    [
+        ("version_zero", 422, "PARSE_ERROR"),
+        ("version_text", 422, "PARSE_ERROR"),
+        ("unknown_table", 422, "PARSE_ERROR"),
+        ("unknown_column", 422, "PARSE_ERROR"),
+        ("missing_id", 422, "PARSE_ERROR"),
+        ("row_not_object", 422, "PARSE_ERROR"),
+        ("tables_missing", 422, "PARSE_ERROR"),
+    ],
+)
+def test_i6_restore_refuses_malformed_packages_without_wiping(
+    exports_dir: Path, case: str, status: int, code: str
+) -> None:
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    name = _export_name(client)
+    package = json.loads((exports_dir / name).read_text(encoding="utf-8"))
+    if case == "version_zero":
+        package["schema_version"] = 0
+    elif case == "version_text":
+        package["schema_version"] = "one"
+    elif case == "unknown_table":
+        package["tables"]["bogus"] = []
+    elif case == "unknown_column":
+        package["tables"]["exam_profile"][0]["ghost"] = 1
+    elif case == "missing_id":
+        del package["tables"]["exam_profile"][0]["id"]
+    elif case == "row_not_object":
+        package["tables"]["exam_profile"] = ["not-a-row"]
+    elif case == "tables_missing":
+        del package["tables"]
+    (exports_dir / "broken.json").write_text(
+        json.dumps(package, ensure_ascii=False), encoding="utf-8"
+    )
+    response = _restore(client, "broken.json")
+    assert response.status_code == status, response.text
+    assert _detail(response)["code"] == code
+    assert _profile_count(harness.verify()) == 3
+
+
+def test_i6_restore_refuses_a_non_json_export(exports_dir: Path) -> None:
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    name = _export_name(client, fmt="md")
+    response = _restore(client, name)
+    assert response.status_code == 422, response.text
+    assert _detail(response)["code"] == "PARSE_ERROR"
+    assert _profile_count(harness.verify()) == 3
+
+
+@pytest.mark.parametrize("filename", ["ghost.json", "../campus.db", "bad\\name.json"])
+def test_i6_restore_needs_an_existing_whitelisted_file(
+    exports_dir: Path, filename: str
+) -> None:
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    response = _restore(client, filename)
+    assert response.status_code == 404, response.text
+    assert _detail(response)["code"] == "EXPORT_NOT_FOUND"
+    assert _profile_count(harness.verify()) == 3
+
+
+def test_i6_bare_wipe_accepts_an_empty_body(exports_dir: Path) -> None:
+    harness = _SoloWipe()
+    client = harness.client()
+    response = client.post(f"{routes.CAMPUS_PREFIX}/exports/wipe", json={})
+    assert response.status_code == 200, response.text
+    assert response.json() == {"wiped": True}
+    assert _profile_count(harness.verify()) == 0

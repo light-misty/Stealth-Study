@@ -1469,17 +1469,98 @@ class CampusService:
             raise CampusError("EXPORT_NOT_FOUND", f"导出文件不存在：{name}")
         return target, EXPORT_MEDIA_TYPES[target.suffix.lstrip(".")]
 
-    def wipe_campus_data(self) -> dict[str, Any]:
-        """Wipe the database and the whole `campus/` tree, I6's `{wiped: true}` (02 §7.1).
+    def wipe_campus_data(self, *, restore_filename: Optional[str] = None) -> dict[str, Any]:
+        """I6 — the 02 §7.1 one-click clear, or the INF-03 restore that rides on it.
 
-        The clear itself is the A10 implementation shared verbatim; I6 is the same operation
-        surfaced where the exports live so a backup cycle (export → wipe → restore) stays on
-        one group of endpoints.
+        Bare (the A10 implementation, `{wiped: true}` per 03 §4.9): the database and the whole
+        `campus/` tree go. With `restore_filename` (07 §2 registers I6 as I4's inverse, 02
+        §7.4), the package is read and fully validated BEFORE anything is destroyed, the wipe
+        rebuilds the schema at the package's own version, the rows replay in one transaction,
+        and `migrate()` walks the result up to the current version — which is how a
+        lower-version package earns its migration notice. `campus/exports/` survives a
+        restore, so the backup being restored from is never destroyed by the restore itself.
         """
-        root = Path(state_dir())
-        self._store.wipe()
-        _remove_tree(root, root / "campus")
-        return {"wiped": True}
+        if restore_filename is None:
+            root = Path(state_dir())
+            self._store.wipe()
+            _remove_tree(root, root / "campus")
+            return {"wiped": True}
+        package = self._load_restore_package(restore_filename)
+        self._store.wipe(target=package["schema_version"])
+        rows_inserted = 0
+        try:
+            with self._store.transaction():
+                for table in EXPORT_TABLE_ORDER:
+                    for row in package["tables"].get(table, ()):
+                        self._store.insert(table, dict(row))
+                        rows_inserted += 1
+        except CampusError:
+            raise
+        except Exception as exc:
+            raise CampusError("PARSE_ERROR", f"恢复写入失败：{exc}") from exc
+        migration: Optional[dict[str, int]] = None
+        if package["schema_version"] < store.CURRENT_SCHEMA_VERSION:
+            migration = {"from": package["schema_version"], "to": self._store.migrate()}
+        counts = {table: self._store.count(table) for table in EXPORT_TABLE_ORDER}
+        recorded = package.get("row_counts")
+        counts_match = recorded == counts if isinstance(recorded, dict) else None
+        _remove_tree(Path(state_dir()), Path(state_dir()) / "campus" / "library")
+        return {
+            "wiped": True,
+            "restored": {"rows": rows_inserted, "tables": counts, "counts_match": counts_match},
+            "schema_migration": migration,
+        }
+
+    def _load_restore_package(self, filename: str) -> dict[str, Any]:
+        """Read and fully validate a restore package before the wipe destroys anything.
+
+        Every refusal here happens while the live database is still untouched, so a bad
+        package can never leave the user with nothing. A package newer than this app answers
+        `SCHEMA_VERSION_ERROR` (03 §6's defensive case); everything malformed — JSON
+        decoding, an unknown table or column, a row without its primary key — answers
+        `PARSE_ERROR`. `schema_meta` itself is refused as a replay table: the version it
+        records travels as the package's `schema_version` field instead.
+        """
+        target, media = self.resolve_export(filename)
+        if media != "application/json":
+            raise CampusError("PARSE_ERROR", "恢复包必须是 json 导出文件")
+        try:
+            payload = json.loads(target.read_text(encoding="utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise CampusError("PARSE_ERROR", f"恢复包不是有效 JSON：{exc}") from exc
+        if not isinstance(payload, dict):
+            raise CampusError("PARSE_ERROR", "恢复包必须是 JSON 对象")
+        version = payload.get("schema_version")
+        if isinstance(version, bool) or not isinstance(version, int) or version < 1:
+            raise CampusError("PARSE_ERROR", f"恢复包缺少有效的 schema_version：{version!r}")
+        if version > store.CURRENT_SCHEMA_VERSION:
+            raise CampusError(
+                "SCHEMA_VERSION_ERROR",
+                f"恢复包 schema v{version} 新于当前应用 v{store.CURRENT_SCHEMA_VERSION}，"
+                "请先升级应用再恢复",
+            )
+        tables = payload.get("tables")
+        if not isinstance(tables, dict):
+            raise CampusError("PARSE_ERROR", "恢复包缺少 tables 行集")
+        for name, rows in tables.items():
+            if name not in models.ROW_MODELS or name == "schema_meta":
+                raise CampusError("PARSE_ERROR", f"恢复包含未知表：{name}")
+            columns = models.TABLE_COLUMNS[name]
+            if not isinstance(rows, list):
+                raise CampusError("PARSE_ERROR", f"{name} 的行集必须是数组")
+            for row in rows:
+                if not isinstance(row, dict):
+                    raise CampusError("PARSE_ERROR", f"{name} 存在非对象行")
+                unknown = sorted(set(row) - set(columns))
+                if unknown:
+                    raise CampusError("PARSE_ERROR", f"{name} 存在未知列：{unknown}")
+                if "id" in columns and not row.get("id"):
+                    raise CampusError("PARSE_ERROR", f"{name} 存在缺少 id 的行")
+        return {
+            "schema_version": version,
+            "tables": tables,
+            "row_counts": payload.get("row_counts"),
+        }
 
     def _export_stamp(self) -> str:
         return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

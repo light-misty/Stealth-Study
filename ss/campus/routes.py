@@ -801,6 +801,16 @@ class ExportCreate(BaseModel):
     format: Literal["md", "json", "csv"]
 
 
+class WipeRequest(BaseModel):
+    """I6 body (03 §4.9): absent or empty for the bare wipe of 02 §7.1; `restore_filename`
+    (T14, INF-03 — I6 as I4's inverse per 07 §2) restores the named json backup package
+    right after the wipe instead of leaving an empty database behind."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    restore_filename: Optional[str] = Field(default=None, min_length=1, max_length=128)
+
+
 def build_campus_router(manager: Any) -> APIRouter:
     """Build the router that `create_app()` mounts under `/v1/campus` (03 §2).
 
@@ -1541,8 +1551,9 @@ def build_campus_router(manager: Any) -> APIRouter:
         return FileResponse(target, media_type=media, filename=target.name)
 
     @router.post("/exports/wipe")
-    def campus_wipe_exports() -> dict[str, Any]:
-        """I6 — the 02 §7.1 one-click clear: drop `campus.db` and the `campus/` tree."""
-        return _call(campus_service.wipe_campus_data)
+    def campus_wipe_exports(body: Optional[WipeRequest] = None) -> dict[str, Any]:
+        """I6 — bare `{wiped: true}` clear, or wipe-then-restore for a named backup package."""
+        restore = body.restore_filename if body is not None else None
+        return _call(campus_service.wipe_campus_data, restore_filename=restore)
 
     return router
