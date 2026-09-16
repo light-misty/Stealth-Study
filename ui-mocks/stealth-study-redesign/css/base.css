@@ -1,0 +1,117 @@
+/* ============================================================================
+   base.css · 重置、应用外壳与通用原语
+   ----------------------------------------------------------------------------
+   外壳严格按设计稿的 1280 × 800 固定排版，再由 js/app.js 整体等比缩放到
+   铺满视口 —— 圆角、间距、字号的比例因此不会走形。
+   ============================================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: linear-gradient(160deg, var(--stage-a), var(--stage-b));
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ---------------------------------------------------------------- 图标 */
+/* 线性图标：1.7px 描边、圆头圆角，取自画布组件母版 3:59「图标集」 */
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.ic {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex: none;
+  color: var(--icon);
+  transition: color .15s;
+}
+.ic.sw19 { stroke-width: 1.9; }
+.ic.sw22 { stroke-width: 2.2; }
+.ic.sw26 { stroke-width: 2.6; }
+
+/* ------------------------------------------------------------ 舞台与设备 */
+.stage { position: fixed; inset: 0; }
+
+.device {
+  position: absolute; top: 0; left: 0;
+  width: 1280px; height: 800px;          /* 设计稿原始画布 */
+  transform-origin: top left;
+  display: flex;
+  background: var(--bg-canvas);
+  border-radius: var(--r-16);
+  overflow: hidden;
+  /* 描边环 + 投影，等价于画布根节点的 stroke + drop shadow */
+  box-shadow: var(--ring), var(--shadow-device);
+  transition: background .28s ease;
+}
+
+/* --------------------------------------------------------------- 主区外壳 */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.view { flex: 1; min-height: 0; display: none; }
+.view.is-on { display: flex; }
+
+/* ------------------------------------------------------------- 通用原语 */
+.divider { height: 1px; flex: none; background: var(--divider); }
+
+/* 图标底：彩色方块 + 居中图标 */
+.ib { width: 32px; height: 32px; border-radius: var(--r-10); flex: none; display: grid; place-items: center; }
+.ib--accent  { background: var(--accent-soft); }
+.ib--brand   { background: var(--brand-soft); }
+.ib--success { background: var(--success-soft); }
+
+/* 图标按钮 */
+.icon-btn {
+  width: 26px; height: 26px; border: 0; border-radius: var(--r-8);
+  background: transparent; display: grid; place-items: center;
+  cursor: pointer; transition: background .14s ease;
+}
+.icon-btn:hover { background: var(--surface-sunken); }
+.icon-btn--lg { width: 28px; height: 28px; }
+
+/* 胶囊（只读 / 可点击两种） */
+.chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border: 0; border-radius: var(--r-8);
+  background: var(--surface-sunken);
+  font-family: inherit; font-size: 11.5px; line-height: 17px; color: var(--ink-2);
+  white-space: nowrap;
+}
+button.chip { cursor: pointer; transition: background .14s ease; }
+button.chip:hover { background: var(--border-strong); }
+
+/* 状态胶囊：一个小圆点 + 文案 */
+.chip--status { gap: 6px; }
+.chip--status .dot {
+  width: 6px; height: 6px; border-radius: 3px; flex: none;
+  background: var(--accent); transition: background .2s ease;
+}
+.chip--status.is-ready .dot { background: var(--success); }
+
+/* 圆形主行动（发送） */
+.send {
+  width: 30px; height: 30px; border: 0; border-radius: 15px;
+  background: var(--accent); display: grid; place-items: center;
+  cursor: pointer; flex: none;
+  transition: filter .14s ease, transform .06s ease;
+}
+.send:hover  { filter: brightness(1.05); }
+.send:active { transform: scale(.94); }
+.send .ic    { color: var(--ink-on-accent); }
+
+/* ------------------------------------------------------------ 布局工具类
+   设计稿里的「弹性留白」是 layoutGrow=1 的空白 frame，对应 flex:1；
+   固定高度的留白是具名块，对应下面几个固定高工具类。            */
+.fl { flex: 1; min-height: 0; }
+.gap-8 { height: 8px; flex: none; }
+.h9  { height: 9px;  flex: none; }
+.h12 { height: 12px; flex: none; }
+.h18 { height: 18px; flex: none; }
+.h28 { height: 28px; flex: none; }
