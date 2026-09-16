@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import tempfile
 from contextvars import ContextVar
 from datetime import datetime
@@ -31,11 +32,20 @@ _RECORD_FMT = (
 )
 _DATEFMT = "%Y-%m-%d %H:%M:%S"
 
+# 前端日志允许的级别白名单（与前端 console 映射一致）
+_FRONTEND_LEVELS = {"DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+
+# 单次上传允许的最大日志条数
+_MAX_FRONTEND_BATCH = 10000
+
 # 大小轮转默认阈值：50MB
 _DEFAULT_MAX_BYTES = 50 * 1024 * 1024
 
 # 本模块安装到根 logger 的 handler，供重复配置时清理（幂等）
 _installed_handlers: list[logging.Handler] = []
+
+# 独立的 frontend 文件 handler：不挂到根 logger，仅由 write_frontend_logs 使用
+_frontend: DailyRotatingSizeHandler | None = None
 
 
 class _ContextFilter(logging.Filter):
@@ -114,6 +124,30 @@ class DailyRotatingSizeHandler(RotatingFileHandler):
             except OSError:
                 pass
 
+    def write_line(self, text: str) -> bool:
+        """直接写入一行文本（自动补换行），并按大小/跨日规则轮转。
+
+        供前端日志等非标准 logging 记录使用；返回本次写入是否触发了
+        大小轮转，便于端点感知归档动作。
+        """
+        with self.lock:
+            today = self._now().date()
+            if today != self._file_date:
+                self._roll_to_new_day(today)
+            if self.stream is None:
+                self.stream = self._open()
+            line = text if text.endswith("\n") else text + "\n"
+            rotated = False
+            if (
+                self.maxBytes > 0
+                and self.stream.tell() + len(line.encode("utf-8")) > self.maxBytes
+            ):
+                self.doRollover()
+                rotated = True
+            self.stream.write(line)
+            self.stream.flush()
+            return rotated
+
 
 def _parse_level(level: int | str) -> int:
     """将整数或字符串级别（如 DEBUG/INFO/WARN/ERROR/FATAL）解析为 logging 级别。"""
@@ -160,8 +194,9 @@ def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") ->
     fmt = logging.Formatter(_RECORD_FMT, datefmt=_DATEFMT)
     root = logging.getLogger()
     root.setLevel(level)
-    # 先移除本模块先前安装的 handler，保证重复调用不叠加
+    # 先关闭并移除本模块先前安装的 handler，保证重复调用不叠加也不占文件句柄
     for handler in _installed_handlers:
+        handler.close()
         if handler in root.handlers:
             root.removeHandler(handler)
     _installed_handlers.clear()
@@ -178,9 +213,14 @@ def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") ->
     console.setFormatter(fmt)
     console.addFilter(_ContextFilter())
 
+    global _frontend
+    _frontend = DailyRotatingSizeHandler(
+        "frontend", log_dir, max_bytes=max_bytes, backup_count=backup_count, keep_files=keep_files
+    )
+
     root.addHandler(console)
     root.addHandler(backend)
-    _installed_handlers.extend([console, backend])
+    _installed_handlers.extend([console, backend, _frontend])
 
     # 关键第三方 logger 保持统一级别与格式：清掉自带 handler，交由根 logger 输出
     for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx", "httpcore"):
@@ -193,6 +233,7 @@ def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") ->
         "log_dir": str(log_dir),
         "backend_handler": backend,
         "console_handler": console,
+        "frontend_handler": _frontend,
         "level": level,
     }
 
@@ -200,3 +241,67 @@ def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") ->
 def get_logger(name: str) -> logging.Logger:
     """获取统一配置下的命名日志器。"""
     return logging.getLogger(name)
+
+
+def _normalize_ts(value: object) -> str | None:
+    """将前端上传的时间戳归一化为 "YYYY-MM-DD HH:MM:SS,mmm"。
+
+    支持已规范化的行前缀格式与 ISO 8601（Python 3.10 的 fromisoformat 不识别
+    Z 结尾，先替换为 +00:00）；无法解析时返回 None 表示该条目跳过。
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    match = re.match(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}", text)
+    if match:
+        return match.group(0)
+    try:
+        dt = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return dt.strftime("%Y-%m-%d %H:%M:%S,") + f"{dt.microsecond // 1000:03d}"
+
+
+def write_frontend_logs(entries: object) -> tuple[int, int, bool]:
+    """校验并写入前端日志条目到 frontend 文件，返回 (accepted, skipped, rotated)。
+
+    条目结构：{"ts": 时间戳字符串, "level": 白名单级别, "message": 消息, "stack": 可选栈}。
+    非法条目跳过并计数；一次上传超过 _MAX_FRONTEND_BATCH 条时截断并计入跳过。
+    """
+    handler = _frontend
+    if handler is None:
+        # 日志尚未初始化时整体视为跳过
+        return 0, len(entries) if isinstance(entries, list) else 0, False
+    if not isinstance(entries, list):
+        return 0, 0, False
+    if len(entries) > _MAX_FRONTEND_BATCH:
+        skipped_extra = len(entries) - _MAX_FRONTEND_BATCH
+        entries = entries[:_MAX_FRONTEND_BATCH]
+    else:
+        skipped_extra = 0
+
+    accepted = 0
+    skipped = skipped_extra
+    rotated_flag = False
+    for entry in entries:
+        if not isinstance(entry, dict):
+            skipped += 1
+            continue
+        ts = _normalize_ts(entry.get("ts"))
+        level = str(entry.get("level", "")).upper()
+        message = entry.get("message")
+        if (
+            ts is None
+            or level not in _FRONTEND_LEVELS
+            or not isinstance(message, str)
+            or not message.strip()
+        ):
+            skipped += 1
+            continue
+        line = f"{ts} [{level}] {message}"
+        stack = entry.get("stack")
+        if isinstance(stack, str) and stack.strip():
+            line += "\n" + stack
+        rotated_flag = handler.write_line(line) or rotated_flag
+        accepted += 1
+    return accepted, skipped, rotated_flag

@@ -159,7 +159,7 @@ from ..attachments import (
 )
 from ..engine import ApprovalOutcome
 from ..inbox import VIS_INBOX, VIS_INLINE
-from ..logging_setup import request_id_var, user_id_var
+from ..logging_setup import request_id_var, user_id_var, write_frontend_logs
 from ..permissions import Mode
 from ..providers import AssistantTurn
 from .. import toolchain
@@ -280,6 +280,14 @@ def create_app(manager: SessionManager) -> FastAPI:
     @app.get("/v1/agents")
     def agents() -> dict[str, Any]:
         return {"agents": manager.list_agents()}
+
+    @app.post("/v1/logs/frontend")
+    def ingest_frontend_logs(payload: dict[str, Any]) -> dict[str, Any]:
+        # 前端日志批量上传：校验并写入 log/frontend_*.log，非法条目跳过并计数。
+        # 该路径走既有 token 认证（未列入 tokenless_paths）。
+        entries = payload.get("logs")
+        accepted, skipped, rotated = write_frontend_logs(entries)
+        return {"accepted": accepted, "skipped": skipped, "rotated": rotated}
 
     @app.get("/v1/personas")
     def personas() -> dict[str, Any]:
