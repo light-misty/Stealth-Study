@@ -187,4 +187,23 @@ describe("campus api transport", () => {
     expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/mock-exams/m1/stage");
     expect(JSON.parse(String(calls[0].init.body))).toEqual({ to: "listening" });
   });
+
+  it("patches the assessment draft with the profile guard field the backend requires", async () => {
+    const calls = installFetch(200, { id: "a1", status: "draft" });
+    await api.patchAssessment("a1", "p1", { q1: "A", q2: "" });
+    expect(calls[0].init.method).toBe("PATCH");
+    expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/assessments/a1");
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({
+      profile_id: "p1",
+      answers: { q1: "A", q2: "" },
+    });
+  });
+
+  it("reports the paused seconds on the pause call (backend MockPause body)", async () => {
+    const calls = installFetch(200, { id: "m1" });
+    await api.pauseMockExam("m1", 90);
+    expect(calls[0].init.method).toBe("POST");
+    expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/mock-exams/m1/pause");
+    expect(JSON.parse(String(calls[0].init.body))).toEqual({ seconds: 90 });
+  });
 });
