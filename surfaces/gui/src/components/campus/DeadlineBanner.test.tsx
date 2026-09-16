@@ -71,4 +71,42 @@ describe("DeadlineBanner", () => {
     expect(row.textContent).not.toContain("admission_ticket");
     expect(row.textContent).not.toMatch(/^campus\./);
   });
+
+  it("carries the backend deadline_snapshot tier on each row", () => {
+    render(
+      <DeadlineBanner
+        views={[view({ id: "d1", days_left: 14, tier: "d30" }), view({ id: "d2", days_left: 3, tier: "d7" })]}
+      />,
+    );
+    const rows = screen.getAllByTestId("campus-deadline-row");
+    expect(rows.map((r) => r.getAttribute("data-tier"))).toEqual(["d30", "d7"]);
+  });
+
+  it("derives the tier from days_left when the snapshot omits it", () => {
+    render(
+      <DeadlineBanner
+        views={[view({ id: "d1", days_left: 1 }), view({ id: "d2", days_left: 45 })]}
+      />,
+    );
+    const rows = screen.getAllByTestId("campus-deadline-row");
+    expect(rows.map((r) => r.getAttribute("data-tier"))).toEqual(["d1", "normal"]);
+  });
+
+  it("grades the three bands visually, strongest at D-1", () => {
+    render(
+      <DeadlineBanner
+        views={[
+          view({ id: "d1", days_left: 1, tier: "d1" }),
+          view({ id: "d2", days_left: 5, tier: "d7" }),
+          view({ id: "d3", days_left: 60, tier: "normal" }),
+        ]}
+      />,
+    );
+    const rows = screen.getAllByTestId("campus-deadline-row");
+    const byTier = new Map(rows.map((r) => [r.getAttribute("data-tier"), r.className]));
+    expect(byTier.size).toBe(3);
+    expect(byTier.get("d1")).toContain("font-semibold");
+    expect(byTier.get("d7")).not.toEqual(byTier.get("normal"));
+    expect(byTier.get("d1")).not.toEqual(byTier.get("d7"));
+  });
 });
