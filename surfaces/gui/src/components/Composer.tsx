@@ -767,18 +767,25 @@ export function Composer(props: Props) {
             </button>
           ) : (
             <button
-              className={
-                "w-8 h-8 rounded-full grid place-items-center shrink-0 transition-all " +
-                (hasContent && props.connected && !dictation?.recording && !dictationBusy
-                  ? "bg-ink text-white hover:brightness-90 active:scale-95"
-                  : "bg-paper border border-line text-faint")
-              }
+              style={{
+                width: "30px",
+                height: "30px",
+                borderRadius: "50%",
+                display: "grid",
+                placeItems: "center",
+                flexShrink: 0,
+                transition: "filter .14s ease, transform .06s ease",
+                background: hasContent ? "#17191c" : "#f5f6f7",
+                border: hasContent ? "none" : "1px solid #e8eaed",
+                color: hasContent ? "#ffffff" : "#6f7680",
+                cursor: "pointer",
+              }}
               onClick={submit}
               disabled={!props.connected || !!dictation?.recording || !!dictationBusy}
               title={needsModel ? t("composer.connect_to_send") : undefined}
               aria-label={t("common.send")}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="12" y1="19" x2="12" y2="6" />
                 <polyline points="6 12 12 6 18 12" />
               </svg>

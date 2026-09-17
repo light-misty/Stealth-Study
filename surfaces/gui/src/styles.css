@@ -1348,7 +1348,7 @@ button.btn.ghost:hover { color: var(--ink); }
 }
 .ob-skipwarn-actions { display: flex; gap: 8px; }
 
-/* ---- Attachments ----------------------------------------------------------- */
+/* ---- Composer send button --------------------------------------------------- */
 .composer:focus-within { box-shadow: 0 0 0 1px var(--ink), 0 6px 16px -8px rgba(0, 0, 0, 0.12); }
 .composer.dragging { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .attach-chip {
