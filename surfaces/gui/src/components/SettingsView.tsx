@@ -455,32 +455,65 @@ function AppearanceSection() {
     <section>
       <PanelHead title={t("settings.general_title")} sub={t("settings.general_sub")} />
 
-      <div className={CARD + " p-4 mb-4"}>
-        <div className={FIELD_LABEL}>{t("settings.theme")}</div>
-        <div className="seg mt-2.5" role="radiogroup" aria-label={t("settings.appearance_aria")}>
-          {(["light", "dark", "auto"] as const).map((p) => (
-            <button key={p} className={p === theme ? "active" : ""} onClick={() => setTheme(p)}>
-              {p === "light" ? t("settings.theme_light") : p === "dark" ? t("settings.theme_dark") : t("settings.theme_auto")}
-            </button>
-          ))}
+      {/* 设置纸页面板：整张纸页 + 细分隔线 + 彩色图标行 —— 对齐 stealth-study-redesign 设置·通用 */}
+      <div className="set-panel mb-4">
+        {/* 行 · 主题 */}
+        <div className="set-row">
+          <span className="ib ib--accent">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="4.2" />
+              <line x1="12" y1="2" x2="12" y2="4" />
+              <line x1="12" y1="20" x2="12" y2="22" />
+              <line x1="4.2" y1="4.2" x2="5.6" y2="5.6" />
+              <line x1="18.4" y1="18.4" x2="19.8" y2="19.8" />
+              <line x1="2" y1="12" x2="4" y2="12" />
+              <line x1="20" y1="12" x2="22" y2="12" />
+              <line x1="4.2" y1="19.8" x2="5.6" y2="18.4" />
+              <line x1="18.4" y1="5.6" x2="19.8" y2="4.2" />
+            </svg>
+          </span>
+          <div className="set-text">
+            <span className="set-title">{t("settings.theme")}</span>
+            <span className="set-desc">{t("settings.theme_auto_help")}</span>
+          </div>
+          <div className="set-ctl">
+            <div className="seg" role="radiogroup" aria-label={t("settings.appearance_aria")}>
+              {(["light", "dark", "auto"] as const).map((p) => (
+                <button key={p} className={p === theme ? "active" : ""} onClick={() => setTheme(p)}>
+                  {p === "light" ? t("settings.theme_light") : p === "dark" ? t("settings.theme_dark") : t("settings.theme_auto")}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className={FIELD_HELP}>{t("settings.theme_auto_help")}</div>
-      </div>
 
-      <div className={CARD + " p-4 mb-4"}>
-        <div className={FIELD_LABEL}>{t("settings.language")}</div>
-        <div className="seg mt-2.5" role="radiogroup" aria-label={t("settings.language_aria")}>
-          {(["system", "en", "zh"] as const).map((lng) => (
-            <button
-              key={lng}
-              className={lng === currentLang ? "active" : ""}
-              onClick={() => changeLang(lng)}
-            >
-              {lng === "zh" ? t("settings.language_zh") : lng === "en" ? t("settings.language_en") : t("settings.language_system")}
-            </button>
-          ))}
+        {/* 行 · 语言 */}
+        <div className="set-row">
+          <span className="ib ib--brand">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <path d="M12 3c2.6 2.4 4 5.6 4 9s-1.4 6.6-4 9c-2.6-2.4-4-5.6-4-9s1.4-6.6 4-9z" />
+            </svg>
+          </span>
+          <div className="set-text">
+            <span className="set-title">{t("settings.language")}</span>
+            <span className="set-desc">{t("settings.language_help")}</span>
+          </div>
+          <div className="set-ctl">
+            <div className="seg" role="radiogroup" aria-label={t("settings.language_aria")}>
+              {(["system", "en", "zh"] as const).map((lng) => (
+                <button
+                  key={lng}
+                  className={lng === currentLang ? "active" : ""}
+                  onClick={() => changeLang(lng)}
+                >
+                  {lng === "zh" ? t("settings.language_zh") : lng === "en" ? t("settings.language_en") : t("settings.language_system")}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className={FIELD_HELP}>{t("settings.language_help")}</div>
       </div>
 
       <SidebarCard />
