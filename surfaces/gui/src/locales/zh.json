@@ -86,8 +86,11 @@
     "settings": {
       "title": "备考台设置",
       "daily_minutes": "每日学习时长",
+      "daily_minutes_help": "设定每日预计学习时长，用于安排复习计划与进度统计",
       "push_time": "推送时间",
+      "push_time_help": "设置每日复习提醒的推送时间",
       "review_intensity": "复习强度",
+      "review_intensity_help": "调节复习计划的强度档位，影响每日题量与复习节奏",
       "intensity_light": "轻量",
       "intensity_standard": "标准",
       "intensity_intense": "高强度",
