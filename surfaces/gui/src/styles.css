@@ -838,40 +838,41 @@ button.btn.danger { color: var(--accent); }
 .addfolder-actions .spacer { flex: 1; }
 
 /* Cowork session start panel */
-.intro { max-width: 640px; margin: 0 auto; padding: 40px 20px 24px; }
-.intro .greeting { font-size: 26px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.intro .greeting .mark { color: var(--accent); }
-.intro-lede { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+/* Cowork 空态（对齐 stealth-study-redesign 新建会话）：居中的吉祥物徽章 + 主标题 + 说明 +
+   三张任务卡（卡片 + 彩色图标 tile + 标题/说明 + 右侧 CTA）。连接器点位保留在 sub 行（§23 词汇）。
+   Ready 行 hover 提亮；Gated 行 "Configure ›" 常显——设置动作本身即是这行的意义。 */
+.intro {
+  max-width: 620px; margin: 0 auto; padding: 40px 20px 24px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.intro-mascot {
+  width: 76px; height: 76px; border-radius: 24px; flex: none;
+  display: grid; place-items: center; overflow: hidden;
+  background: var(--brand-soft);
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.18);
+}
+.intro-mascot img { width: 44px; height: 44px; display: block; }
+.intro .greeting { margin: 22px 0 0; font-family: var(--sans); font-size: 26px; font-weight: 700; line-height: 36px; }
+.intro .greeting .mark { color: var(--accent); margin-right: 8px; }
+.intro-lede { color: var(--muted); font-size: 12.5px; line-height: 19px; margin: 8px 0 0; }
 
-/* Template tasks on the Cowork start screen (§27): flat hairline rows, no icon tiles — the
-   title is the row. Connector dots on the sub-line (brand color = live for this session,
-   grayscale = not; §23's vocabulary); sub-line copy is the task's OUTCOME, never connection
-   state. Ready row: hover colors the title and reveals the action. Gated row: "Configure ›"
-   stays visible at rest — the setup action IS the row's meaning. Staggered entrance. */
-.intro-tasks { margin-top: 30px; display: flex; flex-direction: column; }
+.intro-tasks { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .task-card {
   display: flex; align-items: center; gap: 14px;
   width: 100%; text-align: left; cursor: pointer;
-  padding: 13px 6px;
-  background: none; border: none; border-top: 1px solid var(--line);
+  padding: 14px 16px; border-radius: 14px;
+  background: var(--panel); border: 1px solid var(--line);
   font: inherit; color: var(--ink);
-  opacity: 0; transform: translateY(4px);
-  animation: task-rise 0.35s ease forwards;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
-.task-card:nth-of-type(1) { animation-delay: 0.10s; }
-.task-card:nth-of-type(2) { animation-delay: 0.22s; }
-.task-card:nth-of-type(3) { animation-delay: 0.34s; }
-@keyframes task-rise { to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .task-card { animation: none; opacity: 1; transform: none; }
-}
-.task-card:first-child { border-top: none; }
+.task-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.16); }
+.task-card .ib { width: 30px; height: 30px; border-radius: 9px; }
 .task-card-body { flex: 1; min-width: 0; }
-.task-card-title { display: block; font-size: 14px; transition: color 0.12s; }
+.task-card-title { display: block; font-size: 13px; font-weight: 500; transition: color 0.12s; }
 .task-card:hover .task-card-title { color: var(--accent); }
 .task-card-sub {
   display: flex; align-items: center; gap: 7px;
-  font-size: 13px; color: var(--faint); margin-top: 3px;
+  font-size: 11.5px; line-height: 17px; color: var(--faint); margin-top: 3px;
 }
 .task-dot {
   width: 18px; height: 18px; border-radius: 50%; flex: none;
@@ -880,12 +881,9 @@ button.btn.danger { color: var(--accent); }
 }
 .task-dot + .task-dot { margin-left: -4px; }
 .task-dot.off { filter: grayscale(1); opacity: 0.7; }
-.task-card-act {
-  color: var(--faint); font-size: 13px; flex: none;
-  opacity: 0; transition: opacity 0.12s;
-}
-.task-card:hover .task-card-act { opacity: 1; color: var(--accent); }
-.task-card.gated .task-card-act { opacity: 1; color: var(--accent); }
+.task-card-act { color: var(--faint); font-size: 12px; font-weight: 500; flex: none; }
+.task-card:hover .task-card-act { color: var(--accent); }
+.task-card.gated .task-card-act { color: var(--accent); }
 
 /* Topbar "Artifacts (N)" affordance, shown when the side panel is hidden */
 .topbar-artifacts-btn {
@@ -1349,6 +1347,7 @@ button.btn.ghost:hover { color: var(--ink); }
 .ob-skipwarn-actions { display: flex; gap: 8px; }
 
 /* ---- Attachments ----------------------------------------------------------- */
+.composer:focus-within { box-shadow: 0 0 0 2px var(--ink), 0 10px 24px -12px rgba(0, 0, 0, 0.2); }
 .composer.dragging { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .attach-chip {
   position: relative; display: inline-flex; align-items: center; gap: 6px;

@@ -6,6 +6,7 @@ import { ConnectorIcon } from "../connectors/ConnectorIcon";
 import { indexConnectors, visualFor, type ConnectorMap } from "../connectors/visuals";
 import { useRoots } from "../useRoots";
 import { AddFolderForm } from "./AddFolderForm";
+import glyph from "../../assets/icon.png";
 
 // Empty-state for a fresh Cowork session (§27): a greeting, exactly three concrete template
 // tasks, and the composer — nothing else. Each task carries its own setup: no icon tiles (the
@@ -65,6 +66,9 @@ export function SessionIntro({
 
   return (
     <div className="intro">
+      <div className="intro-mascot">
+        <img src={glyph} alt="" />
+      </div>
       <h1 className="greeting">
         <span className="mark">✦</span> {t("intro.greeting")}
       </h1>
@@ -72,6 +76,9 @@ export function SessionIntro({
 
       <div className="intro-tasks">
         <button className="task-card" data-testid="intro-task-folder" onClick={pickFolder}>
+          <span className="ib ib--brand">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" /></svg>
+          </span>
           <span className="task-card-body">
             <span className="task-card-title">{t("intro.task_folder_title")}</span>
             <span className="task-card-sub">{t("intro.task_folder_sub")}</span>
@@ -99,6 +106,9 @@ export function SessionIntro({
           data-testid="intro-task-hubspot"
           onClick={() => (hubspotReady ? onPrefill(t(HUBSPOT_PROMPT_KEY)) : onOpenSessionSettings())}
         >
+          <span className="ib ib--accent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>
+          </span>
           <span className="task-card-body">
             <span className="task-card-title">{t("intro.task_hubspot_title")}</span>
             <span className="task-card-sub">
@@ -116,6 +126,9 @@ export function SessionIntro({
           data-testid="intro-task-github-slack"
           onClick={() => (ghSlackReady ? onPrefill(t(GH_SLACK_PROMPT_KEY)) : onOpenSessionSettings())}
         >
+          <span className="ib ib--brand">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>
+          </span>
           <span className="task-card-body">
             <span className="task-card-title">{t("intro.task_ghslack_title")}</span>
             <span className="task-card-sub">
