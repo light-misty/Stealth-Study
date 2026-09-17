@@ -6,7 +6,7 @@ import { ConnectorIcon } from "../connectors/ConnectorIcon";
 import { indexConnectors, visualFor, type ConnectorMap } from "../connectors/visuals";
 import { useRoots } from "../useRoots";
 import { AddFolderForm } from "./AddFolderForm";
-import glyph from "../../assets/icon.png";
+import mascot from "../../assets/mascot.png";
 
 // Empty-state for a fresh Cowork session (§27): a greeting, exactly three concrete template
 // tasks, and the composer — nothing else. Each task carries its own setup: no icon tiles (the
@@ -66,12 +66,12 @@ export function SessionIntro({
 
   return (
     <div className="intro">
-      <div className="intro-mascot">
-        <img src={glyph} alt="" />
+      <div className="intro-head">
+        <div className="intro-mascot">
+          <img src={mascot} alt="" />
+        </div>
+        <h1 className="greeting">{t("intro.greeting")}</h1>
       </div>
-      <h1 className="greeting">
-        <span className="mark">✦</span> {t("intro.greeting")}
-      </h1>
       <p className="intro-lede">{t("intro.lede")}</p>
 
       <div className="intro-tasks">

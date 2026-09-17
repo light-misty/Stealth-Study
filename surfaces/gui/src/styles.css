@@ -845,27 +845,29 @@ button.btn.danger { color: var(--accent); }
   max-width: 620px; margin: 0 auto; padding: 40px 20px 24px;
   display: flex; flex-direction: column; align-items: center;
 }
-.intro-mascot {
-  width: 76px; height: 76px; border-radius: 24px; flex: none;
-  display: grid; place-items: center; overflow: hidden;
-  background: var(--brand-soft);
-  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.18);
+.intro-head {
+  display: flex; align-items: center; gap: 14px;
+  margin: 22px 0 0; flex: none;
 }
-.intro-mascot img { width: 44px; height: 44px; display: block; }
-.intro .greeting { margin: 22px 0 0; font-family: var(--sans); font-size: 26px; font-weight: 700; line-height: 36px; }
-.intro .greeting .mark { color: var(--accent); margin-right: 8px; }
+.intro-mascot {
+  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; overflow: hidden;
+}
+.intro-mascot img { width: 36px; height: 36px; display: block; }
+.intro .greeting { font-family: var(--sans); font-size: 26px; font-weight: 700; line-height: 36px; margin: 0; }
 .intro-lede { color: var(--muted); font-size: 12.5px; line-height: 19px; margin: 8px 0 0; }
 
 .intro-tasks { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .task-card {
   display: flex; align-items: center; gap: 14px;
   width: 100%; text-align: left; cursor: pointer;
-  padding: 14px 16px; border-radius: 14px;
-  background: var(--panel); border: 1px solid var(--line);
+  padding: 11px 16px; border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04);
   font: inherit; color: var(--ink);
   transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
-.task-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(0, 0, 0, 0.16); }
+.task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.14); }
 .task-card .ib { width: 30px; height: 30px; border-radius: 9px; }
 .task-card-body { flex: 1; min-width: 0; }
 .task-card-title { display: block; font-size: 13px; font-weight: 500; transition: color 0.12s; }
@@ -1347,7 +1349,7 @@ button.btn.ghost:hover { color: var(--ink); }
 .ob-skipwarn-actions { display: flex; gap: 8px; }
 
 /* ---- Attachments ----------------------------------------------------------- */
-.composer:focus-within { box-shadow: 0 0 0 2px var(--ink), 0 10px 24px -12px rgba(0, 0, 0, 0.2); }
+.composer:focus-within { box-shadow: 0 0 0 1px var(--ink), 0 6px 16px -8px rgba(0, 0, 0, 0.12); }
 .composer.dragging { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .attach-chip {
   position: relative; display: inline-flex; align-items: center; gap: 6px;
