@@ -733,17 +733,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ss-stt"
-version = "0.1.0"
-dependencies = [
- "cpal",
- "serde",
- "sha2",
- "ureq",
- "whisper-rs",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -994,6 +983,17 @@ name = "smallvec"
 version = "1.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90"
+
+[[package]]
+name = "ss-stt"
+version = "0.1.0"
+dependencies = [
+ "cpal",
+ "serde",
+ "sha2",
+ "ureq",
+ "whisper-rs",
+]
 
 [[package]]
 name = "stable_deref_trait"
