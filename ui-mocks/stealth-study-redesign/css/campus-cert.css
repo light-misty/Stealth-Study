@@ -1,0 +1,98 @@
+/* ============================================================================
+   campus-cert.css · 证书备考台的三个业务模块
+   ----------------------------------------------------------------------------
+   对应 surfaces/gui/src/components/campus/cert/：
+     KnowledgeTreePanel / SubjectiveGradingPanel / CertExamSetup
+
+   ── 这一屏的设计命题 ──────────────────────────────────────────────────
+   证书台的主语是**一棵树**：知识点分三层，掌握度挂在节点上，覆盖率是这棵树
+   被点亮的比例。所以三个模块的关系是「树 → 树上最薄的一枝去刷题 → 刷题的
+   主观题去批改」，而考试节点是一条与学习无关、但会决定节奏的外部时间线。
+   因此这里把两件事分开表达：
+     覆盖率 / 薄弱 TOP5  → 学习侧，走绿-黄-红的掌握度语义
+     报名 / 缴费 / 准考证 → 事务侧，走 warn-danger 的临期语义
+   两套语义不互相借用，避免「节点临期」被误读成「知识点没掌握」。
+
+   ── 与真实实现的差异（有意为之）───────────────────────────────────────
+   · 树的层级在真实实现里硬上限 3 层（depth < 3 才给「添加子节点」），
+     原型同样只在第 3 层收起这个入口，不做一个点了没反应的按钮。
+   · 掌握度在真实实现里是「三个显式按钮 + 一行点阵」，逐行铺开很吵。
+     这里压成一组三点Picker，当前档位旁边始终跟着文字 —— 满足 PRD §7.4
+     「颜色之外必须还有文字」的要求，同时把每行高度压回可读密度。
+   · 节点行的 data-tier 在真实实现里挂了但没上色，这里按 DeadlineBanner
+     已有的分档（30/7/1/当天/逾期）统一上色，两处不再各说各话。
+   ============================================================================ */
+
+/* ============================================================== 知识点树 == */
+.tree { display: flex; flex-direction: column; }
+.tnode {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: var(--r-9);
+  /* 缩进走 --d（层数），与真实实现按 depth 累加缩进的做法一一对应。
+     这里用 margin-left 而不是 padding-left：hover 底色从缩进处起，
+     层级边界才看得见；负右边距会把行顶出 .fill 的可视宽度，不用。 */
+  margin-left: calc((var(--d, 1) - 1) * 16px);
+  transition: background .14s ease;
+}
+.tnode:hover { background: var(--surface-sunken); }
+.tnode-tw {
+  width: 18px; height: 18px; flex: none; padding: 0;
+  border: 0; border-radius: var(--r-5); background: transparent;
+  display: grid; place-items: center; cursor: pointer; color: var(--ink-3);
+  transition: background .14s ease, color .14s ease;
+}
+.tnode-tw:hover { background: var(--border-strong); color: var(--ink); }
+.tnode-tw:focus-visible { outline: none; box-shadow: var(--focus); }
+.tnode-tw--leaf { visibility: hidden; }
+.tnode-t {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; line-height: 18px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tnode--root > .tnode-t { font-weight: 600; }
+.tnode-s { flex: none; font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.tnode-acts { display: flex; align-items: center; gap: 2px; flex: none; opacity: 0; transition: opacity .14s ease; }
+.tnode:hover .tnode-acts, .tnode:focus-within .tnode-acts { opacity: 1; }
+
+/* 掌握度 Picker：三点即三档，当前档旁边跟文字，不单靠颜色 */
+.lvls { display: flex; align-items: center; gap: 2px; flex: none; }
+.lvl {
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--r-8);
+  background: transparent; display: grid; place-items: center; cursor: pointer;
+  transition: background .14s ease;
+}
+.lvl:hover { background: var(--border-strong); }
+.lvl:focus-visible { outline: none; box-shadow: var(--focus); }
+.lvl.is-on { background: var(--surface); box-shadow: var(--ring); }
+.lvl-l { width: 46px; flex: none; text-align: right; font-size: 11px; line-height: 16px; }
+.lvl-l--unknown { color: var(--ink-3); }
+.lvl-l--fuzzy { color: var(--warn); }
+.lvl-l--mastered { color: var(--success); }
+
+/* 覆盖率：环 + 薄弱清单，放在树下方作为收尾而不是抢在树前面 */
+.cover { display: flex; align-items: center; gap: 14px; }
+.cover-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.weak { display: flex; flex-direction: column; gap: 2px; }
+.weak-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: var(--r-9); }
+.weak-row:hover { background: var(--surface-sunken); }
+.weak-t { flex: 1; min-width: 0; font-size: 12px; line-height: 18px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 树内的就地新增行 */
+.addrow { display: flex; align-items: center; gap: 8px; padding: 6px 0; margin-left: calc((var(--d, 1) - 1) * 16px); }
+.addrow .input { flex: 1; }
+
+/* ============================================================ 主观题批改 == */
+/* 采分点：命中/部分/未命中三色，配文字，与 GradingResultCard 的错误清单同层 */
+.rubric-sum { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+
+/* ============================================================== 考试节点 == */
+.node-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.node-form .field { flex: 1; min-width: 132px; }
+.node-date { width: 152px; flex: none; }
+.remind { display: flex; align-items: center; gap: 6px; flex: none; }
+/* 分档上色与右栏 .dl-row 共用同一套 tier 语义 */
+.nrow[data-tier='d30'] .nrow-left { color: var(--warn); }
+.nrow[data-tier='d7'] .nrow-left, .nrow[data-tier='d1'] .nrow-left { color: var(--warn); font-weight: 600; }
+.nrow[data-tier='today'] .nrow-left { color: var(--danger); font-weight: 600; }
+.nrow[data-tier='overdue'] { opacity: .55; }
+.nrow-left { width: 56px; flex: none; text-align: right; font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-2); }

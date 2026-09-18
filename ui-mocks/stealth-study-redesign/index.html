@@ -31,6 +31,7 @@
 <link rel="stylesheet" href="css/campus.css" />
 <link rel="stylesheet" href="css/campus-cet.css" />
 <link rel="stylesheet" href="css/campus-kaoyan.css" />
+<link rel="stylesheet" href="css/campus-cert.css" />
 <link rel="stylesheet" href="css/dock.css" />
 </head>
 <body>
@@ -93,6 +94,10 @@
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2.6H6.6a2 2 0 0 0-2 2v14.8a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2V8z"/><polyline points="14 2.6 14 8 19.4 8"/><line x1="8.4" y1="13" x2="15.6" y2="13"/><line x1="8.4" y1="17" x2="13" y2="17"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M20.5 15.4v4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-4"/><polyline points="7 8.6 12 3.6 17 8.6"/><line x1="12" y1="3.6" x2="12" y2="15.2"/></symbol>
   <symbol id="i-message" viewBox="0 0 24 24"><path d="M20.5 11.8a8.2 8.2 0 0 1-11.7 7.4L3.5 20.5l1.4-5a8.2 8.2 0 1 1 15.6-3.7z"/></symbol>
+
+  <!-- 证书备考台补充图标 -->
+  <symbol id="i-tree" viewBox="0 0 24 24"><rect x="9.4" y="2.6" width="5.2" height="4.6" rx="1.6"/><rect x="2.6" y="16.8" width="5.2" height="4.6" rx="1.6"/><rect x="16.2" y="16.8" width="5.2" height="4.6" rx="1.6"/><path d="M12 7.2v4.2M5.2 16.8v-2.6h13.6v2.6"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8.6a6 6 0 0 0-12 0c0 6.9-3 8.4-3 8.4h18s-3-1.5-3-8.4"/><path d="M13.7 20.4a2 2 0 0 1-3.4 0"/></symbol>
 </defs></svg>
 
 <div class="stage">
@@ -1635,6 +1640,9 @@
             <nav class="st-tabs" role="tablist" aria-label="证书备考台模块">
               <button class="st-tab is-on" role="tab" aria-selected="true" data-tab="mistake">错题本</button>
               <button class="st-tab" role="tab" aria-selected="false" data-tab="review">今日复习<span class="tb num">6</span></button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="tree">知识树</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="grading">主观题</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="nodes">节点</button>
             </nav>
 
             <div class="st-pane is-on" role="tabpanel" data-pane="mistake">
@@ -1726,6 +1734,276 @@
                     <div class="lrow-text"><span class="lrow-title">教学设计 · 三维目标的写法</span><span class="lrow-meta">下次复习：9 天后</span></div>
                     <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
                   </div>
+                </div>
+              </section>
+            </div>
+            <!-- 知识点树：三层节点，掌握度就地标记，覆盖率与薄弱点收尾 -->
+            <div class="st-pane" role="tabpanel" data-pane="tree">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-tree"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">知识点树</span>
+                    <span class="mod-desc">最多三层；掌握度标在节点上，覆盖率按已标节点计</span>
+                  </div>
+                  <div class="mod-acts">
+                    <span class="sec-n">18 个节点 · 已标 12</span>
+                    <button class="btn btn--ghost btn--sm" data-add-node><svg class="ic" width="12" height="12"><use href="#i-plus"/></svg>添加一级节点</button>
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="fill thin">
+                    <div class="tree">
+                      <div class="tnode tnode--root" style="--d:1">
+                        <button class="tnode-tw" aria-label="折叠"><svg class="ic" width="11" height="11"><use href="#i-minus"/></svg></button>
+                        <span class="tnode-t">学科知识（数学）</span>
+                        <span class="tnode-s">题目 62 · 错题 14</span>
+                        <div class="lvls">
+                          <button class="lvl" aria-label="未掌握"><span class="md md--unknown"></span></button>
+                          <button class="lvl is-on" aria-label="模糊"><span class="md md--fuzzy is-on"></span></button>
+                          <button class="lvl" aria-label="已掌握"><span class="md md--mastered"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--fuzzy">模糊</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm">子节点</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+
+                      <div class="tnode" style="--d:2">
+                        <button class="tnode-tw" aria-label="折叠"><svg class="ic" width="11" height="11"><use href="#i-minus"/></svg></button>
+                        <span class="tnode-t">函数与导数</span>
+                        <span class="tnode-s">题目 24 · 错题 8</span>
+                        <div class="lvls">
+                          <button class="lvl" aria-label="未掌握"><span class="md md--unknown"></span></button>
+                          <button class="lvl" aria-label="模糊"><span class="md md--fuzzy"></span></button>
+                          <button class="lvl is-on" aria-label="已掌握"><span class="md md--mastered is-on"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--mastered">已掌握</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm">子节点</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+                      <div class="tnode" style="--d:3">
+                        <span class="tnode-tw tnode-tw--leaf"></span>
+                        <span class="tnode-t">单调性与极值</span>
+                        <span class="tnode-s">题目 11 · 错题 6</span>
+                        <div class="lvls">
+                          <button class="lvl is-on" aria-label="未掌握"><span class="md md--unknown is-on"></span></button>
+                          <button class="lvl" aria-label="模糊"><span class="md md--fuzzy"></span></button>
+                          <button class="lvl" aria-label="已掌握"><span class="md md--mastered"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--unknown">未掌握</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+                      <div class="tnode" style="--d:3">
+                        <span class="tnode-tw tnode-tw--leaf"></span>
+                        <span class="tnode-t">导数的几何意义</span>
+                        <span class="tnode-s">题目 7 · 错题 1</span>
+                        <div class="lvls">
+                          <button class="lvl" aria-label="未掌握"><span class="md md--unknown"></span></button>
+                          <button class="lvl is-on" aria-label="模糊"><span class="md md--fuzzy is-on"></span></button>
+                          <button class="lvl" aria-label="已掌握"><span class="md md--mastered"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--fuzzy">模糊</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+
+                      <div class="tnode" style="--d:2">
+                        <button class="tnode-tw" aria-label="折叠"><svg class="ic" width="11" height="11"><use href="#i-chev-right"/></svg></button>
+                        <span class="tnode-t">数列与求和</span>
+                        <span class="tnode-s">题目 18 · 错题 6</span>
+                        <div class="lvls">
+                          <button class="lvl" aria-label="未掌握"><span class="md md--unknown"></span></button>
+                          <button class="lvl" aria-label="模糊"><span class="md md--fuzzy"></span></button>
+                          <button class="lvl is-on" aria-label="已掌握"><span class="md md--mastered is-on"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--mastered">已掌握</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm">子节点</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+
+                      <div class="tnode tnode--root" style="--d:1">
+                        <button class="tnode-tw" aria-label="折叠"><svg class="ic" width="11" height="11"><use href="#i-minus"/></svg></button>
+                        <span class="tnode-t">教学知识</span>
+                        <span class="tnode-s">题目 31 · 错题 9</span>
+                        <div class="lvls">
+                          <button class="lvl" aria-label="未掌握"><span class="md md--unknown"></span></button>
+                          <button class="lvl is-on" aria-label="模糊"><span class="md md--fuzzy is-on"></span></button>
+                          <button class="lvl" aria-label="已掌握"><span class="md md--mastered"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--fuzzy">模糊</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm">子节点</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+                      <div class="tnode" style="--d:2">
+                        <span class="tnode-tw tnode-tw--leaf"></span>
+                        <span class="tnode-t">教学设计</span>
+                        <span class="tnode-s">题目 14 · 错题 7</span>
+                        <div class="lvls">
+                          <button class="lvl is-on" aria-label="未掌握"><span class="md md--unknown is-on"></span></button>
+                          <button class="lvl" aria-label="模糊"><span class="md md--fuzzy"></span></button>
+                          <button class="lvl" aria-label="已掌握"><span class="md md--mastered"></span></button>
+                        </div>
+                        <span class="lvl-l lvl-l--unknown">未掌握</span>
+                        <div class="tnode-acts"><button class="btn btn--text btn--sm">子节点</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                      </div>
+                      <div class="addrow" style="--d:1" data-add-form hidden>
+                        <input class="input" type="text" placeholder="节点名称" />
+                        <button class="btn btn--primary btn--sm">添加</button>
+                        <button class="btn btn--text btn--sm">取消</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="cover">
+                    <div class="ring-c">
+                      <svg class="ring ring--brand" width="52" height="52" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="52.3" transform="rotate(-90 32 32)"/></svg>
+                    </div>
+                    <div class="cover-text">
+                      <div class="sec"><div class="sec-text"><span class="sec-title">覆盖率 68%</span><span class="sec-desc">已标 12 / 18 个节点</span></div></div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">薄弱 TOP5</span></div><span class="sec-n">按错题数排序</span></div>
+                      <div class="weak">
+                        <div class="weak-row"><span class="weak-t">教学设计 · 导入环节</span><span class="mas mas--sm"><span class="mas-dots"><span class="md md--unknown is-on"></span><span class="md"></span><span class="md"></span></span><span class="mas-l">未掌握</span></span><span class="tnode-s">错 7</span></div>
+                        <div class="weak-row"><span class="weak-t">函数与导数 · 单调性与极值</span><span class="mas mas--sm"><span class="mas-dots"><span class="md md--unknown is-on"></span><span class="md"></span><span class="md"></span></span><span class="mas-l">未掌握</span></span><span class="tnode-s">错 6</span></div>
+                        <div class="weak-row"><span class="weak-t">综合素质 · 教育法规</span><span class="mas mas--sm"><span class="mas-dots"><span class="md"></span><span class="md md--fuzzy is-on"></span><span class="md"></span></span><span class="mas-l">模糊</span></span><span class="tnode-s">错 5</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 主观题批改：采分点三色命中，与错误清单同层但语义不同 -->
+            <div class="st-pane" role="tabpanel" data-pane="grading">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-pencil"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">主观题批改</span>
+                    <span class="mod-desc">按采分点逐条判定命中、部分命中与未命中</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">本题型已批改 11 次</span></div>
+                </div>
+
+                <div class="picks">
+                  <button class="pick is-on">简答题</button>
+                  <button class="pick">材料分析</button>
+                  <button class="pick">教学设计</button>
+                  <button class="pick">实务题</button>
+                </div>
+
+                <div class="col">
+                  <div class="fill thin qcol">
+                    <div class="field">
+                      <span class="field-label">作答内容</span>
+                      <textarea class="textarea" rows="5">启发性教学原则是指在教学活动中调动学生学习的主动性，引导他们通过积极思考掌握知识。其贯彻要求包括：加强教学的目的性，激发学生的求知欲；创设问题情境，加强发散思维训练；根据学科特点灵活选用各种方式；注意学生已有的知识水平与能力差异。</textarea>
+                    </div>
+                    <div class="field">
+                      <span class="field-label">自定义评分标准（可选）</span>
+                      <input class="input" type="text" placeholder="不填则按本题型的通用采分点批改" value="必须答出「创设问题情境」与「因材施教」两条才给满分" />
+                    </div>
+
+                    <div class="sec">
+                      <div class="sec-text"><span class="sec-title">采分点判定</span></div>
+                      <span class="rubric-sum">命中 2 · 部分 1 · 未命中 1</span>
+                    </div>
+                    <div class="cells">
+                      <span class="cell cell--hit"><span class="cdot"></span>内涵表述</span>
+                      <span class="cell cell--hit"><span class="cdot"></span>激发求知欲</span>
+                      <span class="cell cell--partial"><span class="cdot"></span>创设问题情境</span>
+                      <span class="cell cell--miss"><span class="cdot"></span>因材施教</span>
+                    </div>
+
+                    <div class="grade">
+                      <div class="score"><span class="score-n">14.0</span><span class="score-u">/ 20 · 按 4 个采分点折算</span></div>
+                      <div class="dims">
+                        <div class="dim"><span class="dim-n">要点</span><span class="bar dim-bar"><i style="--w:70%"></i></span><span class="dim-v">7.0 / 10</span></div>
+                        <div class="dim"><span class="dim-n">展开</span><span class="bar dim-bar"><i style="--w:72%"></i></span><span class="dim-v">7.2 / 10</span></div>
+                        <div class="dim"><span class="dim-n">术语</span><span class="bar dim-bar"><i style="--w:98%"></i></span><span class="dim-v">9.8 / 10</span></div>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">错误清单</span></div><span class="sec-n">1 处</span></div>
+                      <div class="errs">
+                        <div class="err">
+                          <span class="err-k">漏答采分点</span>
+                          <span class="err-orig">根据学科特点灵活选用各种方式</span>
+                          <span class="err-fix">需补「从学生实际出发，区别对待、因材施教」这一条</span>
+                          <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                        </div>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">要点补充</span></div></div>
+                      <p class="qa-body">四条贯彻要求可记为「目的—情境—方式—学情」；本题只答到前三条，第四条即因材施教。</p>
+                      <div class="mod-foot">
+                        <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>批改模型 gpt-4o · AI 生成，仅供参考</span>
+                        <span class="fl"></span>
+                        <button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-plus"/></svg>加入错题本</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mod-foot">
+                    <button class="btn btn--primary">开始批改</button>
+                    <span class="fl"></span>
+                    <button class="btn btn--soft btn--sm" data-goto-tab="tree">回到薄弱节点<svg class="ic" width="12" height="12"><use href="#i-chev-right"/></svg></button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 考试节点：事务侧时间线，分档上色与右栏倒计时同源 -->
+            <div class="st-pane" role="tabpanel" data-pane="nodes">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-flag"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">考试节点</span>
+                    <span class="mod-desc">六类节点各一条；添加后即可为整条时间线创建提醒</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">5 / 6 类已填</span></div>
+                </div>
+
+                <div class="node-form">
+                  <div class="field">
+                    <span class="field-label">节点类型</span>
+                    <div class="sel"><select aria-label="节点类型"><option>报名开始</option><option selected>报名截止</option><option>缴费截止</option><option>准考证打印</option><option>考试</option><option>成绩查询</option></select><svg class="ic" width="14" height="14"><use href="#i-chev-down"/></svg></div>
+                  </div>
+                  <div class="field node-date">
+                    <span class="field-label">节点日期</span>
+                    <input class="input input--num" type="date" value="2026-09-25" />
+                  </div>
+                  <button class="btn btn--primary">添加节点</button>
+                </div>
+                <div class="alert alert--danger">
+                  <svg class="ic" width="14" height="14"><use href="#i-alert"/></svg>
+                  <div class="alert-text"><span class="alert-title">同类型考试节点已存在</span><span class="alert-desc">「报名截止」已经有一条记录，要先删掉旧的才能添加新的。</span></div>
+                  <button class="btn btn--ghost btn--sm" data-dismiss>知道了</button>
+                </div>
+
+                <div class="rows fill thin">
+                  <div class="lrow nrow" data-tier="overdue">
+                    <div class="lrow-text"><span class="lrow-title">报名开始</span><span class="lrow-meta">2026-09-05</span></div>
+                    <span class="nrow-left">已过</span>
+                    <div class="remind"><span class="tag tag--ok"><svg class="ic" width="11" height="11"><use href="#i-check"/></svg>已创建提醒</span><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow nrow" data-tier="d7">
+                    <div class="lrow-text"><span class="lrow-title">报名截止</span><span class="lrow-meta">2026-09-25</span></div>
+                    <span class="nrow-left">7 天</span>
+                    <div class="remind"><button class="btn btn--ghost btn--sm" data-remind><svg class="ic" width="12" height="12"><use href="#i-bell"/></svg>创建提醒</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow nrow" data-tier="d30">
+                    <div class="lrow-text"><span class="lrow-title">缴费截止</span><span class="lrow-meta">2026-09-28</span></div>
+                    <span class="nrow-left">10 天</span>
+                    <div class="remind"><button class="btn btn--ghost btn--sm" data-remind><svg class="ic" width="12" height="12"><use href="#i-bell"/></svg>创建提醒</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow nrow" data-tier="today">
+                    <div class="lrow-text"><span class="lrow-title">准考证打印</span><span class="lrow-meta">2026-10-05</span></div>
+                    <span class="nrow-left">今天</span>
+                    <div class="remind"><button class="btn btn--ghost btn--sm" data-remind><svg class="ic" width="12" height="12"><use href="#i-bell"/></svg>创建提醒</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow nrow" data-tier="normal">
+                    <div class="lrow-text"><span class="lrow-title">考试</span><span class="lrow-meta">2026-11-01</span></div>
+                    <span class="nrow-left">44 天</span>
+                    <div class="remind"><span class="tag tag--ok"><svg class="ic" width="11" height="11"><use href="#i-check"/></svg>已创建提醒</span><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                </div>
+
+                <div class="mod-foot">
+                  <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-alert"/></svg>以官方公告为准</span>
+                  <span class="fl"></span>
+                  <button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-bell"/></svg>为全部节点创建提醒</button>
                 </div>
               </section>
             </div>

@@ -549,6 +549,84 @@
     })(mockTimers[mt]);
   }
 
+  /* =============================================== 证书：知识点树交互 ==
+     掌握度 Picker 改的是「同一行的文字 + 点阵」两件事，缺一读屏就丢信息；
+     折叠只收更深的连续几行，与真实实现按 depth 展开的行为一致。        */
+  var LEVELS = ['unknown', 'fuzzy', 'mastered'];
+  var LEVEL_WORDS = { unknown: '未掌握', fuzzy: '模糊', mastered: '已掌握' };
+  var lvlSets = document.querySelectorAll('.lvls');
+  for (var lv = 0; lv < lvlSets.length; lv++) {
+    (function (set) {
+      var btns = set.querySelectorAll('.lvl');
+      var label = set.parentNode.querySelector('.lvl-l');
+      for (var b = 0; b < btns.length; b++) {
+        (function (btn, i) {
+          btn.addEventListener('click', function () {
+            for (var m = 0; m < btns.length; m++) {
+              btns[m].classList.toggle('is-on', m === i);
+              var dot = btns[m].querySelector('.md');
+              if (dot) dot.classList.toggle('is-on', m === i);
+            }
+            var key = LEVELS[i];
+            label.textContent = LEVEL_WORDS[key];
+            label.className = 'lvl-l lvl-l--' + key;
+          });
+        })(btns[b], b);
+      }
+    })(lvlSets[lv]);
+  }
+
+  var trees = document.querySelectorAll('.tree');
+  for (var tr = 0; tr < trees.length; tr++) {
+    (function (tree) {
+      function depth(row) { return parseInt(row.style.getPropertyValue('--d'), 10) || 1; }
+      var toggles = tree.querySelectorAll('button.tnode-tw');
+      for (var tg = 0; tg < toggles.length; tg++) {
+        (function (tw) {
+          tw.addEventListener('click', function () {
+            var row = tw.parentNode, d = depth(row), seen = false, folded = false;
+            for (var sib = row.nextElementSibling; sib && depth(sib) > d; sib = sib.nextElementSibling) {
+              if (depth(sib) === d + 1) seen = true;
+              if (seen) { sib.hidden = !row.classList.contains('is-folded'); }
+            }
+            folded = row.classList.toggle('is-folded');
+            tw.setAttribute('aria-label', folded ? '展开' : '折叠');
+            tw.querySelector('use').setAttribute('href', folded ? '#i-chev-right' : '#i-minus');
+          });
+        })(toggles[tg]);
+      }
+    })(trees[tr]);
+  }
+
+  /* 就地新增节点：只有一个表单槽位，点谁就在谁下面展开 */
+  var addForms = document.querySelectorAll('[data-add-form]');
+  var addRoot = document.querySelector('[data-add-node]');
+  function hideAddForms() {
+    for (var f = 0; f < addForms.length; f++) addForms[f].hidden = true;
+  }
+  for (var af = 0; af < addForms.length; af++) {
+    (function (form) {
+      var cancel = form.querySelectorAll('.btn')[1];
+      cancel.addEventListener('click', hideAddForms);
+      form.querySelectorAll('.btn')[0].addEventListener('click', hideAddForms);
+    })(addForms[af]);
+  }
+  if (addRoot) addRoot.addEventListener('click', function () {
+    hideAddForms();
+    addForms[0].hidden = false;
+    addForms[0].querySelector('input').focus();
+  });
+
+  /* 创建提醒：按钮就地变成已创建徽标，与真实实现的 remindBusy 单向流转一致 */
+  var reminders = document.querySelectorAll('[data-remind]');
+  for (var rm = 0; rm < reminders.length; rm++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        btn.outerHTML = '<span class="tag tag--ok"><svg class="ic" width="11" height="11"><use href="#i-check"/></svg>已创建提醒</span>';
+      });
+    })(reminders[rm]);
+  }
+
   /* ============================================================ 步进器 ==
      侧栏密度：1–9。数值设计稿为 5。                                    */
   var densityVal = document.getElementById('densityVal');

@@ -51,6 +51,8 @@
    DeadlineBanner        → .hero + .dl（证书右栏，六类节点按 tier 分档）
    MistakeBookPanel      → .mod + .rows/.lrow + .sel（归因），虚拟滚动条用 .thin
    ReviewQueuePanel      → .mod + .rows + 答对/答错双按钮
+   每个面板都带 loading / error / empty 三个分支（真实实现里逐个都有
+   data-testid），因此 .sk 骨架与 .empty 空态是本层的固定组成，不是预留装饰。
    档案为 0 的站点空态不复述一遍卡片：建档统一走 .dlg 表单，空态即「无档案 + 同一个弹窗」。
    ============================================================================ */
 
@@ -179,7 +181,6 @@
   display: flex; flex-direction: column; gap: 9px;
 }
 .sub--ring { background: var(--surface); box-shadow: var(--ring); }
-.sub--on   { background: var(--accent-soft); }
 
 /* ============================================================ 按钮族 == */
 /* 三级：主行动（橙）/ 次级（描边）/ 弱化（无底）。橙在同一个模块里只允许出现一次。 */
@@ -206,9 +207,6 @@
 .btn--soft { background: var(--accent-soft); color: var(--accent-deep); }
 .btn--soft:hover:not(:disabled) { background: color-mix(in srgb, var(--accent-soft) 78%, var(--accent)); }
 
-.btn--danger { color: var(--danger); }
-.btn--danger:hover:not(:disabled) { background: var(--danger-soft); }
-
 .btn--text { color: var(--ink-2); padding: 0 6px; }
 .btn--text:hover:not(:disabled) { color: var(--ink); }
 
@@ -220,7 +218,6 @@
 .btn--wrong:hover:not(:disabled) { background: var(--danger-soft); }
 
 .btn--sm { height: 26px; padding: 0 9px; font-size: 11.5px; border-radius: var(--r-8); gap: 5px; }
-.btn--lg { height: 36px; padding: 0 16px; }
 
 
 /* 图标按钮的语义变体（base.css 的 .icon-btn 只有中性态） */
