@@ -396,24 +396,100 @@ def test_a4_allows_rename_onto_a_title_only_an_archived_profile_holds(client: Te
     assert response.json()["title"] == "已归档"
 
 
-def test_a4_restore_does_not_recheck_the_title(client: TestClient) -> None:
+def test_a4_restore_refuses_a_title_an_on_desk_profile_holds(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    )
+
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={"status": models.ProfileStatus.ACTIVE.value},
+    )
+
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+    body = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["status"] == models.ProfileStatus.ARCHIVED.value
+    assert body["archived_at"] is not None
+
+
+def test_a4_restore_succeeds_once_the_rival_has_moved_off_the_name(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    twin = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    ).json()
+    client.patch(f"{routes.CAMPUS_PREFIX}/profiles/{twin['id']}", json={"title": "让开名字"})
+
+    restored = _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)
+
+    assert restored["status"] == models.ProfileStatus.ACTIVE.value
+    assert restored["title"] == "六级 12 月"
+    assert restored["archived_at"] is None
+
+
+def test_a4_one_patch_can_rename_and_restore_at_once(client: TestClient) -> None:
     _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
     twin = client.post(
         f"{routes.CAMPUS_PREFIX}/profiles",
         json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
     ).json()
 
-    restored = _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)
+    restored = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={"status": models.ProfileStatus.ACTIVE.value, "title": "六级 12 月（旧）"},
+    )
 
-    assert restored["id"] == ACTIVE_ID
-    assert restored["title"] == twin["title"] == "六级 12 月"
-    assert restored["archived_at"] is None
-    active_titles = [
-        item["title"]
-        for item in client.get(f"{routes.CAMPUS_PREFIX}/profiles").json()["items"]
-        if item["status"] == models.ProfileStatus.ACTIVE.value
-    ]
-    assert active_titles.count("六级 12 月") == 2
+    assert restored.status_code == 200, restored.text
+    body = restored.json()
+    assert body["status"] == models.ProfileStatus.ACTIVE.value
+    assert body["title"] == "六级 12 月（旧）"
+    assert body["archived_at"] is None
+    assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{twin['id']}").json()["title"] == (
+        "六级 12 月"
+    )
+
+
+def test_a4_renaming_an_archived_profile_keeps_it_archived_and_keeps_the_timestamp(
+    client: TestClient, seeded_store: store.CampusStore
+) -> None:
+    seeded_store.update("exam_profile", ARCHIVED_ID, {"archived_at": "2026-09-10T08:00:00Z"})
+
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "改个名字"}
+    ).json()
+
+    assert body["status"] == models.ProfileStatus.ARCHIVED.value
+    assert body["title"] == "改个名字"
+    assert body["archived_at"] == "2026-09-10T08:00:00Z"
+
+
+def test_a4_an_archived_rename_still_refuses_a_name_the_desk_holds(client: TestClient) -> None:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "六级 12 月"}
+    )
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a4_two_archived_profiles_can_share_a_name_while_in_the_box(client: TestClient) -> None:
+    second = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "箱子里的名字"},
+    ).json()
+    client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{second['id']}",
+        json={"status": models.ProfileStatus.ARCHIVED.value},
+    )
+
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "箱子里的名字"}
+    )
+
+    assert body.status_code == 200, body.text
+    assert body.json()["title"] == "箱子里的名字"
 
 
 def test_a4_a_restore_that_also_renames_still_respects_the_title_rule(client: TestClient) -> None:
