@@ -35,6 +35,86 @@ async function sidebarRightEdge(page) {
   return box.x + box.width;
 }
 
+// Sample [nav right edge, surface left edge] on every animation frame around `trigger`, so a test
+// can tell a synchronized slide from a snap. The surface is the in-flow element beside the nav —
+// every overlay child of .app is positioned, so filtering on static/relative finds exactly one.
+async function navAnimationFrames(page, trigger) {
+  const sampling = page.evaluate(async () => {
+    const frames = [];
+    const start = performance.now();
+    await new Promise((resolve) => {
+      const tick = () => {
+        const sidebar = document.querySelector(".sidebar");
+        const surface = Array.from(document.querySelectorAll(".app > :not(.sidebar)")).find(
+          (el) => {
+            const pos = getComputedStyle(el).position;
+            return pos === "static" || pos === "relative";
+          },
+        );
+        if (sidebar && surface) {
+          frames.push([
+            sidebar.getBoundingClientRect().right,
+            surface.getBoundingClientRect().left,
+          ]);
+        }
+        if (performance.now() - start > 1400) resolve(undefined);
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    return frames;
+  });
+  await trigger();
+  return sampling;
+}
+
+function expectSynchronizedNav(frames, from, to) {
+  const edges = frames.map(([, left]) => left);
+  expect(Math.abs(edges[0] - from)).toBeLessThanOrEqual(5);
+  expect(Math.abs(edges[edges.length - 1] - to)).toBeLessThanOrEqual(1);
+  // The content never outruns the nav: they share an edge on every frame.
+  for (const [navRight, surfaceLeft] of frames) {
+    expect(Math.abs(navRight - surfaceLeft)).toBeLessThanOrEqual(1);
+  }
+  // And it gets there through intermediate widths rather than snapping in one jump.
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  expect(edges.filter((l) => l > lo + 1 && l < hi - 1).length).toBeGreaterThanOrEqual(3);
+}
+
+test("collapsing slides the nav out while the content grows in sync", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator(".sidebar")).toBeVisible();
+  const frames = await navAnimationFrames(page, async () => {
+    await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  });
+  expectSynchronizedNav(frames, 300, 0);
+});
+
+test("expanding slides the nav in while the content narrows in sync", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.locator(".app")).toHaveClass(/nav-collapsed/);
+  await page.waitForTimeout(450);
+
+  const frames = await navAnimationFrames(page, async () => {
+    await page.getByTestId("topbar-cluster").getByRole("button", { name: "Show sidebar" }).click();
+  });
+  expectSynchronizedNav(frames, 0, 300);
+});
+
+test("non-session surfaces reclaim width in sync with the nav too", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-automations").click();
+  await expect(page.locator(".app > main")).toBeVisible();
+  await expect(page.locator(".app")).not.toHaveClass(/nav-collapsed/);
+
+  const frames = await navAnimationFrames(page, async () => {
+    await page.keyboard.press("Meta+b");
+  });
+  expectSynchronizedNav(frames, 300, 0);
+});
+
 test("collapsing leaves no hover-trigger zone in the DOM", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Collapse sidebar" }).click();

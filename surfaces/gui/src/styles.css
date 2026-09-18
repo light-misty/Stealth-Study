@@ -118,6 +118,10 @@
   --fs-label: 11px;    /* 600 — uppercase labels (+0.08em) and captions */
   /* The right rail's width while reading an artifact (wider than the 332px inspector). */
   --artifact-rail-w: min(62vw, 960px);
+  /* The left nav: its docked width and how long it takes to slide out/in (the content beside it
+     follows the same slide, so one duration governs both). */
+  --nav-w: 300px;
+  --nav-slide: 0.2s;
 }
 
 /* Dark palette. `data-theme` is set on <html> by an inline script in index.html (pre-paint)
@@ -173,37 +177,33 @@ body {
 }
 
 .app {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  grid-template-rows: minmax(0, 1fr); /* row fills viewport AND allows children to shrink */
+  display: flex;
   height: 100vh;
   overflow: hidden;
+}
+/* The surface beside the nav eats whatever width the nav leaves, so it grows and narrows in
+   lockstep with the nav's slide instead of snapping when the collapse state flips. */
+.app > :not(.sidebar) {
+  flex: 1 1 0%;
+  min-width: 0;
 }
 
 /* ---------- sidebar ---------- */
 /* Base sidebar chrome lives in Sidebar.tsx (Tailwind, mock-parity). This rule only anchors the
-   grid column + the tauri-overlay overrides below; the `.brand` class is kept on the header as a
+   nav column + the tauri-overlay overrides below; the `.brand` class is kept on the header as a
    hook for the overlay hide rule. */
 .sidebar {
+  flex: 0 0 var(--nav-w);
   min-height: 0;
+  transition: margin-left var(--nav-slide) ease;
 }
 
 /* ---------- collapsible left nav (⌘B) ---------- */
-/* Collapsed: the grid column goes to 0 so the content reclaims the width; the sidebar slides
-   off-screen. Only an explicit action (collapse/reveal button, ⌘B) changes the state. */
-/* Single column when collapsed: the sidebar is taken out of flow (absolute), so the main content
-   must occupy the whole grid — a leading 0-width column would swallow it instead. */
-.app.nav-collapsed { grid-template-columns: 1fr; }
+/* Collapsed: the nav slides out through its own width, taking its share of the row with it. The
+   element keeps its --nav-w box (so nothing inside it reflows) and .app's overflow clips it.
+   Only an explicit action — the collapse/reveal button or ⌘B — changes the state. */
 .app.nav-collapsed .sidebar {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 300px;
-  z-index: 60;
-  transform: translateX(-100%);
-  transition: transform 0.18s ease;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
+  margin-left: calc(var(--nav-w) * -1);
 }
 /* Reveal button while collapsed. Positioned to land EXACTLY on the brand's pin button (.nav-pin-btn,
    14px/14px inside the brand row) so opening the nav puts the pin under the cursor — no travel. */
