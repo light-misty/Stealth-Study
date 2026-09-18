@@ -92,10 +92,13 @@ const SET_TABS: {
 
 export function SettingsView({
   initialTab,
+  onBack,
   onOpenPersona,
   onCreateSkill,
 }: {
   initialTab?: SetTab;
+  // The main nav folds away for this full-page surface, so its sub-nav carries the way back.
+  onBack?: () => void;
   onOpenPersona?: (id: string) => void;
   // Skills doorway (SKILLS-SPEC §5.2): start a new conversation with the description
   // prefilled — the worker builds the skill and proposes it via save_skill.
@@ -116,6 +119,17 @@ export function SettingsView({
     <main className="flex-1 min-w-0 flex bg-paper">
       <nav className="page-subnav w-[208px] shrink-0 border-r border-line bg-panel/40 px-3 py-4">
         <div className="px-2 text-[13px] font-semibold mb-3 flex items-center gap-2">
+          {onBack && (
+            <button
+              className="w-6 h-6 -ml-1 grid place-items-center rounded-md text-faint hover:text-ink hover:bg-chromeHover shrink-0"
+              data-testid="settings-back"
+              onClick={onBack}
+              aria-label={t("settings.back")}
+              title={t("settings.back")}
+            >
+              <Icon name="arrowLeft" size={16} />
+            </button>
+          )}
           <Icon name="gear" size={16} /> {t("nav.settings")}
         </div>
         {tabs.map((tb) => {

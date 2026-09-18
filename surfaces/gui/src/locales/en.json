@@ -429,9 +429,6 @@
     "new_session": "New session",
     "new_project": "New project",
     "collapse": "Collapse sidebar",
-    "dock": "Dock sidebar",
-    "choose_persona": "Choose a study partner",
-    "start_with_persona": "Start with a specific study partner",
     "filter_coworker": "Filter by study partner",
     "group_by": "Group by",
     "group_and_filter": "Group and filter study sessions",
@@ -442,7 +439,6 @@
     "not_signed_in": "Not signed in — one-click connections need Stealth Study Cloud",
     "sign_in": "Sign in to Stealth Study",
     "signed_in_tooltip": "Signed in to Stealth Study Cloud",
-    "cloud_suffix": "Stealth Study Cloud",
     "automations": "Automations",
     "search": "Search",
     "recent": "Recent",
@@ -483,8 +479,6 @@
     "not_signed_in_row": "Not signed in",
     "more": "More",
     "inbox_chip_pending": "Inbox — {{n}} items need you",
-    "start_session_as": "Start a study session as",
-    "manage_personas": "Manage study partners…",
     "group_and_filter_short": "Group & filter study sessions",
     "unseen_new_one": "{{count}} new run",
     "unseen_new_other": "{{count}} new runs",
@@ -697,6 +691,7 @@
     "board_chip_active_other": "{{count}} active"
   },
   "settings": {
+    "back": "Back",
     "tab": {
       "general": "General",
       "models": "Models",
@@ -1066,13 +1061,8 @@
     "recent": "Recent chats"
   },
   "integrations": {
-    "nav_title": "Connectors",
-    "tab_connectors": "Connectors",
-    "tab_mcp": "MCP servers",
     "connectors_title": "Connectors",
-    "connectors_sub": "Apps and tools your study partners can use. Connected ones come first.",
-    "mcp_title": "MCP servers",
-    "mcp_sub": "External tool servers (stdio or HTTP), shared across all agents."
+    "connectors_sub": "Apps and tools your study partners can use. Connected ones come first."
   },
   "intro": {
     "greeting": "What are we studying today?",

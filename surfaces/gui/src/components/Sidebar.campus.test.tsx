@@ -131,4 +131,15 @@ describe("Sidebar campus nav rows (04 §4.3)", () => {
     fireEvent.click(screen.getByTestId("nav-campus-cert"));
     expect(onOpenCampus.mock.calls).toEqual([["cet"], ["kaoyan"], ["cert"]]);
   });
+
+  it("spaces the station rows with the same rhythm as the nav rows above", () => {
+    stubFetch(stubRoutes);
+    render(<Sidebar {...baseProps} />);
+    const rowWrapClasses = (id: string) =>
+      screen.getByTestId(id).closest("div")!.className.split(/\s+/);
+    expect(rowWrapClasses("nav-automations")).toContain("mt-1");
+    expect(rowWrapClasses("nav-campus-cet")).toEqual(
+      expect.arrayContaining(["mt-1", "space-y-1"]),
+    );
+  });
 });

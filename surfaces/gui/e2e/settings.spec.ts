@@ -26,6 +26,64 @@ test("Settings opens as a full page and navigates sections", async ({ page }) =>
   await expect(page.getByTestId("set-provider-openai")).toBeVisible();
 });
 
+// The collapsed nav sits fully off the left edge: its right edge never crosses x=0.
+async function navRightEdge(page) {
+  const box = await page.locator(".sidebar").boundingBox();
+  return box.x + box.width;
+}
+
+test("Settings takes the whole surface: the main nav folds away and Back returns", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByTestId("account-row").click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
+  await expect.poll(() => navRightEdge(page)).toBeLessThanOrEqual(1);
+  // The sub-nav owns its own corner now — no floating sidebar-reveal button over it.
+  await expect(page.getByRole("button", { name: "Show sidebar" })).toHaveCount(0);
+
+  await page.getByTestId("settings-back").click();
+  // Back on the session surface with the nav docked again, exactly as it was on entry.
+  await expect(page.getByRole("heading", { name: "General" })).toHaveCount(0);
+  await expect(page.locator(".app")).not.toHaveClass(/nav-collapsed/);
+  await expect.poll(() => navRightEdge(page)).toBeGreaterThan(290);
+  await expect(page.getByTestId("coworker-chip")).toBeVisible();
+});
+
+test("Settings: Back returns to the surface the page was opened from", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-automations").click();
+  await expect(page.getByRole("heading", { name: "Automations" })).toBeVisible();
+
+  await page.getByTestId("account-row").click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
+  await expect.poll(() => navRightEdge(page)).toBeLessThanOrEqual(1);
+
+  await page.getByTestId("settings-back").click();
+  await expect(page.getByRole("heading", { name: "Automations" })).toBeVisible();
+  await expect(page.locator(".app")).not.toHaveClass(/nav-collapsed/);
+});
+
+test("Settings: entering with the nav already collapsed leaves it collapsed on Back", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.locator(".app")).toHaveClass(/nav-collapsed/);
+
+  // ⌘, / Ctrl, reaches Settings without needing the nav, and folds it the same way.
+  await page.keyboard.press("Control+,");
+  await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
+  await expect.poll(() => navRightEdge(page)).toBeLessThanOrEqual(1);
+
+  await page.getByTestId("settings-back").click();
+  await expect(page.locator(".app")).toHaveClass(/nav-collapsed/);
+  await expect.poll(() => navRightEdge(page)).toBeLessThanOrEqual(1);
+});
+
 // The flag's "0" escape hatch hides the tab again (the default is on — UX-029).
 test("Settings: Coworkers tab opens by default; flag \"0\" hides it", async ({ page }) => {
   await page.goto("/");

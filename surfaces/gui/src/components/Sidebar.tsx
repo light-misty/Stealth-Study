@@ -152,11 +152,8 @@ interface Props {
   integrationsActive: boolean;
   auditActive: boolean;
   inboxActive: boolean;
-  // Collapse controls (⌘B / hover-peek). `onCollapse` docks/undocks; `onPeekLeave` hides the
-  // floating peek when the pointer leaves the panel.
-  collapsed?: boolean;
+  // Collapse control (⌘B mirrors it): `onCollapse` docks/undocks the nav.
   onCollapse?: () => void;
-  onPeekLeave?: () => void;
 }
 
 // Compact age for project session rows: "now" / "5m" / "6h" / "3d" / "2w" / "4mo" / "2y".
@@ -1011,21 +1008,19 @@ export function Sidebar(props: Props) {
   };
 
   return (
-    <div
-      className="sidebar flex flex-col min-h-0 bg-chrome border-r border-line"
-      onMouseLeave={props.onPeekLeave}
-    >
+    <div className="sidebar flex flex-col min-h-0 bg-chrome border-r border-line">
       {/* Header: collapse/pin control FIRST + wordmark. The pin sits at the same screen position
           as the collapsed reveal button (see .nav-pin-btn / .nav-reveal-btn in styles.css), so
-          hovering the reveal peeks the nav and the pin lands right under the cursor — no travel.
+          the two affordances swap places without the cursor travelling.
           data-tauri-drag-region drags the window; on desktop the row clears the traffic lights. */}
       <div className="brand px-3.5 pt-2.5 pb-2 flex items-center gap-2" data-tauri-drag-region>
-        {/* Collapse (dock) / pin the sidebar. ⌘B mirrors this. */}
+        {/* Collapse / pin the sidebar. ⌘B mirrors this. While the nav is collapsed the whole
+            panel is off-screen, so this button is only ever reachable as "collapse". */}
         {props.onCollapse && (
           <button
             className="nav-pin-btn w-7 h-7 grid place-items-center rounded-md text-faint hover:text-ink hover:bg-chromeHover shrink-0"
-            title={props.collapsed ? t("sidebar.dock") + " (⌘B)" : t("sidebar.collapse") + " (⌘B)"}
-            aria-label={props.collapsed ? t("sidebar.dock") : t("sidebar.collapse")}
+            title={t("sidebar.collapse") + " (⌘B)"}
+            aria-label={t("sidebar.collapse")}
             onClick={props.onCollapse}
           >
             <Icon name="sidebar" size={16} />
@@ -1041,6 +1036,7 @@ export function Sidebar(props: Props) {
       <div className="px-2.5 pt-2">
         <button
           className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-left font-medium text-ink hover:bg-chromeHover"
+          data-testid="nav-new-session"
           onClick={() => props.onNewSession(props.agent)}
         >
           <Icon name="plus" size={15} className="shrink-0" /> {t("sidebar.new_session")}
@@ -1052,6 +1048,7 @@ export function Sidebar(props: Props) {
       <div className="px-2.5 mt-1">
         <button
           className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-left text-muted hover:bg-chromeHover hover:text-ink"
+          data-testid="nav-search"
           onClick={() => setSearchModalOpen(true)}
         >
           <Icon name="search" size={15} className="shrink-0" /> {t("sidebar.search")}
@@ -1078,7 +1075,7 @@ export function Sidebar(props: Props) {
           as the rows above. Labels ride the campus.nav.* keys (04 §7.2 folded the
           sidebar.campus_* sketch into that namespace); book/clock/shield are existing
           IconName members, so no new icon types. */}
-      <div className="px-2.5 mt-1">
+      <div className="px-2.5 mt-1 space-y-1">
         {([["cet", "book"], ["kaoyan", "clock"], ["cert", "shield"]] as const).map(
           ([track, icon]) => (
             <button

@@ -60,3 +60,15 @@ test("sessions listening in a workspace: listed with unsubscribe", async ({ page
   await t1.getByTitle("Unsubscribe this session").click();
   await expect(t1.getByTestId("listening-slack")).toHaveCount(0); // row hides when empty
 });
+
+test("the connectors page owns no second-level sidebar", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("account-row").click();
+  await page.getByRole("button", { name: "Connectors", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible();
+  await expect(page.getByTestId("connector-slack")).toBeVisible();
+  // The main sidebar is the only left-hand panel on this surface.
+  await expect(page.locator(".page-subnav")).toHaveCount(0);
+  await expect(page.locator(".sidebar")).toBeVisible();
+});

@@ -64,11 +64,10 @@ export function newestFile(scratchBase: string, name: string): string | null {
   return best?.path ?? null;
 }
 
-/** Open a fresh Cowork session via the split button's persona menu. */
+/** Open a fresh session — the sidebar's New session starts the last-used (default) persona. */
 export async function startCoworkSession(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Choose a study partner" }).click();
-  await page.getByText(/Produce a deliverable/).click();
+  await page.getByTestId("nav-new-session").click();
 }
 
 /** Switch the composer's permission mode from the default "Ask for approval". */
