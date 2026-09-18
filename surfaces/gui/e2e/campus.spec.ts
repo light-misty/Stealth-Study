@@ -247,8 +247,42 @@ test("campus: archive a profile, find it in the archived list and restore it", a
   await page.getByTestId("campus-archived-filter").selectOption("all");
 
   await page.locator('[data-testid^="campus-archived-restore-"]').first().click();
+  await expect(page.getByTestId("campus-profile-conflict")).toBeVisible();
+  await expect(page.getByTestId("campus-profile-conflict-body")).toContainText(
+    "A profile with this title already exists",
+  );
+  const restoredName = page.getByTestId("campus-profile-conflict-title");
+  await expect(restoredName).toHaveValue("归档演练 (2)");
+  await page.getByTestId("campus-profile-conflict-ok").click();
+  await expect(page.getByTestId("campus-profile-conflict")).toHaveCount(0);
   await expect(page.getByTestId("campus-archived-empty")).toBeVisible();
   await page.getByTestId("campus-archived-dialog-close").click();
   await expect(page.getByTestId("campus-profile-item")).toHaveCount(2);
+  await expect(page.getByTestId("campus-profile-item").first()).toHaveText("归档演练 (2)");
   await expect(page.getByTestId("campus-profile-archived-entry")).toHaveCount(0);
+});
+
+// E2E-11: renaming from the switcher, with the desk's names refused as you type.
+test("campus: rename an on-desk profile and refuse a taken name", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-campus-cet").click();
+  await createProfile(page, { title: "先建一个" });
+  await page.getByTestId("campus-profile-create").click();
+  await createProfile(page, { title: "占用中的名字" });
+
+  await expect(page.getByTestId("campus-profile-item").first()).toHaveText("先建一个");
+  const renameButton = page.locator('[data-testid^="campus-profile-rename-"]').first();
+  await renameButton.click();
+
+  const input = page.getByTestId("campus-profile-rename-input");
+  await expect(input).toHaveValue("先建一个");
+  await input.fill("占用中的名字");
+  await expect(page.getByTestId("campus-profile-rename-error")).toBeVisible();
+  await expect(page.getByTestId("campus-profile-rename-save")).toBeDisabled();
+
+  await input.fill("改过的名字");
+  await page.getByTestId("campus-profile-rename-save").click();
+  await expect(page.getByTestId("campus-profile-rename")).toHaveCount(0);
+  await expect(page.getByTestId("campus-profile-item").first()).toHaveText("改过的名字");
+  await expect(page.getByTestId("campus-profile-item")).toHaveCount(2);
 });

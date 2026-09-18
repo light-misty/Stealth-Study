@@ -2421,6 +2421,10 @@ export async function mockApi(page: import("@playwright/test").Page) {
           if (campusTitleTaken(patch.title, row.id)) return json(campusDuplicateTitle(patch.title), 409);
         }
         if (patch.status && patch.status !== row.status) {
+          if (patch.status !== "archived") {
+            const carried = typeof patch.title === "string" ? patch.title : row.title;
+            if (campusTitleTaken(carried, row.id)) return json(campusDuplicateTitle(carried), 409);
+          }
           patch.archived_at = patch.status === "archived" ? campusNow() : null;
         }
         Object.assign(row, patch, { updated_at: campusNow() });
