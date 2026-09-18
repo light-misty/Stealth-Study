@@ -166,8 +166,16 @@ def main(argv=None) -> None:
 
         _exit_when_orphaned()
         app = build_app(args.cwd, args.model, args.mode)
+        # 不让 uvicorn 用默认配置接管日志（默认会给 uvicorn.* 挂自带 stderr handler 且
+        # propagate=False），否则访问/启动日志不会流入 logging_setup 的 root handler，
+        # log/ 下的 backend 文件会一直是空的。空配置仅声明 version，且不 disable 现有
+        # logger，使 uvicorn 的日志按默认 propagate 到 root 统一落盘。
         uvicorn.run(
-            app, host=args.host, port=args.port, ws_max_size=_WS_MAX_FRAME_BYTES
+            app,
+            host=args.host,
+            port=args.port,
+            ws_max_size=_WS_MAX_FRAME_BYTES,
+            log_config={"version": 1, "disable_existing_loggers": False},
         )
     finally:
         if generated_token_path is not None:
