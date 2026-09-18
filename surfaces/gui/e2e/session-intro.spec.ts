@@ -9,7 +9,7 @@ test("three rows, no Set-me-up; gated rows show Configure › and expand the rai
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByText("What should we produce?")).toBeVisible();
+  await expect(page.getByText("What are we studying today?")).toBeVisible();
 
   // Exactly the three template tasks; the old setup list is gone.
   await expect(page.locator(".task-card")).toHaveCount(3);
@@ -83,6 +83,6 @@ test("folder task opens the inline add-folder form; adding a folder prefills the
   await page.getByRole("button", { name: "Add", exact: true }).click();
 
   await expect(page.getByPlaceholder(/Ask your study partner/)).toHaveValue(
-    /Analyze the files in this folder/,
+    /Go through the material in this folder/,
   );
 });

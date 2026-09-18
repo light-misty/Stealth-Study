@@ -82,7 +82,7 @@ describe("Sidebar group/filter control", () => {
     render(<Sidebar {...baseProps} />);
 
     // personas load drives the surfaces; the RECENT header's group/filter control is always present.
-    const control = await screen.findByLabelText("Group and filter conversations");
+    const control = await screen.findByLabelText("Group and filter study sessions");
 
     // Open the popover and choose "Group by → Coworker".
     fireEvent.click(control);
@@ -208,7 +208,7 @@ describe("New session button", () => {
     render(<Sidebar {...baseProps} />);
     await screen.findByText("incident watch");
 
-    expect(screen.queryByLabelText("Choose a persona")).toBeNull();
+    expect(screen.queryByLabelText("Choose a study partner")).toBeNull();
     fireEvent.click(screen.getByText("New session"));
     expect(baseProps.onNewSession).toHaveBeenCalledWith("cowork");
   });

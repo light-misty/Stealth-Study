@@ -50,7 +50,7 @@ test("typing while a gate is pending sends the reply as feedback to the lead", a
 }) => {
   await proposeTeam(page);
   // the composer re-opens for a typed answer instead of hard-blocking on "running"
-  const box = page.getByPlaceholder(/Reply to adjust the proposal/);
+  const box = page.getByPlaceholder(/Reply to adjust the plan/);
   await box.fill("use openai:gpt-5.6-sol for all the workers");
   await page.getByRole("button", { name: "Send" }).click();
   // the reply lands as a user message AND resolves the gate as decline-with-feedback
