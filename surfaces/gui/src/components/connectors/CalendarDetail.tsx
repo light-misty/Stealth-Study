@@ -33,7 +33,7 @@ export function CalendarDetail({ c, cloud, slack: _slack, onChanged }: DetailPro
         <ConnectorBadge connector={c} size={44} title={t("calendar.google_calendar")} />
         <div className="min-w-0 flex-1">
           <h2 className="text-[20px] font-semibold tracking-tight leading-tight">
-            Google Calendar
+            {t("calendar.google_calendar")}
           </h2>
           <div className="text-[13px] text-muted flex items-center gap-1.5">
             {c.connected ? (

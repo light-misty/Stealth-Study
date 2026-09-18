@@ -94,7 +94,7 @@ function PortalRow({ p, onChanged }: { p: HubSpotPortal; onChanged: () => void }
   return (
     <div className={ROW} data-testid={`hubspot-portal-${p.hub_id}`}>
       <span className="min-w-0 flex-1 flex items-center gap-2">
-        <span className="text-[13px] font-medium truncate" title={`hub ${p.hub_id}`}>
+        <span className="text-[13px] font-medium truncate" title={t("hubspot.hub_tooltip", { id: p.hub_id })}>
           {p.name}
         </span>
         {p.default && <span className={TAG_ACCENT}>{t("connector.default")}</span>}

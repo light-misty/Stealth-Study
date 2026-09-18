@@ -325,7 +325,7 @@ function PeopleRow({
           <span
             key={u}
             className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-paper border border-line text-[13px]"
-            title={`id ${u}`}
+            title={t("slack.id_tooltip", { id: u })}
             data-testid={u === installerId ? "people-chip-you" : undefined}
           >
             <span className="w-5 h-5 rounded-full bg-accentSoft text-accent grid place-items-center text-[9px] font-bold">
@@ -417,7 +417,7 @@ function PersonPicker({
       ? await onPick(m)
       : await allowUser("slack", m.id, teamId, m.name);
     if (result?.ok === false) {
-      setErr(result.error || "could not add person");
+      setErr(result.error || tt("slack.add_person_failed"));
       return;
     }
     setOpen(false);
@@ -464,7 +464,7 @@ function PersonPicker({
                   key={m.id}
                   className="block w-full text-left px-2 py-1.5 rounded-lg hover:bg-paper"
                   data-testid={`pick-person-${m.id}`}
-                  title={`id ${m.id}`}
+                  title={tt("slack.id_tooltip", { id: m.id })}
                   onMouseDown={(e) => {
                     // mousedown (not click) so the pick lands before the input's blur
                     e.preventDefault();
@@ -532,7 +532,7 @@ function ApprovalOwnersRow({
           <span
             key={u}
             className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full bg-paper border border-line text-[13px]"
-            title={`id ${u}`}
+            title={t("slack.id_tooltip", { id: u })}
             data-testid={`approval-owner-${u}`}
           >
             <span className="w-5 h-5 rounded-full bg-accentSoft text-accent grid place-items-center text-[9px] font-bold">

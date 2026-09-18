@@ -85,7 +85,7 @@ export function mcpStatusLine(s: McpServer): string {
   // Live servers show it too — the visible receipt that clicking Test did
   // something (it re-round-trips the connection and refreshes the tool count).
   if (s.last_test_at) {
-    const rel = relTime(s.last_test_at);
+    const rel = relTime(s.last_test_at, t);
     if (rel) bits.push(t("mcp.tested_rel", { rel }));
   }
   return bits.join(" · ");
@@ -864,7 +864,7 @@ export function McpServerDetail({
             className="px-4 py-2 text-[12px] text-ok"
             data-testid={`mcp-test-ok-${server.name}`}
           >
-            ✓ {t("mcp.test_ok", { count: server.tool_count ?? 0, rel: relTime(server.last_test_at) })}
+            ✓ {t("mcp.test_ok", { count: server.tool_count ?? 0, rel: relTime(server.last_test_at, t) })}
           </div>
         ) : null}
         {server.last_error && server.status !== "connected" && (

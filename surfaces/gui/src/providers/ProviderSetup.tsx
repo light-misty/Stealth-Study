@@ -23,14 +23,14 @@ import { showLogin } from "../flags";
 // and passes a testid prefix so both stay independently addressable in e2e.
 
 // Where a non-developer gets an API key — deep link + one line of instructions.
-export const KEY_HELP: Record<string, { url: string; label: string }> = {
+export const KEY_HELP: Record<string, { url: string; label?: string; labelKey?: string }> = {
   anthropic: { url: "https://console.anthropic.com/settings/keys", label: "console.anthropic.com" },
   openai: { url: "https://platform.openai.com/api-keys", label: "platform.openai.com" },
   gemini: { url: "https://aistudio.google.com/apikey", label: "aistudio.google.com" },
   ark: { url: "https://console.byteplus.com/ark/region:ark+ap-southeast-1/apiKey", label: "console.byteplus.com" },
   "ark-agent-plan-cn": { url: "https://console.volcengine.com/ark/region:cn-beijing/openManagement?LLM=%7B%7D&advancedActiveKey=agentPlan", label: "console.volcengine.com" },
   openrouter: { url: "https://openrouter.ai/keys", label: "openrouter.ai" },
-  bedrock: { url: "https://console.aws.amazon.com/bedrock/home#/api-keys", label: "the AWS Bedrock console" },
+  bedrock: { url: "https://console.aws.amazon.com/bedrock/home#/api-keys", labelKey: "provider.bedrock_console" },
   fireworks: { url: "https://fireworks.ai/account/api-keys", label: "fireworks.ai" },
   together: { url: "https://api.together.xyz/settings/api-keys", label: "together.xyz" },
   zai: { url: "https://z.ai/manage-apikey/apikey-list", label: "z.ai" },
@@ -61,17 +61,16 @@ export function ProviderMark({ name, title, size = 32 }: { name: string; title: 
   );
 }
 
-/** "2h ago"-style label for a provider's last completion (null when never used).
- *  Pass a translation function to localize; omit for the legacy English fallback. */
-export function relTime(epoch?: number | null, t?: TFunction): string | null {
+/** "2h ago"-style label for a provider's last completion (null when never used). */
+export function relTime(epoch: number | null | undefined, t: TFunction): string | null {
   if (!epoch) return null;
   const secs = Math.max(0, Math.floor(Date.now() / 1000 - epoch));
-  if (secs < 90) return t ? t("provider.just_now") : "just now";
+  if (secs < 90) return t("provider.just_now");
   const mins = Math.floor(secs / 60);
-  if (mins < 60) return t ? t("provider.minutes_ago", { count: mins }) : `${mins}m ago`;
+  if (mins < 60) return t("provider.minutes_ago", { count: mins });
   const hrs = Math.floor(mins / 60);
-  if (hrs < 48) return t ? t("provider.hours_ago", { count: hrs }) : `${hrs}h ago`;
-  return t ? t("provider.days_ago", { count: Math.floor(hrs / 24) }) : `${Math.floor(hrs / 24)}d ago`;
+  if (hrs < 48) return t("provider.hours_ago", { count: hrs });
+  return t("provider.days_ago", { count: Math.floor(hrs / 24) });
 }
 
 export interface ProviderSetupState {
@@ -615,7 +614,9 @@ export function ProviderForm({
             className="text-muted underline decoration-line underline-offset-2 hover:text-ink"
             onClick={() => openExternal(KEY_HELP[sel].url)}
           >
-            {t("provider.create_key_at", { label: KEY_HELP[sel].label })} ↗
+            {t("provider.create_key_at", {
+              label: KEY_HELP[sel].labelKey ? t(KEY_HELP[sel].labelKey) : KEY_HELP[sel].label,
+            })} ↗
           </button>{" "}
           {t("provider.takes_a_minute")}
         </p>
