@@ -180,7 +180,6 @@
 }
 .sub--ring { background: var(--surface); box-shadow: var(--ring); }
 .sub--on   { background: var(--accent-soft); }
-.sub--grid { display: grid; }
 
 /* ============================================================ 按钮族 == */
 /* 三级：主行动（橙）/ 次级（描边）/ 弱化（无底）。橙在同一个模块里只允许出现一次。 */
@@ -342,7 +341,6 @@
 .empty-desc  { font-size: 11.5px; line-height: 17px; color: var(--ink-3); }
 
 .sk { height: 12px; border-radius: var(--r-5); background: var(--surface-sunken); }
-.sk--row { height: 54px; border-radius: var(--r-12); }
 @keyframes sk-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .52; } }
 .sk { animation: sk-breathe 1.5s ease-in-out infinite; }
 
@@ -389,7 +387,6 @@
 .stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .stat-k { font-size: 11px; line-height: 16px; color: var(--ink-3); }
 .stat-v { font-size: 16px; font-weight: 600; line-height: 22px; color: var(--ink); }
-.stat-u { font-size: 11px; color: var(--ink-3); margin-left: 2px; }
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
 /* 进度条的完成量由使用方用 --w 传入，样式表不认识具体数字 */
@@ -416,7 +413,6 @@
 .ring-c { display: flex; flex-direction: column; align-items: center; gap: 1px; }
 .ring-n { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; line-height: 16px; color: var(--ink); }
 .ring-l { font-size: 10.5px; line-height: 15px; color: var(--ink-3); }
-.ring-row { display: flex; align-items: flex-start; gap: 16px; }
 
 .heat { display: flex; gap: 3px; flex-wrap: wrap; }
 .hc { width: 12px; height: 12px; border-radius: var(--r-3); background: var(--divider); }

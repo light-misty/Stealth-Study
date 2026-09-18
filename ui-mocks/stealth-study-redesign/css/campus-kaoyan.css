@@ -1,0 +1,102 @@
+/* ============================================================================
+   campus-kaoyan.css · 考研备考台的五个业务模块
+   ----------------------------------------------------------------------------
+   对应 surfaces/gui/src/components/campus/ 下考研独有的那一层：
+     LibraryPanel / MajorQAView（资料库与其问答）/ PlanPanel（PlanEditor +
+     PlanBoard）/ WeeklyReportView / SubjectTutorChat
+
+   ── 这一屏的设计命题 ──────────────────────────────────────────────────
+   考研与另外两个台子最大的差别是：它的主语不是「一道题」，而是**一份跨越
+   几个月的计划**。CET 台问的是「今天练什么」，考研台问的是「我来不及了吗」。
+   所以这里的层级从近到远排：
+     进度环（四轨完成率）→ 打卡（连续性）→ 周组（本周做什么）→ 周报（回头看）
+   计划板是只读的（真实实现就没有拖拽与状态切换），因此不给它任何
+   「看起来可拖」的把手，避免用视觉承诺一个不存在的交互。
+
+   ── 与真实实现的差异（有意为之）───────────────────────────────────────
+   · PlanBoard 的进度环在真实实现里是手写 SVG（半径 26、viewBox 64），
+     原型沿用同一套几何，保证落地时是换 class 而不是换算法。
+   · 问答的引用角标在真实实现里 onCite 没有被站点接上，点了不跳原文；
+     这里把它做成可点的，并在注释里标出这是**待接的交互**，不算既有功能。
+   · SubjectTutorChat 名字里有 Chat，实际是「一次性的科目批改」，
+     没有会话列表也没有历史。原型照此呈现，不画一个假聊天框。
+   ============================================================================ */
+
+/* ============================================================== 资料库 == */
+/* 解析状态是这一屏唯一会自己变的东西，所以状态胶囊旁边再给一条进度，
+   让用户知道「解析中」不是在卡住。 */
+.doc-acts { display: flex; align-items: center; gap: 6px; }
+.parse { width: 148px; flex: none; display: flex; flex-direction: column; gap: 4px; }
+.parse-k { font-size: 11px; line-height: 16px; color: var(--ink-3); }
+
+/* 导入入口：真实实现是 label 包一个隐藏 file input，原型保留同一结构 */
+.import { position: relative; overflow: hidden; display: inline-flex; }
+.import input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+
+/* ================================================================ 问答 == */
+.qa-ask { display: flex; align-items: center; gap: 8px; }
+.qa-ask .input { flex: 1; }
+.qa-ans { display: flex; flex-direction: column; gap: 9px; }
+.qa-ans-k { display: flex; align-items: center; gap: 6px; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.qa-ans-k .ic { color: var(--brand); }
+.qa-body { margin: 0; font-size: 12.5px; line-height: 20px; color: var(--ink); }
+
+/* 引用角标：可点是待接交互，样式上先按「可点」给足 affordance */
+.cites { display: flex; flex-wrap: wrap; gap: 6px; }
+.cite {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 9px; border: 0; border-radius: var(--r-full);
+  background: var(--brand-soft); color: var(--brand-deep);
+  font-family: inherit; font-size: 11.5px; line-height: 17px;
+  cursor: pointer; white-space: nowrap;
+  transition: filter .14s ease;
+}
+.cite:hover { filter: brightness(.96); }
+.cite:focus-visible { outline: none; box-shadow: var(--focus); }
+.cite .num { font-size: 11px; opacity: .8; }
+
+/* ============================================================== 计划板 == */
+/* 四轨完成率 + 总体：环的几何与 PlanBoard 的 TrackRing 一致（r=26 / viewBox 64） */
+.rings { display: flex; align-items: flex-start; gap: 14px; }
+.rings-end { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.rings-note { font-size: 11px; line-height: 16px; color: var(--ink-3); }
+
+/* 周组：日期当组头，右侧给「N 项 · M 已完成」，扫一眼就知道本周还欠多少 */
+.wk { display: flex; flex-direction: column; }
+.wk-h { display: flex; align-items: baseline; gap: 8px; padding: 10px 2px 4px; }
+.wk-d { font-family: var(--font-mono); font-size: 11.5px; font-weight: 600; line-height: 17px; color: var(--ink); }
+.wk-n { margin-left: auto; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.trow-d { width: 44px; flex: none; font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+/* 计划编辑行：日期 + 两个动作，主行动只有一个 */
+.plan-edit { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.plan-edit .field { width: 168px; flex: none; }
+.plan-edit .btn { margin-bottom: 0; }
+
+/* ============================================================== 周报 == */
+/* 周卡默认折叠：一屏能看到近 8 周；展开后才给完成率、错点与建议 */
+.rpt { display: flex; flex-direction: column; border-radius: var(--r-14); box-shadow: var(--ring); overflow: hidden; }
+.rpt-h {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  background: var(--surface); border: 0; width: 100%; text-align: left;
+  font-family: inherit; cursor: pointer;
+  transition: background .14s ease;
+}
+.rpt-h:hover { background: var(--surface-sunken); }
+.rpt-h:focus-visible { outline: none; box-shadow: var(--focus); }
+.rpt-d { font-family: var(--font-mono); font-size: 12px; line-height: 18px; color: var(--ink); }
+.rpt-n { margin-left: auto; font-size: 11.5px; line-height: 17px; color: var(--ink-3); }
+.rpt-chev { transition: transform .16s ease; }
+.rpt.is-on .rpt-chev { transform: rotate(90deg); }
+.rpt-b { display: none; flex-direction: column; gap: 12px; padding: 14px; border-top: 1px solid var(--divider); }
+.rpt.is-on .rpt-b { display: flex; }
+
+/* 周报正文：模型产出的 markdown 渲染区，字号比 UI 正文小一档以示「是文章」 */
+.prose { display: flex; flex-direction: column; gap: 7px; font-size: 12px; line-height: 20px; color: var(--ink-2); }
+.prose h4 { margin: 2px 0 0; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--ink); }
+.prose p { margin: 0; }
+.prose ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; list-style: disc; }
+.prose li::marker { color: var(--ink-3); }
+
+/* ========================================================== 科目辅导 == */
+.tutor-kinds { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.tutor-kinds .field { flex: 1; min-width: 148px; }

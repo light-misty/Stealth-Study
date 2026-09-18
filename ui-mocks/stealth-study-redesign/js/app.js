@@ -325,6 +325,17 @@
     })(reviewMods[rv]);
   }
 
+  /* 周报卡：整行是开关，展开态同时改 aria-expanded，读屏才知道折叠边界 */
+  var rptHeads = document.querySelectorAll('[data-rpt] > .rpt-h');
+  for (var rh = 0; rh < rptHeads.length; rh++) {
+    (function (head) {
+      head.addEventListener('click', function () {
+        var open = head.parentNode.classList.toggle('is-on');
+        head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    })(rptHeads[rh]);
+  }
+
   /* 能力提示条的「知道了」：关掉即让位给正文，不做二次确认 */
   var dismissals = document.querySelectorAll('[data-dismiss]');
   for (var ds = 0; ds < dismissals.length; ds++) {

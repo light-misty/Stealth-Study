@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="css/conversation.css" />
 <link rel="stylesheet" href="css/campus.css" />
 <link rel="stylesheet" href="css/campus-cet.css" />
+<link rel="stylesheet" href="css/campus-kaoyan.css" />
 <link rel="stylesheet" href="css/dock.css" />
 </head>
 <body>
@@ -65,7 +66,8 @@
   <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7.5" r="4"/></symbol>
   <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3.5a2.12 2.12 0 0 1 3 3L7.5 19 3.5 20.5 5 16.5z"/></symbol>
-    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2.5" y="3.8" width="19" height="4.4" rx="1.6"/><path d="M4.6 8.2V19a1.6 1.6 0 0 0 1.6 1.6h11.6A1.6 1.6 0 0 0 19.4 19V8.2"/><line x1="10" y1="12.4" x2="14" y2="12.4"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3.5 6 6 6 20.5 6"/><path d="M18.5 6v13.5a2 2 0 0 1-2 2H7.5a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2.5" y="3.8" width="19" height="4.4" rx="1.6"/><path d="M4.6 8.2V19a1.6 1.6 0 0 0 1.6 1.6h11.6A1.6 1.6 0 0 0 19.4 19V8.2"/><line x1="10" y1="12.4" x2="14" y2="12.4"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13.4"/><line x1="12" y1="16.6" x2="12" y2="16.7"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><line x1="8.6" y1="6" x2="20.5" y2="6"/><line x1="8.6" y1="12" x2="20.5" y2="12"/><line x1="8.6" y1="18" x2="20.5" y2="18"/><circle cx="4.3" cy="6" r="1.2"/><circle cx="4.3" cy="12" r="1.2"/><circle cx="4.3" cy="18" r="1.2"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><polyline points="4.5 12.6 9.4 17.5 19.5 6.8"/></symbol>
@@ -86,6 +88,11 @@
   <symbol id="i-play" viewBox="0 0 24 24"><polygon points="7.4 4.6 19.4 12 7.4 19.4"/></symbol>
   <symbol id="i-forward" viewBox="0 0 24 24"><polygon points="4.4 5.6 12.4 12 4.4 18.4"/><line x1="17.4" y1="5" x2="17.4" y2="19"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.6" y="10.4" width="14.8" height="10.4" rx="2.6"/><path d="M8.2 10.4V7.6a3.8 3.8 0 0 1 7.6 0v2.8"/></symbol>
+
+  <!-- 考研备考台补充图标 -->
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2.6H6.6a2 2 0 0 0-2 2v14.8a2 2 0 0 0 2 2h10.8a2 2 0 0 0 2-2V8z"/><polyline points="14 2.6 14 8 19.4 8"/><line x1="8.4" y1="13" x2="15.6" y2="13"/><line x1="8.4" y1="17" x2="13" y2="17"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M20.5 15.4v4a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-4"/><polyline points="7 8.6 12 3.6 17 8.6"/><line x1="12" y1="3.6" x2="12" y2="15.2"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M20.5 11.8a8.2 8.2 0 0 1-11.7 7.4L3.5 20.5l1.4-5a8.2 8.2 0 1 1 15.6-3.7z"/></symbol>
 </defs></svg>
 
 <div class="stage">
@@ -1119,6 +1126,11 @@
             <nav class="st-tabs" role="tablist" aria-label="考研备考台模块">
               <button class="st-tab is-on" role="tab" aria-selected="true" data-tab="mistake">错题本</button>
               <button class="st-tab" role="tab" aria-selected="false" data-tab="review">今日复习<span class="tb num">14</span></button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="library">资料</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="qa">问答</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="plan">计划</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="weekly">周报</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="tutor">辅导</button>
             </nav>
 
             <div class="st-pane is-on" role="tabpanel" data-pane="mistake">
@@ -1217,6 +1229,329 @@
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">线代 · 相似对角化的充分条件</span><span class="lrow-meta">下次复习：15 天后</span></div>
                     <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <!-- 资料库：解析状态会自己变，所以状态旁边配一条进度而不只是一个词 -->
+            <div class="st-pane" role="tabpanel" data-pane="library">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-file"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">资料库</span>
+                    <span class="mod-desc">导入讲义与真题解析，解析完成后可在「问答」里按页引用</span>
+                  </div>
+                  <div class="mod-acts">
+                    <span class="sec-n">4 / 5 已解析</span>
+                    <label class="import"><button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-upload"/></svg>导入资料</button><input type="file" multiple /></label>
+                  </div>
+                </div>
+
+                <div class="rows fill thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">2026 数学一 · 复习全书（高数分册）</span><span class="lrow-meta">PDF · 18.4 MB · 2026-09-12 导入</span></div>
+                    <div class="parse"><span class="parse-k">解析中…</span><span class="bar bar--brand"><i style="--w:64%"></i></span></div>
+                    <div class="doc-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">肖秀荣 · 1000 题（马原 + 毛中特）</span><span class="lrow-meta">PDF · 9.2 MB · 2026-09-10 导入</span></div>
+                    <div class="parse"><span class="parse-k"><span class="tag tag--ok"><svg class="ic" width="11" height="11"><use href="#i-check"/></svg>解析完成</span></span></div>
+                    <div class="doc-acts"><button class="btn btn--text btn--sm">在问答中引用</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">专业课 · 数据结构期末真题汇编</span><span class="lrow-meta">DOCX · 1.1 MB · 2026-09-08 导入</span></div>
+                    <div class="parse"><span class="parse-k"><span class="tag tag--ok"><svg class="ic" width="11" height="11"><use href="#i-check"/></svg>解析完成</span></span></div>
+                    <div class="doc-acts"><button class="btn btn--text btn--sm">在问答中引用</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">2025 英语一 · 真题逐句精讲</span><span class="lrow-meta">PDF · 6.7 MB · 2026-09-05 导入</span></div>
+                    <div class="parse"><span class="parse-k"><span class="tag tag--danger">解析失败</span></span><span class="parse-k">疑似扫描件，无可提取文字层</span></div>
+                    <div class="doc-acts"><button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-refresh"/></svg>重新解析</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">线性代数 · 课堂笔记整理</span><span class="lrow-meta">MD · 84 KB · 2026-09-01 导入</span></div>
+                    <div class="parse"><span class="parse-k"><span class="tag tag--ok"><svg class="ic" width="11" height="11"><use href="#i-check"/></svg>解析完成</span></span></div>
+                    <div class="doc-acts"><button class="btn btn--text btn--sm">在问答中引用</button><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-trash"/></svg>删除</button></div>
+                  </div>
+                </div>
+
+                <div class="mod-foot">
+                  <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-alert"/></svg>导入内容只存在本机，提问时才会送模型</span>
+                  <span class="fl"></span>
+                  <span class="sec-n">文件超过大小上限与不支持的类型会被直接拒绝</span>
+                </div>
+              </section>
+            </div>
+
+            <!-- 专业课问答：一次一问，答案带页码引用 -->
+            <div class="st-pane" role="tabpanel" data-pane="qa">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-message"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">专业课资料问答</span>
+                    <span class="mod-desc">限定到单个资料时命中率更高；答案里的角标可跳回原文页</span>
+                  </div>
+                  <div class="mod-acts">
+                    <div class="sel sel--sm">
+                      <select aria-label="选择资料">
+                        <option>全部资料</option><option selected>肖秀荣 · 1000 题（马原 + 毛中特）</option>
+                        <option>专业课 · 数据结构期末真题汇编</option><option>线性代数 · 课堂笔记整理</option>
+                      </select>
+                      <svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="qa-ask">
+                    <input class="input" type="text" placeholder="向资料提问…" value="简述剩余价值率与利润率的区别，并给出计算口径。" />
+                    <button class="btn btn--primary">提问</button>
+                  </div>
+
+                  <div class="fill thin qcol">
+                    <div class="sub sub--ring qa-ans">
+                      <span class="qa-ans-k"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>回答</span>
+                      <p class="qa-body">剩余价值率是剩余价值与可变资本之比（m′ = m / v），反映资本对劳动的剥削程度；利润率是剩余价值与全部预付资本之比（p′ = m / (c+v)），反映总资本的增殖效率。同一组数据下利润率恒低于剩余价值率，差额由不变资本 c 的规模决定。</p>
+                      <div class="cites">
+                        <button class="cite"><svg class="ic" width="11" height="11"><use href="#i-file"/></svg>肖秀荣 · 1000 题<span class="num">P.118</span></button>
+                        <button class="cite"><svg class="ic" width="11" height="11"><use href="#i-file"/></svg>肖秀荣 · 1000 题<span class="num">P.121</span></button>
+                      </div>
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>AI 生成，仅供参考</span>
+                    </div>
+
+                    <div class="sub">
+                      <span class="qa-ans-k">上一问</span>
+                      <p class="qa-body">银行家算法里安全序列怎么求？</p>
+                      <div class="cites"><button class="cite"><svg class="ic" width="11" height="11"><use href="#i-file"/></svg>专业课 · 数据结构期末真题汇编<span class="num">P.47</span></button></div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 复习计划：进度环 + 打卡 + 按周任务，板面只读 -->
+            <div class="st-pane" role="tabpanel" data-pane="plan">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-calendar"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">复习计划</span>
+                    <span class="mod-desc">按考试日期与四轨科目生成任务；重排只动未开始的项</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">68 项 · 已完成 41 项</span></div>
+                </div>
+
+                <div class="plan-edit">
+                  <div class="field">
+                    <span class="field-label">新考试日期（可选）</span>
+                    <input class="input input--num" type="date" value="2026-12-26" />
+                  </div>
+                  <button class="btn btn--primary"><svg class="ic" width="13" height="13"><use href="#i-plus"/></svg>生成计划</button>
+                  <button class="btn btn--ghost"><svg class="ic" width="13" height="13"><use href="#i-refresh"/></svg>重排计划</button>
+                  <span class="fl"></span>
+                  <span class="ai-note">已生成 68 项任务，始于 2026-09-14</span>
+                </div>
+
+                <div class="col">
+                  <div class="rings">
+                    <div class="ring-c">
+                      <svg class="ring" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="24.5" transform="rotate(-90 32 32)"/></svg>
+                      <span class="ring-n">85%</span><span class="ring-l">政治</span>
+                    </div>
+                    <div class="ring-c">
+                      <svg class="ring" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="55.6" transform="rotate(-90 32 32)"/></svg>
+                      <span class="ring-n">66%</span><span class="ring-l">英语</span>
+                    </div>
+                    <div class="ring-c">
+                      <svg class="ring" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="70.3" transform="rotate(-90 32 32)"/></svg>
+                      <span class="ring-n">57%</span><span class="ring-l">数学</span>
+                    </div>
+                    <div class="ring-c">
+                      <svg class="ring" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="98.0" transform="rotate(-90 32 32)"/></svg>
+                      <span class="ring-n">40%</span><span class="ring-l">专业课</span>
+                    </div>
+                    <div class="rings-end">
+                      <span class="rings-note">总体 60% · 连续学习 31 天</span>
+                      <div class="heat">
+                        <span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="fill thin">
+                    <div class="wk">
+                      <div class="wk-h"><span class="wk-d">09-14</span><span class="sec-title">当周</span><span class="wk-n">12 项 · 9 已完成</span></div>
+                      <div class="rows">
+                        <div class="lrow"><span class="trow-d">09-15</span><div class="lrow-text"><span class="lrow-title">数学 · 中值定理 6 题 + 错题回看</span></div><span class="tag tag--teal">进行中</span></div>
+                        <div class="lrow"><span class="trow-d">09-15</span><div class="lrow-text"><span class="lrow-title">政治 · 马原第 4 章 精读</span></div><span class="tag tag--ok">已完成</span></div>
+                        <div class="lrow"><span class="trow-d">09-16</span><div class="lrow-text"><span class="lrow-title">英语 · 精读 2 篇 + 生词入队</span></div><span class="tag tag--muted">待开始</span></div>
+                        <div class="lrow"><span class="trow-d">09-17</span><div class="lrow-text"><span class="lrow-title">专业课 · 操作系统 进程调度 笔记</span></div><span class="tag tag--warn">复核中</span></div>
+                        <div class="lrow"><span class="trow-d">09-19</span><div class="lrow-text"><span class="lrow-title">数学 · 每周小结测验</span></div><span class="tag tag--muted">待开始</span></div>
+                      </div>
+                    </div>
+                    <div class="wk">
+                      <div class="wk-h"><span class="wk-d">09-07</span><span class="sec-title">当周</span><span class="wk-n">11 项 · 11 已完成</span></div>
+                      <div class="rows">
+                        <div class="lrow"><span class="trow-d">09-08</span><div class="lrow-text"><span class="lrow-title">政治 · 史纲时间线梳理</span></div><span class="tag tag--ok">已完成</span></div>
+                        <div class="lrow"><span class="trow-d">09-09</span><div class="lrow-text"><span class="lrow-title">数学 · 二重积分 8 题</span></div><span class="tag tag--ok">已完成</span></div>
+                        <div class="lrow"><span class="trow-d">09-11</span><div class="lrow-text"><span class="lrow-title">专业课 · 数据结构 KMP 专项</span></div><span class="tag tag--ok">已完成</span></div>
+                        <div class="lrow"><span class="trow-d">09-12</span><div class="lrow-text"><span class="lrow-title">英语 · 完形 4 篇</span></div><span class="tag tag--muted">已跳过</span></div>
+                      </div>
+                    </div>
+                    <div class="wk">
+                      <div class="wk-h"><span class="wk-d">08-31</span><span class="sec-title">当周</span><span class="wk-n">10 项 · 10 已完成</span></div>
+                      <div class="rows">
+                        <div class="lrow"><span class="trow-d">09-01</span><div class="lrow-text"><span class="lrow-title">数学 · 极限计算 强化 10 题</span></div><span class="tag tag--ok">已完成</span></div>
+                        <div class="lrow"><span class="trow-d">09-03</span><div class="lrow-text"><span class="lrow-title">政治 · 马原 选择题 30 道</span></div><span class="tag tag--ok">已完成</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 周报：默认折叠，展开后给完成率、高频错点、下周建议与正文 -->
+            <div class="st-pane" role="tabpanel" data-pane="weekly">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-chart"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">学习周报</span>
+                    <span class="mod-desc">按周汇总完成率、高频错点与下周建议</span>
+                  </div>
+                  <div class="mod-acts"><button class="btn btn--primary btn--sm">生成本周周报</button></div>
+                </div>
+
+                <div class="fill thin qcol">
+                  <div class="rpt is-on" data-rpt>
+                    <button class="rpt-h" aria-expanded="true">
+                      <svg class="ic rpt-chev" width="13" height="13"><use href="#i-chev-right"/></svg>
+                      <span class="rpt-d">2026-09-07 ~ 09-13</span>
+                      <span class="rpt-n">总体 82%</span>
+                    </button>
+                    <div class="rpt-b">
+                      <div class="cells">
+                        <span class="cell"><span class="cdot"></span>政治 92%</span>
+                        <span class="cell"><span class="cdot"></span>英语 78%</span>
+                        <span class="cell cell--partial"><span class="cdot"></span>数学 71%</span>
+                        <span class="cell cell--miss"><span class="cdot"></span>专业课 54%</span>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">高频错点</span></div><span class="sec-n">3 项</span></div>
+                      <div class="rows">
+                        <div class="lrow"><div class="lrow-text"><span class="lrow-title">数学 · 中值定理构造辅助函数</span></div><span class="tag tag--danger">错 7 次</span></div>
+                        <div class="lrow"><div class="lrow-text"><span class="lrow-title">政治 · 剩余价值率与利润率混淆</span></div><span class="tag tag--warn">错 5 次</span></div>
+                        <div class="lrow"><div class="lrow-text"><span class="lrow-title">专业课 · 死锁四个必要条件</span></div><span class="tag tag--warn">错 2 次</span></div>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">下周建议</span></div></div>
+                      <div class="prose">
+                        <p>数学与专业课合计只完成 62%，是本周的瓶颈。建议把 09-15 起每天的前 90 分钟固定给这两轨，并把中值定理的 6 道错题在周末重做一遍。</p>
+                        <p>政治保持现有节奏即可；英语精读量可以从 2 篇降到 1 篇，把省下的时间给错题回看。</p>
+                      </div>
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>AI 生成，仅供参考</span>
+                    </div>
+                  </div>
+
+                  <div class="rpt" data-rpt>
+                    <button class="rpt-h" aria-expanded="false">
+                      <svg class="ic rpt-chev" width="13" height="13"><use href="#i-chev-right"/></svg>
+                      <span class="rpt-d">2026-08-31 ~ 09-06</span>
+                      <span class="rpt-n">总体 76%</span>
+                    </button>
+                    <div class="rpt-b">
+                      <div class="cells">
+                        <span class="cell"><span class="cdot"></span>政治 88%</span>
+                        <span class="cell"><span class="cdot"></span>英语 70%</span>
+                        <span class="cell"><span class="cdot"></span>数学 74%</span>
+                        <span class="cell cell--partial"><span class="cdot"></span>专业课 61%</span>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">高频错点</span></div><span class="sec-n">2 项</span></div>
+                      <div class="rows">
+                        <div class="lrow"><div class="lrow-text"><span class="lrow-title">数学 · 极限等价无穷代换滥用</span></div><span class="tag tag--warn">错 4 次</span></div>
+                        <div class="lrow"><div class="lrow-text"><span class="lrow-title">英语 · 完形逻辑连接词</span></div><span class="tag tag--warn">错 3 次</span></div>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">下周建议</span></div></div>
+                      <div class="prose"><p>四轨进度均衡，维持当前节奏即可；把专业课的真题汇编拆成每次 20 分钟的小块。</p></div>
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>AI 生成，仅供参考</span>
+                    </div>
+                  </div>
+
+                  <div class="rpt" data-rpt>
+                    <button class="rpt-h" aria-expanded="false">
+                      <svg class="ic rpt-chev" width="13" height="13"><use href="#i-chev-right"/></svg>
+                      <span class="rpt-d">2026-08-24 ~ 08-30</span>
+                      <span class="rpt-n">总体 69%</span>
+                    </button>
+                    <div class="rpt-b">
+                      <div class="cells"><span class="cell cell--partial"><span class="cdot"></span>政治 66%</span><span class="cell"><span class="cdot"></span>英语 72%</span><span class="cell"><span class="cdot"></span>数学 70%</span><span class="cell"><span class="cdot"></span>专业课 68%</span></div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">高频错点</span></div><span class="sec-n">本周没有错题记录</span></div>
+                      <div class="prose"><p>这周以基础过书为主，未安排成套练习，因此没有错题样本可汇总。</p></div>
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>AI 生成，仅供参考</span>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 科目辅导：名字带 Chat，实际是一次性的科目批改，没有会话列表 -->
+            <div class="st-pane" role="tabpanel" data-pane="tutor">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-pencil"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">科目辅导</span>
+                    <span class="mod-desc">选科目与批改类型，粘贴作答后取回分项得分与错误清单</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">本科目已批改 6 次</span></div>
+                </div>
+
+                <div class="tutor-kinds">
+                  <div class="field">
+                    <span class="field-label">科目</span>
+                    <div class="sel"><select aria-label="科目"><option>政治</option><option>英语</option><option selected>数学</option><option>专业课</option></select><svg class="ic" width="14" height="14"><use href="#i-chev-down"/></svg></div>
+                  </div>
+                  <div class="field">
+                    <span class="field-label">批改类型</span>
+                    <div class="sel"><select aria-label="批改类型"><option>材料分析题</option><option>作文</option><option selected>简答题</option><option>翻译</option></select><svg class="ic" width="14" height="14"><use href="#i-chev-down"/></svg></div>
+                  </div>
+                </div>
+
+                <div class="col">
+                  <div class="fill thin qcol">
+                    <div class="field">
+                      <span class="field-label">把你的作答粘贴进来</span>
+                      <textarea class="textarea" rows="5">设 f(x) 在 [a,b] 连续、(a,b) 可导，且 f(a)=f(b)。构造 F(x)=f(x)-kx，使 F(a)=F(b)，由罗尔定理存在 ξ∈(a,b) 使 F′(ξ)=0，即 f′(ξ)=k。</textarea>
+                    </div>
+                    <div class="sec"><div class="sec-text"><span class="sec-title">分项得分</span></div><span class="sec-n">Rubric: 要点 · 推导 · 表述</span></div>
+                    <div class="grade">
+                      <div class="dims">
+                        <div class="dim"><span class="dim-n">要点</span><span class="bar dim-bar"><i style="--w:88%"></i></span><span class="dim-v">8.8 / 10</span></div>
+                        <div class="dim"><span class="dim-n">推导</span><span class="bar dim-bar"><i style="--w:72%"></i></span><span class="dim-v">7.2 / 10</span></div>
+                        <div class="dim"><span class="dim-n">表述</span><span class="bar dim-bar"><i style="--w:80%"></i></span><span class="dim-v">8.0 / 10</span></div>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">错误清单</span></div><span class="sec-n">1 处</span></div>
+                      <div class="errs">
+                        <div class="err">
+                          <span class="err-k">条件缺失</span>
+                          <span class="err-orig">构造 F(x)=f(x)-kx，使 F(a)=F(b)</span>
+                          <span class="err-fix">需先说明 k=(f(b)-f(a))/(b-a)，否则 F(a)=F(b) 不成立</span>
+                          <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                        </div>
+                      </div>
+                      <div class="sec"><div class="sec-text"><span class="sec-title">要点补充</span></div></div>
+                      <p class="qa-body">拉格朗日中值定理是这一问的一般形式：取 k 为割线斜率即得 f′(ξ)=k。端点条件去掉后应改述为柯西中值定理。</p>
+                      <div class="mod-foot">
+                        <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>批改模型 gpt-4o · AI 生成，仅供参考</span>
+                        <span class="fl"></span>
+                        <button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-plus"/></svg>加入错题本</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mod-foot">
+                    <button class="btn btn--primary">提交批改</button>
+                    <span class="fl"></span>
+                    <button class="btn btn--soft btn--sm" data-goto-tab="plan">回到今日任务<svg class="ic" width="12" height="12"><use href="#i-chev-right"/></svg></button>
                   </div>
                 </div>
               </section>
