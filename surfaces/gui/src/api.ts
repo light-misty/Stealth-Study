@@ -32,9 +32,16 @@ const fetch = (
 
 const openWebSocket = (url: string): WebSocket => {
   const token = apiToken();
-  return token
+  const ws = token
     ? new WebSocket(url, ["openworker", token])
     : new WebSocket(url);
+  // 浏览器对 WebSocket 的错误/异常关闭是在 network 层自动打印，不经过 console.* 调用，
+  // 前端日志捕获拦不到。这里显式记录下来，让这些「控制台能看到」的错误也能落盘。
+  ws.addEventListener?.("error", () => console.error(`WS error: ${url}`));
+  ws.addEventListener?.("close", (e: CloseEvent) => {
+    if (!e.wasClean) console.warn(`WS closed unexpectedly (${e.code}): ${url}`);
+  });
+  return ws;
 };
 
 export interface Health {
