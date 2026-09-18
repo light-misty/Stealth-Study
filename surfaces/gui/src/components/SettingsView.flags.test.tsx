@@ -57,7 +57,7 @@ describe("SettingsView flag double-state (INF-07)", () => {
 
     fireEvent.click(screen.getByText("Voice input"));
     expect(
-      screen.getByText("Voice Input setup is available in the OpenWorker desktop app."),
+      screen.getByText("Voice Input setup is available in the Stealth Study desktop app."),
     ).toBeTruthy();
   });
 

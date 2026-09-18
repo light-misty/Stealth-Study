@@ -5,7 +5,7 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures";
 
-test("boot splash shows the OpenWorker star, not the sparkle glyph", async ({ page }) => {
+test("boot splash shows the Stealth Study star, not the sparkle glyph", async ({ page }) => {
   // Hold health long enough to observe the splash.
   await page.route("**/v1/health", async (route) => {
     await new Promise((r) => setTimeout(r, 1500));
