@@ -258,7 +258,7 @@ app.include_router(build_campus_router(manager))
 | `PROFILE_REQUIRED` | 400 | 否 | 缺 `profile_id` 公共参数 |
 | `PROFILE_NOT_FOUND` | 404 | 否 | |
 | `PROFILE_READ_ONLY` | 409 | 否 | `finished` 档案拒绝写（02 §7.2） |
-| `DUPLICATE_TITLE` / `DUPLICATE_NODE` | 409 | 否 | 档案重名 / 节点类型重复 |
+| `DUPLICATE_TITLE` / `DUPLICATE_NODE` | 409 | 否 | 档案重名（只与未归档档案比较，02 §7.2）/ 节点类型重复 |
 | `EXAM_DATE_REQUIRED` | 400 | 否 | 生成计划前未设置考试日期（PRD §5.1 异常分支） |
 | `FILE_TOO_LARGE` / `UNSUPPORTED_TYPE` / `DISK_FULL` | 413/415/507 | 否 | 导入校验（磁盘检查在导入前，PRD §7.6） |
 | `DOC_NOT_FOUND` / `DOC_NOT_READY` / `DOC_SCAN_EMPTY` | 404/409/422 | 部分 | `DOC_SCAN_EMPTY` 不可重试（ADR-09：疑似扫描件，提示需 OCR/手动录入） |

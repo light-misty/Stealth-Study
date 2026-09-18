@@ -1475,6 +1475,8 @@ class CampusService:
 
         Only the fields of `PROFILE_MUTABLE_FIELDS` are honoured; `track_type` is deliberately
         not among them, because a profile's track decides the meaning of everything it owns.
+        A write that leaves the archive state (`active`/`finished`) also has to find its title
+        free, which is what makes restore-conflict resolvable by renaming in the same patch.
         """
         values: dict[str, Any] = {}
         for name in PROFILE_MUTABLE_FIELDS:
@@ -1488,6 +1490,14 @@ class CampusService:
             if name in JSON_PROFILE_FIELDS:
                 value = _encode(value or [])
             values[name] = value
+        status = values.get("status")
+        if status is not None and str(status) != profile.status:
+            entering_archive = str(status) == models.ProfileStatus.ARCHIVED.value
+            if not entering_archive:
+                self._assert_title_free(
+                    str(values.get("title") or profile.title).strip(), exclude=profile.id
+                )
+            values["archived_at"] = _utcnow() if entering_archive else None
         if not values:
             return self.get_profile(profile.id)
         self._store.update("exam_profile", profile.id, values)
@@ -4521,7 +4531,17 @@ class CampusService:
             self._store.delete_state(SETTINGS_KEY)
 
     def _assert_title_free(self, title: str, *, exclude: Optional[str] = None) -> None:
-        row = self._store.query_one('SELECT "id" FROM "exam_profile" WHERE "title" = ?', (title,))
+        """Refuse a title an on-desk profile already holds (A2/A4).
+
+        An archived profile is in the box, not on the desk: it gave its name back, so it neither
+        blocks a create/rename nor is blocked by one, and two boxed profiles may share a name.
+        Coming out of the box re-enters that rule, so a restore whose name the desk has since
+        taken answers `DUPLICATE_TITLE` and the station offers a rename instead (02 §7.2).
+        """
+        row = self._store.query_one(
+            'SELECT "id" FROM "exam_profile" WHERE "title" = ? AND "status" != ?',
+            (title, models.ProfileStatus.ARCHIVED.value),
+        )
         if row is not None and row["id"] != exclude:
             raise CampusError("DUPLICATE_TITLE", f"同名档案已存在：{title}")
 

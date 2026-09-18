@@ -55,7 +55,8 @@
       "loading": "加载中…",
       "retry": "重试",
       "error": "出错了",
-      "exam_passed": "考试日期已过"
+      "exam_passed": "考试日期已过",
+      "got_it": "知道了"
     },
     "model": {
       "empty_title": "未配置模型",
@@ -81,7 +82,38 @@
       "active_badge": "当前",
       "create_submit": "创建档案",
       "create_cancel": "取消",
-      "title_required": "请填写档案名称"
+      "title_required": "请填写档案名称",
+      "duplicate_hint": "「{{title}}」已被一个未归档的档案占用。先把那个档案归档，这个名字就会空出来。",
+      "action_create_failed": "档案未创建",
+      "action_archive_failed": "档案未归档",
+      "action_restore_failed": "档案未恢复",
+      "dialog_close": "关闭",
+      "rename": "改名",
+      "rename_title": "档案改名",
+      "rename_save": "保存名称",
+      "action_rename_failed": "档案未改名",
+      "restore_and_rename": "改名并恢复",
+      "restore_rename_hint": "「{{title}}」已被台面上的档案占用。换个名字即可把它恢复回来。"
+    },
+    "archived": {
+      "title": "已归档档案",
+      "search_placeholder": "搜索档案名称",
+      "filter_aria": "按归档时间筛选",
+      "sort_aria": "排序方式",
+      "filter_all": "全部归档时间",
+      "filter_recent_7d": "最近 7 天",
+      "filter_recent_30d": "最近 30 天",
+      "filter_older": "更早",
+      "sort_archived_desc": "按归档时间",
+      "sort_created_desc": "按创建时间",
+      "created": "创建时间",
+      "archived": "归档时间",
+      "detail": "查看详情",
+      "back": "返回列表",
+      "restore": "恢复",
+      "empty": "还没有已归档的档案",
+      "nomatch": "没有符合条件的已归档档案",
+      "restore_hint": "恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。"
     },
     "settings": {
       "title": "备考台设置",

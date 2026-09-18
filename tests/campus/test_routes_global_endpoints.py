@@ -162,6 +162,7 @@ def test_a2_creates_a_profile_with_documented_defaults(client: TestClient) -> No
     assert body["subjects"] == []
     assert body["daily_minutes"] == 60
     assert body["exam_date"] is None
+    assert body["archived_at"] is None
     assert body["id"]
 
 
@@ -193,6 +194,53 @@ def test_a2_refuses_a_duplicate_title(client: TestClient) -> None:
     assert response.status_code == 409
     assert _detail(response)["code"] == "DUPLICATE_TITLE"
     assert _detail(response)["retryable"] is False
+
+
+def test_a2_refuses_a_title_a_finished_profile_still_holds(client: TestClient) -> None:
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "已结课"},
+    )
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a2_allows_a_title_only_an_archived_profile_holds(client: TestClient) -> None:
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CERT.value, "title": "已归档"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] != ARCHIVED_ID
+
+
+def test_a2_allows_the_same_title_again_once_the_rival_is_archived(client: TestClient) -> None:
+    client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={"status": models.ProfileStatus.ARCHIVED.value},
+    )
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == models.ProfileStatus.ACTIVE.value
+
+
+def test_a2_refuses_two_profiles_of_the_same_active_title(client: TestClient) -> None:
+    assert (
+        client.post(
+            f"{routes.CAMPUS_PREFIX}/profiles",
+            json={"track_type": models.TrackType.CET.value, "title": "同名新建"},
+        ).status_code
+        == 200
+    )
+    refused = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.KAOYAN.value, "title": "同名新建"},
+    )
+    assert refused.status_code == 409
+    assert _detail(refused)["code"] == "DUPLICATE_TITLE"
 
 
 @pytest.mark.parametrize(
@@ -262,6 +310,48 @@ def test_a4_archives_and_restores_a_profile(client: TestClient) -> None:
     assert restored.json()["status"] == models.ProfileStatus.ACTIVE.value
 
 
+def _set_status(client: TestClient, profile_id: str, status: models.ProfileStatus) -> dict:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{profile_id}", json={"status": status.value}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_a4_stamps_archived_at_on_the_transition_into_archive_only(
+    client: TestClient,
+) -> None:
+    """`archived_at` answers "when did this go into the box", so the archived list can show it.
+
+    It is written when the profile enters `archived`, survives a second archive request (which
+    changes nothing) and goes back to NULL on restore or on 结课 — a timestamp the list would
+    otherwise show for a profile that is sitting on the desk.
+    """
+    assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()["archived_at"] is None
+
+    archived = _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    assert archived["archived_at"].endswith("Z")
+
+    assert _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)["archived_at"] == (
+        archived["archived_at"]
+    )
+
+    assert _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)["archived_at"] is None
+
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    assert _set_status(client, ACTIVE_ID, models.ProfileStatus.FINISHED)["archived_at"] is None
+
+
+def test_a4_a_write_that_leaves_the_status_alone_keeps_the_archive_timestamp(
+    client: TestClient, seeded_store: store.CampusStore
+) -> None:
+    seeded_store.update("exam_profile", ARCHIVED_ID, {"archived_at": "2026-09-10T08:00:00Z"})
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"target_score": 120}
+    ).json()
+    assert body["archived_at"] == "2026-09-10T08:00:00Z"
+
+
 def test_a4_accepts_finishing_a_profile(client: TestClient) -> None:
     response = client.patch(
         f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
@@ -292,10 +382,135 @@ def test_a4_refuses_an_unknown_status_value(client: TestClient) -> None:
 
 def test_a4_refuses_a_duplicate_title_on_rename(client: TestClient) -> None:
     response = client.patch(
-        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已归档"}
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已结课"}
     )
     assert response.status_code == 409
     assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a4_allows_rename_onto_a_title_only_an_archived_profile_holds(client: TestClient) -> None:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已归档"}
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["title"] == "已归档"
+
+
+def test_a4_restore_refuses_a_title_an_on_desk_profile_holds(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    )
+
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={"status": models.ProfileStatus.ACTIVE.value},
+    )
+
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+    body = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["status"] == models.ProfileStatus.ARCHIVED.value
+    assert body["archived_at"] is not None
+
+
+def test_a4_restore_succeeds_once_the_rival_has_moved_off_the_name(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    twin = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    ).json()
+    client.patch(f"{routes.CAMPUS_PREFIX}/profiles/{twin['id']}", json={"title": "让开名字"})
+
+    restored = _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)
+
+    assert restored["status"] == models.ProfileStatus.ACTIVE.value
+    assert restored["title"] == "六级 12 月"
+    assert restored["archived_at"] is None
+
+
+def test_a4_one_patch_can_rename_and_restore_at_once(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    twin = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    ).json()
+
+    restored = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={"status": models.ProfileStatus.ACTIVE.value, "title": "六级 12 月（旧）"},
+    )
+
+    assert restored.status_code == 200, restored.text
+    body = restored.json()
+    assert body["status"] == models.ProfileStatus.ACTIVE.value
+    assert body["title"] == "六级 12 月（旧）"
+    assert body["archived_at"] is None
+    assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{twin['id']}").json()["title"] == (
+        "六级 12 月"
+    )
+
+
+def test_a4_renaming_an_archived_profile_keeps_it_archived_and_keeps_the_timestamp(
+    client: TestClient, seeded_store: store.CampusStore
+) -> None:
+    seeded_store.update("exam_profile", ARCHIVED_ID, {"archived_at": "2026-09-10T08:00:00Z"})
+
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "改个名字"}
+    ).json()
+
+    assert body["status"] == models.ProfileStatus.ARCHIVED.value
+    assert body["title"] == "改个名字"
+    assert body["archived_at"] == "2026-09-10T08:00:00Z"
+
+
+def test_a4_an_archived_rename_still_refuses_a_name_the_desk_holds(client: TestClient) -> None:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "六级 12 月"}
+    )
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a4_two_archived_profiles_can_share_a_name_while_in_the_box(client: TestClient) -> None:
+    second = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "箱子里的名字"},
+    ).json()
+    client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{second['id']}",
+        json={"status": models.ProfileStatus.ARCHIVED.value},
+    )
+
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "箱子里的名字"}
+    )
+
+    assert body.status_code == 200, body.text
+    assert body.json()["title"] == "箱子里的名字"
+
+
+def test_a4_a_restore_that_also_renames_still_respects_the_title_rule(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "台面上的名字"},
+    )
+
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={
+            "status": models.ProfileStatus.ACTIVE.value,
+            "title": "台面上的名字",
+        },
+    )
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+    body = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["status"] == models.ProfileStatus.ARCHIVED.value
+    assert body["title"] == "六级 12 月"
 
 
 def test_a4_keeps_reading_a_finished_profile_available(client: TestClient) -> None:

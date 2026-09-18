@@ -1,4 +1,5 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CampusApiError } from "../../campus/api";
 import type { ExamProfile } from "../../campus/types";
@@ -12,10 +13,12 @@ vi.mock("../../campus/api", async (importOriginal) => {
     getAppState: vi.fn(),
     patchAppState: vi.fn(),
     createProfile: vi.fn(),
+    patchProfile: vi.fn(),
   };
 });
 
 import * as api from "../../campus/api";
+import { campusErrorInfo } from "../../campus/utils";
 
 const apiMock = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
@@ -35,17 +38,49 @@ const profile = (id: string): ExamProfile => ({
   status: "active",
   created_at: "2026-09-01T00:00:00Z",
   updated_at: "2026-09-01T00:00:00Z",
+  archived_at: null,
 });
 
 function Probe() {
-  const { profiles, activeProfile, loading, error, setActive, createProfile } = useCampusProfile();
+  const {
+    profiles,
+    activeProfile,
+    loading,
+    error,
+    actionError,
+    setActive,
+    createProfile,
+    renameProfile,
+    setStatus,
+  } = useCampusProfile();
+  const [renameResult, setRenameResult] = useState("none");
   return (
     <div>
       <span data-testid="profiles">{profiles.map((p) => p.id).join(",")}</span>
       <span data-testid="active">{activeProfile?.id ?? "none"}</span>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="error">{error ? "err" : "ok"}</span>
+      <span data-testid="action-error">
+        {actionError ? `${actionError.action}:${campusErrorInfo(actionError.error).code}` : "none"}
+      </span>
+      <span data-testid="action-title">{actionError?.title ?? "none"}</span>
+      <span data-testid="action-id">{actionError?.profileId ?? "none"}</span>
+      <span data-testid="rename-result">{renameResult}</span>
       <button data-testid="switch" onClick={() => void setActive("p2")} />
+      <button data-testid="archive" onClick={() => void setStatus("p1", "archived")} />
+      <button data-testid="restore" onClick={() => void setStatus("p1", "active")} />
+      <button
+        data-testid="restore-named"
+        onClick={() => void setStatus("p1", "active", "换个名字回来")}
+      />
+      <button
+        data-testid="rename"
+        onClick={() => {
+          void renameProfile("p1", "改名后").then((res) =>
+            setRenameResult(res.ok ? "ok" : "fail"),
+          );
+        }}
+      />
       <button
         data-testid="create"
         onClick={() => void createProfile({ track_type: "cet", title: "新档案" })}
@@ -113,6 +148,133 @@ describe("CampusProfileProvider", () => {
       </CampusProfileProvider>,
     );
     await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("err"));
+  });
+
+  it("keeps a failed create out of the page-level error and names the profile it tried", async () => {
+    apiMock.createProfile.mockRejectedValue(
+      new CampusApiError("DUPLICATE_TITLE", "同名档案已存在：新档案", false, 409),
+    );
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("create").click();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("action-error").textContent).toBe("create:DUPLICATE_TITLE"),
+    );
+    expect(screen.getByTestId("action-title").textContent).toBe("新档案");
+    expect(screen.getByTestId("error").textContent).toBe("ok");
+  });
+
+  it("changes a profile status through A4 and reloads the list", async () => {
+    apiMock.patchProfile.mockResolvedValue(profile("p1"));
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("archive").click();
+
+    await waitFor(() => expect(apiMock.patchProfile).toHaveBeenCalledWith("p1", { status: "archived" }));
+    await waitFor(() => expect(apiMock.listProfiles.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getByTestId("action-error").textContent).toBe("none");
+  });
+
+  it("reports a refused status change as an action error", async () => {
+    apiMock.patchProfile.mockRejectedValue(
+      new CampusApiError("PROFILE_READ_ONLY", "档案已结课，拒绝写入", false, 409),
+    );
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("archive").click();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("action-error").textContent).toBe("archive:PROFILE_READ_ONLY"),
+    );
+    expect(screen.getByTestId("error").textContent).toBe("ok");
+  });
+
+  it("reports a restore blocked by the name as a restore action error naming the profile", async () => {
+    apiMock.patchProfile.mockRejectedValue(
+      new CampusApiError("DUPLICATE_TITLE", "同名档案已存在：档案-p1", false, 409),
+    );
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("restore").click();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("action-error").textContent).toBe("restore:DUPLICATE_TITLE"),
+    );
+    expect(screen.getByTestId("action-title").textContent).toBe("档案-p1");
+    expect(screen.getByTestId("action-id").textContent).toBe("p1");
+  });
+
+  it("renames a profile through A4 and tells the caller it worked", async () => {
+    apiMock.patchProfile.mockResolvedValue(profile("p1"));
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("rename").click();
+
+    await waitFor(() => expect(apiMock.patchProfile).toHaveBeenCalledWith("p1", { title: "改名后" }));
+    await waitFor(() => expect(screen.getByTestId("rename-result").textContent).toBe("ok"));
+    expect(screen.getByTestId("action-error").textContent).toBe("none");
+    await waitFor(() => expect(apiMock.listProfiles.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it("hands a refused rename back to the caller instead of the page", async () => {
+    const failure = new CampusApiError("DUPLICATE_TITLE", "同名档案已存在", false, 409);
+    apiMock.patchProfile.mockRejectedValue(failure);
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("rename").click();
+
+    await waitFor(() => expect(screen.getByTestId("rename-result").textContent).toBe("fail"));
+    expect(screen.getByTestId("action-error").textContent).toBe("none");
+  });
+
+  it("renames and restores in one patch", async () => {
+    apiMock.patchProfile.mockResolvedValue(profile("p1"));
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+
+    screen.getByTestId("restore-named").click();
+
+    await waitFor(() =>
+      expect(apiMock.patchProfile).toHaveBeenCalledWith("p1", {
+        status: "active",
+        title: "换个名字回来",
+      }),
+    );
   });
 });
 

@@ -443,6 +443,13 @@ export async function mockApi(page: import("@playwright/test").Page) {
   };
   const campusNow = () => "2026-09-16T00:00:00Z";
   const campusProfile = (id: string) => campusProfiles.find((row) => row.id === id) ?? null;
+  const campusTitleTaken = (title: string, exceptId?: string) =>
+    campusProfiles.some(
+      (row) => row.title === title && row.id !== exceptId && row.status !== "archived",
+    );
+  const campusDuplicateTitle = (title: string) => ({
+    detail: { code: "DUPLICATE_TITLE", message: `同名档案已存在：${title}`, retryable: false },
+  });
   const campusDoc = (id: string) => campusDocs.find((row) => row.id === id) ?? null;
   const campusMock = (id: string) => campusMocks.find((row) => row.id === id) ?? null;
   /** The documented campus error body (03 §1) — `campus/api.ts` unwraps `detail`. */
@@ -2371,17 +2378,19 @@ export async function mockApi(page: import("@playwright/test").Page) {
 
       // Health — the T06 mount smoke.
       if (sub === "/health" && m === "GET") {
-        return json({ status: "ok", schema_version: 1, tracks: ["cet", "kaoyan", "cert"] });
+        return json({ status: "ok", schema_version: 2, tracks: ["cet", "kaoyan", "cert"] });
       }
 
       // -- A 组：全局与设置 ------------------------------------------------
       if (sub === "/profiles" && m === "GET") return json({ items: campusProfiles });
       if (sub === "/profiles" && m === "POST") {
         const b = req.postDataJSON() || {};
+        const title = b.title || "新建档案";
+        if (campusTitleTaken(title)) return json(campusDuplicateTitle(title), 409);
         const profile = {
           id: `campus-e2e-${campusNext("profile")}`,
           track_type: b.track_type || "cet",
-          title: b.title || "新建档案",
+          title,
           cert_type: b.cert_type ?? null,
           level: b.level ?? null,
           exam_date: b.exam_date ?? null,
@@ -2392,6 +2401,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
           status: "active",
           created_at: campusNow(),
           updated_at: campusNow(),
+          archived_at: null,
         };
         campusProfiles.push(profile);
         // A2 returns the bare profile (03 §4.1) — the context adopts `created.id` directly.
@@ -2406,7 +2416,18 @@ export async function mockApi(page: import("@playwright/test").Page) {
       if (pidMatch && m === "PATCH") {
         const row = campusProfile(pidMatch[1]);
         if (!row) return json(campusNotFound("profile"), 404);
-        Object.assign(row, req.postDataJSON() || {}, { updated_at: campusNow() });
+        const patch = req.postDataJSON() || {};
+        if (typeof patch.title === "string" && patch.title !== row.title) {
+          if (campusTitleTaken(patch.title, row.id)) return json(campusDuplicateTitle(patch.title), 409);
+        }
+        if (patch.status && patch.status !== row.status) {
+          if (patch.status !== "archived") {
+            const carried = typeof patch.title === "string" ? patch.title : row.title;
+            if (campusTitleTaken(carried, row.id)) return json(campusDuplicateTitle(carried), 409);
+          }
+          patch.archived_at = patch.status === "archived" ? campusNow() : null;
+        }
+        Object.assign(row, patch, { updated_at: campusNow() });
         return json(row);
       }
       if (pidMatch && m === "DELETE") {

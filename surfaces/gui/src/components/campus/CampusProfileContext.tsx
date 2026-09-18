@@ -1,11 +1,28 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { createProfile } from "../../campus/api";
+import { createProfile, patchProfile } from "../../campus/api";
 import { useActiveProfile, useProfiles } from "../../campus/hooks";
-import type { CampusTrack, ExamProfile, ProfileCreateInput } from "../../campus/types";
+import type {
+  CampusTrack,
+  ExamProfile,
+  ProfileCreateInput,
+  ProfilePatch,
+  ProfileStatus,
+} from "../../campus/types";
 import { campusErrorInfo } from "../../campus/utils";
 
 // The single place the station reads its profile from (04 §3.1): panels consume the
 // active profile through this context instead of each firing their own A1/A6 request.
+
+export type ProfileAction = "create" | "archive" | "restore" | "rename";
+
+export interface ProfileActionError {
+  action: ProfileAction;
+  profileId: string | null;
+  title: string;
+  error: unknown;
+}
+
+export type ProfileRenameResult = { ok: true } | { ok: false; error: unknown };
 
 export interface CampusProfileContextValue {
   profiles: ExamProfile[];
@@ -15,13 +32,19 @@ export interface CampusProfileContextValue {
   error: unknown;
   retryable: boolean;
   creating: boolean;
-  createError: unknown;
+  actionError: ProfileActionError | null;
+  clearActionError: () => void;
   reload: () => void;
   setActive: (id: string | null) => Promise<void>;
   createProfile: (input: ProfileCreateInput) => Promise<ExamProfile | null>;
+  renameProfile: (id: string, title: string) => Promise<ProfileRenameResult>;
+  setStatus: (id: string, status: ProfileStatus, title?: string) => Promise<void>;
 }
 
 const CampusProfileContext = createContext<CampusProfileContextValue | null>(null);
+
+const statusAction = (status: ProfileStatus): ProfileAction =>
+  status === "archived" ? "archive" : "restore";
 
 export function CampusProfileProvider({
   track,
@@ -39,12 +62,12 @@ export function CampusProfileProvider({
     setActive,
   } = useActiveProfile(profiles);
   const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<unknown>(null);
+  const [actionError, setActionError] = useState<ProfileActionError | null>(null);
 
   const create = useCallback(
     async (input: ProfileCreateInput) => {
       setCreating(true);
-      setCreateError(null);
+      setActionError(null);
       try {
         const created = await createProfile(input);
         // Adopt the new profile right away so the station does not sit on "no profile"
@@ -53,7 +76,7 @@ export function CampusProfileProvider({
         reload();
         return created;
       } catch (err) {
-        setCreateError(err);
+        setActionError({ action: "create", profileId: null, title: input.title, error: err });
         return null;
       } finally {
         setCreating(false);
@@ -62,19 +85,57 @@ export function CampusProfileProvider({
     [reload, setActive],
   );
 
+  const renameProfile = useCallback(
+    async (id: string, title: string): Promise<ProfileRenameResult> => {
+      try {
+        await patchProfile(id, { title });
+        reload();
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err };
+      }
+    },
+    [reload],
+  );
+
+  const setStatus = useCallback(
+    async (id: string, status: ProfileStatus, title?: string) => {
+      const patch: ProfilePatch = title === undefined ? { status } : { status, title };
+      const carrying = title ?? profiles.find((p) => p.id === id)?.title ?? "";
+      try {
+        await patchProfile(id, patch);
+        setActionError(null);
+        reload();
+      } catch (err) {
+        setActionError({
+          action: statusAction(status),
+          profileId: id,
+          title: carrying,
+          error: err,
+        });
+      }
+    },
+    [profiles, reload],
+  );
+
+  const clearActionError = useCallback(() => setActionError(null), []);
+
   const value = useMemo<CampusProfileContextValue>(
     () => ({
       profiles,
       activeProfile: profile,
       activeId,
       loading: loading || activeLoading,
-      error: error ?? activeError ?? createError,
-      retryable: campusErrorInfo(error ?? activeError ?? createError).retryable,
+      error: error ?? activeError,
+      retryable: campusErrorInfo(error ?? activeError).retryable,
       creating,
-      createError,
+      actionError,
+      clearActionError,
+      renameProfile,
       reload,
       setActive,
       createProfile: create,
+      setStatus,
     }),
     [
       profiles,
@@ -84,11 +145,14 @@ export function CampusProfileProvider({
       activeLoading,
       error,
       activeError,
-      createError,
       creating,
+      actionError,
+      clearActionError,
+      renameProfile,
       reload,
       setActive,
       create,
+      setStatus,
     ],
   );
 

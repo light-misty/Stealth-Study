@@ -4,12 +4,17 @@ The drill reproduces 02 §3.5's V0.2 example verbatim (`degrade_level` on `attem
 synthetic column that v1 genuinely does not ship, because v1 already declares `degrade_level`
 (02 §4.13) while §3.5's example assumes it is added later. Both are kept: the first proves the
 published example replays idempotently, the second proves the ALTER path itself.
+
+The chain now carries a migration of its own — v2 adds `exam_profile.archived_at` — so
+`build_v1` rolls a database back to the published v1 schema and the upgrade drills below
+replay the real chain instead of only injected functions.
 """
 
 from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -39,25 +44,32 @@ def db_path(tmp_path: Path) -> Path:
     return tmp_path / "campus.db"
 
 
+ATTEMPT_ROW: dict[str, Any] = {
+    "id": "a1",
+    "profile_id": "p1",
+    "track_type": "cet",
+    "subject": "writing",
+    "user_answer": "作文",
+}
+
+
 def build_v1(db_path: Path) -> None:
     with store.CampusStore(db_path) as instance:
+        instance.wipe(target=1)
         assert instance.current_version() == 1
-        instance.insert(
-            "attempt",
-            {
-                "id": "a1",
-                "profile_id": "p1",
-                "track_type": "cet",
-                "subject": "writing",
-                "user_answer": "作文",
-            },
-        )
+        instance.insert("attempt", dict(ATTEMPT_ROW))
 
 
-def columns_of(path: Path, table: str) -> set[str]:
+def build_current(db_path: Path) -> None:
+    with store.CampusStore(db_path) as instance:
+        assert instance.current_version() == store.CURRENT_SCHEMA_VERSION
+        instance.insert("attempt", dict(ATTEMPT_ROW))
+
+
+def columns_of(path: Path, table: str) -> list[str]:
     connection = sqlite3.connect(path)
     try:
-        return {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
+        return [row[1] for row in connection.execute(f"PRAGMA table_info({table})")]
     finally:
         connection.close()
 
@@ -73,23 +85,54 @@ def stored_version(path: Path) -> int:
         connection.close()
 
 
-def test_registry_is_contiguous_and_starts_at_one() -> None:
-    assert store.CURRENT_SCHEMA_VERSION == 1
+def test_registry_is_contiguous_and_ends_at_the_current_version() -> None:
+    assert store.CURRENT_SCHEMA_VERSION == 2
     assert sorted(store._MIGRATIONS) == list(range(1, store.CURRENT_SCHEMA_VERSION + 1))
     assert store._MIGRATIONS[1] is store._v1_initial_schema
+    assert store._MIGRATIONS[2] is store._v2_add_profile_archived_at
 
 
 def test_first_install_writes_no_backup(db_path: Path) -> None:
+    build_current(db_path)
+    assert list(db_path.parent.glob("campus.db.bak-*")) == []
+
+
+def test_a_first_install_also_gets_the_archived_at_column(db_path: Path) -> None:
+    build_current(db_path)
+    assert "archived_at" in columns_of(db_path, "exam_profile")
+
+
+def test_a_v1_database_upgrades_and_keeps_its_rows(db_path: Path) -> None:
     build_v1(db_path)
-    assert not Path(f"{db_path}.bak-v0").exists()
+    assert "archived_at" not in columns_of(db_path, "exam_profile")
+
+    with store.CampusStore(db_path) as upgraded:
+        assert upgraded.current_version() == 2
+        assert upgraded.get("attempt", "a1") is not None
+
+    assert "archived_at" in columns_of(db_path, "exam_profile")
+    assert Path(f"{db_path}.bak-v1").is_file()
+
+
+def test_v2_replays_on_a_database_that_already_has_the_column(db_path: Path) -> None:
+    build_current(db_path)
+    connection = sqlite3.connect(db_path)
+    connection.row_factory = sqlite3.Row
+    try:
+        store._v2_add_profile_archived_at(connection)
+        connection.commit()
+    finally:
+        connection.close()
+    assert columns_of(db_path, "exam_profile").count("archived_at") == 1
 
 
 def test_reopening_an_up_to_date_database_is_a_no_op(db_path: Path) -> None:
-    build_v1(db_path)
+    build_current(db_path)
     with store.CampusStore(db_path) as instance:
-        assert instance.migrate() == 1
+        assert instance.migrate() == store.CURRENT_SCHEMA_VERSION
         assert instance.scalar("SELECT COUNT(*) FROM schema_meta") == 1
         assert instance.get("attempt", "a1") is not None
+        assert list(db_path.parent.glob("campus.db.bak-*")) == []
 
 
 def test_published_example_replays_idempotently_on_a_v1_database(
@@ -161,7 +204,7 @@ def test_a_database_from_a_newer_version_refuses_to_start(db_path: Path) -> None
     with pytest.raises(store.SchemaVersionError) as error:
         store.CampusStore(db_path)
     assert "99" in str(error.value)
-    assert "1" in str(error.value)
+    assert str(store.CURRENT_SCHEMA_VERSION) in str(error.value)
     assert stored_version(db_path) == 99
 
 

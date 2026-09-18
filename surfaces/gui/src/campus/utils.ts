@@ -1,5 +1,5 @@
 import { CampusApiError } from "./api";
-import type { DegradeLevel, DeadlineTier, ScoringState } from "./types";
+import type { DegradeLevel, DeadlineTier, ExamProfile, ScoringState } from "./types";
 
 // Shared display helpers for the campus station UI. Kept dependency-free and pure so
 // every panel can be tested without rendering or network access.
@@ -94,4 +94,44 @@ export function campusErrorInfo(err: unknown): CampusErrorInfo {
 /** Locale key for a backend error code; components pass the message as defaultValue. */
 export function campusErrorKey(code: string): string {
   return `campus.error.${(code || UNKNOWN_ERROR_CODE).toLowerCase()}`;
+}
+
+export function formatTimestamp(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
+export function daysSince(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const at = new Date(value).getTime();
+  if (Number.isNaN(at)) return null;
+  return (Date.now() - at) / (24 * 60 * 60 * 1000);
+}
+
+export function profileTitleTaken(
+  profiles: ExamProfile[],
+  title: string,
+  exceptId?: string | null,
+): boolean {
+  const wanted = title.trim().toLowerCase();
+  if (!wanted) return false;
+  return profiles.some(
+    (p) => p.id !== exceptId && p.status !== "archived" && p.title.trim().toLowerCase() === wanted,
+  );
+}
+
+export function suggestProfileTitle(profiles: ExamProfile[], title: string, exceptId?: string): string {
+  const base = title.trim();
+  if (!base) return "";
+  for (let n = 2; n < 100; n += 1) {
+    const candidate = `${base} (${n})`;
+    if (!profileTitleTaken(profiles, candidate, exceptId)) return candidate;
+  }
+  return "";
 }

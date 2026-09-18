@@ -63,11 +63,11 @@ def test_first_boot_creates_the_nineteen_tables(store_under_test) -> None:
     assert len(store_under_test.table_names()) == 19
 
 
-def test_first_boot_records_schema_version_one(store_under_test) -> None:
-    assert store_under_test.current_version() == 1
+def test_first_boot_records_the_current_schema_version(store_under_test) -> None:
+    assert store_under_test.current_version() == store.CURRENT_SCHEMA_VERSION
     row = store_under_test.query_one("SELECT key, version, applied_at FROM schema_meta")
     assert row["key"] == "schema_version"
-    assert row["version"] == 1
+    assert row["version"] == store.CURRENT_SCHEMA_VERSION
     assert row["applied_at"].endswith("Z")
 
 
@@ -152,7 +152,7 @@ def test_deleting_the_database_and_reopening_self_heals(db_path: Path) -> None:
     second = store.CampusStore(db_path)
     try:
         assert set(second.table_names()) == set(models.ROW_MODELS)
-        assert second.current_version() == 1
+        assert second.current_version() == store.CURRENT_SCHEMA_VERSION
         assert second.get("exam_profile", "p1") is None
     finally:
         second.close()
@@ -399,7 +399,7 @@ def test_nested_transactions_reuse_the_outer_one(store_under_test) -> None:
 
 def test_store_works_as_a_context_manager(db_path: Path) -> None:
     with store.CampusStore(db_path) as instance:
-        assert instance.current_version() == 1
+        assert instance.current_version() == store.CURRENT_SCHEMA_VERSION
     with pytest.raises(sqlite3.ProgrammingError):
         instance.query_all("SELECT 1")
 

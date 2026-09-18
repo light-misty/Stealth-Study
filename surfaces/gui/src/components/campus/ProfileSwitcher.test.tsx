@@ -19,6 +19,7 @@ const profile = (id: string, status: ExamProfile["status"] = "active"): ExamProf
   status,
   created_at: "2026-09-01T00:00:00Z",
   updated_at: "2026-09-01T00:00:00Z",
+  archived_at: status === "archived" ? "2026-09-05T00:00:00Z" : null,
 });
 
 const itemById = (id: string): HTMLElement => {
@@ -91,5 +92,54 @@ describe("ProfileSwitcher", () => {
       <ProfileSwitcher profiles={[profile("p1")]} activeId="p1" onSwitch={vi.fn()} onCreate={vi.fn()} />,
     );
     expect(screen.queryByTestId("campus-profile-archive-p1")).toBeNull();
+  });
+
+  it("asks for a rename per on-desk profile", () => {
+    const onRename = vi.fn();
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1"), profile("p2", "archived")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onRename={onRename}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-profile-rename-p1"));
+    expect(onRename).toHaveBeenCalledWith("p1");
+    expect(screen.queryByTestId("campus-profile-rename-p2")).toBeNull();
+  });
+
+  it("offers the archived profiles with their count", () => {
+    const onShowArchived = vi.fn();
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1"), profile("p2", "archived"), profile("p3", "archived")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onShowArchived={onShowArchived}
+      />,
+    );
+
+    const entry = screen.getByTestId("campus-profile-archived-entry");
+    expect(entry.textContent).toContain("2");
+
+    fireEvent.click(entry);
+    expect(onShowArchived).toHaveBeenCalled();
+  });
+
+  it("keeps the archived entry out of the header while the box is empty", () => {
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onShowArchived={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("campus-profile-archived-entry")).toBeNull();
   });
 });
