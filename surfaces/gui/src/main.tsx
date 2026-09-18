@@ -13,8 +13,8 @@ initTheme();
 document.documentElement.dataset.platform = platformOS();
 
 // 初始化前端日志捕获：劫持 console 全量输出并在本地缓存，随后周期上传后端。
-// 周期与条数阈值调短，确保前端日志尽快落盘（否则浏览器 30s/20 条默认偏慢）。
-startLogCapture({ intervalMs: 10_000, minEntries: 5 });
+// 周期 1 秒 / 1 条即可触发，让前端日志近乎实时落盘；无新日志时仅空转定时器不发请求。
+startLogCapture({ intervalMs: 1000, minEntries: 1 });
 
 // A file dropped OUTSIDE a drop target (the composer) must never navigate the webview to the
 // file itself — the browser/WKWebView default. Drop targets stopPropagation-free preventDefault
