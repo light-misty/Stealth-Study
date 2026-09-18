@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import type { TFunction } from "i18next";
 import { intlLocale } from "../i18n";
-import { Trans, getI18n, useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import type { Board, BoardItem, BoardItemDetail, BoardTimelineEvent } from "../api";
 import { Icon } from "./Icon";
 
@@ -31,19 +31,6 @@ function dotClass(state: string): string {
   if (state === "in_progress") return "board-dot work";
   if (state === "done") return "board-dot done";
   return "board-dot idle";
-}
-
-export function boardSummary(board: Board): string {
-  const t = getI18n().t;
-  const counts: Record<string, number> = {};
-  for (const item of board.items) counts[item.state] = (counts[item.state] || 0) + 1;
-  const parts: string[] = [];
-  if (counts.blocked) parts.push(t("board.summary_blocked", { count: counts.blocked }));
-  if (counts.review) parts.push(t("board.summary_review", { count: counts.review }));
-  if (counts.in_progress)
-    parts.push(t("board.summary_in_progress", { count: counts.in_progress }));
-  if (counts.open) parts.push(t("board.summary_open", { count: counts.open }));
-  return parts.join(" · ");
 }
 
 export function BoardSection({

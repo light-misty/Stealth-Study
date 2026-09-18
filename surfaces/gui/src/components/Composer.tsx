@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { getI18n, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import type { Attachment, SessionUsage } from "../types";
 import { isPdfFile, readFile } from "../attach";
 import { ProjectBindMenu } from "./ProjectBindMenu";
@@ -52,13 +52,6 @@ const PERMISSION_OPTIONS: ModeOption[] = [
     caution: true,
   },
 ];
-
-/** The picker's label for a mode value ("auto-approve" -> "Auto-approve"). Exported so the
- * transcript's mode markers read the same names the user just chose from. */
-export function modeLabel(value: string): string {
-  const option = PERMISSION_OPTIONS.find((o) => o.value === value);
-  return option ? getI18n().t(option.label) : value;
-}
 
 const SCOPE_KEYS: Record<string, string> = {
   global: "composer.scope_global",
