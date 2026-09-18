@@ -252,6 +252,7 @@
         "stage_writing": "写作",
         "stage_listening": "听力",
         "stage_reading_translation": "阅读与翻译",
+        "stage_graded": "已评分",
         "locked": "已锁定",
         "submit": "交卷",
         "loading": "模考加载中",

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listQuestions, submitAttempt } from "../../../campus/api";
 import type { AttemptFeedback, QuestionBankItem } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 
 export function ListeningDrill({ profileId }: { profileId: string }) {
   const { t } = useTranslation();
@@ -77,8 +77,9 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
         className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
         data-testid="campus-cet-listening-error"
       >
-        {t("campus.common.error")}
-        <span className="ml-1 text-faint">{campusErrorInfo(error).message}</span>
+        {t(campusErrorKey(campusErrorInfo(error).code), {
+          defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+        })}
         <button
           type="button"
           className="ml-2 text-accent"
@@ -171,8 +172,9 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
             className="mt-2 rounded-xl2 border border-warnInk/40 bg-warnSoft px-3 py-2 text-[12px] text-warnInk"
             data-testid="campus-cet-listening-error"
           >
-            {t("campus.common.error")}
-            <span className="ml-1 text-faint">{campusErrorInfo(submitError).message}</span>
+            {t(campusErrorKey(campusErrorInfo(submitError).code), {
+              defaultValue: campusErrorInfo(submitError).message || t("campus.common.error"),
+            })}
             {campusErrorInfo(submitError).retryable ? (
               <button
                 type="button"

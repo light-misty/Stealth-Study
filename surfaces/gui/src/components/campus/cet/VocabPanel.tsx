@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listVocabToday, makeMnemonic, setVocabMastery } from "../../../campus/api";
 import type { MasteryLevel, VocabItem } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 
 const MASTERY_LEVELS: MasteryLevel[] = ["unknown", "fuzzy", "mastered"];
 
@@ -184,8 +184,9 @@ export function VocabPanel({ profileId }: { profileId: string }) {
         className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
         data-testid="campus-cet-vocab-error"
       >
-        {t("campus.common.error")}
-        <span className="ml-1 text-faint">{campusErrorInfo(error).message}</span>
+        {t(campusErrorKey(campusErrorInfo(error).code), {
+          defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+        })}
         <button
           type="button"
           className="ml-2 text-accent"

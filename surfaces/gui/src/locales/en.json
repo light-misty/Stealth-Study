@@ -256,6 +256,7 @@
         "stage_writing": "Writing",
         "stage_listening": "Listening",
         "stage_reading_translation": "Reading & translation",
+        "stage_graded": "Graded",
         "locked": "Locked",
         "submit": "Submit",
         "loading": "Loading mock exam",

@@ -13,7 +13,7 @@ import type {
   AssessmentFinishResult,
   AssessmentQuestion,
 } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 
 const draftKeyFor = (profileId: string) => `ss.campus.cet.assessment.${profileId}`;
 const AUTOSAVE_DELAY_MS = 400;
@@ -213,8 +213,9 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
       className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
       data-testid="campus-cet-assessment-error"
     >
-      {t("campus.common.error")}
-      <span className="ml-1 text-faint">{campusErrorInfo(error).message}</span>
+      {t(campusErrorKey(campusErrorInfo(error).code), {
+        defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+      })}
       {campusErrorInfo(error).retryable ? (
         <button type="button" className="ml-2 text-accent" onClick={onRetry}>
           {t("campus.common.retry")}

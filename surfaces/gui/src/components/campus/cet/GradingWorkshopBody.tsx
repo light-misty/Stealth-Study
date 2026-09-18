@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getAttempt, listGradingHistory, submitGrading } from "../../../campus/api";
 import type { Attempt, GradeResult, GradingKind } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { CommonErrorsCard } from "./CommonErrorsCard";
 import { GradingResultCard } from "../GradingResultCard";
 
@@ -106,8 +106,9 @@ export function GradingWorkshopBody({
             className="mt-2 rounded-xl2 border border-warnInk/40 bg-warnSoft px-3 py-2 text-[12px] text-warnInk"
             data-testid={`${testIdPrefix}-error`}
           >
-            {t("campus.common.error")}
-            <span className="ml-1 text-faint">{campusErrorInfo(submitError).message}</span>
+            {t(campusErrorKey(campusErrorInfo(submitError).code), {
+              defaultValue: campusErrorInfo(submitError).message || t("campus.common.error"),
+            })}
             <button
               type="button"
               className="ml-2 text-accent"
