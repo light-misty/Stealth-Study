@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import {
   getConnectors,
   getDmRoute,
@@ -362,7 +363,7 @@ function UnroutedTable() {
           {(items ?? []).map((it, i) => (
             <tr className="border-t border-line" key={i}>
               <td className="px-4 py-2.5 text-muted whitespace-nowrap">
-                {new Date(it.ts * 1000).toLocaleString()}
+                {new Date(it.ts * 1000).toLocaleString(intlLocale())}
               </td>
               <td className="px-4 py-2.5" title={it.sender}>
                 {it.source}

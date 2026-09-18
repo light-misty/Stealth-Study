@@ -12,6 +12,13 @@
         var dark = t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.dataset.theme = dark ? "dark" : "light";
       } catch (e) {}
+      // Same reason as the theme: <html lang> must be right before the app mounts, or
+      // screen readers voice the whole Chinese UI with an English pronunciation table.
+      try {
+        var l = localStorage.getItem("ss.lang");
+        if (!l) l = (navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en";
+        document.documentElement.lang = l;
+      } catch (e) {}
     </script>
   </head>
   <body>

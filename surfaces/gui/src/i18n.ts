@@ -30,6 +30,15 @@ function resolveLang(): Lang {
   return nav.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 
+/** BCP-47 tag for Intl / toLocale* calls — the app's language, not the OS locale. */
+export function intlLocale(): string {
+  return getCurrentLanguage() === "zh" ? "zh-CN" : "en-US";
+}
+
+function applyDocumentLang(lang: Lang) {
+  if (typeof document !== "undefined") document.documentElement.lang = lang;
+}
+
 export async function initI18n() {
   await i18n.use(initReactI18next).init({
     resources: {
@@ -41,6 +50,7 @@ export async function initI18n() {
     interpolation: { escapeValue: false }, // React already escapes
     returnNull: false,
   });
+  applyDocumentLang(getCurrentLanguage());
   return i18n;
 }
 
@@ -52,7 +62,9 @@ export function setLanguage(lang: Lang | null) {
   } catch {
     /* persistence failure shouldn't block the switch */
   }
-  return i18n.changeLanguage(lang ?? resolveLang());
+  return i18n.changeLanguage(lang ?? resolveLang()).then(() => {
+    applyDocumentLang(getCurrentLanguage());
+  });
 }
 
 /** The user's persisted choice, or null when following the system locale. */

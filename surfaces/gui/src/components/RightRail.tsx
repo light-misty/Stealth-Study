@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import type { TFunction } from "i18next";
 // Emits the asset URL only; the worker itself loads lazily with the pdfjs chunk.
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -935,5 +936,5 @@ function formatBytes(bytes: number): string {
 
 function formatTime(epochSeconds: number): string {
   if (!epochSeconds) return "";
-  return new Date(epochSeconds * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return new Date(epochSeconds * 1000).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
 }

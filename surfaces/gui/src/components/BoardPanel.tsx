@@ -10,6 +10,7 @@
 // endpoints and act as the USER.
 import { useEffect, useState } from "react";
 import type { TFunction } from "i18next";
+import { intlLocale } from "../i18n";
 import { Trans, getI18n, useTranslation } from "react-i18next";
 import type { Board, BoardItem, BoardItemDetail, BoardTimelineEvent } from "../api";
 import { Icon } from "./Icon";
@@ -510,7 +511,7 @@ function TimelineRow({
 }) {
   const { t } = useTranslation();
   const shots = (event.refs || []).filter((r) => r.startsWith("attachment://"));
-  const when = new Date(event.ts).toLocaleTimeString([], {
+  const when = new Date(event.ts).toLocaleTimeString(intlLocale(), {
     hour: "2-digit",
     minute: "2-digit",
   });

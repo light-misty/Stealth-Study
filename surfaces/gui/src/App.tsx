@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "./i18n";
 import {
   announceInboxUnlock,
   createTempWorkspace,
@@ -1372,7 +1373,7 @@ export function App() {
         sessionId: d.session_id || "",
         workspace: d.workspace || "",
         agent: d.agent || "cowork",
-        time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" }),
       });
       announceAutomationsChanged(); // the Scheduled band's badge is now stale
     });
@@ -2070,7 +2071,7 @@ export function App() {
                   {t("app.sleep.label")}
                   {activeInfo.sleeping_until
                     ? t("app.sleep.until", {
-                        time: new Date(activeInfo.sleeping_until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+                        time: new Date(activeInfo.sleeping_until).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" }),
                       })
                     : ""}
                   {activeInfo.team?.role === "lead"

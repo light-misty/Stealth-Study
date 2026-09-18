@@ -5,6 +5,7 @@
 // board rail one click away — this surface is pure messages.
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import { getTeamChat, postTeamChat, type TeamChat } from "../api";
 import { Icon } from "./Icon";
 
@@ -26,7 +27,7 @@ function clock(ts: string): string {
   const d = new Date(ts);
   return isNaN(d.getTime())
     ? ""
-    : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    : d.toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
 }
 
 export function TeamChatView({ teamId, onClose }: { teamId: string; onClose: () => void }) {

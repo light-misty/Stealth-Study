@@ -15,6 +15,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import type { MessageSource } from "../api";
 import { ConnectorBadge, hexToRgba, NEUTRAL } from "../connectors/ConnectorIcon";
 import { resolveConnector } from "../connectors/registry";
@@ -32,13 +33,13 @@ function relativeTime(tsSeconds: number, t: (key: string, opts?: any) => string)
   if (hrs < 24) return t("inbox.rel_hours_ago", { count: hrs });
   const days = Math.round(diff / 86_400_000);
   if (days < 7) return t("inbox.rel_days_ago", { count: days });
-  return new Date(then).toLocaleDateString();
+  return new Date(then).toLocaleDateString(intlLocale());
 }
 
 /** Absolute clock time (for the time element's title), e.g. "2:14 PM". */
 function clockTime(tsSeconds: number): string {
   if (!tsSeconds || !isFinite(tsSeconds)) return "";
-  return new Date(tsSeconds * 1000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return new Date(tsSeconds * 1000).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
 }
 
 export function ConnectorMessageCard({

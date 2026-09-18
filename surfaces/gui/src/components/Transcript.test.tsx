@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Transcript } from "./Transcript";
+import { intlLocale } from "../i18n";
 import { humanizeTool } from "../humanize";
 import type { Item } from "../types";
 
@@ -222,8 +223,10 @@ describe("bubble hover affordances (FB-005)", () => {
     const stamps = screen.getAllByTestId("bubble-ts");
     expect(stamps).toHaveLength(1); // the ts-less assistant bubble shows none
     const when = new Date(TS * 1000);
-    expect(stamps[0].textContent).toBe(when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
-    expect(stamps[0].getAttribute("title")).toBe(when.toLocaleString());
+    expect(stamps[0].textContent).toBe(
+      when.toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" }),
+    );
+    expect(stamps[0].getAttribute("title")).toBe(when.toLocaleString(intlLocale()));
   });
 });
 
