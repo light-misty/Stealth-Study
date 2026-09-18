@@ -148,12 +148,28 @@ const TRACK_PANELS: Record<CampusTrack, readonly PanelSpec[]> = {
   cert: [...SHARED_PANELS, ...CERT_PANELS],
 };
 
-const TRACK_BANNERS: Record<CampusTrack, (args: { profile: ExamProfile }) => ReactElement | null> =
-  {
-    cet: ({ profile }) => <CountdownBanner examDate={profile.exam_date} />,
-    kaoyan: ({ profile }) => <CountdownBanner examDate={profile.exam_date} />,
-    cert: ({ profile }) => <CertDeadlineBanner profileId={profile.id} />,
-  };
+const TRACK_BANNERS: Record<
+  CampusTrack,
+  (args: { profile: ExamProfile; planRate: number | null }) => ReactElement | null
+> = {
+  cet: ({ profile, planRate }) => (
+    <CountdownBanner
+      examDate={profile.exam_date}
+      targetScore={profile.target_score}
+      currentEstimate={profile.current_estimate}
+      planRate={planRate}
+    />
+  ),
+  kaoyan: ({ profile, planRate }) => (
+    <CountdownBanner
+      examDate={profile.exam_date}
+      targetScore={profile.target_score}
+      currentEstimate={profile.current_estimate}
+      planRate={planRate}
+    />
+  ),
+  cert: ({ profile }) => <CertDeadlineBanner profileId={profile.id} />,
+};
 
 function CertDeadlineBanner({ profileId }: { profileId: string }) {
   const { views } = useDeadlineViews(profileId);
@@ -519,7 +535,7 @@ function StationRail({ track, profile, dueCount, onGotoReview }: RailProps) {
 
   return (
     <aside className="st-rail thin" data-testid="campus-station-rail">
-      <Banner profile={profile} />
+      <Banner profile={profile} planRate={total ? done / total : null} />
 
       {dueCount > 0 ? (
         <button
@@ -644,6 +660,7 @@ function ProfileActionDialog({
     <CampusDialog
       testId="campus-profile-conflict"
       title={t(ACTION_HEADING_KEY[error.action])}
+      icon="warning"
       onClose={onClose}
       footer={
         <>

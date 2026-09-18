@@ -531,15 +531,24 @@
 .campus-station .hero.is-near .hero-unit { color: var(--warn-ink); opacity: .85; }
 
 .campus-station .dl { display: flex; flex-direction: column; gap: 2px; }
+/* 一行两列：节点名与剩余天数在第一行，日期与「以官方公告为准」在第二行。
+   设计稿的单行版式在真实数据下放不下（日期是完整 ISO、参考标记是一句中文）。 */
 .campus-station .dl-row {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 8px; border-radius: var(--r-9);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 10px;
+  align-items: baseline; padding: 6px 8px; border-radius: var(--r-9);
 }
 .campus-station .dl-row:hover { background: var(--paper); }
-.campus-station .dl-name { flex: 1; min-width: 0; font-size: 12px; line-height: 18px; color: var(--muted); }
-.campus-station .dl-date { font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint); }
+.campus-station .dl-name {
+  min-width: 0; font-size: 12px; line-height: 18px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.campus-station .dl-date {
+  grid-column: 1; grid-row: 2;
+  font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint);
+}
+.campus-station .dl-ref { grid-column: 2; grid-row: 2; justify-self: end; }
 .campus-station .dl-left {
-  width: 52px; flex: none; text-align: right;
+  grid-column: 2; grid-row: 1; text-align: right;
   font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--muted);
 }
 
@@ -598,7 +607,7 @@
   background: var(--panel); border-radius: var(--r-16);
   box-shadow: var(--shadow-device), var(--ring);
 }
-.campus-station .dlg--wide .dlg-card { width: 540px; }
+.campus-station .dlg--wide .dlg-card, .campus-station .dlg-card--wide { width: 540px; }
 .campus-station .dlg-head { display: flex; align-items: center; gap: 10px; flex: none; }
 .campus-station .dlg-title {
   flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--ink);
@@ -614,6 +623,10 @@
 /* ------------------------------------------------------------ 站内工具类 */
 .campus-station .btn-start { align-self: flex-start; }
 .campus-station .stack-gap { display: flex; flex-direction: column; gap: 6px; }
+/* 已归档弹窗的列表态与详情态整块互换，页脚动作跟着换一组 */
+.campus-station .arch-list, .campus-station .arch-detail {
+  display: flex; flex-direction: column; gap: 12px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .campus-station .st-pane.is-on { animation: none; }

@@ -46,7 +46,17 @@
       "streak_desc": "有打卡记录的日期",
       "streak_days_one": "{{count}} 天",
       "streak_days_other": "{{count}} 天",
-      "goto_review": "去做今日复习"
+      "goto_review": "去做今日复习",
+      "countdown_kicker": "考试日期 {{date}}",
+      "countdown_unit_one": "天",
+      "countdown_unit_other": "天",
+      "hero_plan_rate": "计划完成 {{rate}}%",
+      "hero_target": "目标 {{score}}",
+      "hero_estimate": "当前预估 {{score}}",
+      "dl_days_one": "{{count}} 天",
+      "dl_days_other": "{{count}} 天",
+      "dl_today": "今天",
+      "dl_overdue": "已过"
     },
     "common": {
       "mastery": {

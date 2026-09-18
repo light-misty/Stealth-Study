@@ -92,7 +92,7 @@ describe("DeadlineBanner", () => {
     expect(rows.map((r) => r.getAttribute("data-tier"))).toEqual(["d1", "normal"]);
   });
 
-  it("grades the three bands visually, strongest at D-1", () => {
+  it("grades the bands through the data-tier hook plus a written count", () => {
     render(
       <DeadlineBanner
         views={[
@@ -103,10 +103,13 @@ describe("DeadlineBanner", () => {
       />,
     );
     const rows = screen.getAllByTestId("campus-deadline-row");
-    const byTier = new Map(rows.map((r) => [r.getAttribute("data-tier"), r.className]));
-    expect(byTier.size).toBe(3);
-    expect(byTier.get("d1")).toContain("font-semibold");
-    expect(byTier.get("d7")).not.toEqual(byTier.get("normal"));
-    expect(byTier.get("d1")).not.toEqual(byTier.get("d7"));
+    const tiers = rows.map((r) => r.getAttribute("data-tier"));
+    expect(new Set(tiers).size).toBe(3);
+    // 分档上色由样式表按 [data-tier] 接管，所以组件这边要保证的是：每一档都挂得上钩子，
+    // 而且剩余天数永远以文字给出 —— 颜色不是唯一线索（PRD §7.4）。
+    for (const row of rows) {
+      expect(row.className).toBe("dl-row");
+      expect(row.querySelector(".dl-left")?.textContent).toMatch(/\d/);
+    }
   });
 });

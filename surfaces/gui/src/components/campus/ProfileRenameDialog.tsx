@@ -4,9 +4,6 @@ import type { ExamProfile } from "../../campus/types";
 import { profileTitleTaken } from "../../campus/utils";
 import { CampusDialog } from "./CampusDialog";
 
-const FIELD =
-  "w-full rounded-lg border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-ink outline-none";
-
 interface Props {
   profile: ExamProfile;
   profiles: ExamProfile[];
@@ -45,12 +42,11 @@ export function ProfileRenameDialog({ profile, profiles, onSubmit, onClose }: Pr
       testId="campus-profile-rename"
       title={t("campus.profile.rename_title")}
       onClose={onClose}
-      width="w-[400px]"
       footer={
         <>
           <button
             type="button"
-            className="px-2.5 py-1.5 text-[13px] text-faint hover:text-muted"
+            className="btn btn--text"
             onClick={onClose}
             data-testid="campus-profile-rename-cancel"
           >
@@ -58,7 +54,7 @@ export function ProfileRenameDialog({ profile, profiles, onSubmit, onClose }: Pr
           </button>
           <button
             type="button"
-            className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] disabled:opacity-40"
+            className="btn btn--primary"
             onClick={() => void save()}
             disabled={busy || invalid}
             data-testid="campus-profile-rename-save"
@@ -68,24 +64,24 @@ export function ProfileRenameDialog({ profile, profiles, onSubmit, onClose }: Pr
         </>
       }
     >
-      <label className="block">
-        <span className="text-[12px] text-muted">{t("campus.profile.title_label")}</span>
+      <div className={invalid ? "field is-bad" : "field"}>
+        <span className="field-label">{t("campus.profile.title_label")}</span>
         <input
-          className={`${FIELD} mt-1`}
+          className="input"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           data-testid="campus-profile-rename-input"
         />
-      </label>
-      {clean === "" ? (
-        <div className="mt-2 text-[12px] text-warnInk" data-testid="campus-profile-rename-error">
-          {t("campus.profile.title_required")}
-        </div>
-      ) : taken ? (
-        <div className="mt-2 text-[12px] text-warnInk" data-testid="campus-profile-rename-error">
-          {t("campus.error.duplicate_title")}
-        </div>
-      ) : null}
+        {clean === "" ? (
+          <span className="field-err" data-testid="campus-profile-rename-error">
+            {t("campus.profile.title_required")}
+          </span>
+        ) : taken ? (
+          <span className="field-err" data-testid="campus-profile-rename-error">
+            {t("campus.error.duplicate_title")}
+          </span>
+        ) : null}
+      </div>
     </CampusDialog>
   );
 }

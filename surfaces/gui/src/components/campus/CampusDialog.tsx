@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "../Icon";
+import { Icon, type IconName } from "../Icon";
 
 interface Props {
   testId: string;
@@ -8,7 +8,8 @@ interface Props {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
-  width?: string;
+  icon?: IconName;
+  wide?: boolean;
 }
 
 export function CampusDialog({
@@ -17,7 +18,8 @@ export function CampusDialog({
   onClose,
   children,
   footer,
-  width = "w-[440px]",
+  icon = "pencil",
+  wide = false,
 }: Props) {
   const { t } = useTranslation();
 
@@ -35,15 +37,18 @@ export function CampusDialog({
         aria-label={title}
         aria-modal="true"
         role="dialog"
-        className={`${width} max-h-[80vh] max-w-[92vw] overflow-y-auto rounded-xl2 border border-line bg-panel p-4 shadow-2xl`}
+        className={wide ? "dlg-card dlg-card--wide" : "dlg-card"}
         data-testid={testId}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-2">
-          <h3 className="text-[14px] font-semibold leading-[20px] text-ink">{title}</h3>
+        <div className="dlg-head">
+          <span className="ib ib--brand">
+            <Icon name={icon} size={16} />
+          </span>
+          <h3 className="dlg-title">{title}</h3>
           <button
             type="button"
-            className="ml-auto p-1 text-faint hover:text-muted"
+            className="icon-btn"
             onClick={onClose}
             data-testid={`${testId}-close`}
             aria-label={t("campus.profile.dialog_close")}
@@ -51,8 +56,8 @@ export function CampusDialog({
             <Icon name="x" size={14} />
           </button>
         </div>
-        <div className="mt-2">{children}</div>
-        {footer ? <div className="mt-3.5 flex items-center justify-end gap-2">{footer}</div> : null}
+        <div className="dlg-body">{children}</div>
+        {footer ? <div className="dlg-foot">{footer}</div> : null}
       </div>
     </div>
   );

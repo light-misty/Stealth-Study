@@ -46,7 +46,17 @@
       "streak_desc": "Days with completed tasks",
       "streak_days_one": "{{count}} day",
       "streak_days_other": "{{count}} days",
-      "goto_review": "Go to today's review"
+      "goto_review": "Go to today's review",
+      "countdown_kicker": "Exam {{date}}",
+      "countdown_unit_one": "day",
+      "countdown_unit_other": "days",
+      "hero_plan_rate": "{{rate}}% of the plan done",
+      "hero_target": "target {{score}}",
+      "hero_estimate": "estimate {{score}}",
+      "dl_days_one": "{{count}}d",
+      "dl_days_other": "{{count}}d",
+      "dl_today": "today",
+      "dl_overdue": "past"
     },
     "common": {
       "mastery": {
