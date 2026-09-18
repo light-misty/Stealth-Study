@@ -95,7 +95,18 @@
       "retry": "重试",
       "error": "出错了",
       "exam_passed": "考试日期已过",
-      "got_it": "知道了"
+      "got_it": "知道了",
+      "qtype": {
+        "single": "单选",
+        "multiple": "多选",
+        "judge": "判断",
+        "blank": "填空",
+        "short_answer": "简答",
+        "essay": "作文",
+        "material": "材料分析",
+        "lesson_plan": "教学设计",
+        "practical": "实务题"
+      }
     },
     "model": {
       "empty_title": "未配置模型",
@@ -243,12 +254,22 @@
         "section_listening": "听力",
         "section_reading": "阅读",
         "section_writing_translation": "写作与翻译",
-        "again": "再测一次"
+        "again": "再测一次",
+        "hint": "快速摸底听力、阅读、写作与翻译水平，作答自动保存，中断后可继续",
+        "missing_tag": "题目缺失",
+        "qno": "第 {{index}} 题",
+        "subjective_tip": "主观题按档计分，提交后可在「写作」模块查看逐句批改",
+        "idle_title": "开始一次定级测评",
+        "goto_vocab": "从最弱的词汇开始",
+        "estimate_unit": "分"
       },
       "errors": {
         "title": "老毛病 TOP3",
         "empty": "批改满 3 次后，这里会汇总你的高频错误",
-        "times_other": "出现 {{count}} 次"
+        "times_other": "出现 {{count}} 次",
+        "hint": "批改满 3 次后，这里会汇总你的高频错误",
+        "rank_note": "按出现次数排序，同义错误已合并",
+        "goto": "去作文里改它"
       },
       "vocab": {
         "today_new": "今日新词",
@@ -260,7 +281,9 @@
         "mastery_unknown": "不认识",
         "mastery_fuzzy": "模糊",
         "mastery_mastered": "已掌握",
-        "mastery_error": "标记失败，已恢复原状态"
+        "mastery_error": "标记失败，已恢复原状态",
+        "title": "词汇",
+        "hint": "标记掌握度即写入间隔重复队列，不认识的词会自动排进明日复习"
       },
       "listening": {
         "loading": "听力题加载中",
@@ -272,7 +295,11 @@
         "wrong": "回答错误",
         "standard_answer": "标准答案",
         "score": "得分 {{score}}/{{max}}",
-        "pending": "主观题已同步批改"
+        "pending": "主观题已同步批改",
+        "title": "听力训练",
+        "hint": "客观题即时判分，主观题转入批改队列后回显得分",
+        "no_audio": "本题库暂无音频层，题目以文本形式呈现",
+        "qno": "第 {{index}} 题"
       },
       "grading": {
         "input_label": "作答原文",
@@ -281,13 +308,19 @@
         "history_title": "批改历史",
         "history_empty": "暂无批改记录",
         "detail_score": "档位得分",
-        "detail_answer": "提交原文"
+        "detail_answer": "提交原文",
+        "graded_count_one": "已批改 {{count}} 篇",
+        "graded_count_other": "已批改 {{count}} 篇",
+        "input_hint": "提交作答原文，返回分项得分、错误清单与范文要点",
+        "history_recent_one": "最近 {{count}} 次",
+        "history_recent_other": "最近 {{count}} 次"
       },
       "essay": {
         "title": "作文批改"
       },
       "translation": {
-        "title": "翻译批改"
+        "title": "翻译批改",
+        "hint": "段落汉译英，按准确性、完整性与语言质量三档计分"
       },
       "mock": {
         "start": "开始模考",
@@ -309,7 +342,16 @@
         "answer_reading": "阅读与翻译作答",
         "result_title": "模考成绩",
         "estimate": "预计总分",
-        "fast_forward": "快进（调试）"
+        "fast_forward": "快进（调试）",
+        "hint": "按写作、听力、阅读与翻译三阶段计时作答，阶段结束自动收卡锁定",
+        "stage_of": "第 {{index}} / {{total}} 阶段",
+        "locked_note": "本阶段尚未开始",
+        "current_stage": "当前阶段",
+        "result_hint": "三阶段已收卡，成绩按当次评分标准折算",
+        "idle_title": "开一套限时模考",
+        "stage_running": "进行中",
+        "stage_done": "已完成",
+        "stage_todo": "未开始"
       }
     },
     "kaoyan": {

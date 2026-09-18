@@ -57,6 +57,7 @@ interface PanelContext {
   reviewItems: ReturnType<typeof useDueReviews>["items"];
   reviewLoading: boolean;
   onReviewResult: (reviewId: string, correct: boolean) => void;
+  onGotoTab: (key: string) => void;
 }
 
 interface PanelSpec {
@@ -131,7 +132,13 @@ const KAOYAN_PANELS: readonly PanelSpec[] = [
 // CET-01 … CET-13 in track order: placement, vocabulary, listening, essay/translation
 // grading, the mock-exam console and the common-mistakes summary.
 const CET_PANELS: readonly PanelSpec[] = [
-  { key: "assessment", tab: "assessment", render: ({ profileId }) => <AssessmentFlow profileId={profileId} /> },
+  {
+    key: "assessment",
+    tab: "assessment",
+    render: ({ profileId, onGotoTab }) => (
+      <AssessmentFlow profileId={profileId} onGotoTab={onGotoTab} />
+    ),
+  },
   { key: "vocab", tab: "vocab", render: ({ profileId }) => <VocabPanel profileId={profileId} /> },
   { key: "listening", tab: "listening", render: ({ profileId }) => <ListeningDrill profileId={profileId} /> },
   { key: "essay", tab: "essay", render: ({ profileId }) => <EssayGradingPanel profileId={profileId} /> },
@@ -144,7 +151,9 @@ const CET_PANELS: readonly PanelSpec[] = [
   {
     key: "common-errors",
     tab: "common_errors",
-    render: ({ profileId }) => <CommonErrorsCard profileId={profileId} />,
+    render: ({ profileId, onGotoTab }) => (
+      <CommonErrorsCard profileId={profileId} framed onGotoTab={onGotoTab} />
+    ),
   },
 ];
 
@@ -360,6 +369,7 @@ function StationBody({ track }: { track: CampusTrack }) {
     onReviewResult: (reviewId, correct) => {
       void review.submit(reviewId, correct);
     },
+    onGotoTab: setActiveTab,
   };
   const badges: Record<string, number> = { review: review.items.length };
 

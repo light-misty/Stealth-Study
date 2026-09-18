@@ -3,6 +3,11 @@ import { useTranslation } from "react-i18next";
 import { listQuestions, submitAttempt } from "../../../campus/api";
 import type { AttemptFeedback, QuestionBankItem } from "../../../campus/types";
 import { campusErrorInfo } from "../../../campus/utils";
+import { Icon } from "../../Icon";
+
+// One question at a time, paper first: the stem and its options are the subject of this
+// screen, so the progress, the verdict and the actions sit around them rather than above
+// a list. 现状是文本题训练，没有音频播放控件 —— 图标只标识「听力」这一科目，不暗示可播放。
 
 export function ListeningDrill({ profileId }: { profileId: string }) {
   const { t } = useTranslation();
@@ -71,124 +76,225 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
     setSubmitError(null);
   };
 
+  const head = (
+    <div className="mod-head">
+      <span className="ib ib--brand">
+        <Icon name="sound" size={16} />
+      </span>
+      <div className="mod-head-text">
+        <span className="mod-title">{t("campus.cet.listening.title")}</span>
+        <span className="mod-desc">{t("campus.cet.listening.hint")}</span>
+      </div>
+      {current ? (
+        <div className="mod-acts">
+          <span className="sec-n" data-testid="campus-cet-listening-progress">
+            {t("campus.cet.listening.progress", {
+              index: index + 1,
+              total: questions.length,
+            })}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  );
+
   if (error) {
     return (
-      <div
-        className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
-        data-testid="campus-cet-listening-error"
-      >
-        {t("campus.common.error")}
-        <span className="ml-1 text-faint">{campusErrorInfo(error).message}</span>
-        <button
-          type="button"
-          className="ml-2 text-accent"
-          onClick={() => setNonce((n) => n + 1)}
-          data-testid="campus-cet-listening-retry"
-        >
-          {t("campus.common.retry")}
-        </button>
-      </div>
+      <section className="mod">
+        {head}
+        <div className="alert" data-testid="campus-cet-listening-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">{t("campus.common.error")}</span>
+            <span className="alert-desc">{campusErrorInfo(error).message}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => setNonce((n) => n + 1)}
+            data-testid="campus-cet-listening-retry"
+          >
+            {t("campus.common.retry")}
+          </button>
+        </div>
+      </section>
     );
   }
 
   if (loading) {
     return (
-      <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5 text-[12px] text-muted">
-        {t("campus.cet.listening.loading")}
-      </div>
+      <section className="mod">
+        {head}
+        <div className="stack-gap">
+          <div className="sk" style={{ width: 140 }} />
+          <div className="sk" />
+          <div className="sk" style={{ width: "68%" }} />
+        </div>
+        <span className="body-text">{t("campus.cet.listening.loading")}</span>
+      </section>
     );
   }
 
   if (!current) {
     return (
-      <div
-        className="rounded-xl2 border border-line bg-panel px-4 py-3.5 text-[12px] text-faint"
-        data-testid="campus-cet-listening-empty"
-      >
-        {t("campus.cet.listening.empty")}
-      </div>
+      <section className="mod">
+        {head}
+        <div className="empty" data-testid="campus-cet-listening-empty">
+          <span className="ib ib--brand">
+            <Icon name="sound" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.cet.listening.empty")}</span>
+        </div>
+      </section>
     );
   }
 
   const options = current.options ?? [];
+  const graded = feedback?.is_correct === 1 || feedback?.is_correct === 0;
+  const answered = feedback ? index + 1 : index;
 
   return (
-    <div className="grid gap-3" data-testid="campus-cet-listening">
-      <div
-        className="text-[12px] text-faint"
-        data-testid="campus-cet-listening-progress"
-      >
-        {t("campus.cet.listening.progress", {
-          index: index + 1,
-          total: questions.length,
-        })}
-      </div>
-      <div
-        className="rounded-xl2 border border-line bg-panel px-4 py-3"
-        data-testid="campus-cet-listening-question"
-        data-qid={current.id}
-      >
-        <div className="text-[13px] text-ink">{current.stem}</div>
-        {options.length > 0 ? (
-          <div className="mt-2 grid gap-1.5">
-            {options.map((o) => (
-              <button
-                key={o.key}
-                type="button"
-                className={`rounded-lg2 border px-3 py-1.5 text-left text-[12px] ${
-                  answer === o.key
-                    ? "border-accent bg-accentSoft text-ink"
-                    : "border-line bg-panel text-muted"
-                }`}
-                aria-pressed={answer === o.key}
-                data-testid="campus-cet-listening-option"
-                data-key={o.key}
-                onClick={() => setAnswer(o.key)}
-              >
-                <span className="mr-2 font-semibold text-ink">{o.key}</span>
-                <span>{o.text}</span>
-              </button>
-            ))}
-          </div>
-        ) : current.qtype === "blank" ? (
-          <input
-            className="mt-2 w-full rounded-lg2 border border-line bg-panel px-3 py-1.5 text-[12px] text-ink"
-            data-testid="campus-cet-listening-blank"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
+    <section className="mod" data-testid="campus-cet-listening">
+      {head}
+
+      <div className="stack">
+        <div className="bar">
+          <i
+            style={{ "--w": `${Math.round((answered / questions.length) * 100)}%` } as Record<
+              string,
+              string
+            >}
           />
-        ) : (
-          <textarea
-            className="mt-2 w-full rounded-lg2 border border-line bg-panel px-3 py-1.5 text-[12px] text-ink"
-            rows={3}
-            data-testid="campus-cet-listening-text"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-          />
-        )}
-        {submitError ? (
+        </div>
+
+        <div className="fill thin qcol">
           <div
-            className="mt-2 rounded-xl2 border border-warnInk/40 bg-warnSoft px-3 py-2 text-[12px] text-warnInk"
-            data-testid="campus-cet-listening-error"
+            className="q"
+            data-testid="campus-cet-listening-question"
+            data-qid={current.id}
           >
-            {t("campus.common.error")}
-            <span className="ml-1 text-faint">{campusErrorInfo(submitError).message}</span>
-            {campusErrorInfo(submitError).retryable ? (
-              <button
-                type="button"
-                className="ml-2 text-accent"
-                onClick={onSubmit}
-                disabled={submitting}
-              >
-                {t("campus.common.retry")}
-              </button>
-            ) : null}
+            <div className="q-head">
+              <span className="tag tag--brand">{t(`campus.common.qtype.${current.qtype}`)}</span>
+              <span className="q-no">
+                {t("campus.cet.listening.qno", { index: index + 1 })}
+              </span>
+            </div>
+            <p className="q-stem">{current.stem}</p>
+
+            {options.length > 0 ? (
+              <div className="opts">
+                {options.map((o) => (
+                  <button
+                    key={o.key}
+                    type="button"
+                    className={answer === o.key ? "opt is-on" : "opt"}
+                    aria-pressed={answer === o.key}
+                    data-testid="campus-cet-listening-option"
+                    data-key={o.key}
+                    onClick={() => setAnswer(o.key)}
+                  >
+                    <span className="opt-k">{o.key}</span>
+                    <span>{o.text}</span>
+                  </button>
+                ))}
+              </div>
+            ) : current.qtype === "blank" ? (
+              <input
+                className="input"
+                data-testid="campus-cet-listening-blank"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+              />
+            ) : (
+              <textarea
+                className="textarea"
+                rows={3}
+                data-testid="campus-cet-listening-text"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+              />
+            )}
           </div>
-        ) : null}
-        <div className="mt-3">
+
+          {feedback ? (
+            <div data-testid="campus-cet-listening-result">
+              {graded ? (
+                <div className={feedback.is_correct === 1 ? "verdict verdict--right" : "verdict verdict--wrong"}>
+                  <Icon name={feedback.is_correct === 1 ? "check" : "x"} size={14} />
+                  <div className="verdict-text">
+                    <span data-testid="campus-cet-listening-correct" data-correct={feedback.is_correct === 1 ? "true" : "false"}>
+                      {feedback.is_correct === 1
+                        ? t("campus.cet.listening.correct")
+                        : t("campus.cet.listening.wrong")}
+                    </span>
+                    {feedback.standard_answer ? (
+                      <span className="verdict-k">
+                        {t("campus.cet.listening.standard_answer")}{" "}
+                        <span data-testid="campus-cet-listening-standard-answer">
+                          {feedback.standard_answer}
+                        </span>
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {feedback.is_correct == null && feedback.score != null ? (
+                <div className="verdict">
+                  <Icon name="activity" size={14} />
+                  <div className="verdict-text">
+                    <span data-testid="campus-cet-listening-score">
+                      {t("campus.cet.listening.score", {
+                        score: feedback.score,
+                        max: feedback.max_score ?? 0,
+                      })}
+                    </span>
+                    <span className="verdict-k" data-testid="campus-cet-listening-pending">
+                      {t("campus.cet.listening.pending")}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {submitError ? (
+            <div className="alert" data-testid="campus-cet-listening-error">
+              <Icon name="warning" size={14} />
+              <div className="alert-text">
+                <span className="alert-title">{t("campus.common.error")}</span>
+                <span className="alert-desc">{campusErrorInfo(submitError).message}</span>
+              </div>
+              {campusErrorInfo(submitError).retryable ? (
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  onClick={onSubmit}
+                  disabled={submitting}
+                >
+                  {t("campus.common.retry")}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="mod-foot">
+          <span className="ai-note">{t("campus.cet.listening.no_audio")}</span>
+          <span className="st-spacer" />
+          {feedback && index < questions.length - 1 ? (
+            <button
+              type="button"
+              className="btn btn--ghost"
+              data-testid="campus-cet-listening-next"
+              onClick={onNext}
+            >
+              {t("campus.cet.listening.next")}
+            </button>
+          ) : null}
           <button
             type="button"
-            className="rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
+            className="btn btn--primary"
             data-testid="campus-cet-listening-submit"
             onClick={onSubmit}
             disabled={submitting || !answer.trim()}
@@ -197,64 +303,6 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
           </button>
         </div>
       </div>
-      {feedback ? (
-        <div
-          className="rounded-xl2 border border-line bg-panel px-4 py-3"
-          data-testid="campus-cet-listening-result"
-        >
-          {feedback.is_correct === 1 || feedback.is_correct === 0 ? (
-            <>
-              <div
-                className={`text-[13px] font-semibold ${
-                  feedback.is_correct === 1 ? "text-okInk" : "text-warnInk"
-                }`}
-                data-testid="campus-cet-listening-correct"
-                data-correct={feedback.is_correct === 1 ? "true" : "false"}
-              >
-                {feedback.is_correct === 1
-                  ? t("campus.cet.listening.correct")
-                  : t("campus.cet.listening.wrong")}
-              </div>
-              {feedback.standard_answer ? (
-                <div className="mt-1 text-[12px] text-muted">
-                  <span className="text-faint">
-                    {t("campus.cet.listening.standard_answer")}
-                  </span>
-                  <span
-                    className="ml-1 text-ink"
-                    data-testid="campus-cet-listening-standard-answer"
-                  >
-                    {feedback.standard_answer}
-                  </span>
-                </div>
-              ) : null}
-            </>
-          ) : null}
-          {feedback.is_correct == null && feedback.score != null ? (
-            <>
-              <div className="text-[13px] text-ink" data-testid="campus-cet-listening-score">
-                {t("campus.cet.listening.score", {
-                  score: feedback.score,
-                  max: feedback.max_score ?? 0,
-                })}
-              </div>
-              <div className="mt-1 text-[12px] text-faint" data-testid="campus-cet-listening-pending">
-                {t("campus.cet.listening.pending")}
-              </div>
-            </>
-          ) : null}
-          {index < questions.length - 1 ? (
-            <button
-              type="button"
-              className="mt-2 rounded-lg2 border border-line bg-panel px-3 py-1 text-[12px] text-muted"
-              data-testid="campus-cet-listening-next"
-              onClick={onNext}
-            >
-              {t("campus.cet.listening.next")}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
+    </section>
   );
 }

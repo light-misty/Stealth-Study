@@ -96,7 +96,18 @@
       "retry": "Retry",
       "error": "Something went wrong",
       "exam_passed": "The exam date has passed",
-      "got_it": "Got it"
+      "got_it": "Got it",
+      "qtype": {
+        "single": "Single choice",
+        "multiple": "Multiple choice",
+        "judge": "True/false",
+        "blank": "Fill in",
+        "short_answer": "Short answer",
+        "essay": "Essay",
+        "material": "Material analysis",
+        "lesson_plan": "Lesson plan",
+        "practical": "Practical"
+      }
     },
     "model": {
       "empty_title": "No model configured",
@@ -246,13 +257,23 @@
         "section_listening": "Listening",
         "section_reading": "Reading",
         "section_writing_translation": "Writing & Translation",
-        "again": "Take again"
+        "again": "Take again",
+        "hint": "Sizes up listening, reading, writing and translation; answers autosave and you can pick it up later",
+        "missing_tag": "Missing",
+        "qno": "Question {{index}}",
+        "subjective_tip": "Written answers are banded; the line-by-line correction shows up under Writing",
+        "idle_title": "Start a placement run",
+        "goto_vocab": "Start with the weakest: vocabulary",
+        "estimate_unit": "points"
       },
       "errors": {
         "title": "Common mistakes TOP3",
         "empty": "Your most frequent mistakes show up here after 3 graded runs",
         "times_one": "{{count}} time",
-        "times_other": "{{count}} times"
+        "times_other": "{{count}} times",
+        "hint": "After three graded runs your most frequent errors land here",
+        "rank_note": "Ranked by occurrences; synonyms merged",
+        "goto": "Fix it in the essay"
       },
       "vocab": {
         "today_new": "New words today",
@@ -264,7 +285,9 @@
         "mastery_unknown": "New",
         "mastery_fuzzy": "Fuzzy",
         "mastery_mastered": "Mastered",
-        "mastery_error": "Mark failed; reverted to the previous state"
+        "mastery_error": "Mark failed; reverted to the previous state",
+        "title": "Vocabulary",
+        "hint": "Marking mastery writes into the spaced-repetition queue; unknown words come back tomorrow"
       },
       "listening": {
         "loading": "Loading listening questions",
@@ -276,7 +299,11 @@
         "wrong": "Incorrect",
         "standard_answer": "Standard answer",
         "score": "Score {{score}}/{{max}}",
-        "pending": "Subjective answer graded"
+        "pending": "Subjective answer graded",
+        "title": "Listening drill",
+        "hint": "Objective questions grade instantly; written ones come back scored from the grading queue",
+        "no_audio": "This bank has no audio layer yet, so questions appear as text",
+        "qno": "Question {{index}}"
       },
       "grading": {
         "input_label": "Your text",
@@ -285,13 +312,19 @@
         "history_title": "Grading history",
         "history_empty": "No graded attempts yet",
         "detail_score": "Band score",
-        "detail_answer": "Submitted text"
+        "detail_answer": "Submitted text",
+        "graded_count_one": "{{count}} graded",
+        "graded_count_other": "{{count}} graded",
+        "input_hint": "Paste your answer to get dimension scores, the error list and the model outline",
+        "history_recent_one": "last {{count}}",
+        "history_recent_other": "last {{count}}"
       },
       "essay": {
         "title": "Essay grading"
       },
       "translation": {
-        "title": "Translation grading"
+        "title": "Translation grading",
+        "hint": "Chinese paragraph to English, scored on accuracy, completeness and language quality"
       },
       "mock": {
         "start": "Start mock exam",
@@ -313,7 +346,16 @@
         "answer_reading": "Reading & translation answer",
         "result_title": "Mock exam result",
         "estimate": "Estimated score",
-        "fast_forward": "Fast-forward (debug)"
+        "fast_forward": "Fast-forward (debug)",
+        "hint": "Three timed stages — writing, listening, reading & translation; each card locks when its stage ends",
+        "stage_of": "Stage {{index}} / {{total}}",
+        "locked_note": "This stage has not started",
+        "current_stage": "Current stage",
+        "result_hint": "All three cards are in; scores are converted with this run's rubric",
+        "idle_title": "Run a timed mock paper",
+        "stage_running": "Running",
+        "stage_done": "Done",
+        "stage_todo": "Not started"
       }
     },
     "kaoyan": {
