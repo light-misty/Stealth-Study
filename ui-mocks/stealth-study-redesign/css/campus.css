@@ -365,9 +365,9 @@
 .lrow.is-done .lrow-title { color: var(--ink-3); }
 
 /* 高度分配原语：模块卡吃掉主列剩余高度后，内部再逐层把剩余让给滚动区。
-   .col = 继续向下传递弹性；.fill = 这一层吸收剩余并自己内滚。
+   .stack = 继续向下传递弹性；.fill = 这一层吸收剩余并自己内滚。
    卡头与卡脚因此固定，只有题目区/列表在滚 —— 与虚拟滚动的真实实现同构。 */
-.col { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
+.stack { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
 .st-pane.is-on > .mod:only-child { flex: 1; min-height: 0; }
 .fill { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
 

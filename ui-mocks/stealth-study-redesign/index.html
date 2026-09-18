@@ -100,7 +100,7 @@
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8.6a6 6 0 0 0-12 0c0 6.9-3 8.4-3 8.4h18s-3-1.5-3-8.4"/><path d="M13.7 20.4a2 2 0 0 1-3.4 0"/></symbol>
 </defs></svg>
 
-<div class="stage">
+<div class="mstage">
   <!-- 应用外壳：1280×800 固定排版 + 等比缩放（js/app.js 的 fit()） -->
   <div class="device" id="device" data-view="settings">
 
@@ -585,7 +585,7 @@
                   <div class="mod-acts"><span class="sec-n" data-assess-label>已答 6 / 24 题</span></div>
                 </div>
 
-                <div class="col" data-assess="paper">
+                <div class="stack" data-assess="paper">
                   <div class="bar"><i style="--w:25%"></i></div>
                   <div class="fill thin qcol">
                     <div class="q">
@@ -621,7 +621,7 @@
                   </div>
                 </div>
 
-                <div class="col" data-assess="result" hidden>
+                <div class="stack" data-assess="result" hidden>
                   <div class="fill thin qcol">
                     <div class="stat">
                       <span class="stat-k">预计总分</span>
@@ -774,7 +774,7 @@
                   <div class="mod-acts"><span class="sec-n" data-listen-label>第 3 / 12 题</span></div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="bar"><i style="--w:25%"></i></div>
                   <div class="fill thin qcol">
                     <div class="q">
@@ -966,16 +966,16 @@
                   <div class="mod-acts"><span class="sec-n">第 1 / 3 阶段</span></div>
                 </div>
 
-                <div class="col">
-                  <div class="stages">
-                    <div class="stage is-on"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-pencil"/></svg>进行中</span><span class="stage-t">写作</span><span class="stage-n">30 分钟</span></div>
-                    <div class="stage"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="stage-t">听力</span><span class="stage-n">25 分钟</span></div>
-                    <div class="stage"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="stage-t">阅读与翻译</span><span class="stage-n">40 分钟</span></div>
+                <div class="stack">
+                  <div class="mstages">
+                    <div class="mstage is-on"><span class="mstage-k"><svg class="ic" width="12" height="12"><use href="#i-pencil"/></svg>进行中</span><span class="mstage-t">写作</span><span class="mstage-n">30 分钟</span></div>
+                    <div class="mstage"><span class="mstage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="mstage-t">听力</span><span class="mstage-n">25 分钟</span></div>
+                    <div class="mstage"><span class="mstage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="mstage-t">阅读与翻译</span><span class="mstage-n">40 分钟</span></div>
                   </div>
 
                   <div class="sub sub--ring">
                     <div class="timer-row">
-                      <div class="col">
+                      <div class="stack">
                         <span class="timer-k">本阶段剩余时间</span>
                         <span class="timer" data-mock-timer>27:48</span>
                       </div>
@@ -1003,7 +1003,7 @@
                     </div>
                   </div>
 
-                  <div class="col" data-mock-result hidden>
+                  <div class="stack" data-mock-result hidden>
                     <div class="sec"><div class="sec-text"><span class="sec-title">模考成绩</span><span class="sec-desc">三阶段已收卡，成绩按当次评分标准折算</span></div></div>
                     <div class="stat">
                       <span class="stat-k">预计总分</span>
@@ -1309,7 +1309,7 @@
                   </div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="qa-ask">
                     <input class="input" type="text" placeholder="向资料提问…" value="简述剩余价值率与利润率的区别，并给出计算口径。" />
                     <button class="btn btn--primary">提问</button>
@@ -1359,7 +1359,7 @@
                   <span class="ai-note">已生成 68 项任务，始于 2026-09-14</span>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="rings">
                     <div class="ring-c">
                       <svg class="ring" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="24.5" transform="rotate(-90 32 32)"/></svg>
@@ -1522,7 +1522,7 @@
                   </div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="fill thin qcol">
                     <div class="field">
                       <span class="field-label">把你的作答粘贴进来</span>
@@ -1752,7 +1752,7 @@
                   </div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="fill thin">
                     <div class="tree">
                       <div class="tnode tnode--root" style="--d:1">
@@ -1887,7 +1887,7 @@
                   <button class="pick">实务题</button>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="fill thin qcol">
                     <div class="field">
                       <span class="field-label">作答内容</span>

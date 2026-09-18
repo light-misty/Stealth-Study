@@ -97,22 +97,22 @@
 
 /* ============================================================== 模考台 == */
 /* 三阶段条：当前阶段橙底、已结束绿点、未开始灰锁 —— 一眼看出「现在能写哪张卡」 */
-.stages { display: flex; gap: 8px; }
-.stage {
+.mstages { display: flex; gap: 8px; }
+.mstage {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 3px;
   padding: 10px 12px; border-radius: var(--r-12);
   background: var(--surface-sunken);
 }
-.stage-k { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--ink-3); }
-.stage-k .ic { color: inherit; }
-.stage-t { font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink-2); }
-.stage-n { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
-.stage.is-on { background: var(--accent-soft); }
-.stage.is-on .stage-t { color: var(--accent-deep); }
-.stage.is-on .stage-k { color: var(--accent-deep); }
-.stage.is-done .stage-t { color: var(--ink); }
-.stage.is-done .stage-k { color: var(--success); }
+.mstage-k { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.mstage-k .ic { color: inherit; }
+.mstage-t { font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink-2); }
+.mstage-n { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.mstage.is-on { background: var(--accent-soft); }
+.mstage.is-on .mstage-t { color: var(--accent-deep); }
+.mstage.is-on .mstage-k { color: var(--accent-deep); }
+.mstage.is-done .mstage-t { color: var(--ink); }
+.mstage.is-done .mstage-k { color: var(--success); }
 
 /* 计时器：模考里最重要的一个数字，给到与倒计时同档的 30px 等宽 */
 .timer-row { display: flex; align-items: center; gap: 12px; }

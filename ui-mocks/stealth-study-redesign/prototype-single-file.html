@@ -1093,9 +1093,9 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
 .lrow.is-done .lrow-title { color: var(--ink-3); }
 
 /* 高度分配原语：模块卡吃掉主列剩余高度后，内部再逐层把剩余让给滚动区。
-   .col = 继续向下传递弹性；.fill = 这一层吸收剩余并自己内滚。
+   .stack = 继续向下传递弹性；.fill = 这一层吸收剩余并自己内滚。
    卡头与卡脚因此固定，只有题目区/列表在滚 —— 与虚拟滚动的真实实现同构。 */
-.col { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
+.stack { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
 .st-pane.is-on > .mod:only-child { flex: 1; min-height: 0; }
 .fill { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
 
@@ -1430,22 +1430,22 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
 
 /* ============================================================== 模考台 == */
 /* 三阶段条：当前阶段橙底、已结束绿点、未开始灰锁 —— 一眼看出「现在能写哪张卡」 */
-.stages { display: flex; gap: 8px; }
-.stage {
+.mstages { display: flex; gap: 8px; }
+.mstage {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; gap: 3px;
   padding: 10px 12px; border-radius: var(--r-12);
   background: var(--surface-sunken);
 }
-.stage-k { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--ink-3); }
-.stage-k .ic { color: inherit; }
-.stage-t { font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink-2); }
-.stage-n { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
-.stage.is-on { background: var(--accent-soft); }
-.stage.is-on .stage-t { color: var(--accent-deep); }
-.stage.is-on .stage-k { color: var(--accent-deep); }
-.stage.is-done .stage-t { color: var(--ink); }
-.stage.is-done .stage-k { color: var(--success); }
+.mstage-k { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.mstage-k .ic { color: inherit; }
+.mstage-t { font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink-2); }
+.mstage-n { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.mstage.is-on { background: var(--accent-soft); }
+.mstage.is-on .mstage-t { color: var(--accent-deep); }
+.mstage.is-on .mstage-k { color: var(--accent-deep); }
+.mstage.is-done .mstage-t { color: var(--ink); }
+.mstage.is-done .mstage-k { color: var(--success); }
 
 /* 计时器：模考里最重要的一个数字，给到与倒计时同档的 30px 等宽 */
 .timer-row { display: flex; align-items: center; gap: 12px; }
@@ -1800,7 +1800,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
   <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8.6a6 6 0 0 0-12 0c0 6.9-3 8.4-3 8.4h18s-3-1.5-3-8.4"/><path d="M13.7 20.4a2 2 0 0 1-3.4 0"/></symbol>
 </defs></svg>
 
-<div class="stage">
+<div class="mstage">
   <!-- 应用外壳：1280×800 固定排版 + 等比缩放（js/app.js 的 fit()） -->
   <div class="device" id="device" data-view="settings">
 
@@ -2285,7 +2285,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   <div class="mod-acts"><span class="sec-n" data-assess-label>已答 6 / 24 题</span></div>
                 </div>
 
-                <div class="col" data-assess="paper">
+                <div class="stack" data-assess="paper">
                   <div class="bar"><i style="--w:25%"></i></div>
                   <div class="fill thin qcol">
                     <div class="q">
@@ -2321,7 +2321,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   </div>
                 </div>
 
-                <div class="col" data-assess="result" hidden>
+                <div class="stack" data-assess="result" hidden>
                   <div class="fill thin qcol">
                     <div class="stat">
                       <span class="stat-k">预计总分</span>
@@ -2474,7 +2474,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   <div class="mod-acts"><span class="sec-n" data-listen-label>第 3 / 12 题</span></div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="bar"><i style="--w:25%"></i></div>
                   <div class="fill thin qcol">
                     <div class="q">
@@ -2666,16 +2666,16 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   <div class="mod-acts"><span class="sec-n">第 1 / 3 阶段</span></div>
                 </div>
 
-                <div class="col">
-                  <div class="stages">
-                    <div class="stage is-on"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-pencil"/></svg>进行中</span><span class="stage-t">写作</span><span class="stage-n">30 分钟</span></div>
-                    <div class="stage"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="stage-t">听力</span><span class="stage-n">25 分钟</span></div>
-                    <div class="stage"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="stage-t">阅读与翻译</span><span class="stage-n">40 分钟</span></div>
+                <div class="stack">
+                  <div class="mstages">
+                    <div class="mstage is-on"><span class="mstage-k"><svg class="ic" width="12" height="12"><use href="#i-pencil"/></svg>进行中</span><span class="mstage-t">写作</span><span class="mstage-n">30 分钟</span></div>
+                    <div class="mstage"><span class="mstage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="mstage-t">听力</span><span class="mstage-n">25 分钟</span></div>
+                    <div class="mstage"><span class="mstage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="mstage-t">阅读与翻译</span><span class="mstage-n">40 分钟</span></div>
                   </div>
 
                   <div class="sub sub--ring">
                     <div class="timer-row">
-                      <div class="col">
+                      <div class="stack">
                         <span class="timer-k">本阶段剩余时间</span>
                         <span class="timer" data-mock-timer>27:48</span>
                       </div>
@@ -2703,7 +2703,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                     </div>
                   </div>
 
-                  <div class="col" data-mock-result hidden>
+                  <div class="stack" data-mock-result hidden>
                     <div class="sec"><div class="sec-text"><span class="sec-title">模考成绩</span><span class="sec-desc">三阶段已收卡，成绩按当次评分标准折算</span></div></div>
                     <div class="stat">
                       <span class="stat-k">预计总分</span>
@@ -3009,7 +3009,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   </div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="qa-ask">
                     <input class="input" type="text" placeholder="向资料提问…" value="简述剩余价值率与利润率的区别，并给出计算口径。" />
                     <button class="btn btn--primary">提问</button>
@@ -3059,7 +3059,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   <span class="ai-note">已生成 68 项任务，始于 2026-09-14</span>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="rings">
                     <div class="ring-c">
                       <svg class="ring" width="56" height="56" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-track" cx="32" cy="32" r="26" stroke-width="6"/><circle class="ring-val" cx="32" cy="32" r="26" stroke-width="6" stroke-dasharray="163.4" stroke-dashoffset="24.5" transform="rotate(-90 32 32)"/></svg>
@@ -3222,7 +3222,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   </div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="fill thin qcol">
                     <div class="field">
                       <span class="field-label">把你的作答粘贴进来</span>
@@ -3452,7 +3452,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   </div>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="fill thin">
                     <div class="tree">
                       <div class="tnode tnode--root" style="--d:1">
@@ -3587,7 +3587,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
                   <button class="pick">实务题</button>
                 </div>
 
-                <div class="col">
+                <div class="stack">
                   <div class="fill thin qcol">
                     <div class="field">
                       <span class="field-label">作答内容</span>
@@ -4441,7 +4441,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
   for (var mt = 0; mt < mockTimers.length; mt++) {
     (function (face) {
       var mod = face.closest('.mod');
-      var stages = mod.querySelectorAll('.stage');
+      var stages = mod.querySelectorAll('.mstage');
       var answers = mod.querySelectorAll('.answer');
       var counter = mod.querySelector('.mod-acts .sec-n');
       var pauseBtn = mod.querySelector('[data-mock="pause"]');
@@ -4481,7 +4481,7 @@ html[data-theme='dark'] .mascot-glyph { display: block; }
         for (var i = 0; i < stages.length; i++) {
           stages[i].classList.toggle('is-on', i === stage);
           stages[i].classList.toggle('is-done', i < stage);
-          stages[i].querySelector('.stage-k').innerHTML = i < stage
+          stages[i].querySelector('.mstage-k').innerHTML = i < stage
             ? '<svg class="ic" width="12" height="12"><use href="#i-check"/></svg>已结束'
             : (i === stage
               ? '<svg class="ic" width="12" height="12"><use href="#i-pause"/></svg>进行中'

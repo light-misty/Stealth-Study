@@ -460,7 +460,7 @@
   for (var mt = 0; mt < mockTimers.length; mt++) {
     (function (face) {
       var mod = face.closest('.mod');
-      var stages = mod.querySelectorAll('.stage');
+      var stages = mod.querySelectorAll('.mstage');
       var answers = mod.querySelectorAll('.answer');
       var counter = mod.querySelector('.mod-acts .sec-n');
       var pauseBtn = mod.querySelector('[data-mock="pause"]');
@@ -500,7 +500,7 @@
         for (var i = 0; i < stages.length; i++) {
           stages[i].classList.toggle('is-on', i === stage);
           stages[i].classList.toggle('is-done', i < stage);
-          stages[i].querySelector('.stage-k').innerHTML = i < stage
+          stages[i].querySelector('.mstage-k').innerHTML = i < stage
             ? '<svg class="ic" width="12" height="12"><use href="#i-check"/></svg>已结束'
             : (i === stage
               ? '<svg class="ic" width="12" height="12"><use href="#i-pause"/></svg>进行中'
