@@ -14,7 +14,7 @@
 //! passes `OPENAI_API_KEY` through. A Finder-launched app has no shell env — there the key
 //!   comes from the SecretStore (Settings tab), see `ss.providers.resolve_api_key`.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 #[cfg(target_os = "windows")]
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -165,6 +165,70 @@ fn sidecar_env() -> std::collections::HashMap<String, String> {
     std::collections::HashMap::new()
 }
 
+/// What the shell launches as the sidecar, plus the tree whose `ss` source it must run.
+struct ServerLaunch {
+    bin: PathBuf,
+    python_path: Option<PathBuf>,
+}
+
+fn server_exe_names() -> &'static [&'static str] {
+    // 服务器产物在仓库中以 `openworker-server` 为准（pyproject 入口、PyInstaller spec 与
+    // 打包脚本均如此）；仅极少数旧构建/旧 venv 残留 `ss-server`。同时接受两种名字，
+    // 才能保证 dev 环境与生产安装包都能命中 sidecar。
+    if cfg!(windows) {
+        &["ss-server.exe", "openworker-server.exe"]
+    } else {
+        &["ss-server", "openworker-server"]
+    }
+}
+
+/// `<tree>/.git` is a *file* in a `git worktree` checkout, pointing at
+/// `<main>/.git/worktrees/<name>`; the primary checkout is what sits above that `.git`.
+/// None for the primary checkout itself (its `.git` is a directory) and for anything
+/// that isn't a parsable gitdir pointer.
+fn primary_checkout_root(tree: &Path) -> Option<PathBuf> {
+    let raw = std::fs::read_to_string(tree.join(".git")).ok()?;
+    let gitdir = raw.trim().strip_prefix("gitdir:")?.trim().trim_matches('"');
+    if gitdir.is_empty() {
+        return None;
+    }
+    let gitdir = if Path::new(gitdir).is_absolute() {
+        PathBuf::from(gitdir)
+    } else {
+        tree.join(gitdir)
+    };
+    let main_git = gitdir.parent()?.parent()?;
+    if main_git.file_name()? != std::ffi::OsStr::new(".git") {
+        return None;
+    }
+    main_git.parent().map(Path::to_path_buf)
+}
+
+fn venv_scripts_dir(tree: &Path) -> PathBuf {
+    tree.join(if cfg!(windows) {
+        ".venv/Scripts"
+    } else {
+        ".venv/bin"
+    })
+}
+
+/// Dev fallback across trees: a `git worktree` checkout carries tracked files only, so the
+/// gitignored `.venv` that `packaging/setup_dev_env.sh` writes usually exists in one tree per
+/// clone. The first tree holding a console script wins; when that is not the running tree, the
+/// running tree's root comes back as the PYTHONPATH value, because a venv's editable install
+/// otherwise pins its own checkout's `ss` package.
+fn dev_server_from(trees: &[PathBuf]) -> Option<(PathBuf, Option<PathBuf>)> {
+    for (index, tree) in trees.iter().enumerate() {
+        for name in server_exe_names() {
+            let candidate = venv_scripts_dir(tree).join(name);
+            if candidate.exists() {
+                return Some((candidate, (index > 0).then(|| trees[0].clone())));
+            }
+        }
+    }
+    None
+}
+
 /// Path to the server entrypoint. Resolution order:
 ///   1. `COWORKER_SERVER_BIN` env override.
 ///   2. The bundled onedir sidecar shipped via Tauri `resources` (production): the
@@ -172,20 +236,16 @@ fn sidecar_env() -> std::collections::HashMap<String, String> {
 ///      (next to the app exe) on Windows.
 ///   3. Legacy onefile slot: `openworker-server[.exe]` next to the app binary (pre-onedir
 ///      builds used Tauri externalBin).
-///   4. Dev fallback: the repo venv, relative to this crate (`src-tauri` → repo-root `.venv`;
-///      `bin/` on POSIX, `Scripts\` on Windows).
-fn server_bin() -> PathBuf {
+///   4. Dev fallback: the repo venv — this tree first, then the primary checkout of the
+///      same clone (`git worktree` checkouts have no venv of their own).
+fn server_bin() -> ServerLaunch {
     if let Ok(p) = std::env::var("COWORKER_SERVER_BIN") {
-        return PathBuf::from(p);
+        return ServerLaunch {
+            bin: PathBuf::from(p),
+            python_path: None,
+        };
     }
-    // 服务器产物在仓库中以 `openworker-server` 为准（pyproject 入口、PyInstaller spec 与
-    // 打包脚本均如此）；仅极少数旧构建/旧 venv 残留 `ss-server`。同时接受两种名字，
-    // 才能保证 dev 环境与生产安装包都能命中 sidecar。
-    let exe_names: &[&str] = if cfg!(windows) {
-        &["ss-server.exe", "openworker-server.exe"]
-    } else {
-        &["ss-server", "openworker-server"]
-    };
+    let exe_names = server_exe_names();
     if let Ok(exe) = std::env::current_exe() {
         if let Some(dir) = exe.parent() {
             let mut candidates = Vec::<PathBuf>::new();
@@ -204,32 +264,49 @@ fn server_bin() -> PathBuf {
             }
             for c in candidates {
                 if c.exists() {
-                    return c;
+                    return ServerLaunch {
+                        bin: c,
+                        python_path: None,
+                    };
                 }
             }
         }
     }
     // Dev fallback: the repo venv, relative to this crate (`src-tauri` → repo-root `.venv`;
     // `bin/` on POSIX, `Scripts\` on Windows).
-    for n in exe_names {
-        let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        if cfg!(windows) {
-            p.push("../../../.venv/Scripts");
-        } else {
-            p.push("../../../.venv/bin");
-        }
-        p.push(n);
-        if p.exists() {
-            return p;
-        }
+    let tree = manifest_tree_root();
+    let mut trees = vec![tree.clone()];
+    if let Some(main) = primary_checkout_root(&tree) {
+        trees.push(main);
     }
-    let mut p = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    if cfg!(windows) {
-        p.push("../../../.venv/Scripts/ss-server.exe");
-    } else {
-        p.push("../../../.venv/bin/ss-server");
+    if let Some((bin, source_tree)) = dev_server_from(&trees) {
+        return ServerLaunch {
+            bin,
+            python_path: source_tree,
+        };
     }
-    p
+    ServerLaunch {
+        bin: venv_scripts_dir(&tree).join(exe_names[0]),
+        python_path: None,
+    }
+}
+
+/// The repo/worktree root that owns this crate (`<root>/surfaces/gui/src-tauri`).
+fn manifest_tree_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .map(Path::to_path_buf)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")))
+}
+
+/// Prepend `tree` to an inherited PYTHONPATH, so a borrowed venv runs this tree's source.
+fn python_path_with(tree: &Path) -> Option<std::ffi::OsString> {
+    let mut parts = vec![tree.to_path_buf()];
+    if let Some(existing) = std::env::var_os("PYTHONPATH") {
+        parts.extend(std::env::split_paths(&existing));
+    }
+    std::env::join_paths(parts).ok()
 }
 
 /// 桌面壳传递给后端统一日志的日志根。
@@ -246,10 +323,7 @@ fn project_log_dir() -> Option<PathBuf> {
     #[cfg(debug_assertions)]
     {
         // CARGO_MANIFEST_DIR = <repo>/surfaces/gui/src-tauri → 上三级即仓库根
-        return PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .ancestors()
-            .nth(3)
-            .map(|repo| repo.join("log"));
+        Some(manifest_tree_root().join("log"))
     }
     #[cfg(not(debug_assertions))]
     None
@@ -583,7 +657,8 @@ pub fn run() {
         ])
         .setup(move |app| {
             // 1. Start the Python server sidecar on the chosen port (inherits our env).
-            let mut server_cmd = Command::new(server_bin());
+            let launch = server_bin();
+            let mut server_cmd = Command::new(&launch.bin);
             server_cmd
                 .args(["--host", "127.0.0.1", "--port", &port.to_string()])
                 // The user's real shell environment (PATH to their tools, AWS_PROFILE,
@@ -625,6 +700,13 @@ pub fn run() {
             if let Some(log_dir) = project_log_dir() {
                 server_cmd.env("SS_LOG_DIR", log_dir);
             }
+            // Sidecar came from another checkout's venv (this worktree has none): its editable
+            // install would import THAT tree's `ss`, so pin this tree's source instead.
+            if let Some(source_tree) = launch.python_path.as_deref() {
+                if let Some(python_path) = python_path_with(source_tree) {
+                    server_cmd.env("PYTHONPATH", python_path);
+                }
+            }
             // CREATE_NO_WINDOW: the sidecar is a console binary; without this a console window
             // would flash when the GUI app spawns it on Windows.
             #[cfg(windows)]
@@ -635,7 +717,13 @@ pub fn run() {
             let child = match server_cmd.spawn() {
                 Ok(child) => Some(child),
                 Err(e) => {
-                    eprintln!("[ss] failed to start server sidecar: {e}");
+                    eprintln!("[ss] failed to start server sidecar {:?}: {e}", launch.bin);
+                    if !launch.bin.exists() {
+                        eprintln!(
+                            "[ss] no dev venv in this tree or its main checkout — run \
+                             `bash packaging/setup_dev_env.sh` there, or set COWORKER_SERVER_BIN"
+                        );
+                    }
                     None
                 }
             };
@@ -750,5 +838,90 @@ mod tests {
             .map(|repo| repo.join("log"))
             .expect("manifest path has enough parents");
         assert_eq!(dir, expected);
+    }
+
+    fn scratch_tree(label: &str) -> PathBuf {
+        let base = std::env::temp_dir().join(format!("ss-wt-{label}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(&base).expect("scratch dir");
+        base
+    }
+
+    fn touch_venv_server(tree: &Path, stem: &str) {
+        let dir = venv_scripts_dir(tree);
+        std::fs::create_dir_all(&dir).unwrap();
+        let name = if cfg!(windows) {
+            format!("{stem}.exe")
+        } else {
+            stem.to_string()
+        };
+        std::fs::write(dir.join(name), "placeholder").unwrap();
+    }
+
+    #[test]
+    fn linked_worktree_resolves_its_main_checkout_from_the_dotgit_file() {
+        let base = scratch_tree("linked");
+        let main = base.join("main");
+        let gitdir = main.join(".git").join("worktrees").join("feat-x");
+        std::fs::create_dir_all(&gitdir).unwrap();
+        let wt = base.join("feat-x");
+        std::fs::create_dir_all(&wt).unwrap();
+        std::fs::write(wt.join(".git"), format!("gitdir: {}\r\n", gitdir.display())).unwrap();
+
+        assert_eq!(primary_checkout_root(&wt).as_deref(), Some(main.as_path()));
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[test]
+    fn relative_dotgit_gitdir_also_resolves_to_the_main_checkout() {
+        let base = scratch_tree("relative");
+        let main = base.join("main");
+        std::fs::create_dir_all(main.join(".git/worktrees/feat-y")).unwrap();
+        let wt = base.join("nest").join("feat-y");
+        std::fs::create_dir_all(&wt).unwrap();
+        std::fs::write(&wt.join(".git"), "gitdir: ../../main/.git/worktrees/feat-y\n").unwrap();
+
+        let found = primary_checkout_root(&wt).expect("relative gitdir must resolve");
+        assert_eq!(
+            std::fs::canonicalize(&found).unwrap(),
+            std::fs::canonicalize(&main).unwrap()
+        );
+        std::fs::remove_dir_all(base).ok();
+    }
+
+    #[test]
+    fn primary_checkout_and_foreign_paths_have_no_primary_root() {
+        let primary = scratch_tree("primary");
+        std::fs::create_dir_all(primary.join(".git")).unwrap();
+        assert_eq!(primary_checkout_root(&primary), None, ".git is a directory here");
+        std::fs::remove_dir_all(&primary).ok();
+
+        let junk = scratch_tree("junk");
+        std::fs::write(junk.join(".git"), "not a gitdir line\n").unwrap();
+        assert_eq!(primary_checkout_root(&junk), None);
+        assert_eq!(primary_checkout_root(&junk.join("missing")), None);
+        std::fs::remove_dir_all(junk).ok();
+    }
+
+    #[test]
+    fn dev_server_prefers_its_own_venv_and_pins_source_when_borrowing() {
+        let base = scratch_tree("venvs");
+        let own = base.join("own");
+        let main = base.join("main");
+        touch_venv_server(&own, "openworker-server");
+        touch_venv_server(&main, "openworker-server");
+
+        let (bin, pinned) = dev_server_from(&[own.clone(), main.clone()]).expect("both trees");
+        assert!(bin.starts_with(&own), "{bin:?} must come from the own tree");
+        assert_eq!(pinned, None, "own venv already runs own source");
+
+        let empty = base.join("empty");
+        std::fs::create_dir_all(&empty).unwrap();
+        let (bin, pinned) = dev_server_from(&[empty.clone(), main.clone()]).expect("borrows main");
+        assert!(bin.starts_with(&main), "{bin:?} must come from the main checkout");
+        assert_eq!(pinned.as_deref(), Some(empty.as_path()));
+
+        assert_eq!(dev_server_from(&[empty.clone()]), None, "no venv anywhere");
+        std::fs::remove_dir_all(base).ok();
     }
 }
