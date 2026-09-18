@@ -1041,6 +1041,7 @@ export function Sidebar(props: Props) {
       <div className="px-2.5 pt-2">
         <button
           className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-left font-medium text-ink hover:bg-chromeHover"
+          data-testid="nav-new-session"
           onClick={() => props.onNewSession(props.agent)}
         >
           <Icon name="plus" size={15} className="shrink-0" /> {t("sidebar.new_session")}
@@ -1052,6 +1053,7 @@ export function Sidebar(props: Props) {
       <div className="px-2.5 mt-1">
         <button
           className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-left text-muted hover:bg-chromeHover hover:text-ink"
+          data-testid="nav-search"
           onClick={() => setSearchModalOpen(true)}
         >
           <Icon name="search" size={15} className="shrink-0" /> {t("sidebar.search")}
