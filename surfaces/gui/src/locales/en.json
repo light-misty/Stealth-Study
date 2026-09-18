@@ -697,6 +697,7 @@
     "board_chip_active_other": "{{count}} active"
   },
   "settings": {
+    "back": "Back",
     "tab": {
       "general": "General",
       "models": "Models",

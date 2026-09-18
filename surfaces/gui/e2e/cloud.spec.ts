@@ -73,6 +73,7 @@ test("telemetry/Privacy card is gone from Settings (owner ask 2026-07-22), signe
   await expect(page.getByTestId("telemetry-toggle")).toHaveCount(0);
   await expect(page.getByText("Privacy", { exact: true })).toHaveCount(0);
 
+  await page.getByTestId("settings-back").click();
   await signIn(page);
   await page.getByTestId("account-row").click();
   await page.getByTestId("account-menu").getByRole("button", { name: "Settings" }).click();

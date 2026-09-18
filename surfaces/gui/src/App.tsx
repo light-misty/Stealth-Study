@@ -322,12 +322,18 @@ export function App() {
   // While an artifact preview is open we auto-collapse the nav (#3). Remember the pre-preview
   // collapse state so we can restore it on close — unless the user re-opened the nav meanwhile.
   const navBeforePreview = useRef<boolean | null>(null);
+  // Settings is a full-page surface with a sub-nav of its own, so the main nav folds away for the
+  // visit and the page's Back button lands where the user came from. Like the artifact collapse
+  // this is transient — the stored preference is never overwritten.
+  const settingsReturn = useRef<typeof surface>("session");
+  const navBeforeSettings = useRef<boolean | null>(null);
   const setNavCollapsedPersist = useCallback((v: boolean) => {
     setNavCollapsed(v);
     try { localStorage.setItem(NAV_COLLAPSED_KEY, v ? "1" : "0"); } catch { /* best effort */ }
   }, []);
   const toggleNav = useCallback(() => {
     navBeforePreview.current = null; // a manual toggle takes control from the artifact auto-collapse
+    navBeforeSettings.current = null; // …and from the settings one
     setNavCollapsedPersist(!navCollapsed);
   }, [navCollapsed, setNavCollapsedPersist]);
   // #3: collapse the nav while a full artifact preview is open, restore it on close (unless the
@@ -347,6 +353,23 @@ export function App() {
       navBeforePreview.current = null;
     }
   }, []);
+  // Settings folds the nav on the way in (every entry path: the account menu, ⌘,, deep links) and
+  // unfolds it again on the way out — keyed on the surface so nothing has to remember to do it.
+  useEffect(() => {
+    if (surface === "settings") {
+      setNavCollapsed((cur) => {
+        if (navBeforeSettings.current === null) navBeforeSettings.current = cur;
+        return true;
+      });
+    } else {
+      settingsReturn.current = surface;
+      if (navBeforeSettings.current !== null) {
+        setNavCollapsed(navBeforeSettings.current);
+        navBeforeSettings.current = null;
+      }
+    }
+  }, [surface]);
+  const backFromSettings = () => setSurface(settingsReturn.current);
   // Layout effect on purpose: a passive effect registers after paint, leaving a boot-splash
   // window where the app is visible but ⌘B/⌘, are dead (input arriving right after load was
   // dropped). Registering at commit closes that gap.
@@ -1672,8 +1695,9 @@ export function App() {
       )}
       {/* Explicit reveal affordance while collapsed (⌘B mirrors it) — on every surface EXCEPT
           the session view, whose topbar carries the [sidebar][+][search] cluster instead (§22;
-          no duplicate reveal buttons). */}
-      {navCollapsed && surface !== "session" && (
+          no duplicate reveal buttons), and Settings, whose sub-nav owns that corner for its own
+          Back button. */}
+      {navCollapsed && surface !== "session" && surface !== "settings" && (
         <button
           className="nav-reveal-btn"
           onClick={toggleNav}
@@ -1754,6 +1778,7 @@ export function App() {
         <SettingsView
           key={settingsTab}
           initialTab={settingsTab}
+          onBack={backFromSettings}
           onOpenPersona={(id) => openPersona(id, "settings")}
           onCreateSkill={(description) => {
             // The Skills doorway (SKILLS-SPEC §5.2): creation is a conversation. Fresh

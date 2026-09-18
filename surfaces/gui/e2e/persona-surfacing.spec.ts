@@ -31,6 +31,7 @@ test("enabling an installed persona surfaces it in picker + sidebar without relo
   await expect(enabled).toBeChecked();
 
   // No reload: the sidebar group and the picker both pick it up via PERSONAS_CHANGED.
+  await page.getByTestId("settings-back").click();
   await expect(sidebar.getByText("Acme Notes")).toBeVisible();
   await page.getByText("New session").first().click();
   await page.getByTestId("coworker-chip").click();
