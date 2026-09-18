@@ -1050,8 +1050,6 @@
     "recent": "最近的会话"
   },
   "integrations": {
-    "nav_title": "连接器",
-    "tab_connectors": "连接器",
     "tab_mcp": "MCP 服务器",
     "connectors_title": "连接器",
     "connectors_sub": "同事可以使用的应用和工具，已连接的排在前面。",

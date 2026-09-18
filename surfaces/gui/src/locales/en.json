@@ -1066,8 +1066,6 @@
     "recent": "Recent chats"
   },
   "integrations": {
-    "nav_title": "Connectors",
-    "tab_connectors": "Connectors",
     "tab_mcp": "MCP servers",
     "connectors_title": "Connectors",
     "connectors_sub": "Apps and tools your coworkers can use. Connected ones come first.",
