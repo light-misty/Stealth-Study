@@ -37,6 +37,29 @@ test("campus: the three stations navigate cleanly and render the empty-state cre
   await expect(page.getByTestId("campus-station-empty")).toHaveCount(0);
 });
 
+test("sidebar: the campus station rows share the nav rows' vertical rhythm", async ({ page }) => {
+  await page.goto("/");
+  const order = [
+    "nav-new-session",
+    "nav-search",
+    "nav-automations",
+    "nav-campus-cet",
+    "nav-campus-kaoyan",
+    "nav-campus-cert",
+  ];
+  const boxes = [];
+  for (const id of order) {
+    const box = await page.getByTestId(id).boundingBox();
+    expect(box, `${id} is not laid out`).not.toBeNull();
+    boxes.push(box!);
+  }
+  const gaps = boxes
+    .slice(1)
+    .map((box, i) => Math.round(box.y - (boxes[i].y + boxes[i].height)));
+  expect(gaps[0]).toBeGreaterThan(0);
+  expect(gaps).toEqual(gaps.map(() => gaps[0]));
+});
+
 // E2E-2: CET grading main path.
 test("campus: create a CET profile then grade an essay — result shows dimensions and errors", async ({
   page,

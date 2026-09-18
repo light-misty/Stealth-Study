@@ -313,22 +313,27 @@ export function App() {
     setRailHidden(v);
     try { localStorage.setItem(RAIL_HIDDEN_KEY, v ? "1" : "0"); } catch { /* best effort */ }
   }, []);
-  // Left-nav collapse (⌘B): when collapsed the sidebar leaves the grid so content reclaims the
-  // width; hovering the left edge peeks it back as a floating overlay. Persisted per-device.
+  // Left-nav collapse (⌘B): when collapsed the sidebar slides out and the content reclaims the
+  // width. Only an explicit action (button / ⌘B) docks or reveals it — no hover trigger.
+  // Persisted per-device.
   const [navCollapsed, setNavCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(NAV_COLLAPSED_KEY) === "1"; } catch { return false; }
   });
-  const [navPeek, setNavPeek] = useState(false);
   // While an artifact preview is open we auto-collapse the nav (#3). Remember the pre-preview
   // collapse state so we can restore it on close — unless the user re-opened the nav meanwhile.
   const navBeforePreview = useRef<boolean | null>(null);
+  // Settings is a full-page surface with a sub-nav of its own, so the main nav folds away for the
+  // visit and the page's Back button lands where the user came from. Like the artifact collapse
+  // this is transient — the stored preference is never overwritten.
+  const settingsReturn = useRef<typeof surface>("session");
+  const navBeforeSettings = useRef<boolean | null>(null);
   const setNavCollapsedPersist = useCallback((v: boolean) => {
     setNavCollapsed(v);
     try { localStorage.setItem(NAV_COLLAPSED_KEY, v ? "1" : "0"); } catch { /* best effort */ }
   }, []);
   const toggleNav = useCallback(() => {
-    setNavPeek(false);
     navBeforePreview.current = null; // a manual toggle takes control from the artifact auto-collapse
+    navBeforeSettings.current = null; // …and from the settings one
     setNavCollapsedPersist(!navCollapsed);
   }, [navCollapsed, setNavCollapsedPersist]);
   // #3: collapse the nav while a full artifact preview is open, restore it on close (unless the
@@ -339,7 +344,6 @@ export function App() {
   // collapse state is read through the functional updater instead.
   const onArtifactPreview = useCallback((open: boolean) => {
     if (open) {
-      setNavPeek(false);
       setNavCollapsed((cur) => {
         if (navBeforePreview.current === null) navBeforePreview.current = cur;
         return true;
@@ -349,6 +353,23 @@ export function App() {
       navBeforePreview.current = null;
     }
   }, []);
+  // Settings folds the nav on the way in (every entry path: the account menu, ⌘,, deep links) and
+  // unfolds it again on the way out — keyed on the surface so nothing has to remember to do it.
+  useEffect(() => {
+    if (surface === "settings") {
+      setNavCollapsed((cur) => {
+        if (navBeforeSettings.current === null) navBeforeSettings.current = cur;
+        return true;
+      });
+    } else {
+      settingsReturn.current = surface;
+      if (navBeforeSettings.current !== null) {
+        setNavCollapsed(navBeforeSettings.current);
+        navBeforeSettings.current = null;
+      }
+    }
+  }, [surface]);
+  const backFromSettings = () => setSurface(settingsReturn.current);
   // Layout effect on purpose: a passive effect registers after paint, leaving a boot-splash
   // window where the app is visible but ⌘B/⌘, are dead (input arriving right after load was
   // dropped). Registering at commit closes that gap.
@@ -1623,12 +1644,7 @@ export function App() {
 
   return (
     <div
-      className={
-        "app" +
-        (overlay ? " tauri-overlay" : "") +
-        (navCollapsed ? " nav-collapsed" : "") +
-        (navCollapsed && navPeek ? " nav-peek" : "")
-      }
+      className={"app" + (overlay ? " tauri-overlay" : "") + (navCollapsed ? " nav-collapsed" : "")}
     >
       {/* Dev-only fake traffic lights so ?overlay=1 previews the real desktop top-left. */}
       {simOverlay && (
@@ -1677,22 +1693,14 @@ export function App() {
           </div>
         </div>
       )}
-      {/* When collapsed, a thin left-edge zone peeks the nav back as a floating overlay. */}
-      {navCollapsed && (
-        <div
-          className="nav-hover-zone"
-          onMouseEnter={() => setNavPeek(true)}
-          aria-hidden="true"
-        />
-      )}
-      {/* Explicit reveal affordance while collapsed (alongside hover-peek + ⌘B) — on every
-          surface EXCEPT the session view, whose topbar carries the [sidebar][+][search] cluster
-          instead (§22; no duplicate reveal buttons). */}
-      {navCollapsed && !navPeek && surface !== "session" && (
+      {/* Explicit reveal affordance while collapsed (⌘B mirrors it) — on every surface EXCEPT
+          the session view, whose topbar carries the [sidebar][+][search] cluster instead (§22;
+          no duplicate reveal buttons), and Settings, whose sub-nav owns that corner for its own
+          Back button. */}
+      {navCollapsed && surface !== "session" && surface !== "settings" && (
         <button
           className="nav-reveal-btn"
           onClick={toggleNav}
-          onMouseEnter={() => setNavPeek(true)}
           title={t("topbar.show_sidebar")}
           aria-label={t("topbar.show_sidebar_short")}
         >
@@ -1755,9 +1763,7 @@ export function App() {
         integrationsActive={surface === "integrations"}
         auditActive={surface === "audit"}
         inboxActive={surface === "inbox"}
-        collapsed={navCollapsed}
         onCollapse={toggleNav}
-        onPeekLeave={() => setNavPeek(false)}
       />
       {surface === "scheduled" ? (
         <ScheduledView
@@ -1771,6 +1777,7 @@ export function App() {
         <SettingsView
           key={settingsTab}
           initialTab={settingsTab}
+          onBack={backFromSettings}
           onOpenPersona={(id) => openPersona(id, "settings")}
           onCreateSkill={(description) => {
             // The Skills doorway (SKILLS-SPEC §5.2): creation is a conversation. Fresh

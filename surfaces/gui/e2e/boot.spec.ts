@@ -17,6 +17,14 @@ test("boot splash shows the OpenWorker star, not the sparkle glyph", async ({ pa
   await expect(mark.locator("svg")).toBeVisible(); // the Icon logo, not a text glyph
   await expect(mark).not.toContainText("✦");
   await expect(page.getByText(/Starting|Restoring your session/)).toBeVisible();
+
+  // The mark sits right ABOVE the label: the splash's 14px column gap measured between what
+  // actually renders (the star and the text), on a shared centre line.
+  const text = page.locator(".boot-text");
+  const starBox = await mark.locator("svg").boundingBox();
+  const textBox = await text.boundingBox();
+  expect(textBox.y - (starBox.y + starBox.height)).toBeLessThanOrEqual(20);
+  expect(starBox.x + starBox.width / 2).toBeCloseTo(textBox.x + textBox.width / 2, 0);
 });
 
 test("model picker recovers when settings fetches die during sidecar boot", async ({ page }) => {
