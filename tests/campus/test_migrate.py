@@ -54,7 +54,6 @@ ATTEMPT_ROW: dict[str, Any] = {
 
 
 def build_v1(db_path: Path) -> None:
-    """The published v1 database with one row — the upgrade drill's starting point."""
     with store.CampusStore(db_path) as instance:
         instance.wipe(target=1)
         assert instance.current_version() == 1
@@ -62,7 +61,6 @@ def build_v1(db_path: Path) -> None:
 
 
 def build_current(db_path: Path) -> None:
-    """This application's own database: the whole chain ran, one row seeded."""
     with store.CampusStore(db_path) as instance:
         assert instance.current_version() == store.CURRENT_SCHEMA_VERSION
         instance.insert("attempt", dict(ATTEMPT_ROW))

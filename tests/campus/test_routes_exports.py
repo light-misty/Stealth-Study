@@ -648,12 +648,6 @@ def test_i6_restore_reports_a_migration_for_an_older_package(
 def test_i6_restore_walks_a_package_that_predates_a_column_up_the_chain(
     exports_dir: Path
 ) -> None:
-    """A package written before `archived_at` existed restores and gains the column for real.
-
-    This is 02 §7.4's lower-version case played against the published chain rather than an
-    injected migration: the rows go into the schema of their own era, because that is the era
-    whose data shape they carry, and `migrate()` then walks it forward.
-    """
     harness = _SoloWipe(seed=_seed_rich)
     client = harness.client()
     name = _export_name(client)

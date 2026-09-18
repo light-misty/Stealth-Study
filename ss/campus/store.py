@@ -366,10 +366,6 @@ def _v1_initial_schema(conn: sqlite3.Connection) -> None:
 
 
 def _v2_add_profile_archived_at(conn: sqlite3.Connection) -> None:
-    """`exam_profile.archived_at` — the column `updated_at` cannot stand in for (02 §4.1).
-
-    The PRAGMA guard keeps the statement replayable, the shape §3.5's example migration uses.
-    """
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(exam_profile)")}
     if "archived_at" not in columns:
         conn.execute('ALTER TABLE "exam_profile" ADD COLUMN "archived_at" TEXT')
