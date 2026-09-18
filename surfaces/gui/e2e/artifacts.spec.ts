@@ -65,7 +65,7 @@ test("Artifacts section renders for a folder-gated coworker too (universal scrat
   // longer cowork-only — a security session lists its scratch-side reports the same way.
   await page.goto("/");
   await page.getByTestId("coworker-chip").click();
-  await page.locator(".setup-menu").getByRole("button", { name: /Security Coworker/ }).click();
+  await page.locator(".setup-menu").getByRole("button", { name: /Security Partner/ }).click();
   await page.getByPlaceholder(/Ask your study partner/).fill("audit this repo");
   await page.getByRole("button", { name: "Send" }).click();
   await page.getByTestId("send-folder-dialog").getByRole("button", { name: "Choose a folder…" }).click();

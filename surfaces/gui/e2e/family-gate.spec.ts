@@ -19,7 +19,7 @@ async function newDraftAs(page: import("@playwright/test").Page, coworker: RegEx
 
 test("scratch coworker: new session starts instantly, no gate, no dialog", async ({ page }) => {
   await page.goto("/");
-  await newDraftAs(page, /Ops Coworker/);
+  await newDraftAs(page, /Ops Partner/);
 
   await expect(page.locator(".gate-overlay")).toHaveCount(0);
   const box = page.getByPlaceholder(/Ask your study partner/);
@@ -33,7 +33,7 @@ test("gated coworker: send with no folder asks where to work; temp folder sends 
   page,
 }) => {
   await page.goto("/");
-  await newDraftAs(page, /Security Coworker/);
+  await newDraftAs(page, /Security Partner/);
 
   // No modal gate up front — the composer is live and the draft is composable.
   await expect(page.locator(".gate-overlay")).toHaveCount(0);
@@ -42,7 +42,7 @@ test("gated coworker: send with no folder asks where to work; temp folder sends 
 
   const dlg = page.getByTestId("send-folder-dialog");
   await expect(dlg).toBeVisible();
-  await expect(dlg.getByText("Where should Security Coworker work?")).toBeVisible();
+  await expect(dlg.getByText("Where should Security Partner work?")).toBeVisible();
   await dlg.getByTestId("start-temp-folder").click();
 
   // The message flies as soon as the choice lands — no second send click, and the local
@@ -53,7 +53,7 @@ test("gated coworker: send with no folder asks where to work; temp folder sends 
 
   // The raw temp path never shows: header says "Temporary folder" + Save as project….
   const sub = page.getByTestId("session-subtitle");
-  await expect(sub).toContainText("Security Coworker");
+  await expect(sub).toContainText("Security Partner");
   await expect(sub).toContainText("Temporary folder");
   await expect(sub).not.toContainText("ow-temp");
   await expect(page.getByTestId("save-as-project")).toBeVisible();
@@ -68,7 +68,7 @@ test("gated coworker: send with no folder asks where to work; temp folder sends 
 
 test("gated coworker: Choose a folder… binds the picked project and sends", async ({ page }) => {
   await page.goto("/");
-  await newDraftAs(page, /Security Coworker/);
+  await newDraftAs(page, /Security Partner/);
 
   await page.getByPlaceholder(/Ask your study partner/).fill("hello repo");
   await page.getByRole("button", { name: "Send" }).click();
@@ -82,7 +82,7 @@ test("gated coworker: Choose a folder… binds the picked project and sends", as
 
 test("escape restores the draft instead of losing it", async ({ page }) => {
   await page.goto("/");
-  await newDraftAs(page, /Security Coworker/);
+  await newDraftAs(page, /Security Partner/);
 
   const box = page.getByPlaceholder(/Ask your study partner/);
   await box.fill("precious draft");
@@ -119,7 +119,7 @@ test("an explicit folder pick survives a coworker change; menu copy matches stat
 
   // Re-target the draft to a folder-gated coworker — the pick survives…
   await page.getByTestId("coworker-chip").click();
-  await page.locator(".setup-menu").getByRole("button", { name: /Security Coworker/ }).click();
+  await page.locator(".setup-menu").getByRole("button", { name: /Security Partner/ }).click();
   await expect(page.getByTestId("folder-chip")).toContainText("picked-folder");
 
   // …and the send goes straight through, no folder dialog.
