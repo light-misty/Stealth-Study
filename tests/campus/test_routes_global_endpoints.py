@@ -162,6 +162,7 @@ def test_a2_creates_a_profile_with_documented_defaults(client: TestClient) -> No
     assert body["subjects"] == []
     assert body["daily_minutes"] == 60
     assert body["exam_date"] is None
+    assert body["archived_at"] is None
     assert body["id"]
 
 
@@ -260,6 +261,48 @@ def test_a4_archives_and_restores_a_profile(client: TestClient) -> None:
         json={"status": models.ProfileStatus.ACTIVE.value},
     )
     assert restored.json()["status"] == models.ProfileStatus.ACTIVE.value
+
+
+def _set_status(client: TestClient, profile_id: str, status: models.ProfileStatus) -> dict:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{profile_id}", json={"status": status.value}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_a4_stamps_archived_at_on_the_transition_into_archive_only(
+    client: TestClient,
+) -> None:
+    """`archived_at` answers "when did this go into the box", so the archived list can show it.
+
+    It is written when the profile enters `archived`, survives a second archive request (which
+    changes nothing) and goes back to NULL on restore or on 结课 — a timestamp the list would
+    otherwise show for a profile that is sitting on the desk.
+    """
+    assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()["archived_at"] is None
+
+    archived = _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    assert archived["archived_at"].endswith("Z")
+
+    assert _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)["archived_at"] == (
+        archived["archived_at"]
+    )
+
+    assert _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)["archived_at"] is None
+
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    assert _set_status(client, ACTIVE_ID, models.ProfileStatus.FINISHED)["archived_at"] is None
+
+
+def test_a4_a_write_that_leaves_the_status_alone_keeps_the_archive_timestamp(
+    client: TestClient, seeded_store: store.CampusStore
+) -> None:
+    seeded_store.update("exam_profile", ARCHIVED_ID, {"archived_at": "2026-09-10T08:00:00Z"})
+    body = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"target_score": 120}
+    ).json()
+    assert body["archived_at"] == "2026-09-10T08:00:00Z"
 
 
 def test_a4_accepts_finishing_a_profile(client: TestClient) -> None:

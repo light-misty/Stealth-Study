@@ -1488,6 +1488,11 @@ class CampusService:
             if name in JSON_PROFILE_FIELDS:
                 value = _encode(value or [])
             values[name] = value
+        status = values.get("status")
+        if status is not None and str(status) != profile.status:
+            values["archived_at"] = (
+                _utcnow() if str(status) == models.ProfileStatus.ARCHIVED.value else None
+            )
         if not values:
             return self.get_profile(profile.id)
         self._store.update("exam_profile", profile.id, values)

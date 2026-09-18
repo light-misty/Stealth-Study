@@ -30,7 +30,7 @@ from typing import Any, Iterator, Mapping, Optional, Sequence
 from ..secrets import state_dir
 from . import models
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 SCHEMA_VERSION_KEY = "schema_version"
 
 SCHEMA_META_DDL = """
@@ -365,7 +365,17 @@ def _v1_initial_schema(conn: sqlite3.Connection) -> None:
         conn.execute(statement)
 
 
-_MIGRATIONS: dict[int, Any] = {1: _v1_initial_schema}
+def _v2_add_profile_archived_at(conn: sqlite3.Connection) -> None:
+    """`exam_profile.archived_at` — the column `updated_at` cannot stand in for (02 §4.1).
+
+    The PRAGMA guard keeps the statement replayable, the shape §3.5's example migration uses.
+    """
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(exam_profile)")}
+    if "archived_at" not in columns:
+        conn.execute('ALTER TABLE "exam_profile" ADD COLUMN "archived_at" TEXT')
+
+
+_MIGRATIONS: dict[int, Any] = {1: _v1_initial_schema, 2: _v2_add_profile_archived_at}
 
 
 class CampusStore:
@@ -481,7 +491,7 @@ class CampusStore:
                     f"v{CURRENT_SCHEMA_VERSION}; refusing to start"
                 )
             for target in range(stored + 1, CURRENT_SCHEMA_VERSION + 1):
-                self._backup_before(target)
+                self._backup_before(target, stored=stored)
                 try:
                     self._conn.execute("BEGIN")
                     _MIGRATIONS[target](self._conn)
@@ -737,13 +747,14 @@ class CampusStore:
                 compiled.append(f'"{tokens[0]}"')
         return ", ".join(compiled)
 
-    def _backup_before(self, target: int) -> None:
+    def _backup_before(self, target: int, *, stored: int) -> None:
         """Copy the current database aside before a migration runs (02 §3.3).
 
         Named after the version being left behind (`campus.db.bak-v1` when moving 1 -> 2).
-        A first install has nothing to preserve, and `:memory:` has no file to copy.
+        `stored == 0` is a first install building the chain from nothing, which has nothing to
+        preserve, and `:memory:` has no file to copy.
         """
-        if target <= 1 or not os.path.isfile(self.path):
+        if target <= 1 or stored < 1 or not os.path.isfile(self.path):
             return
         self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
         shutil.copy2(self.path, f"{self.path}.bak-v{target - 1}")

@@ -342,6 +342,7 @@ class ExamProfile(_Row):
     status: str = ProfileStatus.ACTIVE.value
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    archived_at: Optional[str] = None
 
 
 @dataclass(slots=True)

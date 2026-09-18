@@ -7,7 +7,7 @@ I6 是 02 §7.1 的一键清除（删库删目录后重建空库），与 A10 �
 
 验收标准（07 §4 T14）的测试化：
 ① 三格式导出可被重新导入且行数一致 —— json 包经 I6 恢复后逐表行数一致（本文件 + 恢复用例）；
-② 低版本导出包导入时迁移提示 —— 恢复用例以注入的 v2 迁移演练 02 §3.5 场景；
+② 低版本导出包导入时迁移提示 —— 恢复用例把包写成上一号 schema，走真实迁移链演练 02 §3.5 场景；
 ③ 路径穿越防护 —— I5 与恢复入口的文件名白名单用例。
 """
 
@@ -623,22 +623,59 @@ def test_i6_restore_reports_a_migration_for_an_older_package(
     client = harness.client()
     name = _export_name(client)
     package = json.loads((exports_dir / name).read_text(encoding="utf-8"))
-    assert package["schema_version"] == 1
+    exported_version = package["schema_version"]
+    next_version = exported_version + 1
 
-    def _fake_v2(conn) -> None:
+    def _add_restore_note(conn) -> None:
         conn.execute("ALTER TABLE app_state ADD COLUMN restore_note TEXT DEFAULT ''")
 
-    monkeypatch.setitem(store._MIGRATIONS, 2, _fake_v2)
-    monkeypatch.setattr(store, "CURRENT_SCHEMA_VERSION", 2)
+    monkeypatch.setattr(store, "CURRENT_SCHEMA_VERSION", next_version)
+    monkeypatch.setitem(store._MIGRATIONS, next_version, _add_restore_note)
+
     response = _restore(client, name)
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["schema_migration"] == {"from": 1, "to": 2}
+    assert body["schema_migration"] == {"from": exported_version, "to": next_version}
     assert body["restored"]["counts_match"] is True
     verifier = harness.verify()
     try:
-        assert verifier.current_version() == 2
+        assert verifier.current_version() == next_version
         assert verifier.query_one('SELECT "restore_note" FROM "app_state"') is not None
+    finally:
+        verifier.close()
+
+
+def test_i6_restore_walks_a_package_that_predates_a_column_up_the_chain(
+    exports_dir: Path
+) -> None:
+    """A package written before `archived_at` existed restores and gains the column for real.
+
+    This is 02 §7.4's lower-version case played against the published chain rather than an
+    injected migration: the rows go into the schema of their own era, because that is the era
+    whose data shape they carry, and `migrate()` then walks it forward.
+    """
+    harness = _SoloWipe(seed=_seed_rich)
+    client = harness.client()
+    name = _export_name(client)
+    package_path = exports_dir / name
+    package = json.loads(package_path.read_text(encoding="utf-8"))
+    previous = store.CURRENT_SCHEMA_VERSION - 1
+    assert previous >= 1
+    package["schema_version"] = previous
+    for row in package["tables"]["exam_profile"]:
+        row.pop("archived_at", None)
+    package_path.write_text(json.dumps(package, ensure_ascii=False), encoding="utf-8")
+
+    response = _restore(client, name)
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["schema_migration"] == {"from": previous, "to": store.CURRENT_SCHEMA_VERSION}
+    assert body["restored"]["counts_match"] is True
+    verifier = harness.verify()
+    try:
+        restored = verifier.get("exam_profile", ACTIVE_ID)
+        assert "archived_at" in restored.keys()
+        assert restored["archived_at"] is None
     finally:
         verifier.close()
 
