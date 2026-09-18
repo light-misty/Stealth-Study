@@ -2132,5 +2132,68 @@
     "view_edit": "View & edit…",
     "bind_error": "could not bind",
     "name_error": "could not name"
+  },
+  "humanize": {
+    "tool": {
+      "read_file": "Read ",
+      "write_file": "Wrote ",
+      "a_file": "a file",
+      "files": "files",
+      "edited_file": "Edited ",
+      "searched_code": "Searched the code for ",
+      "git_history": "Looked through recent git history",
+      "ran_command": "Ran ",
+      "started_background": "Started in the background: ",
+      "checked_background": "Checked on a background command",
+      "stopped_background": "Stopped a background command",
+      "detail_suffix": " — {{text}}",
+      "plan_updated": "Updated the plan — ",
+      "plan_updated_count": "Updated the plan — {{n}} items",
+      "plan_status_suffix": " → {{status}}",
+      "sent_message": "Sent a message",
+      "sent_message_to": "Sent a {{platform}} message to ",
+      "searched_web": "Searched the web — ",
+      "read_web_page": "Read a web page — ",
+      "explored": "Sent a sub-agent to explore — ",
+      "used_skill": "Used skill: ",
+      "asked_question": "Asked you a question",
+      "proposed_plan": "Proposed a plan",
+      "requested_folder": "Asked for folder access — ",
+      "used_tool": "Used {{name}}"
+    },
+    "status": {
+      "pending": "pending",
+      "in_progress": "in progress",
+      "done": "done",
+      "blocked": "blocked",
+      "cancelled": "cancelled"
+    },
+    "approval": {
+      "write": "Write ",
+      "edit": "Edit ",
+      "run_command": "Run a command",
+      "send_message": "Send a message",
+      "send_message_to": "Send a message to ",
+      "send_file": "Send a file",
+      "send_file_to": "Send a file to ",
+      "create_automation": "Create the automation ",
+      "create_automation_generic": "Create an automation",
+      "add_skill": "Add skill ",
+      "add_skill_post": " to your skills",
+      "add_skill_generic": "Add a skill to your skills",
+      "fetch_from": "Fetch from ",
+      "fetch_page": "Fetch a web page",
+      "web_search": "Search the web",
+      "use_tool": "Use {{name}}"
+    },
+    "ask": {
+      "run": "Wanted to run ",
+      "write": "Wanted to write ",
+      "edit": "Wanted to edit ",
+      "send_message": "Wanted to send a message",
+      "message_to": "Wanted to message ",
+      "message_on": " on {{platform}}",
+      "use_tool": "Wanted to use {{name}}"
+    }
   }
 }

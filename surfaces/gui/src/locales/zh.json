@@ -2092,5 +2092,68 @@
     "view_edit": "查看与编辑…",
     "bind_error": "绑定失败",
     "name_error": "命名失败"
+  },
+  "humanize": {
+    "tool": {
+      "read_file": "已读取 ",
+      "write_file": "已写入 ",
+      "a_file": "某个文件",
+      "files": "文件",
+      "edited_file": "已编辑 ",
+      "searched_code": "已在代码中搜索 ",
+      "git_history": "已查看最近的 git 历史",
+      "ran_command": "已运行 ",
+      "started_background": "已在后台启动：",
+      "checked_background": "已查看后台命令的输出",
+      "stopped_background": "已停止后台命令",
+      "detail_suffix": " —— {{text}}",
+      "plan_updated": "已更新计划 —— ",
+      "plan_updated_count": "已更新计划 —— {{n}} 项",
+      "plan_status_suffix": " → {{status}}",
+      "sent_message": "已发送消息",
+      "sent_message_to": "已发送 {{platform}} 消息给 ",
+      "searched_web": "已联网搜索 —— ",
+      "read_web_page": "已读取网页 —— ",
+      "explored": "已派子 agent 探索 —— ",
+      "used_skill": "已使用技能：",
+      "asked_question": "已向你提问",
+      "proposed_plan": "已提出方案",
+      "requested_folder": "已申请文件夹访问权限 —— ",
+      "used_tool": "已使用 {{name}}"
+    },
+    "status": {
+      "pending": "待办",
+      "in_progress": "进行中",
+      "done": "已完成",
+      "blocked": "已阻塞",
+      "cancelled": "已取消"
+    },
+    "approval": {
+      "write": "写入 ",
+      "edit": "编辑 ",
+      "run_command": "运行命令",
+      "send_message": "发送消息",
+      "send_message_to": "发送消息给 ",
+      "send_file": "发送文件",
+      "send_file_to": "发送文件给 ",
+      "create_automation": "创建自动化任务 ",
+      "create_automation_generic": "创建自动化任务",
+      "add_skill": "添加技能 ",
+      "add_skill_post": " 到你的技能库",
+      "add_skill_generic": "添加一个技能到你的技能库",
+      "fetch_from": "访问 ",
+      "fetch_page": "访问网页",
+      "web_search": "联网搜索",
+      "use_tool": "使用 {{name}}"
+    },
+    "ask": {
+      "run": "想要运行 ",
+      "write": "想要写入 ",
+      "edit": "想要编辑 ",
+      "send_message": "想要发送消息",
+      "message_to": "想要给 ",
+      "message_on": " 发消息（{{platform}}）",
+      "use_tool": "想要使用 {{name}}"
+    }
   }
 }
