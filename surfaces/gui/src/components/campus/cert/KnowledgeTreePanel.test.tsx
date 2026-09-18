@@ -113,8 +113,7 @@ describe("KnowledgeTreePanel", () => {
       "0.4",
     );
     expect(screen.getAllByTestId("campus-cert-tree-weak-row")).toHaveLength(1);
-    const dots = within(rowOf("k1")).getByTestId("campus-mastery-dots");
-    expect(dots.getAttribute("data-level")).toBe("unknown");
+    expect(within(rowOf("k1")).getByTestId("campus-cert-tree-level-label").textContent).toBe("Unknown");
   });
 
   it("marks a mastery level through H5 and refreshes the coverage", async () => {
@@ -133,8 +132,8 @@ describe("KnowledgeTreePanel", () => {
     );
     await waitFor(() => expect(apiMock.getMasteryCoverage).toHaveBeenCalledTimes(2));
     await waitFor(() =>
-      expect(within(rowOf("k1")).getByTestId("campus-mastery-dots").getAttribute("data-level")).toBe(
-        "mastered",
+      expect(within(rowOf("k1")).getByTestId("campus-cert-tree-level-label").textContent).toBe(
+        "Mastered",
       ),
     );
   });
@@ -147,8 +146,8 @@ describe("KnowledgeTreePanel", () => {
     fireEvent.click(within(rowOf("k1")).getByTestId("campus-cert-tree-level-fuzzy"));
     await waitFor(() => expect(screen.getByTestId("campus-cert-tree-error")).toBeTruthy());
     expect(
-      within(rowOf("k1")).getByTestId("campus-mastery-dots").getAttribute("data-level"),
-    ).toBe("unknown");
+      within(rowOf("k1")).getByTestId("campus-cert-tree-level-label").textContent,
+    ).toBe("Unknown");
   });
 
   it("adds a child under a node through H2", async () => {

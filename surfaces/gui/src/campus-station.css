@@ -894,3 +894,102 @@
 /* ------------------------------------------------------------- 科目辅导 */
 .campus-station .tutor-kinds { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
 .campus-station .tutor-kinds .field { flex: 1; min-width: 148px; }
+
+/* ============================================================================
+   证书备考台的三个业务模块
+   ---------------------------------------------------------------------------
+   设计稿 ui-mocks/stealth-study-redesign/css/campus-cert.css。证书台的主语是一棵树：
+   覆盖率 / 薄弱点走学习侧的绿-黄红掌握度语义，报名 / 缴费 / 准考证走事务侧的
+   临期语义，两套不互相借用，避免「节点临期」被读成「知识点没掌握」。
+   ============================================================================ */
+
+/* ------------------------------------------------------------- 知识点树 */
+.campus-station .tree { display: flex; flex-direction: column; }
+.campus-station .tnode {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: var(--r-9);
+  /* 缩进走 --d（层数），与真实实现按 depth 累加缩进一一对应。用 margin-left 而不是
+     padding-left：hover 底色从缩进处起，层级边界才看得见；负边距会把行顶出可视宽。 */
+  margin-left: calc((var(--d, 1) - 1) * 16px);
+  transition: background .14s ease;
+}
+.campus-station .tnode:hover { background: var(--paper); }
+.campus-station .tnode-tw {
+  width: 18px; height: 18px; flex: none; padding: 0;
+  border: 0; border-radius: var(--r-5); background: transparent;
+  display: grid; place-items: center; cursor: pointer; color: var(--faint);
+  transition: background .14s ease, color .14s ease;
+}
+.campus-station .tnode-tw:hover { background: var(--line-strong); color: var(--ink); }
+.campus-station .tnode-tw:focus-visible { outline: none; box-shadow: var(--focus); }
+.campus-station .tnode-tw--leaf { visibility: hidden; }
+.campus-station .tnode-t {
+  flex: 1; min-width: 0;
+  font-size: 12.5px; line-height: 18px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.campus-station .tnode--root > .tnode-t { font-weight: 600; }
+.campus-station .tnode-s {
+  flex: none; font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint);
+}
+.campus-station .tnode-acts {
+  display: flex; align-items: center; gap: 2px; flex: none;
+  opacity: 0; transition: opacity .14s ease;
+}
+.campus-station .tnode:hover .tnode-acts,
+.campus-station .tnode:focus-within .tnode-acts { opacity: 1; }
+
+/* 掌握度 Picker：三点即三档，当前档旁边跟文字，不单靠颜色 */
+.campus-station .lvls { display: flex; align-items: center; gap: 2px; flex: none; }
+.campus-station .lvl {
+  width: 20px; height: 20px; padding: 0; border: 0; border-radius: var(--r-8);
+  background: transparent; display: grid; place-items: center; cursor: pointer;
+  transition: background .14s ease;
+}
+.campus-station .lvl:hover { background: var(--line-strong); }
+.campus-station .lvl:focus-visible { outline: none; box-shadow: var(--focus); }
+.campus-station .lvl.is-on { background: var(--panel); box-shadow: var(--ring); }
+.campus-station .lvl:disabled { cursor: not-allowed; opacity: .5; }
+.campus-station .lvl-l {
+  width: 46px; flex: none; text-align: right; font-size: 11px; line-height: 16px;
+}
+.campus-station .lvl-l--unknown { color: var(--faint); }
+.campus-station .lvl-l--fuzzy { color: var(--warn-ink); }
+.campus-station .lvl-l--mastered { color: var(--ok); }
+
+/* 覆盖率：环 + 薄弱清单，放在树下方作为收尾而不是抢在树前面 */
+.campus-station .cover { display: flex; align-items: center; gap: 14px; }
+.campus-station .cover-text {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px;
+}
+.campus-station .weak { display: flex; flex-direction: column; gap: 2px; }
+.campus-station .weak-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: var(--r-9);
+}
+.campus-station .weak-row:hover { background: var(--paper); }
+.campus-station .weak-t {
+  flex: 1; min-width: 0; font-size: 12px; line-height: 18px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 树内的就地新增行 */
+.campus-station .addrow {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  margin-left: calc((var(--d, 1) - 1) * 16px);
+}
+.campus-station .addrow .input { flex: 1; }
+
+/* ------------------------------------------------------------ 主观题批改 */
+.campus-station .rubric-sum {
+  font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint);
+}
+
+/* ------------------------------------------------------------- 考试节点 */
+.campus-station .node-form { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.campus-station .node-form .field { flex: 1; min-width: 132px; }
+.campus-station .node-date { width: 152px; flex: none; }
+.campus-station .remind { display: flex; align-items: center; gap: 6px; flex: none; }
+.campus-station .nrow-left {
+  width: 56px; flex: none; text-align: right;
+  font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--muted);
+}

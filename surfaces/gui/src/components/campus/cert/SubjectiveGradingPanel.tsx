@@ -3,12 +3,14 @@ import { useTranslation } from "react-i18next";
 import { useGrading } from "../../../campus/hooks";
 import { SCORING_KINDS, type ScoringKind, type ScoringState } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey, scoringStateOf } from "../../../campus/utils";
+import { Icon } from "../../Icon";
 import { GradingResultCard } from "../GradingResultCard";
 
+// 采分点的命中 / 部分 / 未命中走学习侧的绿-黄-红，且始终带文字（PRD §7.4）。
 const STATE_CLASS: Record<ScoringState, string> = {
-  hit: "border-okLine text-ok",
-  partial: "border-warnSoft text-warnInk",
-  miss: "border-dangerSoft text-danger",
+  hit: "cell cell--hit",
+  partial: "cell cell--partial",
+  miss: "cell cell--miss",
 };
 
 export function SubjectiveGradingPanel({ profileId }: { profileId: string }) {
@@ -38,19 +40,30 @@ export function SubjectiveGradingPanel({ profileId }: { profileId: string }) {
       : null;
 
   return (
-    <div className="rounded-xl2 border border-line bg-panel" data-testid="campus-cert-grading-panel">
-      <div className="px-4 pt-3.5 text-[13px] font-semibold text-ink">
-        {t("campus.cert.grading.title")}
+    <section className="mod" data-testid="campus-cert-grading-panel">
+      <div className="mod-head">
+        <span className="ib ib--accent">
+          <Icon name="pencil" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.cert.grading.title")}</span>
+          <span className="mod-desc">{t("campus.cert.grading.hint")}</span>
+        </div>
+        {result ? (
+          <div className="mod-acts">
+            <span className="rubric-sum" data-testid="campus-cert-grading-kind-label">
+              {t(`campus.cert.grading.kind.${kind}`)}
+            </span>
+          </div>
+        ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 px-4 pt-2.5">
+      <div className="picks">
         {SCORING_KINDS.map((kindOption) => (
           <button
             key={kindOption}
             type="button"
-            className={`rounded-lg border px-2 py-1 text-[12px] ${
-              kindOption === kind ? "border-accent text-accent" : "border-line text-muted"
-            }`}
+            className={kindOption === kind ? "pick is-on" : "pick"}
             onClick={() => setKind(kindOption)}
             data-testid="campus-cert-grading-kind"
             data-kind={kindOption}
@@ -61,53 +74,51 @@ export function SubjectiveGradingPanel({ profileId }: { profileId: string }) {
         ))}
       </div>
 
-      <div className="px-4 pt-2.5">
+      <div className={formError ? "field is-bad" : "field"}>
+        <span className="field-label">{t("campus.cert.grading.answer_label")}</span>
         <textarea
-          className="min-h-24 w-full rounded-lg border border-line bg-panel px-2 py-1.5 text-[12px] text-ink"
+          className="textarea"
           value={answer}
-          placeholder={t("campus.cert.grading.answer_label")}
           onChange={(e) => {
             setAnswer(e.target.value);
             setFormError(null);
           }}
           data-testid="campus-cert-grading-answer"
         />
+        {formError ? (
+          <span className="field-err" data-testid="campus-cert-grading-error">
+            {message}
+          </span>
+        ) : null}
+      </div>
+
+      <div className="field">
+        <span className="field-label">{t("campus.cert.grading.rubric_label")}</span>
         <input
-          className="mt-1.5 w-full rounded-lg border border-line bg-panel px-2 py-1 text-[12px] text-ink"
+          className="input"
           value={rubric}
-          placeholder={t("campus.cert.grading.rubric_label")}
           onChange={(e) => setRubric(e.target.value)}
           data-testid="campus-cert-grading-rubric"
         />
       </div>
 
-      <div className="flex items-center gap-2 px-4 pt-2.5">
-        <button
-          type="button"
-          className="rounded-lg border border-accent px-2.5 py-1 text-[12px] text-accent disabled:opacity-50"
-          disabled={loading}
-          onClick={() => void submit()}
-          data-testid="campus-cert-grading-submit"
-        >
-          {t("campus.cert.grading.submit")}
-        </button>
-        {loading ? (
-          <span className="text-[12px] text-faint" data-testid="campus-cert-grading-loading">
-            {t("campus.common.loading")}
-          </span>
-        ) : null}
-      </div>
+      {loading ? (
+        <div className="stack-gap" data-testid="campus-cert-grading-loading">
+          <div className="sk" style={{ width: 220 }} />
+          <div className="sk" />
+        </div>
+      ) : null}
 
-      {message ? (
-        <div
-          className="flex items-center gap-2 px-4 py-2 text-[12px] text-warnInk"
-          data-testid="campus-cert-grading-error"
-        >
-          <span className="min-w-0 truncate">{message}</span>
+      {info ? (
+        <div className="alert" data-testid="campus-cert-grading-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">{message}</span>
+          </div>
           {retryable ? (
             <button
               type="button"
-              className="shrink-0 rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted"
+              className="btn btn--ghost btn--sm"
               onClick={() => void submit()}
               data-testid="campus-cert-grading-retry"
             >
@@ -118,28 +129,40 @@ export function SubjectiveGradingPanel({ profileId }: { profileId: string }) {
       ) : null}
 
       {result ? (
-        <div className="px-4 pb-3.5">
-          <ul className="mt-2 flex flex-wrap gap-1.5">
+        <>
+          <div className="cells">
             {result.dimensions.map((dim) => {
               const state = scoringStateOf(dim.score, dim.max);
               return (
-                <li
+                <span
+                  className={STATE_CLASS[state]}
                   key={dim.name}
-                  className={`rounded-lg border px-2 py-0.5 text-[11px] ${STATE_CLASS[state]}`}
                   data-testid="campus-cert-grading-state"
                   data-name={dim.name}
                   data-state={state}
                 >
-                  {t(`campus.cert.grading.state.${state}`)}
-                </li>
+                  <span className="cdot" />
+                  {dim.name} · {t(`campus.cert.grading.state.${state}`)}
+                </span>
               );
             })}
-          </ul>
-          <div className="mt-2">
-            <GradingResultCard result={result} />
           </div>
-        </div>
+          <GradingResultCard result={result} />
+        </>
       ) : null}
-    </div>
+
+      <div className="mod-foot">
+        <span className="st-spacer" />
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={loading}
+          onClick={() => void submit()}
+          data-testid="campus-cert-grading-submit"
+        >
+          {t("campus.cert.grading.submit")}
+        </button>
+      </div>
+    </section>
   );
 }

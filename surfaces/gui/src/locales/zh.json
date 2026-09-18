@@ -438,7 +438,10 @@
         "submit": "添加",
         "cancel": "取消",
         "stats": "题目 {{questions}} · 错题 {{mistakes}}",
-        "weak_empty": "暂无薄弱点"
+        "weak_empty": "暂无薄弱点",
+        "hint": "知识点分三层，掌握度挂在节点上，覆盖率就是这棵树被点亮的比例",
+        "expand": "展开子节点",
+        "collapse": "折叠子节点"
       },
       "practice": {
         "title": "刷题",
@@ -460,7 +463,8 @@
           "hit": "命中",
           "partial": "部分命中",
           "miss": "未命中"
-        }
+        },
+        "hint": "按题型提交作答，返回采分点命中情况与修改建议"
       },
       "setup": {
         "title": "考试节点",
@@ -468,7 +472,9 @@
         "date_required": "请先选择日期",
         "create": "添加节点",
         "reminders_done": "已创建提醒",
-        "empty": "还没有考试节点"
+        "empty": "还没有考试节点",
+        "hint": "六类节点各一条；添加后即可为整条时间线创建提醒",
+        "node_type": "节点类型"
       },
       "deadline": {
         "banner": "倒计时",

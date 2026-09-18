@@ -443,7 +443,10 @@
         "submit": "Add",
         "cancel": "Cancel",
         "stats": "{{questions}} questions · {{mistakes}} mistakes",
-        "weak_empty": "No weak points"
+        "weak_empty": "No weak points",
+        "hint": "Three levels deep; mastery sits on each node and coverage is how much of the tree is lit up",
+        "expand": "Expand children",
+        "collapse": "Collapse children"
       },
       "practice": {
         "title": "Practice",
@@ -465,7 +468,8 @@
           "hit": "Hit",
           "partial": "Partial",
           "miss": "Miss"
-        }
+        },
+        "hint": "Submit an answer by kind to get point-by-point hits and revisions"
       },
       "setup": {
         "title": "Exam nodes",
@@ -473,7 +477,9 @@
         "date_required": "Pick a date first",
         "create": "Add node",
         "reminders_done": "Reminders created",
-        "empty": "No exam nodes yet"
+        "empty": "No exam nodes yet",
+        "hint": "One row per node type; once added you can create reminders for the whole timeline",
+        "node_type": "Node type"
       },
       "deadline": {
         "banner": "Countdown",

@@ -3,7 +3,12 @@ import { useTranslation } from "react-i18next";
 import { useKnowledgeTree, useMasteryCoverage } from "../../../campus/hooks";
 import { MASTERY_LEVELS, type KnowledgePointNode, type MasteryLevel } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
+import { Icon } from "../../Icon";
 import { MasteryDots } from "../MasteryDots";
+
+// 证书台的主语是一棵树：掌握度挂在节点上，覆盖率是这棵树被点亮的比例。
+// 三档掌握度压成一组三点 Picker，当前档旁边始终跟着文字（PRD §7.4）；
+// 层级上限沿用真实实现的 depth < 3，第 3 层不再给一个点了没反应的「添加子节点」。
 
 interface TreeRow {
   node: KnowledgePointNode;
@@ -107,20 +112,24 @@ export function KnowledgeTreePanel({ profileId }: { profileId: string }) {
       : null;
 
   const addForm = adding ? (
-    <div className="mt-2 flex items-center gap-2">
+    <div className="addrow" style={{ "--d": adding.parentId ? 2 : 1 } as Record<string, number>}>
       <input
-        className="min-w-0 flex-1 rounded-lg border border-line bg-panel px-2 py-1 text-[12px] text-ink"
+        className="input"
         value={title}
         placeholder={t("campus.cert.tree.title_label")}
         onChange={(e) => {
           setTitle(e.target.value);
           setFormError(null);
         }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void submitAdd();
+          if (e.key === "Escape") setAdding(null);
+        }}
         data-testid="campus-cert-tree-add-title"
       />
       <button
         type="button"
-        className="shrink-0 rounded-lg border border-accent px-2 py-1 text-[12px] text-accent disabled:opacity-50"
+        className="btn btn--primary btn--sm"
         disabled={addBusy}
         onClick={() => void submitAdd()}
         data-testid="campus-cert-tree-add-submit"
@@ -129,7 +138,7 @@ export function KnowledgeTreePanel({ profileId }: { profileId: string }) {
       </button>
       <button
         type="button"
-        className="shrink-0 rounded-lg border border-line px-2 py-1 text-[12px] text-muted"
+        className="btn btn--text btn--sm"
         onClick={() => setAdding(null)}
         data-testid="campus-cert-tree-add-cancel"
       >
@@ -139,36 +148,55 @@ export function KnowledgeTreePanel({ profileId }: { profileId: string }) {
   ) : null;
 
   return (
-    <div className="rounded-xl2 border border-line bg-panel" data-testid="campus-cert-tree-panel">
-      <div className="flex items-center justify-between px-4 pt-3.5">
-        <div className="text-[13px] font-semibold text-ink">{t("campus.cert.tree.title")}</div>
-        {coverage.data ? (
-          <div
-            className="text-[11px] text-faint"
-            data-testid="campus-cert-tree-coverage"
-            data-coverage={coverage.data.coverage}
+    <section className="mod" data-testid="campus-cert-tree-panel">
+      <div className="mod-head">
+        <span className="ib ib--brand">
+          <Icon name="tree" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.cert.tree.title")}</span>
+          <span className="mod-desc">{t("campus.cert.tree.hint")}</span>
+        </div>
+        <div className="mod-acts">
+          {coverage.data ? (
+            <span
+              className="sec-n"
+              data-testid="campus-cert-tree-coverage"
+              data-coverage={coverage.data.coverage}
+            >
+              {t("campus.cert.tree.coverage")} {Math.round(coverage.data.coverage * 100)}%
+            </span>
+          ) : null}
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => openAdd(null)}
+            data-testid="campus-cert-tree-add-root"
           >
-            {t("campus.cert.tree.coverage")} {Math.round(coverage.data.coverage * 100)}%
-          </div>
-        ) : null}
+            <Icon name="plus" size={12} />
+            {t("campus.cert.tree.add_root")}
+          </button>
+        </div>
       </div>
 
       {tree.loading ? (
-        <div className="px-4 py-3 text-[12px] text-faint" data-testid="campus-cert-tree-loading">
-          {t("campus.common.loading")}
+        <div className="stack-gap" data-testid="campus-cert-tree-loading">
+          <div className="sk" style={{ width: 200 }} />
+          <div className="sk" style={{ width: "78%" }} />
+          <span className="body-text">{t("campus.common.loading")}</span>
         </div>
       ) : null}
 
       {message ? (
-        <div
-          className="flex items-center gap-2 px-4 py-2 text-[12px] text-warnInk"
-          data-testid="campus-cert-tree-error"
-        >
-          <span className="min-w-0 truncate">{message}</span>
+        <div className="alert" data-testid="campus-cert-tree-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">{message}</span>
+          </div>
           {tree.retryable ? (
             <button
               type="button"
-              className="shrink-0 rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted"
+              className="btn btn--ghost btn--sm"
               onClick={() => tree.reload()}
               data-testid="campus-cert-tree-retry"
             >
@@ -179,122 +207,129 @@ export function KnowledgeTreePanel({ profileId }: { profileId: string }) {
       ) : null}
 
       {!tree.loading && tree.roots.length === 0 && !info ? (
-        <div className="px-4 py-3">
-          <div className="text-[12px] text-faint" data-testid="campus-cert-tree-empty">
-            {t("campus.cert.tree.empty")}
-          </div>
-          <button
-            type="button"
-            className="mt-2 rounded-lg border border-line px-2.5 py-1 text-[12px] text-accent"
-            onClick={() => openAdd(null)}
-            data-testid="campus-cert-tree-add-root"
-          >
-            {t("campus.cert.tree.add_root")}
-          </button>
-          {adding?.parentId === null ? addForm : null}
+        <div className="empty" data-testid="campus-cert-tree-empty">
+          <span className="ib ib--brand">
+            <Icon name="tree" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.cert.tree.empty")}</span>
         </div>
       ) : null}
 
+      {adding?.parentId === null && tree.roots.length === 0 ? addForm : null}
+
       {tree.roots.length > 0 ? (
-        <ul className="mt-2 grid gap-1 px-2 pb-2">
+        <div className="fill thin tree">
           {rows.map(({ node, depth }) => (
-            <li
-              key={node.id}
-              className="rounded-lg border border-line px-2 py-1.5"
-              style={{ marginLeft: (depth - 1) * 16 }}
-              data-testid="campus-cert-tree-node"
-              data-id={node.id}
-              data-depth={depth}
-              data-questions={node.question_count}
-              data-mistakes={node.mistake_count}
-            >
-              <div className="flex items-center gap-2">
+            <div key={node.id}>
+              <div
+                className={depth === 1 ? "tnode tnode--root" : "tnode"}
+                style={{ "--d": depth } as Record<string, number>}
+                data-testid="campus-cert-tree-node"
+                data-id={node.id}
+                data-depth={depth}
+                data-questions={node.question_count}
+                data-mistakes={node.mistake_count}
+              >
                 {node.children.length > 0 ? (
                   <button
                     type="button"
-                    className="h-5 w-5 shrink-0 rounded border border-line text-[10px] leading-none text-muted"
+                    className="tnode-tw"
+                    aria-label={collapsed.has(node.id) ? t("campus.cert.tree.expand") : t("campus.cert.tree.collapse")}
+                    aria-expanded={!collapsed.has(node.id)}
                     onClick={() => toggle(node.id)}
                     data-testid="campus-cert-tree-toggle"
                   >
-                    {collapsed.has(node.id) ? "+" : "-"}
+                    <Icon name={collapsed.has(node.id) ? "plus" : "minus"} size={11} />
                   </button>
-                ) : null}
-                <span className="min-w-0 flex-1 truncate text-[12px] text-ink">{node.title}</span>
-                <span className="shrink-0 text-[11px] text-faint">
+                ) : (
+                  <span className="tnode-tw tnode-tw--leaf" />
+                )}
+                <span className="tnode-t">{node.title}</span>
+                <span className="tnode-s">
                   {t("campus.cert.tree.stats", {
                     questions: node.question_count,
                     mistakes: node.mistake_count,
                   })}
                 </span>
-                {depth < 3 ? (
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted"
-                    onClick={() => openAdd(node.id)}
-                    data-testid="campus-cert-tree-add"
-                  >
-                    {t("campus.cert.tree.add_child")}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="shrink-0 rounded-lg border border-line px-2 py-0.5 text-[11px] text-danger"
-                  onClick={() => void tree.removePoint(node.id)}
-                  data-testid="campus-cert-tree-delete"
-                >
-                  {t("campus.cert.tree.delete")}
-                </button>
-              </div>
-              {adding?.parentId === node.id ? addForm : null}
-              <div className="mt-1.5 flex items-center gap-2">
-                {levels[node.id] ? <MasteryDots level={levels[node.id]} size="sm" /> : null}
-                <div className="flex items-center gap-1">
+                <div className="lvls">
                   {MASTERY_LEVELS.map((level) => (
                     <button
                       key={level}
                       type="button"
                       disabled={levelBusy !== null}
-                      className={`rounded-lg border px-1.5 py-0.5 text-[11px] disabled:opacity-50 ${
-                        levels[node.id] === level
-                          ? "border-accent text-accent"
-                          : "border-line text-muted"
-                      }`}
+                      className={levels[node.id] === level ? "lvl is-on" : "lvl"}
+                      aria-label={t(`campus.common.mastery.${level}`)}
                       onClick={() => void markLevel(node.id, level)}
                       data-testid={`campus-cert-tree-level-${level}`}
                     >
-                      {t(`campus.common.mastery.${level}`)}
+                      <span
+                        className={
+                          levels[node.id] === level
+                            ? `mas-dot mas-dot--${level} is-on`
+                            : `mas-dot mas-dot--${level}`
+                        }
+                      />
                     </button>
                   ))}
                 </div>
+                <span
+                  className={`lvl-l lvl-l--${levels[node.id] ?? "unknown"}`}
+                  data-testid="campus-cert-tree-level-label"
+                >
+                  {levels[node.id] ? t(`campus.common.mastery.${levels[node.id]}`) : "—"}
+                </span>
+                <div className="tnode-acts">
+                  {depth < 3 ? (
+                    <button
+                      type="button"
+                      className="btn btn--text btn--sm"
+                      onClick={() => openAdd(node.id)}
+                      data-testid="campus-cert-tree-add"
+                    >
+                      {t("campus.cert.tree.add_child")}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn btn--text btn--sm"
+                    onClick={() => void tree.removePoint(node.id)}
+                    data-testid="campus-cert-tree-delete"
+                  >
+                    <Icon name="trash" size={12} />
+                    {t("campus.cert.tree.delete")}
+                  </button>
+                </div>
               </div>
-            </li>
+              {adding?.parentId === node.id ? addForm : null}
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
 
+      {adding?.parentId === null && tree.roots.length > 0 ? addForm : null}
+
       {coverage.data ? (
-        <div className="px-4 pb-3.5">
-          <div className="text-[11px] font-semibold text-muted">
-            {t("campus.cert.tree.weak_top5")}
+        <div className="sub">
+          <div className="sec">
+            <div className="sec-text">
+              <span className="sec-title">{t("campus.cert.tree.weak_top5")}</span>
+            </div>
+            <span className="sec-n">{coverage.data.weak_top5.length}</span>
           </div>
           {coverage.data.weak_top5.length === 0 ? (
-            <div className="mt-1 text-[11px] text-faint">{t("campus.cert.tree.weak_empty")}</div>
+            <div className="body-text">{t("campus.cert.tree.weak_empty")}</div>
           ) : (
-            <ul className="mt-1 grid gap-1">
+            <div className="weak">
               {coverage.data.weak_top5.map((w) => (
-                <li
-                  key={w.point_id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-line px-2 py-1"
-                  data-testid="campus-cert-tree-weak-row"
-                >
-                  <span className="min-w-0 truncate text-[12px] text-ink">{w.title}</span>
+                <div className="weak-row" key={w.point_id} data-testid="campus-cert-tree-weak-row">
+                  <span className="weak-t">{w.title}</span>
                   <MasteryDots level={w.level} size="sm" />
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }
