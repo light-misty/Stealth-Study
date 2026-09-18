@@ -455,7 +455,8 @@
     "dismiss": "Dismiss",
     "remove": "Remove",
     "send": "Send",
-    "stop": "Stop"
+    "stop": "Stop",
+    "desktop_only": "This feature is available in the desktop app."
   },
   "sidebar": {
     "new_session": "New session",
@@ -495,6 +496,8 @@
     "pinned": "Pinned",
     "scheduled": "Scheduled",
     "group_persona": "Coworker",
+    "surface_chat": "Chat",
+    "surface_code": "Code",
     "group_chrono": "Chronological",
     "clear": "Clear",
     "filter_all_hint": "None checked shows all.",
@@ -712,6 +715,7 @@
     "show_in_folder": "Show in folder",
     "show_folder": "Show the folder where these files are saved",
     "board_title": "Board",
+    "board_open": "Open the board",
     "board_expand": "Expand the board",
     "team_title": "Team",
     "team_open_session": "Open {{name}}'s session",
@@ -1199,7 +1203,8 @@
     "read_write": "Read-write",
     "read_only": "Read-only",
     "primary_always_rw": "The main workspace is always read-write",
-    "toggle_rw": "Toggle read-only / read-write"
+    "toggle_rw": "Toggle read-only / read-write",
+    "update_failed": "could not update directories"
   },
   "inbox": {
     "title": "Inbox",
@@ -1716,7 +1721,12 @@
     "default_badge": "default",
     "default_locked": "The default model is always shown — make another model default first",
     "key_set": "Key set",
-    "make_default": "Make default"
+    "make_default": "Make default",
+    "family_aria": "Model family",
+    "family_claude": "Claude family",
+    "family_gemini": "Gemini family",
+    "family_other": "Other models",
+    "family_openweight": "Open-weight"
   },
   "onboarding": {
     "cancel": "Cancel",
@@ -1790,6 +1800,7 @@
     "new_sessions_desc": "When you start a {{name}} session these are enabled automatically. You can still mute any of them per session.",
     "on_by_default": "On by default for new sessions",
     "persona": "Coworker",
+    "family_full": "{{name}} Coworker",
     "workspace_label": "Workspace",
     "prev_screenshot": "Previous screenshot",
     "next_screenshot": "Next screenshot",

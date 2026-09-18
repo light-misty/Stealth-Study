@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getI18n } from "react-i18next";
 import { addRoot, getRoots, removeRoot, type RootInfo } from "./api";
 
 // Shared roots state for a session — used by the Session settings drawer's Working-directories
@@ -35,7 +36,7 @@ export function useRoots(sessionId: string, reloadKey?: number) {
       window.dispatchEvent(new CustomEvent("coworker:roots-changed", { detail: sessionId }));
       return true;
     }
-    setError(res.error || "could not update directories");
+    setError(res.error || getI18n().t("root.update_failed"));
     reload();
     return false;
   };

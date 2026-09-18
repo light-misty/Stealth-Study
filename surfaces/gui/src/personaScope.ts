@@ -2,6 +2,11 @@
 // user picks, sessions grouped by project in the sidebar. Everything else runs on a transparent
 // per-conversation scratch dir, with real folders added as roots when needed — no folder gate.
 // (The old family/workspace-enum pair collapsed into this trait; workspace-scratch-design.md.)
+import { getI18n } from "react-i18next";
+
+const t = (k: string, opts?: Record<string, unknown>) =>
+  getI18n().getFixedT(null, "translation")(k, opts) as string;
+
 export function isProjectScoped(p?: { requires_folder?: boolean }): boolean {
   return p?.requires_folder === true;
 }
@@ -13,7 +18,7 @@ export function isProjectScoped(p?: { requires_folder?: boolean }): boolean {
 
 // Short label for the sidebar + top bar: "Coworker" / "Code" / "Ops" / "Chat".
 export function shortPersonaName(name?: string, id?: string): string {
-  if (id === "cowork") return "Coworker";
+  if (id === "cowork") return t("persona.persona");
   const n = (name || id || "").trim();
   return n.replace(/\s*coworker$/i, "").trim() || n;
 }
@@ -21,8 +26,9 @@ export function shortPersonaName(name?: string, id?: string): string {
 // Full family name for the persona detail page: "Coworker" / "Code Coworker" / "Ops Coworker".
 // Chat isn't a coworker — left as-is.
 export function fullPersonaName(name?: string, id?: string): string {
-  if (id === "cowork") return "Coworker";
+  if (id === "cowork") return t("persona.persona");
   const n = (name || id || "").trim();
   if (id === "chat" || !n) return n;
-  return /coworker$/i.test(n) ? n : `${n} Coworker`;
+  const base = n.replace(/\s*coworker$/i, "").trim();
+  return base ? t("persona.family_full", { name: base }) : n;
 }

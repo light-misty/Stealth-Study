@@ -66,7 +66,7 @@ export function ChannelPicker({
                 team_id: w.team_id,
                 account: w.account || w.team_id,
               }))
-            : [{ team_id: "default", account: s.account || "workspace" }],
+            : [{ team_id: "default", account: s.account || tt("slack.workspace_default") }],
         );
       })
       .catch(() => setTeams([]));

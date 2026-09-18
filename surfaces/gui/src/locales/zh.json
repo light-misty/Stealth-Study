@@ -450,7 +450,8 @@
     "dismiss": "关闭",
     "remove": "移除",
     "send": "发送",
-    "stop": "停止"
+    "stop": "停止",
+    "desktop_only": "此功能需在桌面应用中运行。"
   },
   "sidebar": {
     "new_session": "新建会话",
@@ -490,6 +491,8 @@
     "pinned": "已置顶",
     "scheduled": "定时任务",
     "group_persona": "同事",
+    "surface_chat": "对话",
+    "surface_code": "编程",
     "group_chrono": "时间顺序",
     "clear": "清除",
     "filter_all_hint": "不勾选则显示全部。",
@@ -704,6 +707,7 @@
     "show_in_folder": "在文件夹中显示",
     "show_folder": "显示这些文件的保存位置",
     "board_title": "看板",
+    "board_open": "打开看板",
     "board_expand": "展开看板",
     "team_title": "团队",
     "team_open_session": "打开 {{name}} 的会话",
@@ -1182,7 +1186,8 @@
     "read_write": "可读写",
     "read_only": "只读",
     "primary_always_rw": "主工作区始终可读写",
-    "toggle_rw": "切换只读 / 可读写"
+    "toggle_rw": "切换只读 / 可读写",
+    "update_failed": "无法更新目录"
   },
   "inbox": {
     "title": "收件箱",
@@ -1694,7 +1699,12 @@
     "default_badge": "默认",
     "default_locked": "默认模型始终显示 —— 请先将其他模型设为默认",
     "key_set": "已设置密钥",
-    "make_default": "设为默认"
+    "make_default": "设为默认",
+    "family_aria": "模型家族",
+    "family_claude": "Claude 系列",
+    "family_gemini": "Gemini 系列",
+    "family_other": "其他模型",
+    "family_openweight": "开源权重"
   },
   "onboarding": {
     "cancel": "取消",
@@ -1768,6 +1778,7 @@
     "new_sessions_desc": "当你开始一个 {{name}} 会话时，这些会自动启用。你仍可在每个会话中静音任意一个。",
     "on_by_default": "新会话默认开启",
     "persona": "同事",
+    "family_full": "{{name}} 同事",
     "workspace_label": "工作区",
     "prev_screenshot": "上一张截图",
     "next_screenshot": "下一张截图",

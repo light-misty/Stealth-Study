@@ -6,15 +6,15 @@ import { addModel, getSettings, removeModel, setDefaultModel } from "../api";
 // (`bedrock:claude/…`, `vertex:openweight/…`). The add-model row shows a dropdown so
 // users pick the family instead of memorizing the prefix; curated matrix ids already
 // carry theirs.
-const MODEL_FAMILIES: Record<string, { value: string; label: string }[]> = {
+const MODEL_FAMILIES: Record<string, { value: string; labelKey: string }[]> = {
   bedrock: [
-    { value: "claude", label: "Claude family" },
-    { value: "other", label: "Other models" },
+    { value: "claude", labelKey: "models.family_claude" },
+    { value: "other", labelKey: "models.family_other" },
   ],
   vertex: [
-    { value: "gemini", label: "Gemini family" },
-    { value: "claude", label: "Claude family" },
-    { value: "openweight", label: "Open-weight" },
+    { value: "gemini", labelKey: "models.family_gemini" },
+    { value: "claude", labelKey: "models.family_claude" },
+    { value: "openweight", labelKey: "models.family_openweight" },
   ],
 };
 
@@ -118,12 +118,12 @@ export function ModelChecklist({
           <select
             value={family}
             onChange={(e) => setFamily(e.target.value)}
-            aria-label="Model family"
+            aria-label={t("models.family_aria")}
             data-testid="mlist-family"
           >
             {families.map((f) => (
               <option key={f.value} value={f.value}>
-                {f.label}
+                {t(f.labelKey)}
               </option>
             ))}
           </select>
