@@ -191,14 +191,17 @@
       "empty": "还没有错题记录",
       "count_other": "共 {{count}} 条",
       "wrong_count_other": "错 {{count}} 次",
-      "window_info": "显示 {{shown}} / {{total}} 条"
+      "window_info": "显示 {{shown}} / {{total}} 条",
+      "hint": "按错因归类，先把重复犯的那一类解决掉",
+      "attribution_all": "全部错因"
     },
     "review": {
       "due_today": "今日待复习",
       "correct": "答对",
       "wrong": "答错",
       "interval": "下次复习：{{days}} 天后",
-      "empty": "当前没有到期的复习项"
+      "empty": "当前没有到期的复习项",
+      "hint": "间隔重复队列，答对即顺延"
     },
     "question": {
       "import": "导入题库",

@@ -55,6 +55,7 @@ interface PanelContext {
   selectedDocId: string | null;
   onSelectDoc: (docId: string) => void;
   reviewItems: ReturnType<typeof useDueReviews>["items"];
+  reviewLoading: boolean;
   onReviewResult: (reviewId: string, correct: boolean) => void;
 }
 
@@ -75,8 +76,13 @@ const SHARED_PANELS: readonly PanelSpec[] = [
     key: "review",
     tab: "review",
     // The station owns the due queue, so the tab's badge and the panel can never disagree.
-    render: ({ profileId, reviewItems, onReviewResult }) => (
-      <ReviewQueuePanel profileId={profileId} dueItems={reviewItems} onResult={onReviewResult} />
+    render: ({ profileId, reviewItems, reviewLoading, onReviewResult }) => (
+      <ReviewQueuePanel
+        profileId={profileId}
+        dueItems={reviewItems}
+        loading={reviewLoading}
+        onResult={onReviewResult}
+      />
     ),
   },
 ];
@@ -350,6 +356,7 @@ function StationBody({ track }: { track: CampusTrack }) {
     selectedDocId,
     onSelectDoc: setSelectedDocId,
     reviewItems: review.items,
+    reviewLoading: review.loading,
     onReviewResult: (reviewId, correct) => {
       void review.submit(reviewId, correct);
     },

@@ -318,7 +318,7 @@
   transition: background .14s ease;
 }
 .campus-station .lrow--link:hover { background: var(--paper); }
-.campus-station .lrow-ctl { flex: none; width: 118px; }
+.campus-station .lrow-ctl { flex: none; width: 150px; }
 .campus-station .lrow.is-done { opacity: .62; }
 .campus-station .lrow.is-done .lrow-title { color: var(--faint); }
 
@@ -623,6 +623,10 @@
 /* ------------------------------------------------------------ 站内工具类 */
 .campus-station .btn-start { align-self: flex-start; }
 .campus-station .stack-gap { display: flex; flex-direction: column; gap: 6px; }
+/* 结果卡里的成段正文（范文要点、无错误的说明），比 UI 正文小一档以示「是文章」 */
+.campus-station .body-text {
+  margin: 0; font-size: 12.5px; line-height: 19px; color: var(--muted);
+}
 /* 已归档弹窗的列表态与详情态整块互换，页脚动作跟着换一组 */
 .campus-station .arch-list, .campus-station .arch-detail {
   display: flex; flex-direction: column; gap: 12px;

@@ -194,14 +194,17 @@
       "count_other": "{{count}} entries",
       "wrong_count_one": "wrong {{count}} time",
       "wrong_count_other": "wrong {{count}} times",
-      "window_info": "showing {{shown}} of {{total}}"
+      "window_info": "showing {{shown}} of {{total}}",
+      "hint": "Grouped by cause, so the repeat offenders come first",
+      "attribution_all": "All causes"
     },
     "review": {
       "due_today": "Due today",
       "correct": "Correct",
       "wrong": "Wrong",
       "interval": "Next review in {{days}} days",
-      "empty": "Nothing due for review right now"
+      "empty": "Nothing due for review right now",
+      "hint": "Spaced-repetition queue; a correct answer pushes it back"
     },
     "question": {
       "import": "Import questions",
