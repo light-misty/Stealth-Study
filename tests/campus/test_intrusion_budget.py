@@ -39,8 +39,11 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/flags.ts",
     "surfaces/gui/src/locales/zh.json",
     "surfaces/gui/src/locales/en.json",
-    # 桌面壳登记：STT 从编译链移除 + 后端日志根固定到仓库根 log/（桌面壳均改动此文件）
+    # 桌面壳登记：STT 从编译链移除 + 后端日志根固定到仓库根 log/（桌面壳及其依赖清单）
     "surfaces/gui/src-tauri/src/lib.rs",
+    "surfaces/gui/src-tauri/Cargo.toml",
+    "surfaces/gui/src-tauri/Cargo.lock",
+    "stt/Cargo.lock",
     "ss/server/app.py",
     # logging-system 分支登记：统一日志配置、启动初始化、上传端点与前端日志模块
     "ss/logging_setup.py",
