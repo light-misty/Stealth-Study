@@ -12,21 +12,40 @@
   var device = document.getElementById('device');
 
   /* ============================================================ 视图切换 ==
-     设计稿是两张独立的屏（设置 / 新建会话），这里合成一个可交互应用。
-     切的不只是内容 —— 侧栏两套导航也按稿子各自还原，由 device 的
-     data-view 驱动 css/sidebar.css 里的显隐规则。                       */
-  var viewSettings = document.getElementById('viewSettings');
-  var viewNew = document.getElementById('viewNew');
+     设计稿原本是一张屏一幅画，这里合成一个可交互应用：屏与屏之间靠 device 的
+     data-view 驱动，侧栏哪一组导航可见也由它决定（css/sidebar.css）。
+     屏的顺序 = DOM 顺序 = 控制条按钮顺序 = 数字快捷键顺序，四处共用一份。   */
+  var viewEls = [];
+  var allViews = document.querySelectorAll('.main .view');
+  for (var v = 0; v < allViews.length; v++) {
+    if (allViews[v].getAttribute('data-view-name')) viewEls.push(allViews[v]);
+  }
   var viewButtons = document.querySelectorAll('[data-view-btn]');
 
+  function viewName(el) { return el.getAttribute('data-view-name'); }
+
   function setView(name) {
+    var hit = null;
+    for (var i = 0; i < viewEls.length; i++) {
+      var on = viewName(viewEls[i]) === name;
+      viewEls[i].classList.toggle('is-on', on);
+      if (on) hit = viewEls[i];
+    }
+    if (!hit) return;
     device.setAttribute('data-view', name);
-    viewSettings.classList.toggle('is-on', name === 'settings');
-    viewNew.classList.toggle('is-on', name === 'new');
-    for (var i = 0; i < viewButtons.length; i++) {
-      viewButtons[i].classList.toggle('is-on', viewButtons[i].getAttribute('data-view-btn') === name);
+    for (var b = 0; b < viewButtons.length; b++) {
+      viewButtons[b].classList.toggle('is-on', viewButtons[b].getAttribute('data-view-btn') === name);
     }
   }
+
+  function viewNameAt(index) {
+    return viewEls[index] ? viewName(viewEls[index]) : null;
+  }
+  function viewIndexOf(name) {
+    for (var i = 0; i < viewEls.length; i++) if (viewName(viewEls[i]) === name) return i;
+    return -1;
+  }
+
   for (var i = 0; i < viewButtons.length; i++) {
     (function (btn) {
       btn.addEventListener('click', function () { setView(btn.getAttribute('data-view-btn')); });
@@ -105,6 +124,71 @@
     })(segs[g]);
   }
 
+  /* ============================================================== 页签 ==
+     备考台「一屏一模块」的切换器。页签与面板同属一个 .view，靠 data-tab /
+     data-pane 配对；右栏里「去做这件事」的按钮用 data-goto-tab 走同一个入口，
+     保证跳过去之后页签选中态和面板内容不会分家。                          */
+  function selectTab(view, name, focus) {
+    var tabs = view.querySelectorAll('.st-tab');
+    var hit = null;
+    for (var t = 0; t < tabs.length; t++) {
+      var on = tabs[t].getAttribute('data-tab') === name;
+      tabs[t].classList.toggle('is-on', on);
+      tabs[t].setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on) hit = tabs[t];
+    }
+    if (!hit) return false;
+
+    var panes = view.querySelectorAll('.st-pane');
+    for (var p = 0; p < panes.length; p++) {
+      panes[p].classList.toggle('is-on', panes[p].getAttribute('data-pane') === hit.getAttribute('data-tab'));
+    }
+
+    /* 页签条溢出时把选中项带回视野中央，否则窄窗口下会选中一个看不见的页签 */
+    var strip = hit.parentNode;
+    if (strip.scrollWidth > strip.clientWidth) {
+      strip.scrollLeft = Math.max(0, hit.offsetLeft - (strip.clientWidth - hit.offsetWidth) / 2);
+    }
+    if (focus) hit.focus();
+    return true;
+  }
+
+  var tabViews = document.querySelectorAll('.st-tabs');
+  for (var tb = 0; tb < tabViews.length; tb++) {
+    (function (strip) {
+      var view = strip.closest('.view');
+      var items = strip.querySelectorAll('.st-tab');
+
+      function move(from, delta) {
+        var next = (from + delta + items.length) % items.length;
+        selectTab(view, items[next].getAttribute('data-tab'), true);
+      }
+
+      for (var n = 0; n < items.length; n++) {
+        (function (tab, index) {
+          tab.addEventListener('click', function () {
+            selectTab(view, tab.getAttribute('data-tab'), false);
+          });
+          tab.addEventListener('keydown', function (e) {
+            if (e.key === 'ArrowRight') { move(index, 1); e.preventDefault(); }
+            else if (e.key === 'ArrowLeft') { move(index, -1); e.preventDefault(); }
+            else if (e.key === 'Home') { selectTab(view, items[0].getAttribute('data-tab'), true); e.preventDefault(); }
+            else if (e.key === 'End') { selectTab(view, items[items.length - 1].getAttribute('data-tab'), true); e.preventDefault(); }
+          });
+        })(items[n], n);
+      }
+    })(tabViews[tb]);
+  }
+
+  var gotoTabs = document.querySelectorAll('[data-goto-tab]');
+  for (var gt = 0; gt < gotoTabs.length; gt++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        selectTab(btn.closest('.view'), btn.getAttribute('data-goto-tab'), false);
+      });
+    })(gotoTabs[gt]);
+  }
+
   /* ============================================================ 步进器 ==
      侧栏密度：1–9。数值设计稿为 5。                                    */
   var densityVal = document.getElementById('densityVal');
@@ -124,12 +208,15 @@
     document.getElementById('promptInput').focus();
   });
 
-  /* ============================================================ 快捷键 == */
+  /* ============================================================ 快捷键 ==
+     数字键按屏序切屏（设置 → 新建会话 → 三个备考台），T 切明暗。
+     表单控件内的按键不参与：在备考台里敲「1」多半是在填目标分数。      */
   document.addEventListener('keydown', function (e) {
-    if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
-    if (e.key === '1') setView('settings');
-    else if (e.key === '2') setView('new');
-    else if (e.key === 't' || e.key === 'T') {
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    var digit = parseInt(e.key, 10);
+    if (!isNaN(digit) && digit >= 1 && digit <= viewEls.length) {
+      setView(viewNameAt(digit - 1));
+    } else if (e.key === 't' || e.key === 'T') {
       StealthTheme.setMode(StealthTheme.getMode() === 'light' ? 'dark' : 'light');
     }
   });
@@ -154,12 +241,17 @@
   fit();
 
   /* ============================================================ 深链接 ==
-     ?view=new&mode=dark 可直接打开指定屏幕与主题。                     */
+     ?view=cet&tab=mock&mode=dark —— 评审时可以直接把某一屏的某个模块甩过来。 */
   try {
     var q = new URLSearchParams(window.location.search);
     var qv = q.get('view');
     var qm = q.get('mode');
-    if (qv === 'settings' || qv === 'new') setView(qv);
+    var qi = viewIndexOf(qv);
+    if (qi >= 0) {
+      setView(qv);
+      var qt = q.get('tab');
+      if (qt) selectTab(viewEls[qi], qt, false);
+    }
     if (qm === 'light' || qm === 'dark' || qm === 'auto') StealthTheme.setMode(qm);
   } catch (err) { /* 非法参数忽略 */ }
 })();
