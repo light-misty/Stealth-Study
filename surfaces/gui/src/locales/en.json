@@ -90,6 +90,26 @@
       "action_restore_failed": "Profile not restored",
       "dialog_close": "Close"
     },
+    "archived": {
+      "title": "Archived profiles",
+      "search_placeholder": "Search by profile name",
+      "filter_aria": "Filter by archive date",
+      "sort_aria": "Sort by",
+      "filter_all": "Archived any time",
+      "filter_recent_7d": "Archived in the last 7 days",
+      "filter_recent_30d": "Archived in the last 30 days",
+      "filter_older": "Archived earlier",
+      "sort_archived_desc": "Newest archived first",
+      "sort_created_desc": "Newest created first",
+      "created": "Created",
+      "archived": "Archived",
+      "detail": "Details",
+      "back": "Back to list",
+      "restore": "Restore",
+      "empty": "No archived profiles yet",
+      "nomatch": "No archived profile matches these filters",
+      "restore_hint": "Restoring puts the profile back on the station. If a profile with the same name is already there, both stay."
+    },
     "settings": {
       "title": "Station settings",
       "daily_minutes": "Daily study minutes",

@@ -89,6 +89,26 @@
       "action_restore_failed": "档案未恢复",
       "dialog_close": "关闭"
     },
+    "archived": {
+      "title": "已归档档案",
+      "search_placeholder": "搜索档案名称",
+      "filter_aria": "按归档时间筛选",
+      "sort_aria": "排序方式",
+      "filter_all": "全部归档时间",
+      "filter_recent_7d": "最近 7 天",
+      "filter_recent_30d": "最近 30 天",
+      "filter_older": "更早",
+      "sort_archived_desc": "按归档时间",
+      "sort_created_desc": "按创建时间",
+      "created": "创建时间",
+      "archived": "归档时间",
+      "detail": "查看详情",
+      "back": "返回列表",
+      "restore": "恢复",
+      "empty": "还没有已归档的档案",
+      "nomatch": "没有符合条件的已归档档案",
+      "restore_hint": "恢复后档案回到台面上，可继续学习；若台面上已有同名档案，两者会并存。"
+    },
     "settings": {
       "title": "备考台设置",
       "daily_minutes": "每日学习时长",

@@ -95,3 +95,21 @@ export function campusErrorInfo(err: unknown): CampusErrorInfo {
 export function campusErrorKey(code: string): string {
   return `campus.error.${(code || UNKNOWN_ERROR_CODE).toLowerCase()}`;
 }
+
+export function formatTimestamp(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
+  );
+}
+
+export function daysSince(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const at = new Date(value).getTime();
+  if (Number.isNaN(at)) return null;
+  return (Date.now() - at) / (24 * 60 * 60 * 1000);
+}

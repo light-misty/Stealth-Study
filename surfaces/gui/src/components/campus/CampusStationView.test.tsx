@@ -306,4 +306,49 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="cet" />);
     expect(screen.getByTestId("campus-station-loading")).toBeTruthy();
   });
+
+  it("opens the archived profiles from the station header and restores one", async () => {
+    const boxed: ExamProfile = {
+      ...profile("a1"),
+      status: "archived",
+      archived_at: "2026-09-05T00:00:00Z",
+    };
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1"), boxed] });
+    apiMock.patchProfile.mockImplementation(async (id: string, patch: { status?: string }) => ({
+      ...profile(id),
+      status: patch.status ?? "active",
+    }));
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    const entry = screen.getByTestId("campus-profile-archived-entry");
+    expect(entry.textContent).toContain("1");
+    expect(screen.queryAllByTestId("campus-profile-item")).toHaveLength(1);
+
+    fireEvent.click(entry);
+    await screen.findByTestId("campus-archived-dialog");
+    expect(screen.getByTestId("campus-archived-row-a1").textContent).toContain("四级冲刺");
+
+    fireEvent.click(screen.getByTestId("campus-archived-restore-a1"));
+    await waitFor(() => expect(apiMock.patchProfile).toHaveBeenCalledWith("a1", { status: "active" }));
+    await waitFor(() => expect(apiMock.listProfiles.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it("hides the archived entry while nothing is archived", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    expect(screen.queryByTestId("campus-profile-archived-entry")).toBeNull();
+  });
+
+  it("still offers the archived profiles when every profile of the station is archived", async () => {
+    const boxed = { ...profile("a1"), status: "archived" as const };
+    apiMock.listProfiles.mockResolvedValue({ items: [boxed] });
+    apiMock.getAppState.mockResolvedValue({ active_profile_id: "a1", settings: {} });
+    render(<CampusStationView track="cet" />);
+
+    await waitFor(() => expect(screen.getByTestId("campus-station-empty")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("campus-profile-archived-entry"));
+    await screen.findByTestId("campus-archived-dialog");
+    expect(screen.getByTestId("campus-archived-row-a1")).toBeTruthy();
+  });
 });

@@ -5,7 +5,9 @@ import { useCapabilities, useDeadlineViews } from "../../campus/hooks";
 import type { CampusTrack, ExamProfile } from "../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../campus/utils";
 import { CampusProfileProvider, useCampusProfile } from "./CampusProfileContext";
+import { ArchivedProfilesDialog } from "./ArchivedProfilesDialog";
 import { CampusDialog } from "./CampusDialog";
+import { Icon } from "../Icon";
 import { CountdownBanner } from "./CountdownBanner";
 import { DeadlineBanner } from "./DeadlineBanner";
 import { EmptyModelGuide } from "./EmptyModelGuide";
@@ -144,7 +146,9 @@ function StationBody({ track }: { track: CampusTrack }) {
   // the instant it was opened from the switcher — invisible from the empty state, where the card
   // is always on screen and nothing ever sets the flag.
   const [showCreateCard, setShowCreateCard] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const archivedCount = profiles.filter((p) => p.status === "archived").length;
 
   if (loading) {
     return (
@@ -180,10 +184,35 @@ function StationBody({ track }: { track: CampusTrack }) {
     );
   }
 
+  const dialogs = (
+    <>
+      {actionError ? <ProfileActionDialog error={actionError} onClose={clearActionError} /> : null}
+      {showArchived ? (
+        <ArchivedProfilesDialog
+          profiles={profiles}
+          onRestore={(id) => void setStatus(id, "active")}
+          onClose={() => setShowArchived(false)}
+        />
+      ) : null}
+    </>
+  );
+
   if (!activeProfile) {
     return (
       <>
         <div className="grid gap-3" data-testid="campus-station-empty" data-track={track}>
+          {archivedCount > 0 ? (
+            <button
+              type="button"
+              className="justify-self-start flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] text-muted hover:text-ink border border-line"
+              onClick={() => setShowArchived(true)}
+              data-testid="campus-profile-archived-entry"
+            >
+              <Icon name="archive" size={13} />
+              <span>{t("campus.archived.title")}</span>
+              <span className="text-[12px] text-faint">{archivedCount}</span>
+            </button>
+          ) : null}
           <ProfileCreateCard
             track={track}
             busy={creatingProfile}
@@ -192,9 +221,7 @@ function StationBody({ track }: { track: CampusTrack }) {
             }}
           />
         </div>
-        {actionError ? (
-          <ProfileActionDialog error={actionError} onClose={clearActionError} />
-        ) : null}
+        {dialogs}
       </>
     );
   }
@@ -219,6 +246,7 @@ function StationBody({ track }: { track: CampusTrack }) {
             onSwitch={(id) => void setActive(id)}
             onCreate={() => setShowCreateCard(true)}
             onArchive={(id) => void setStatus(id, "archived")}
+            onShowArchived={() => setShowArchived(true)}
           />
           {showCreateCard ? (
             <ProfileCreateCard
@@ -248,9 +276,7 @@ function StationBody({ track }: { track: CampusTrack }) {
           ))}
         </div>
       </div>
-      {actionError ? (
-        <ProfileActionDialog error={actionError} onClose={clearActionError} />
-      ) : null}
+      {dialogs}
     </>
   );
 }

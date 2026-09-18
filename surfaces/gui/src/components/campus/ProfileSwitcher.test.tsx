@@ -93,4 +93,36 @@ describe("ProfileSwitcher", () => {
     );
     expect(screen.queryByTestId("campus-profile-archive-p1")).toBeNull();
   });
+
+  it("offers the archived profiles with their count", () => {
+    const onShowArchived = vi.fn();
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1"), profile("p2", "archived"), profile("p3", "archived")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onShowArchived={onShowArchived}
+      />,
+    );
+
+    const entry = screen.getByTestId("campus-profile-archived-entry");
+    expect(entry.textContent).toContain("2");
+
+    fireEvent.click(entry);
+    expect(onShowArchived).toHaveBeenCalled();
+  });
+
+  it("keeps the archived entry out of the header while the box is empty", () => {
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onShowArchived={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("campus-profile-archived-entry")).toBeNull();
+  });
 });

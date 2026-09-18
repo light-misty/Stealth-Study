@@ -11,15 +11,18 @@ export function ProfileSwitcher({
   onSwitch,
   onCreate,
   onArchive,
+  onShowArchived,
 }: {
   profiles: ExamProfile[];
   activeId: string | null;
   onSwitch: (id: string) => void;
   onCreate: () => void;
   onArchive?: (id: string) => void;
+  onShowArchived?: () => void;
 }) {
   const { t } = useTranslation();
   const visible = profiles.filter((p) => p.status !== "archived");
+  const archivedCount = profiles.length - visible.length;
 
   return (
     <div
@@ -74,6 +77,21 @@ export function ProfileSwitcher({
       >
         {t("campus.profile.create")}
       </button>
+
+      {onShowArchived && archivedCount > 0 ? (
+        <button
+          type="button"
+          className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] text-muted hover:text-ink border border-line"
+          onClick={onShowArchived}
+          data-testid="campus-profile-archived-entry"
+        >
+          <Icon name="archive" size={13} />
+          <span>{t("campus.archived.title")}</span>
+          <span className="text-[12px] text-faint" data-testid="campus-profile-archived-count">
+            {archivedCount}
+          </span>
+        </button>
+      ) : null}
     </div>
   );
 }
