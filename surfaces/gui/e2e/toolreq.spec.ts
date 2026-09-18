@@ -6,7 +6,7 @@ import { test } from "./fixtures";
 
 async function ask(page: import("@playwright/test").Page) {
   await page.goto("/");
-  await page.getByPlaceholder(/Ask the coworker/).fill("scan for secrets");
+  await page.getByPlaceholder(/Ask your study partner/).fill("scan for secrets");
   await page.getByRole("button", { name: "Send" }).click();
 }
 
@@ -22,10 +22,10 @@ test("request_tool surfaces a card naming the tool, the reason and the pinned ve
   // the coworker's quoted reason (mixing them is what made the card confusing, 2026-08-14).
   const facts = card.locator(".toolreq-facts");
   await expect(facts).toContainText("8.30.1");
-  // Plain-language consent: who installs (OpenWorker), from where, and the self-install
+  // Plain-language consent: who installs (Stealth Study), from where, and the self-install
   // alternative — no supply-chain jargon on the card (owner feedback 2026-08-15).
   await expect(facts).toContainText(
-    "OpenWorker installs its own verified copy from github.com/gitleaks — or install it yourself and continue.",
+    "Stealth Study installs its own verified copy from github.com/gitleaks — or install it yourself and continue.",
   );
   // Declining must read as a normal choice that continues the run, not a failure.
   await expect(card.getByTestId("toolreq-skip")).toHaveText("Continue without it");
@@ -37,7 +37,7 @@ test("an event without install metadata fails CLOSED — Install disabled, skip 
   // Owner-hit 2026-08-14: the card offered "pinned build, checksum-verified" for a tool
   // with no pinned build; approval could only produce an error. Absence of metadata is NO.
   await page.goto("/");
-  await page.getByPlaceholder(/Ask the coworker/).fill("request an unpinned tool");
+  await page.getByPlaceholder(/Ask your study partner/).fill("request an unpinned tool");
   await page.getByRole("button", { name: "Send" }).click();
   const card = page.locator(".dirreq-card");
   await expect(card).toContainText("somescanner");
@@ -51,7 +51,7 @@ test("installing runs the check; skipping still reports coverage", async ({ page
   await page.getByTestId("toolreq-install").click();
   await expect(page.locator(".main-scroll")).toContainText("Installed gitleaks");
 
-  await page.getByPlaceholder(/Ask the coworker/).fill("scan for secrets");
+  await page.getByPlaceholder(/Ask your study partner/).fill("scan for secrets");
   await page.getByRole("button", { name: "Send" }).click();
   await page.getByTestId("toolreq-skip").click();
   // The whole point: the skipped check is disclosed, not invisible.

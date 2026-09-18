@@ -57,7 +57,7 @@ describe("SettingsView flag double-state (INF-07)", () => {
 
     fireEvent.click(screen.getByText("Voice input"));
     expect(
-      screen.getByText("Voice Input setup is available in the OpenWorker desktop app."),
+      screen.getByText("Voice Input setup is available in the Stealth Study desktop app."),
     ).toBeTruthy();
   });
 
@@ -66,7 +66,7 @@ describe("SettingsView flag double-state (INF-07)", () => {
     render(<SettingsView />);
     const nav = within(screen.getByRole("navigation"));
 
-    for (const label of ["General", "Models", "Context optimization", "Skills", "Memory", "Coworkers"]) {
+    for (const label of ["General", "Models", "Context optimization", "Skills", "Memory", "Study partners"]) {
       fireEvent.click(nav.getByText(label));
       expect(nav.queryByText("Voice input")).toBeNull();
     }

@@ -93,7 +93,7 @@ describe("Sidebar bottom-left anchor (G-06)", () => {
     expect(screen.getByTestId("account-menu")).toBeTruthy();
     expect(screen.queryByTestId("account-sign-in")).toBeNull();
     expect(screen.queryByText(/one-click connections need/)).toBeNull();
-    expect(screen.queryByText("Sign in to OpenWorker")).toBeNull();
+    expect(screen.queryByText("Sign in to Stealth Study")).toBeNull();
     // The menu is still the way to Inbox / Connectors / Settings / Activity.
     expect(screen.getByText("Inbox")).toBeTruthy();
     expect(screen.getByText("Settings")).toBeTruthy();

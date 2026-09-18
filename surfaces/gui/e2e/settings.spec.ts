@@ -17,10 +17,10 @@ test("Settings opens as a full page and navigates sections", async ({ page }) =>
   }
   // Folded tabs: Files is a General card now; Coworkers ships as its own tab (UX-029).
   await expect(page.getByRole("button", { name: "Files", exact: true })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Coworkers", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Study partners", exact: true })).toBeVisible();
 
   // The Files card lives inside General.
-  await expect(page.getByText("Each conversation gets its own folder")).toBeVisible();
+  await expect(page.getByText("Each study session gets its own folder")).toBeVisible();
 
   await page.getByRole("button", { name: "Models", exact: true }).click();
   await expect(page.getByTestId("set-provider-openai")).toBeVisible();
@@ -89,7 +89,7 @@ test("Settings: Coworkers tab opens by default; flag \"0\" hides it", async ({ p
   await page.goto("/");
   await page.getByTestId("account-row").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
-  await page.getByRole("button", { name: "Coworkers", exact: true }).click();
+  await page.getByRole("button", { name: "Study partners", exact: true }).click();
   await expect(page.getByTestId("install-disclosure")).toBeVisible();
 });
 
@@ -99,7 +99,7 @@ test("Settings: the flag escape hatch hides the Coworkers tab", async ({ page })
   await page.getByTestId("account-row").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   await expect(page.getByRole("heading", { name: "General" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Coworkers", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Study partners", exact: true })).toHaveCount(0);
 });
 
 // UX-021: Settings ▸ Models is the shared provider gallery (§39 components). Cards wear

@@ -8,7 +8,7 @@ import { test } from "./fixtures";
 
 async function proposeTeam(page: import("@playwright/test").Page) {
   await page.goto("/");
-  await page.getByPlaceholder(/Ask the coworker/).fill("staff the team");
+  await page.getByPlaceholder(/Ask your study partner/).fill("staff the team");
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByTestId("teamreq-card")).toBeVisible();
 }
@@ -17,11 +17,11 @@ test("the decomposition gate shows items with criteria; approval lands them on t
   page,
 }) => {
   await page.goto("/");
-  await page.getByPlaceholder(/Ask the coworker/).fill("propose the split");
+  await page.getByPlaceholder(/Ask your study partner/).fill("propose the split");
   await page.getByRole("button", { name: "Send" }).click();
   const card = page.getByTestId("itemsreq-card");
   await expect(card).toBeVisible();
-  await expect(card).toContainText("Proposed work items — 4");
+  await expect(card).toContainText("Proposed study tasks — 4");
   await expect(card).toContainText("Done when:");
   // 3 visible + expander with the true remainder
   await expect(card.getByText("Verification pass")).toHaveCount(0);
@@ -50,7 +50,7 @@ test("typing while a gate is pending sends the reply as feedback to the lead", a
 }) => {
   await proposeTeam(page);
   // the composer re-opens for a typed answer instead of hard-blocking on "running"
-  const box = page.getByPlaceholder(/Reply to adjust the proposal/);
+  const box = page.getByPlaceholder(/Reply to adjust the plan/);
   await box.fill("use openai:gpt-5.6-sol for all the workers");
   await page.getByRole("button", { name: "Send" }).click();
   // the reply lands as a user message AND resolves the gate as decline-with-feedback
@@ -65,7 +65,7 @@ test("a board wake renders collapsed; expanding reveals rows, hand-offs stay one
   page,
 }) => {
   await page.goto("/");
-  await page.getByPlaceholder(/Ask the coworker/).fill("board wake");
+  await page.getByPlaceholder(/Ask your study partner/).fill("board wake");
   await page.getByRole("button", { name: "Send" }).click();
   const card = page.getByTestId("boardwake-card");
   await expect(card).toBeVisible();
@@ -87,7 +87,7 @@ test("a board wake renders collapsed; expanding reveals rows, hand-offs stay one
 
 test("declining the split returns feedback to the lead", async ({ page }) => {
   await page.goto("/");
-  await page.getByPlaceholder(/Ask the coworker/).fill("propose the split");
+  await page.getByPlaceholder(/Ask your study partner/).fill("propose the split");
   await page.getByRole("button", { name: "Send" }).click();
   await page.getByTestId("itemsreq-card").waitFor();
   await page.getByRole("button", { name: "Not now" }).click();
@@ -99,7 +99,7 @@ test("the staffing gate shows named workers, the chat toggle, and the grant sent
 }) => {
   await proposeTeam(page);
   const card = page.getByTestId("teamreq-card");
-  await expect(card).toContainText("Proposed team — 3 workers");
+  await expect(card).toContainText("Proposed study team — 3 partners");
   // callnames lead the rows; persona + reason follow
   await expect(card).toContainText("nia");
   await expect(card).toContainText("swe-worker");
@@ -152,7 +152,7 @@ test("a sleeping lead shows the strip; Ask for a status wakes it", async ({ page
   await expect(strip).toContainText("Sleeping until");
   await expect(strip).toContainText("while the team works");
   await page.getByTestId("sleep-status-btn").click();
-  await expect(page.getByText(/Echo: Quick status check/)).toBeVisible();
+  await expect(page.getByText(/Echo: Quick check on my studying/)).toBeVisible();
 });
 
 test("with chat declined at the gate, no chat row renders", async ({ page }) => {
