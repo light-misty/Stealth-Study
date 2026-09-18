@@ -1,10 +1,11 @@
 import { useState, type ReactElement } from "react";
 import { useTranslation } from "react-i18next";
-import { patchProfile } from "../../campus/api";
+import type { ProfileAction, ProfileActionError } from "./CampusProfileContext";
 import { useCapabilities, useDeadlineViews } from "../../campus/hooks";
 import type { CampusTrack, ExamProfile } from "../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../campus/utils";
 import { CampusProfileProvider, useCampusProfile } from "./CampusProfileContext";
+import { CampusDialog } from "./CampusDialog";
 import { CountdownBanner } from "./CountdownBanner";
 import { DeadlineBanner } from "./DeadlineBanner";
 import { EmptyModelGuide } from "./EmptyModelGuide";
@@ -131,6 +132,9 @@ function StationBody({ track }: { track: CampusTrack }) {
     reload,
     setActive,
     createProfile,
+    setStatus,
+    actionError,
+    clearActionError,
     creating: creatingProfile,
   } = useCampusProfile();
   const { capabilities } = useCapabilities();
@@ -178,70 +182,123 @@ function StationBody({ track }: { track: CampusTrack }) {
 
   if (!activeProfile) {
     return (
-      <div className="grid gap-3" data-testid="campus-station-empty" data-track={track}>
-        <ProfileCreateCard
-          track={track}
-          busy={creatingProfile}
-          onCreate={(input) => {
-            void createProfile(input);
-          }}
-        />
-      </div>
-    );
-  }
-
-  const archive = async (id: string) => {
-    await patchProfile(id, { status: "archived" });
-    reload();
-  };
-
-  return (
-    <div className="grid gap-3" data-testid="campus-station" data-track={track}>
-      {/* 页头：备考台名称 + 标语，对齐原型的 page-head（title 22px / sub 12.5px） */}
-      <div className="grid gap-1.5" data-testid="campus-station-page-head">
-        <h1 className="text-[22px] font-bold leading-[30px] text-ink">
-          {t(`campus.track.${track}.name`)}
-        </h1>
-        <p className="text-[12.5px] leading-[19px] text-muted">
-          {t(`campus.track.${track}.tagline`)}
-        </p>
-      </div>
-
-      <div className="grid gap-2.5" data-testid="campus-station-header">
-        <ProfileSwitcher
-          profiles={profiles}
-          activeId={activeProfile.id}
-          onSwitch={(id) => void setActive(id)}
-          onCreate={() => setShowCreateCard(true)}
-          onArchive={(id) => void archive(id)}
-        />
-        {showCreateCard ? (
+      <>
+        <div className="grid gap-3" data-testid="campus-station-empty" data-track={track}>
           <ProfileCreateCard
             track={track}
             busy={creatingProfile}
             onCreate={(input) => {
-              void createProfile(input).then((created) => {
-                if (created) setShowCreateCard(false);
-              });
+              void createProfile(input);
             }}
-            onCancel={() => setShowCreateCard(false)}
           />
+        </div>
+        {actionError ? (
+          <ProfileActionDialog error={actionError} onClose={clearActionError} />
         ) : null}
-        <EmptyModelGuide capabilities={capabilities} />
-        {TRACK_BANNERS[track]({ profile: activeProfile })}
-      </div>
+      </>
+    );
+  }
 
-      <div className="grid gap-3">
-        {TRACK_PANELS[track].map(({ key, render }) => (
-          <div key={key}>
-            {render({
-              profileId: activeProfile.id,
-              selectedDocId,
-              onSelectDoc: setSelectedDocId,
-            })}
-          </div>
-        ))}
+  return (
+    <>
+      <div className="grid gap-3" data-testid="campus-station" data-track={track}>
+        {/* 页头：备考台名称 + 标语，对齐原型的 page-head（title 22px / sub 12.5px） */}
+        <div className="grid gap-1.5" data-testid="campus-station-page-head">
+          <h1 className="text-[22px] font-bold leading-[30px] text-ink">
+            {t(`campus.track.${track}.name`)}
+          </h1>
+          <p className="text-[12.5px] leading-[19px] text-muted">
+            {t(`campus.track.${track}.tagline`)}
+          </p>
+        </div>
+
+        <div className="grid gap-2.5" data-testid="campus-station-header">
+          <ProfileSwitcher
+            profiles={profiles}
+            activeId={activeProfile.id}
+            onSwitch={(id) => void setActive(id)}
+            onCreate={() => setShowCreateCard(true)}
+            onArchive={(id) => void setStatus(id, "archived")}
+          />
+          {showCreateCard ? (
+            <ProfileCreateCard
+              track={track}
+              busy={creatingProfile}
+              onCreate={(input) => {
+                void createProfile(input).then((created) => {
+                  if (created) setShowCreateCard(false);
+                });
+              }}
+              onCancel={() => setShowCreateCard(false)}
+            />
+          ) : null}
+          <EmptyModelGuide capabilities={capabilities} />
+          {TRACK_BANNERS[track]({ profile: activeProfile })}
+        </div>
+
+        <div className="grid gap-3">
+          {TRACK_PANELS[track].map(({ key, render }) => (
+            <div key={key}>
+              {render({
+                profileId: activeProfile.id,
+                selectedDocId,
+                onSelectDoc: setSelectedDocId,
+              })}
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+      {actionError ? (
+        <ProfileActionDialog error={actionError} onClose={clearActionError} />
+      ) : null}
+    </>
+  );
+}
+
+const ACTION_HEADING_KEY: Record<ProfileAction, string> = {
+  create: "campus.profile.action_create_failed",
+  archive: "campus.profile.action_archive_failed",
+  restore: "campus.profile.action_restore_failed",
+};
+
+function ProfileActionDialog({
+  error,
+  onClose,
+}: {
+  error: ProfileActionError;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const info = campusErrorInfo(error.error);
+  const duplicate = error.action === "create" && info.code === "DUPLICATE_TITLE";
+  return (
+    <CampusDialog
+      testId="campus-profile-conflict"
+      title={t(ACTION_HEADING_KEY[error.action])}
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px]"
+          onClick={onClose}
+          data-testid="campus-profile-conflict-ok"
+        >
+          {t("campus.common.got_it")}
+        </button>
+      }
+    >
+      <div className="grid gap-1.5" data-testid="campus-profile-conflict-body">
+        <p className="text-[13px] leading-[20px] text-ink">
+          {t(campusErrorKey(info.code), {
+            defaultValue: info.message || t("campus.common.error"),
+          })}
+        </p>
+        {duplicate ? (
+          <p className="text-[12.5px] leading-[19px] text-muted">
+            {t("campus.profile.duplicate_hint", { title: error.title })}
+          </p>
+        ) : null}
+      </div>
+    </CampusDialog>
   );
 }

@@ -55,7 +55,8 @@
       "loading": "加载中…",
       "retry": "重试",
       "error": "出错了",
-      "exam_passed": "考试日期已过"
+      "exam_passed": "考试日期已过",
+      "got_it": "知道了"
     },
     "model": {
       "empty_title": "未配置模型",
@@ -81,7 +82,12 @@
       "active_badge": "当前",
       "create_submit": "创建档案",
       "create_cancel": "取消",
-      "title_required": "请填写档案名称"
+      "title_required": "请填写档案名称",
+      "duplicate_hint": "「{{title}}」已被一个未归档的档案占用。先把那个档案归档，这个名字就会空出来。",
+      "action_create_failed": "档案未创建",
+      "action_archive_failed": "档案未归档",
+      "action_restore_failed": "档案未恢复",
+      "dialog_close": "关闭"
     },
     "settings": {
       "title": "备考台设置",

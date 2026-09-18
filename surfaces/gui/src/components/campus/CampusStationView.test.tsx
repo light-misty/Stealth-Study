@@ -65,6 +65,7 @@ const profile = (id = "p1", examDate: string | null = "2026-12-19"): ExamProfile
   status: "active",
   created_at: "2026-09-01T00:00:00Z",
   updated_at: "2026-09-01T00:00:00Z",
+  archived_at: null,
 });
 
 describe("CampusStationView", () => {
@@ -240,6 +241,64 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="cet" />);
     await waitFor(() => expect(screen.getByTestId("campus-station-error")).toBeTruthy());
     expect(screen.getByTestId("campus-station-retry")).toBeTruthy();
+  });
+
+  it("explains a duplicate title in a dialog and keeps the station on screen", async () => {
+    apiMock.createProfile.mockRejectedValue(
+      new CampusApiError("DUPLICATE_TITLE", "同名档案已存在：四级冲刺", false, 409),
+    );
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    fireEvent.change(screen.getByTestId("campus-profile-create-title"), {
+      target: { value: "四级冲刺" },
+    });
+    fireEvent.click(screen.getByTestId("campus-profile-create-submit"));
+
+    const dialog = await screen.findByTestId("campus-profile-conflict");
+    expect(dialog.textContent).toContain("A profile with this title already exists");
+    expect(dialog.textContent).toContain("四级冲刺");
+    expect(screen.queryByTestId("campus-station-error")).toBeNull();
+    expect(screen.getByTestId("campus-station")).toBeTruthy();
+    expect((screen.getByTestId("campus-profile-create-title") as HTMLInputElement).value).toBe(
+      "四级冲刺",
+    );
+
+    fireEvent.click(screen.getByTestId("campus-profile-conflict-close"));
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-conflict")).toBeNull());
+  });
+
+  it("closes the conflict dialog with Escape", async () => {
+    apiMock.createProfile.mockRejectedValue(
+      new CampusApiError("DUPLICATE_TITLE", "同名档案已存在", false, 409),
+    );
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    fireEvent.change(screen.getByTestId("campus-profile-create-title"), {
+      target: { value: "四级冲刺" },
+    });
+    fireEvent.click(screen.getByTestId("campus-profile-create-submit"));
+    await screen.findByTestId("campus-profile-conflict");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-conflict")).toBeNull());
+  });
+
+  it("reports a refused archive in the dialog instead of swallowing the failure", async () => {
+    apiMock.patchProfile.mockRejectedValue(
+      new CampusApiError("PROFILE_READ_ONLY", "档案已结课，拒绝写入", false, 409),
+    );
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-archive-p1")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-archive-p1"));
+
+    const dialog = await screen.findByTestId("campus-profile-conflict");
+    expect(dialog.textContent).toContain("Profile is finished and read-only");
+    expect(screen.getByTestId("campus-station")).toBeTruthy();
   });
 
   it("renders a skeleton while the profile list is in flight", () => {

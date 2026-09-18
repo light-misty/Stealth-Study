@@ -56,7 +56,8 @@
       "loading": "Loading…",
       "retry": "Retry",
       "error": "Something went wrong",
-      "exam_passed": "The exam date has passed"
+      "exam_passed": "The exam date has passed",
+      "got_it": "Got it"
     },
     "model": {
       "empty_title": "No model configured",
@@ -82,7 +83,12 @@
       "active_badge": "Current",
       "create_submit": "Create profile",
       "create_cancel": "Cancel",
-      "title_required": "A profile name is required"
+      "title_required": "A profile name is required",
+      "duplicate_hint": "“{{title}}” is held by a profile that is not archived. Archive that one first and the name becomes free again.",
+      "action_create_failed": "Profile not created",
+      "action_archive_failed": "Profile not archived",
+      "action_restore_failed": "Profile not restored",
+      "dialog_close": "Close"
     },
     "settings": {
       "title": "Station settings",
