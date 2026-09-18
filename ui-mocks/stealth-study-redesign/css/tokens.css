@@ -24,29 +24,29 @@
                'SF Mono', Menlo, monospace;
 
   /* ------------------------------------------------- 颜色 · 浅色（默认） */
-  --bg-canvas:     #FFE9D6;  /* bgCanvas    · 画布实际渲染值（见顶部说明） */
-  --bg-sidebar:    #FFF4E8;  /* bgSidebar   · 画布实际渲染值 */
-  --surface:       #FFFDF8;  /* surface     · 纸页 */
+  --bg-canvas:     #FFFFFF;  /* bgCanvas    · 白色画布 */
+  --bg-sidebar:    #FFFFFF;  /* bgSidebar   · 白色侧栏 */
+  --surface:       #FFFFFF;  /* surface     · 纸页 */
   --surface-raised:#FFFFFF;  /* surfaceRaised */
-  --surface-sunken:#F0F3F9;  /* surfaceSunken */
-  --divider:       #E5E9F1;  /* divider */
-  --border-strong: #D5DCE8;  /* borderStrong */
+  --surface-sunken:#F5F5F7;  /* surfaceSunken */
+  --divider:       #EEEEF2;  /* divider */
+  --border-strong: #E0E1E8;  /* borderStrong */
 
-  --ink:   #2E2A27;          /* ink   · 正文 / 标题 */
-  --ink-2: #6B6862;          /* ink2  · 次要 */
-  --ink-3: #9C9891;          /* ink3  · 辅助 / 说明 */
+  --ink:   #1D1D1F;          /* ink   · 正文 / 标题 */
+  --ink-2: #6E6E73;          /* ink2  · 次要 */
+  --ink-3: #98989D;          /* ink3  · 辅助 / 说明 */
 
-  --brand:      #8CA4C6;     /* brand      · 书页蓝，结构 / 链接 */
-  --brand-deep: #4E6A93;     /* brandDeep  · 文字用深一档 */
-  --brand-soft: #E8EEF8;     /* brandSoft  · 蓝色底 */
+  --brand:      #5B7DA6;     /* brand      · 书页蓝，结构 / 链接 */
+  --brand-deep: #3D5A7D;     /* brandDeep  · 文字用深一档 */
+  --brand-soft: #F0F4FA;     /* brandSoft  · 蓝色底 */
 
   --accent:      #EE8B4C;    /* accent      · 狐狸橙，全站唯一强调色 */
   --accent-deep: #C4682E;    /* accentDeep  · 橙色文字 */
-  --accent-soft: #FDEDE1;    /* accentSoft  · 橙色底 */
+  --accent-soft: #FFF5ED;    /* accentSoft  · 橙色底 */
 
-  --success:      #5FA57F;   /* success */
-  --success-soft: #E7F3EC;   /* successSoft */
-  --ink-on-accent:#2E2A27;   /* inkOnAccent · 橙底上的文字（暖墨，非纯白） */
+  --success:      #4AA675;   /* success */
+  --success-soft: #EDF7F2;   /* successSoft */
+  --ink-on-accent:#FFFFFF;   /* inkOnAccent · 橙底上的文字 */
 
   /* ------------------------------------------------ 原型补充（画布外的令牌）
      画布上的图标是 SVG，颜色硬编码写死，无法随模式切换。
@@ -54,10 +54,10 @@
   --icon:        #6E7A8C;    /* 线性图标描边 · 浅色＝画布原值 */
   --icon-accent: #F0904F;    /* 选中态图标描边 */
 
-  /* 任务行渐变（浅色三行各自一套；夜读三行统一） */
-  --grad-1-a: #FEF6E7; --grad-1-b: #FAEDD2;
-  --grad-2-a: #FFE8D1; --grad-2-b: #FFD5B0;
-  --grad-3-a: #E3E8F9; --grad-3-b: #D2DBF3;
+  /* 任务行渐变色（浅色统一为浅灰白色） */
+  --grad-1-a: #FAFAFA; --grad-1-b: #F5F5F5;
+  --grad-2-a: #FAFAFA; --grad-2-b: #F5F5F5;
+  --grad-3-a: #FAFAFA; --grad-3-b: #F5F5F5;
 
   /* 夜读预览条（固定值：这一块永远展示夜读配色，不跟随当前主题） */
   --np-bg:        #161B26;
@@ -66,12 +66,12 @@
   --np-text:      #A9A59D;
   --np-dot:       #F59A5C;
 
-  /* 阴影 · 统一带一点蓝，与底色同色系；浅色下淡，夜读下加深 */
-  --shadow-device:   0 20px 44px -14px rgba(46, 59, 87, .14);
-  --shadow-panel:    0 6px 18px -6px rgba(51, 64, 92, .05);
-  --shadow-composer: 0 8px 20px -6px rgba(51, 64, 92, .07);
-  --shadow-seg:      0 1px 4px rgba(46, 59, 87, .10);
-  --shadow-hover:    0 8px 18px -8px rgba(51, 64, 92, .28);
+  /* 阴影 · 统一中性灰，与白色底色搭配 */
+  --shadow-device:   0 20px 44px -14px rgba(0, 0, 0, .08);
+  --shadow-panel:    0 2px 12px -2px rgba(0, 0, 0, .04);
+  --shadow-composer: 0 4px 16px -4px rgba(0, 0, 0, .06);
+  --shadow-seg:      0 1px 3px rgba(0, 0, 0, .06);
+  --shadow-hover:    0 8px 24px -8px rgba(0, 0, 0, .12);
 
   /* 圆角 · 整体偏大，与图标里的软造型一致
      5  BETA 徽标          9  列表项 / 分段项 / 开关滑块
@@ -90,8 +90,8 @@
 
   /* ---------------------------------------------------- 脚手架（非设计稿）
      应用外壳所处的浏览器底色，仅原型使用。                        */
-  --stage-a: #E9ECF2;
-  --stage-b: #DEE3EB;
+  --stage-a: #F2F2F7;
+  --stage-b: #E8E8ED;
 }
 
 /* ------------------------------------------------- 颜色 · 夜读（深色模式） */

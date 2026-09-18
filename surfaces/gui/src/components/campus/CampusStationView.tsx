@@ -197,6 +197,16 @@ function StationBody({ track }: { track: CampusTrack }) {
 
   return (
     <div className="grid gap-3" data-testid="campus-station" data-track={track}>
+      {/* 页头：备考台名称 + 标语，对齐原型的 page-head（title 22px / sub 12.5px） */}
+      <div className="grid gap-1.5" data-testid="campus-station-page-head">
+        <h1 className="text-[22px] font-bold leading-[30px] text-ink">
+          {t(`campus.track.${track}.name`)}
+        </h1>
+        <p className="text-[12.5px] leading-[19px] text-muted">
+          {t(`campus.track.${track}.tagline`)}
+        </p>
+      </div>
+
       <div className="grid gap-2.5" data-testid="campus-station-header">
         <ProfileSwitcher
           profiles={profiles}

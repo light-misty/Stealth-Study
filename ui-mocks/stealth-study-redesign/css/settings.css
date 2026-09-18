@@ -32,10 +32,11 @@
   display: flex; flex-direction: column;
   background: var(--surface);
   border-radius: var(--r-16);
-  box-shadow: var(--ring), var(--shadow-panel);
+  box-shadow: var(--shadow-panel);
   overflow: hidden;
-  transition: background .28s ease;
+  transition: background .28s ease, box-shadow .2s ease;
 }
+.panel:hover { box-shadow: var(--shadow-hover); }
 
 /* 单行：彩色图标底 + 标题/说明 + 控件 */
 .srow { display: flex; align-items: center; gap: 14px; padding: 16px 22px; }
@@ -71,10 +72,10 @@
 .seg-item:hover { color: var(--ink); }
 .seg-item.is-on {
   background: var(--surface-raised);
-  color: var(--accent-deep);
+  color: var(--ink);
   box-shadow: var(--shadow-seg);
 }
-.seg-item.is-on:hover { color: var(--accent-deep); }
+.seg-item.is-on:hover { color: var(--ink); }
 
 /* ---- 步进器 · 用于有明确上下限的数值项 ---- */
 .stepper {
@@ -128,11 +129,12 @@
   border-radius: var(--r-16);
   padding: 20px;
   display: flex; flex-direction: column; gap: 14px;
-  box-shadow: var(--ring);
-  transition: background .28s ease;
+  box-shadow: var(--shadow-panel);
+  transition: background .28s ease, box-shadow .2s ease;
 }
-/* 橙色提示卡：无描边、无阴影，纯色块 */
-.card--plain { padding: 18px; gap: 7px; background: var(--accent-soft); box-shadow: none; }
+.card:hover { box-shadow: var(--shadow-hover); }
+/* 提示卡：浅灰底 */
+.card--plain { padding: 18px; gap: 7px; background: var(--surface-sunken); box-shadow: none; }
 
 .card-brand-row  { display: flex; align-items: center; gap: 12px; }
 .card-brand-row .glyph { width: 44px; height: 44px; display: block; flex: none; }
@@ -149,8 +151,8 @@
 .np-bar  { height: 6px; border-radius: 3px; background: var(--np-bar); }
 .np-bar--short { width: 118px; background: var(--np-bar-short); }
 
-.tip-title { font-size: 11.5px; font-weight: 600; line-height: 16px; color: var(--accent-deep); }
-.tip-body  { font-size: 11.5px; line-height: 18px; color: var(--accent-deep); }
+.tip-title { font-size: 11.5px; font-weight: 600; line-height: 16px; color: var(--ink); }
+.tip-body  { font-size: 11.5px; line-height: 18px; color: var(--ink-2); }
 
 /* ---------------------------------------------------------------- 页脚 */
 .page-foot { display: flex; align-items: center; justify-content: space-between; flex: none; }

@@ -87,8 +87,11 @@
     "settings": {
       "title": "Station settings",
       "daily_minutes": "Daily study minutes",
+      "daily_minutes_help": "Set your daily study-time target to schedule the review plan and track progress",
       "push_time": "Push time",
+      "push_time_help": "Choose the daily time to push review reminders",
       "review_intensity": "Review intensity",
+      "review_intensity_help": "Adjust how demanding the review plan is, balancing daily workload and pace",
       "intensity_light": "Light",
       "intensity_standard": "Standard",
       "intensity_intense": "Intense",

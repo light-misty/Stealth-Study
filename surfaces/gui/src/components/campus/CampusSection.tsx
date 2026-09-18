@@ -12,8 +12,7 @@ import {
 // too: plain fields, no track branching, all copy through i18n.
 
 const FIELD =
-  "w-full rounded-lg border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-ink outline-none";
-const LABEL = "text-[12px] text-muted";
+  "h-[34px] rounded-[10px] border border-line bg-paper px-2.5 text-[13px] text-ink outline-none focus:border-accent";
 
 const DEFAULT_MINUTES = "60";
 const DEFAULT_PUSH_TIME = "20:00";
@@ -93,66 +92,96 @@ export function CampusSection() {
           {t("campus.common.loading")}
         </div>
       ) : (
-        <div className="mt-4 grid gap-3 max-w-md">
-          <label className="block">
-            <span className={LABEL}>{t("campus.settings.daily_minutes")}</span>
-            <input
-              type="number"
-              min={1}
-              className={`${FIELD} mt-1`}
-              value={dailyMinutes}
-              onChange={(e) => {
-                setDailyMinutes(e.target.value);
-                setSaved(false);
-                setSaveFailed(false);
-              }}
-              data-testid="campus-settings-daily-minutes"
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>{t("campus.settings.push_time")}</span>
-            <input
-              type="time"
-              className={`${FIELD} mt-1`}
-              value={pushTime}
-              onChange={(e) => {
-                setPushTime(e.target.value);
-                setSaved(false);
-                setSaveFailed(false);
-              }}
-              data-testid="campus-settings-push-time"
-            />
-          </label>
-          <label className="block">
-            <span className={LABEL}>{t("campus.settings.review_intensity")}</span>
-            <select
-              className={`${FIELD} mt-1`}
-              value={intensity}
-              onChange={(e) => {
-                setIntensity(e.target.value as ReviewIntensity);
-                setSaved(false);
-                setSaveFailed(false);
-              }}
-              data-testid="campus-settings-intensity"
-            >
-              {REVIEW_INTENSITIES.map((value) => (
-                <option key={value} value={value}>
-                  {t(`campus.settings.intensity_${value}`)}
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="set-panel mt-4">
+          {/* 行 · 每日学习时长 */}
+          <div className="set-row">
+            <span className="ib ib--accent">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <polyline points="12 7 12 12 15.5 13.5" />
+              </svg>
+            </span>
+            <div className="set-text">
+              <span className="set-title">{t("campus.settings.daily_minutes")}</span>
+              <span className="set-desc">{t("campus.settings.daily_minutes_help")}</span>
+            </div>
+            <div className="set-ctl">
+              <input
+                type="number"
+                min={1}
+                className={`${FIELD} w-[96px]`}
+                value={dailyMinutes}
+                onChange={(e) => {
+                  setDailyMinutes(e.target.value);
+                  setSaved(false);
+                  setSaveFailed(false);
+                }}
+                data-testid="campus-settings-daily-minutes"
+              />
+            </div>
+          </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] disabled:opacity-40"
-              onClick={save}
-              disabled={!canSave}
-              data-testid="campus-settings-save"
-            >
-              {t("campus.settings.save")}
-            </button>
+          {/* 行 · 推送时间 */}
+          <div className="set-row">
+            <span className="ib ib--brand">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+              </svg>
+            </span>
+            <div className="set-text">
+              <span className="set-title">{t("campus.settings.push_time")}</span>
+              <span className="set-desc">{t("campus.settings.push_time_help")}</span>
+            </div>
+            <div className="set-ctl">
+              <input
+                type="time"
+                className={`${FIELD} w-[132px]`}
+                value={pushTime}
+                onChange={(e) => {
+                  setPushTime(e.target.value);
+                  setSaved(false);
+                  setSaveFailed(false);
+                }}
+                data-testid="campus-settings-push-time"
+              />
+            </div>
+          </div>
+
+          {/* 行 · 复习强度 */}
+          <div className="set-row">
+            <span className="ib ib--success">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2l7 3v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V5l7-3z" />
+                <path d="M12 8v5" />
+                <path d="M9.5 11.5h5" />
+              </svg>
+            </span>
+            <div className="set-text">
+              <span className="set-title">{t("campus.settings.review_intensity")}</span>
+              <span className="set-desc">{t("campus.settings.review_intensity_help")}</span>
+            </div>
+            <div className="set-ctl">
+              <select
+                className={`${FIELD} min-w-[120px]`}
+                value={intensity}
+                onChange={(e) => {
+                  setIntensity(e.target.value as ReviewIntensity);
+                  setSaved(false);
+                  setSaveFailed(false);
+                }}
+                data-testid="campus-settings-intensity"
+              >
+                {REVIEW_INTENSITIES.map((value) => (
+                  <option key={value} value={value}>
+                    {t(`campus.settings.intensity_${value}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 底部署名操作区 */}
+          <div className="flex items-center justify-end gap-2.5 border-t border-line px-5 py-3.5">
             {saved && (
               <span className="text-[12px] text-muted" data-testid="campus-settings-saved">
                 {t("campus.settings.saved")}
@@ -163,6 +192,15 @@ export function CampusSection() {
                 {t("campus.common.error")}
               </span>
             )}
+            <button
+              type="button"
+              className="h-[34px] rounded-[10px] bg-accent px-4 text-[13px] text-white disabled:opacity-40"
+              onClick={save}
+              disabled={!canSave}
+              data-testid="campus-settings-save"
+            >
+              {t("campus.settings.save")}
+            </button>
           </div>
         </div>
       )}

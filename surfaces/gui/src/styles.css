@@ -76,8 +76,13 @@
   --faint: #6f7680;          /* OPE-126 contrast fix — old #9aa1aa was ~2.5:1 on white */
   --line: #e8eaed;
   --line-strong: #d8dce1;
-  --accent: #2563eb; /* cobalt — our signature, distinct from the coral-leaning tools */
-  --accent-soft: #e9f0fd;
+  /* 原型「Stealth Study」设计语言：全站唯一强调色 = 狐狸橙，结构/链接 = 书页蓝 */
+  --accent: #ee8b4c;          /* 狐狸橙 · 品牌强调（原型 --accent） */
+  --accent-deep: #c4682e;     /* 狐狸橙文字用深一档（原型 --accent-deep） */
+  --accent-soft: #fff5ed;     /* 橙色底（原型 --accent-soft） */
+  --brand: #5b7da6;           /* 书页蓝 · 结构/链接（原型 --brand） */
+  --brand-deep: #3d5a7d;      /* 文字用蓝（原型 --brand-deep） */
+  --brand-soft: #f0f4fa;      /* 蓝色底（原型 --brand-soft） */
   --ok: #2f7d57;
   --ok-soft: #eef6f0;
   --ok-line: #cfe6d6;
@@ -99,7 +104,9 @@
   --check-b: #fafbfc;
   /* Headings are sans now (was a Palatino serif) — less editorial, more product. */
   --serif: var(--sans);
-  --sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --sans: "Inter", "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC",
+          "Source Han Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
+          "Segoe UI", system-ui, sans-serif;
   --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
   /* Type scale (OPE-126): six sizes, nothing else ships. The hiw-* Slack miniature is
      illustration artwork, exempt; glyph-only sizes (✕, marks) aren't text. */
@@ -129,8 +136,12 @@ html[data-theme="dark"] {
   --faint: #62686f;
   --line: #2a2d33;
   --line-strong: #3a3e46;
-  --accent: #4c8dff;          /* lifted cobalt — keeps contrast on dark panels */
-  --accent-soft: #1c2a44;
+  --accent: #f59a5c;          /* 狐狸橙 · 夜读提亮（原型暗色 --accent） */
+  --accent-deep: #f5a268;
+  --accent-soft: #3a2a20;     /* 橙底 · 夜读 */
+  --brand: #9fb4d6;           /* 书页蓝 · 夜读 */
+  --brand-deep: #afc5e6;
+  --brand-soft: #2a3346;      /* 蓝底 · 夜读 */
   --ok: #58b07f;
   --ok-soft: #1a2b21;
   --ok-line: #2c4736;
@@ -827,40 +838,43 @@ button.btn.danger { color: var(--accent); }
 .addfolder-actions .spacer { flex: 1; }
 
 /* Cowork session start panel */
-.intro { max-width: 640px; margin: 0 auto; padding: 40px 20px 24px; }
-.intro .greeting { font-size: 26px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
-.intro .greeting .mark { color: var(--accent); }
-.intro-lede { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 8px 0 0; }
+/* Cowork 空态（对齐 stealth-study-redesign 新建会话）：居中的吉祥物徽章 + 主标题 + 说明 +
+   三张任务卡（卡片 + 彩色图标 tile + 标题/说明 + 右侧 CTA）。连接器点位保留在 sub 行（§23 词汇）。
+   Ready 行 hover 提亮；Gated 行 "Configure ›" 常显——设置动作本身即是这行的意义。 */
+.intro {
+  max-width: 620px; margin: 0 auto; padding: 40px 20px 24px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.intro-head {
+  display: flex; align-items: center; gap: 14px;
+  margin: 22px 0 0; flex: none;
+}
+.intro-mascot {
+  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  display: grid; place-items: center; overflow: hidden;
+}
+.intro-mascot img { width: 36px; height: 36px; display: block; }
+.intro .greeting { font-family: var(--sans); font-size: 26px; font-weight: 700; line-height: 36px; margin: 0; }
+.intro-lede { color: var(--muted); font-size: 12.5px; line-height: 19px; margin: 8px 0 0; }
 
-/* Template tasks on the Cowork start screen (§27): flat hairline rows, no icon tiles — the
-   title is the row. Connector dots on the sub-line (brand color = live for this session,
-   grayscale = not; §23's vocabulary); sub-line copy is the task's OUTCOME, never connection
-   state. Ready row: hover colors the title and reveals the action. Gated row: "Configure ›"
-   stays visible at rest — the setup action IS the row's meaning. Staggered entrance. */
-.intro-tasks { margin-top: 30px; display: flex; flex-direction: column; }
+.intro-tasks { margin-top: 26px; display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .task-card {
   display: flex; align-items: center; gap: 14px;
   width: 100%; text-align: left; cursor: pointer;
-  padding: 13px 6px;
-  background: none; border: none; border-top: 1px solid var(--line);
+  padding: 11px 16px; border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04);
   font: inherit; color: var(--ink);
-  opacity: 0; transform: translateY(4px);
-  animation: task-rise 0.35s ease forwards;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
 }
-.task-card:nth-of-type(1) { animation-delay: 0.10s; }
-.task-card:nth-of-type(2) { animation-delay: 0.22s; }
-.task-card:nth-of-type(3) { animation-delay: 0.34s; }
-@keyframes task-rise { to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) {
-  .task-card { animation: none; opacity: 1; transform: none; }
-}
-.task-card:first-child { border-top: none; }
+.task-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.14); }
+.task-card .ib { width: 30px; height: 30px; border-radius: 9px; }
 .task-card-body { flex: 1; min-width: 0; }
-.task-card-title { display: block; font-size: 14px; transition: color 0.12s; }
+.task-card-title { display: block; font-size: 13px; font-weight: 500; transition: color 0.12s; }
 .task-card:hover .task-card-title { color: var(--accent); }
 .task-card-sub {
   display: flex; align-items: center; gap: 7px;
-  font-size: 13px; color: var(--faint); margin-top: 3px;
+  font-size: 11.5px; line-height: 17px; color: var(--faint); margin-top: 3px;
 }
 .task-dot {
   width: 18px; height: 18px; border-radius: 50%; flex: none;
@@ -869,12 +883,9 @@ button.btn.danger { color: var(--accent); }
 }
 .task-dot + .task-dot { margin-left: -4px; }
 .task-dot.off { filter: grayscale(1); opacity: 0.7; }
-.task-card-act {
-  color: var(--faint); font-size: 13px; flex: none;
-  opacity: 0; transition: opacity 0.12s;
-}
-.task-card:hover .task-card-act { opacity: 1; color: var(--accent); }
-.task-card.gated .task-card-act { opacity: 1; color: var(--accent); }
+.task-card-act { color: var(--faint); font-size: 12px; font-weight: 500; flex: none; }
+.task-card:hover .task-card-act { color: var(--accent); }
+.task-card.gated .task-card-act { color: var(--accent); }
 
 /* Topbar "Artifacts (N)" affordance, shown when the side panel is hidden */
 .topbar-artifacts-btn {
@@ -965,10 +976,34 @@ button.btn.danger { color: var(--accent); }
 .subtabs { display: flex; justify-content: center; margin: 20px 0 16px; }
 .ob-subtabs { justify-content: flex-start; margin: 22px 0 4px; }
 
-/* Small inline segmented control (Appearance: Light / Dark / Auto). */
-.seg { display: inline-flex; gap: 4px; background: var(--panel); border: 1px solid var(--line); padding: 3px; border-radius: 9px; }
-.seg button { font: inherit; font-size: 13px; padding: 5px 14px; border: none; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; }
-.seg button.active { background: var(--accent-soft); color: var(--ink); }
+/* Small inline segmented control (Appearance: Light / Dark / Auto).
+   对齐原型：sunken 轨道 + 抬高的选中胶囊。 */
+.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--paper); }
+.seg button { font: inherit; font-size: 13px; padding: 5px 14px; border: none; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; transition: background .14s ease, color .14s ease; }
+.seg button:hover { color: var(--ink); }
+.seg button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+
+/* ===== 设置「纸页面板 + 彩色图标行」（对齐 stealth-study-redesign 设置·通用） ===== */
+.set-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+.set-row { display: flex; align-items: center; gap: 14px; padding: 15px 20px; }
+/* 彩色图标底：低饱和方块 + 居中图标（原型 base.css .ib） */
+.ib { width: 32px; height: 32px; border-radius: 10px; flex: none; display: grid; place-items: center; }
+.ib--accent  { background: var(--accent-soft);  color: var(--accent-deep); }
+.ib--brand   { background: var(--brand-soft);   color: var(--brand); }
+.ib--success { background: var(--ok-soft);      color: var(--ok); }
+.ib .ic { color: currentColor; }
+.set-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.set-title { font-size: 13px; font-weight: 500; line-height: 19px; color: var(--ink); }
+.set-desc { font-size: 11.5px; line-height: 17px; color: var(--faint); }
+.set-ctl { flex: none; display: flex; align-items: center; }
+/* 纸页内相邻行以细分隔线分隔（原型 settings.css 的 .divider），扫读成本更低 */
+.set-panel > .set-row + .set-row { border-top: 1px solid var(--line); }
 
 /* Model checklist (Onboarding + Configure Models): tick = in the composer picker. */
 .mlist { display: flex; flex-direction: column; gap: 1px; margin: 6px 0 4px; }
@@ -1313,7 +1348,8 @@ button.btn.ghost:hover { color: var(--ink); }
 }
 .ob-skipwarn-actions { display: flex; gap: 8px; }
 
-/* ---- Attachments ----------------------------------------------------------- */
+/* ---- Composer send button --------------------------------------------------- */
+.composer:focus-within { box-shadow: 0 0 0 1px var(--ink), 0 6px 16px -8px rgba(0, 0, 0, 0.12); }
 .composer.dragging { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .attach-chip {
   position: relative; display: inline-flex; align-items: center; gap: 6px;
@@ -1731,18 +1767,28 @@ html[data-platform="linux"] ::-webkit-scrollbar-thumb:hover { background-color: 
    bundle/artifact names — those feed the updater) --------------------------------- */
 .beta-tag {
   display: inline-block;
-  margin-left: 5px;
-  padding: 0.5px 4.5px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: var(--paper);
-  color: var(--muted);
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--ink);
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 13px;
+  letter-spacing: 0.6px;
   /* Raised toward the cap line — superscript-ish without true `super` (which reads
      fussy on a pill); small + high keeps the wordmark the star. */
-  vertical-align: 3px;
+  vertical-align: 2px;
+}
+
+/* 品牌行应用图标字形（原型侧栏：图标 + 产品名 + BETA） */
+.sb-glyph {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  display: block;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 /* Folder artifact listing (a linked package dir renders as rows, not "not found"). */

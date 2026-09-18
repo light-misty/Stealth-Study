@@ -28,6 +28,7 @@ import { personaGlyph } from "./personaIcon";
 import { SearchModal } from "./SearchModal";
 import { baseName } from "../paths";
 import { showLogin } from "../flags";
+import brandGlyph from "../../assets/icon.png";
 
 // Session surfaces shown as accordions, in display order. The surfaced personas drive this list
 // (so third-party / Ops personas appear); the hardcoded set is the fallback before personas load.
@@ -1030,6 +1031,7 @@ export function Sidebar(props: Props) {
             <Icon name="sidebar" size={16} />
           </button>
         )}
+        <img src={brandGlyph} alt="" className="sb-glyph" />
         <div className="brand-wordmark text-[14px]">StealthStudy<span className="beta-tag">BETA</span></div>
       </div>
 

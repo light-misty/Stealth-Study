@@ -27,9 +27,9 @@
 
 .beta-chip {
   padding: 2px 6px; border-radius: var(--r-5);
-  background: var(--accent-soft);
+  background: var(--ink);
   font-size: 9px; font-weight: 700; line-height: 13px; letter-spacing: .6px;
-  color: var(--accent-deep); white-space: nowrap;
+  color: #FFFFFF; white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- 导航集 */
@@ -62,26 +62,27 @@
 }
 .nav-item:hover { background: var(--surface-sunken); }
 
-/* 选中态：橙色浅底 + 橙色图标 + 中等字重 */
+/* 选中态：浅灰底 + 黑色文字 + 中等字重 */
 .nav-item.is-active,
-.nav-item.is-active:hover { background: var(--accent-soft); }
-.nav-item.is-active .nav-label { font-weight: 500; color: var(--accent-deep); }
-.nav-item.is-active .ic { color: var(--icon-accent); }
+.nav-item.is-active:hover { background: var(--surface-sunken); }
+.nav-item.is-active .nav-label { font-weight: 500; color: var(--ink); }
+.nav-item.is-active .ic { color: var(--ink); }
 
-/* -------------------------------------------------------------- 主行动按钮 */
-/* 全站唯一的高饱和色块 */
+/* -------------------------------------------------------------- 新建会话按钮 */
+/* 与 .nav-item 同构：透明底 + 浅灰 hover，文字式按钮 */
 .primary-btn {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  width: 100%; height: 38px; padding: 0 12px;
-  border: 0; border-radius: var(--r-10); background: var(--accent);
-  color: var(--ink-on-accent); font-family: inherit;
-  font-size: 13px; font-weight: 600; line-height: 19px;
-  cursor: pointer;
-  transition: filter .14s ease, transform .06s ease;
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; height: 34px; padding: 0 10px 0 12px;
+  border: 0; border-radius: var(--r-9); background: transparent;
+  font-family: inherit; cursor: pointer; text-align: left;
+  transition: background .14s ease;
 }
-.primary-btn:hover  { filter: brightness(1.04); }
-.primary-btn:active { transform: translateY(1px); }
-.primary-btn .ic    { color: currentColor; }
+.primary-btn:hover  { background: var(--surface-sunken); }
+.primary-btn:active { background: var(--border-strong); }
+.primary-btn        { color: var(--ink-2); }
+.primary-btn .nav-label { flex: 1; font-size: 13px; font-weight: 400; line-height: 19px; transition: color .14s ease; }
+.primary-btn:hover  { color: var(--ink); }
+.primary-btn .ic    { color: var(--icon); }
 
 /* ------------------------------------------------------------ 底部用户区 */
 .sidebar-spacer { flex: 1; min-height: 0; }
@@ -100,7 +101,7 @@
 .avatar {
   width: 26px; height: 26px; border-radius: var(--r-13); flex: none;
   display: grid; place-items: center;
-  background: var(--brand-soft);
+  background: var(--surface-sunken);
 }
 .avatar .glyph { width: 16px; height: 16px; display: block; }
 

@@ -61,11 +61,12 @@ body {
 /* ------------------------------------------------------------- 通用原语 */
 .divider { height: 1px; flex: none; background: var(--divider); }
 
-/* 图标底：彩色方块 + 居中图标 */
+/* 图标底：低饱和方块 + 居中图标 */
 .ib { width: 32px; height: 32px; border-radius: var(--r-10); flex: none; display: grid; place-items: center; }
-.ib--accent  { background: var(--accent-soft); }
-.ib--brand   { background: var(--brand-soft); }
-.ib--success { background: var(--success-soft); }
+.ib--accent  { background: var(--accent-soft);  color: var(--accent-deep); }
+.ib--brand   { background: var(--brand-soft);   color: var(--brand); }
+.ib--success { background: var(--success-soft); color: var(--success); }
+.ib .ic { color: currentColor; }
 
 /* 图标按钮 */
 .icon-btn {
@@ -94,17 +95,18 @@ button.chip:hover { background: var(--border-strong); }
   background: var(--accent); transition: background .2s ease;
 }
 .chip--status.is-ready .dot { background: var(--success); }
+.chip--status.is-ready { color: var(--success); }
 
 /* 圆形主行动（发送） */
 .send {
   width: 30px; height: 30px; border: 0; border-radius: 15px;
-  background: var(--accent); display: grid; place-items: center;
+  background: var(--ink); display: grid; place-items: center;
   cursor: pointer; flex: none;
   transition: filter .14s ease, transform .06s ease;
 }
-.send:hover  { filter: brightness(1.05); }
+.send:hover  { filter: brightness(.86); }
 .send:active { transform: scale(.94); }
-.send .ic    { color: var(--ink-on-accent); }
+.send .ic    { color: #FFFFFF; }
 
 /* ------------------------------------------------------------ 布局工具类
    设计稿里的「弹性留白」是 layoutGrow=1 的空白 frame，对应 flex:1；
