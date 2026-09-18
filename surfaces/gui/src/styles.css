@@ -182,8 +182,10 @@ body {
   overflow: hidden;
 }
 /* The surface beside the nav eats whatever width the nav leaves, so it grows and narrows in
-   lockstep with the nav's slide instead of snapping when the collapse state flips. */
-.app > :not(.sidebar) {
+   lockstep with the nav's slide instead of snapping when the collapse state flips. The boot
+   splash borrows .app for the full-viewport box only — it has no nav, and its rows stack in a
+   column, so flexing its children would hand each one half the screen. */
+.app:not(.boot-splash) > :not(.sidebar) {
   flex: 1 1 0%;
   min-width: 0;
 }
