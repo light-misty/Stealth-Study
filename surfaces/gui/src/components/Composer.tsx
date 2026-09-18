@@ -776,7 +776,7 @@ export function Composer(props: Props) {
                 flexShrink: 0,
                 transition: "filter .14s ease, transform .06s ease",
                 background: hasContent ? "#17191c" : "#f5f6f7",
-                border: hasContent ? "none" : "1px solid #e8eaed",
+                border: "none",
                 color: hasContent ? "#ffffff" : "#6f7680",
                 cursor: "pointer",
               }}
