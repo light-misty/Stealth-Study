@@ -232,6 +232,29 @@ fn server_bin() -> PathBuf {
     p
 }
 
+/// 桌面壳传递给后端统一日志的日志根。
+///
+/// `run.py` 把日志写到「项目/工作区根 /log」。侧边进程不以 `--cwd` 启动（它同时充当会话
+/// 工作区），因此用 `npm run tauri dev` 启动时 sidecar 继承本进程 cwd（`surfaces/gui`），
+/// 日志只会落到 `surfaces/gui/log`，而非平台期望的仓库根 `log/`。这里改向后端注入显式的
+/// `SS_LOG_DIR`（logging_setup 已优先读取该变量），同时保持会话工作区语义不变。
+/// 发布版可通过 COWORKER_PROJECT_ROOT 指定根目录。
+fn project_log_dir() -> Option<PathBuf> {
+    if let Ok(root) = std::env::var("COWORKER_PROJECT_ROOT") {
+        return Some(PathBuf::from(root).join("log"));
+    }
+    #[cfg(debug_assertions)]
+    {
+        // CARGO_MANIFEST_DIR = <repo>/surfaces/gui/src-tauri → 上三级即仓库根
+        return PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .map(|repo| repo.join("log"));
+    }
+    #[cfg(not(debug_assertions))]
+    None
+}
+
 /// Mirror of `coworker.secrets.state_dir()` so the shell and server agree on `desktop.json`.
 /// Windows: `%APPDATA%\coworker`; POSIX: `~/.config/coworker`. `COWORKER_STATE_DIR` overrides.
 fn state_dir() -> PathBuf {
@@ -596,6 +619,12 @@ pub fn run() {
                     server_cmd.stdout(Stdio::null()).stderr(Stdio::null());
                 }
             }
+            // 桌面开发：把后端日志目录显式指到仓库根 log/（见 project_log_dir），避免随本进程
+            // cwd（npm run tauri dev 时为 surfaces/gui）漂移而看不到预期日志。
+            // 在 sidecar_env()/COWORKER_* 之后设置，保证本变量优先生效。
+            if let Some(log_dir) = project_log_dir() {
+                server_cmd.env("SS_LOG_DIR", log_dir);
+            }
             // CREATE_NO_WINDOW: the sidecar is a console binary; without this a console window
             // would flash when the GUI app spawns it on Windows.
             #[cfg(windows)]
@@ -705,4 +734,21 @@ pub fn run() {
                 }
             }
         });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn project_log_dir_resolves_to_repo_root_log() {
+        // debug 构建下后端日志目录应落在仓库根 log/，而非 sidecar 继承的启动 cwd
+        let dir = project_log_dir().expect("dev build must resolve a log dir");
+        let expected = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(3)
+            .map(|repo| repo.join("log"))
+            .expect("manifest path has enough parents");
+        assert_eq!(dir, expected);
+    }
 }
