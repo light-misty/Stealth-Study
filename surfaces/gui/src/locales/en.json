@@ -1749,7 +1749,9 @@
     "delete": "Delete",
     "keep": "Keep",
     "delete_ellipsis": "Delete…",
-    "delete_failed": "delete failed"
+    "delete_failed": "delete failed",
+    "partner_label": "Study Partner",
+    "partner_named": "{{name}} Partner"
   },
   "personas": {
     "add_help": "Load from a local directory or a public GitHub repo. Files are copied into a managed area (a snapshot), so the source can change without affecting the install.",

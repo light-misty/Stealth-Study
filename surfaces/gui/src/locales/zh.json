@@ -1727,7 +1727,9 @@
     "delete": "删除",
     "keep": "保留",
     "delete_ellipsis": "删除…",
-    "delete_failed": "删除失败"
+    "delete_failed": "删除失败",
+    "partner_label": "学习伙伴",
+    "partner_named": "{{name}}"
   },
   "personas": {
     "add_help": "从本地目录或公开 GitHub 仓库加载。文件会复制到托管区域（快照），因此源文件变更不会影响已安装版本。",
