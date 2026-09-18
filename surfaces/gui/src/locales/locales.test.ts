@@ -36,4 +36,21 @@ describe("locale completeness", () => {
     expect(missingInZh, `keys missing in zh.json: ${missingInZh.join(", ")}`).toEqual([]);
     expect(missingInEn, `keys missing in en.json: ${missingInEn.join(", ")}`).toEqual([]);
   });
+
+  // OPE-136 中文化审计：敬称混用会让同一面板里既「你」又「您」；已有英文术语
+  // （provider）在中文句子里则与同文档其他处的「提供方」译法冲突。
+  it("zh.json 的中文值统一使用「你」且不残留 provider 一词", () => {
+    const zhValues = flatten(zh as Record<string, unknown>)
+      .map((k) => [k, readPath(zh as Record<string, unknown>, k)!.replace(/\{\{[^}]*\}\}/g, "")] as const)
+      .filter(([, v]) => /[一-鿿]/.test(v));
+    const honor = zhValues.filter(([, v]) => v.includes("您")).map(([k]) => k);
+    const latin = zhValues.filter(([, v]) => /\bprovider\b/i.test(v)).map(([k]) => k);
+    expect(honor, `zh.json 仍使用「您」：${honor.join(", ")}`).toEqual([]);
+    expect(latin, `zh.json 中文值残留 provider：${latin.join(", ")}`).toEqual([]);
+  });
 });
+
+function readPath(obj: Record<string, unknown>, path: string): string | undefined {
+  const value = path.split(".").reduce<unknown>((acc, k) => (acc == null ? undefined : (acc as Record<string, unknown>)[k]), obj);
+  return typeof value === "string" ? value : undefined;
+}
