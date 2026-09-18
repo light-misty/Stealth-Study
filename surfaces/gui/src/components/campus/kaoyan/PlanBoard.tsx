@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { PlanTask, ProgressReport, TaskStatus } from "../../../campus/types";
+import { Icon } from "../../Icon";
 
 const RING_RADIUS = 26;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -20,6 +21,15 @@ const STATUS_LABEL_KEYS: Record<TaskStatus, string> = {
   skipped: "campus.kaoyan.board.status.skipped",
 };
 
+// 状态胶囊：颜色 + 文字双通道，进行中 / 复核中走 teal 与「已完成」的绿区分开
+const TAG_CLASS: Record<TaskStatus, string> = {
+  todo: "tag tag--muted",
+  doing: "tag tag--teal",
+  review: "tag tag--teal",
+  done: "tag tag--ok",
+  skipped: "tag tag--muted",
+};
+
 function mondayOf(dateStr: string): string {
   const date = new Date(`${dateStr}T00:00:00Z`);
   const shift = (date.getUTCDay() + 6) % 7;
@@ -31,26 +41,27 @@ function TrackRing({ track, done, total, rate }: { track: string; done: number; 
   const { t } = useTranslation();
   const offset = RING_CIRCUMFERENCE * (1 - Math.min(Math.max(rate, 0), 1));
   return (
-    <div className="flex w-16 flex-col items-center gap-1" data-testid="campus-kaoyan-ring" data-track={track}>
-      <svg width="64" height="64" viewBox="0 0 64 64" className="text-accent">
-        <circle cx="32" cy="32" r={RING_RADIUS} fill="none" strokeWidth="6" className="stroke-line" />
+    <div className="dial-c" data-testid="campus-kaoyan-ring" data-track={track}>
+      <svg className="dial" width="56" height="56" viewBox="0 0 64 64" aria-hidden>
+        <circle className="dial-track" cx="32" cy="32" r={RING_RADIUS} strokeWidth="6" />
         <circle
+          className="dial-val"
           cx="32"
           cy="32"
           r={RING_RADIUS}
-          fill="none"
           strokeWidth="6"
-          strokeLinecap="round"
           strokeDasharray={RING_CIRCUMFERENCE}
           strokeDashoffset={offset}
           transform="rotate(-90 32 32)"
-          className="stroke-current"
         />
       </svg>
-      <span className="text-[12px] text-ink">
+      <span className="dial-n">{Math.round(Math.min(Math.max(rate, 0), 1) * 100)}%</span>
+      <span className="dial-l">
         {t(TRACK_LABEL_KEYS[track] ?? "", { defaultValue: track })}
       </span>
-      <span className="text-[11px] text-muted">{done}/{total}</span>
+      <span className="dial-l">
+        {done}/{total}
+      </span>
     </div>
   );
 }
@@ -72,83 +83,72 @@ export function PlanBoard({ tasks, progress }: { tasks: PlanTask[]; progress: Pr
   }
 
   const tracks = progress ? Object.entries(progress.by_track) : [];
+  const total = tracks.reduce((sum, [, stat]) => sum + stat.total, 0);
+  const done = tracks.reduce((sum, [, stat]) => sum + stat.done, 0);
 
   return (
-    <div className="flex flex-col gap-3" data-testid="campus-kaoyan-board">
+    <div className="stack" data-testid="campus-kaoyan-board">
       {tracks.length > 0 ? (
-        <div className="flex flex-wrap items-start gap-3 rounded-xl2 border border-line bg-panel p-3">
+        <div className="rings">
           {tracks.map(([track, stat]) => (
             <TrackRing key={track} track={track} done={stat.done} total={stat.total} rate={stat.rate} />
           ))}
-          <div className="ml-auto flex flex-col items-end gap-1 text-[12px] text-muted">
-            {progress ? (
-              <span data-testid="campus-kaoyan-streak">
-                {t("campus.kaoyan.progress.streak", { count: progress.streak_days })}
-              </span>
-            ) : null}
-            {progress && progress.heatmap.length > 0 ? (
-              <div className="flex items-center gap-[2px]" data-testid="campus-kaoyan-heatmap">
-                {progress.heatmap.map((cell) => (
-                  <span
-                    key={cell.date}
-                    title={cell.date}
-                    data-count={cell.count}
-                    data-testid="campus-kaoyan-heatmap-cell"
-                    className={`h-3 w-3 rounded-sm ${cell.count >= 4 ? "bg-accent" : cell.count >= 2 ? "bg-accentSoft" : "bg-line"}`}
-                  />
-                ))}
-              </div>
-            ) : null}
+          {/* 连续打卡与打卡热图在右栏常驻，这里不再重复一遍，只留计划总体的完成率 */}
+          <div className="rings-end">
+            <span className="rings-note" data-testid="campus-kaoyan-overall">
+              {t("campus.kaoyan.board.overall")}{" "}
+              {total ? Math.round((done / total) * 100) : 0}% · {done}/{total}
+            </span>
           </div>
         </div>
       ) : null}
 
       {weeks.length === 0 ? (
-        <div className="rounded-xl2 border border-dashed border-line p-4 text-center text-[13px] text-muted">
-          {t("campus.kaoyan.board.no_plan")}
+        <div className="empty" data-testid="campus-kaoyan-no-plan">
+          <span className="ib ib--brand">
+            <Icon name="calendar" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.kaoyan.board.no_plan")}</span>
         </div>
       ) : (
-        weeks.map((week) => (
-          <div
-            key={week.monday}
-            className="rounded-xl2 border border-line bg-panel"
-            data-testid="campus-kaoyan-week"
-            data-week={week.monday}
-          >
-            <div className="flex items-center justify-between border-b border-line px-3 py-2 text-[12px] text-muted">
-              <span>{t("campus.kaoyan.board.week_of", { date: week.monday })}</span>
-              <span>
-                {t("campus.kaoyan.board.group_summary", {
-                  total: week.tasks.length,
-                  done: week.tasks.filter((item) => item.status === "done").length,
-                })}
-              </span>
-            </div>
-            <ul>
-              {week.tasks.map((item) => (
-                <li
-                  key={item.id}
-                  data-testid={`campus-kaoyan-task-${item.id}`}
-                  className="flex items-center gap-2 px-3 py-2 text-[13px] text-ink odd:bg-canvas"
-                >
-                  <span className="font-mono text-[12px] text-faint">{item.scheduled_date}</span>
-                  <span className="flex-1 truncate">{item.title}</span>
-                  <span
-                    className={`rounded-full px-2 py-[1px] text-[11px] ${
-                      item.status === "done"
-                        ? "bg-okSoft text-ok"
-                        : item.status === "doing" || item.status === "review"
-                          ? "bg-tealSoft text-tealInk"
-                          : "bg-line text-muted"
-                    }`}
+        <div className="fill thin">
+          {weeks.map((week) => (
+            <div
+              key={week.monday}
+              className="wk"
+              data-testid="campus-kaoyan-week"
+              data-week={week.monday}
+            >
+              <div className="wk-h">
+                <span className="wk-d">{week.monday.slice(5)}</span>
+                <span className="sec-title">{t("campus.kaoyan.board.week_of", { date: week.monday })}</span>
+                <span className="wk-n">
+                  {t("campus.kaoyan.board.group_summary", {
+                    total: week.tasks.length,
+                    done: week.tasks.filter((item) => item.status === "done").length,
+                  })}
+                </span>
+              </div>
+              <div className="rows">
+                {week.tasks.map((item) => (
+                  <div
+                    key={item.id}
+                    className="lrow"
+                    data-testid={`campus-kaoyan-task-${item.id}`}
+                    data-status={item.status}
+                    data-date={item.scheduled_date}
                   >
-                    {t(STATUS_LABEL_KEYS[item.status])}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))
+                    <span className="trow-d">{item.scheduled_date.slice(5)}</span>
+                    <div className="lrow-text">
+                      <span className="lrow-title">{item.title}</span>
+                    </div>
+                    <span className={TAG_CLASS[item.status]}>{t(STATUS_LABEL_KEYS[item.status])}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

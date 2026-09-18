@@ -92,13 +92,13 @@ describe("PlanBoard", () => {
     expect(rings[3].textContent).toContain("3/6");
   });
 
-  it("shows the streak and one cell per heatmap day", () => {
+  it("summarises overall completion beside the rings", () => {
     render(<PlanBoard tasks={[task("t1", "2026-09-07")]} progress={progress()} />);
 
-    expect(screen.getByTestId("campus-kaoyan-streak").textContent).toContain("3");
-    const cells = screen.getAllByTestId("campus-kaoyan-heatmap-cell");
-    expect(cells).toHaveLength(3);
-    expect(cells[2].getAttribute("data-count")).toBe("4");
+    // 连续打卡与热图归右栏常驻，计划板只留四轨环 + 总体完成率
+    expect(screen.queryByTestId("campus-kaoyan-streak")).toBeNull();
+    expect(screen.queryByTestId("campus-kaoyan-heatmap")).toBeNull();
+    expect(screen.getByTestId("campus-kaoyan-overall").textContent).toContain("6/16");
   });
 
   it("stays read-only: no buttons, inputs or drag handles anywhere", () => {

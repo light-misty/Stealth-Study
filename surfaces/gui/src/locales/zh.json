@@ -232,7 +232,9 @@
       "retry": "重新解析",
       "delete": "删除",
       "ask_placeholder": "向资料提问…",
-      "asking": "检索中…"
+      "asking": "检索中…",
+      "hint": "导入讲义与真题解析，解析完成后可在「问答」里按页引用",
+      "local_note": "导入内容只存在本机，提问时才会送模型"
     },
     "cet": {
       "assessment": {
@@ -363,7 +365,9 @@
         "new_exam_date": "新考试日期（可选）",
         "generated": "已生成 {{total}} 项任务，始于 {{date}}",
         "rescheduled": "已重排 {{moved}} 项任务，保留已完成 {{kept}} 项",
-        "tracks": "四轨"
+        "tracks": "四轨",
+        "hint": "生成后按周铺到计划板上；改考试日期会重排未完成任务",
+        "title": "复习计划"
       },
       "board": {
         "no_plan": "还没有计划，先用上方按钮生成一份",
@@ -384,7 +388,9 @@
         "empty": "还没有周报，点上方按钮生成一份",
         "top_mistakes": "高频错点",
         "no_mistakes": "本周没有错题记录",
-        "suggestion": "下周建议"
+        "suggestion": "下周建议",
+        "hint": "按 ISO 周汇总完成情况、高频错点与下周建议",
+        "title": "学习周报"
       },
       "tutor": {
         "subject": "科目",
@@ -397,11 +403,16 @@
         },
         "answer": "把你的作答粘贴进来",
         "submit": "提交批改",
-        "submitting": "批改中…"
+        "submitting": "批改中…",
+        "hint": "按科目与题型提交作答，返回采分点与修改建议",
+        "title": "科目辅导"
       },
       "major_qa": {
         "title": "专业课资料问答",
-        "doc_all": "全部资料"
+        "doc_all": "全部资料",
+        "hint": "限定到单个资料时命中率更高；答案里的角标可跳回原文页",
+        "doc_aria": "选择资料",
+        "answer_kicker": "回答"
       },
       "progress": {
         "streak_other": "连续学习 {{count}} 天",

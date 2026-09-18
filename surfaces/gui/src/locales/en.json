@@ -235,7 +235,9 @@
       "retry": "Re-parse",
       "delete": "Delete",
       "ask_placeholder": "Ask your materials…",
-      "asking": "Searching…"
+      "asking": "Searching…",
+      "hint": "Import notes and past-paper walkthroughs; finished docs can be cited page by page in Q&A",
+      "local_note": "Imports stay on this machine; only the question goes to the model"
     },
     "cet": {
       "assessment": {
@@ -367,7 +369,9 @@
         "new_exam_date": "New exam date (optional)",
         "generated": "Generated {{total}} tasks, starting {{date}}",
         "rescheduled": "Rescheduled {{moved}} tasks, {{kept}} done tasks kept",
-        "tracks": "Tracks"
+        "tracks": "Tracks",
+        "hint": "Generated tasks land on the weekly board; changing the exam date reorders what is still open",
+        "title": "Study plan"
       },
       "board": {
         "no_plan": "No plan yet — generate one above",
@@ -388,7 +392,9 @@
         "empty": "No reports yet — generate one above",
         "top_mistakes": "Top mistake points",
         "no_mistakes": "No mistakes recorded this week",
-        "suggestion": "Next week's suggestion"
+        "suggestion": "Next week's suggestion",
+        "hint": "Per ISO week: completion, most frequent errors and a plan for next week",
+        "title": "Weekly report"
       },
       "tutor": {
         "subject": "Subject",
@@ -401,11 +407,16 @@
         },
         "answer": "Paste your answer here",
         "submit": "Submit for grading",
-        "submitting": "Grading…"
+        "submitting": "Grading…",
+        "hint": "Submit an answer by subject and kind to get scoring points and revisions",
+        "title": "Subject tutor"
       },
       "major_qa": {
         "title": "Major document Q&A",
-        "doc_all": "All documents"
+        "doc_all": "All documents",
+        "hint": "Limiting to one document raises the hit rate; the markers in an answer jump back to its page",
+        "doc_aria": "Pick a document",
+        "answer_kicker": "Answer"
       },
       "progress": {
         "streak_one": "{{count}}-day streak",

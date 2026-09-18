@@ -363,16 +363,16 @@
   font-variant-numeric: tabular-nums; color: var(--faint);
 }
 
-.campus-station .ring { display: block; }
-.campus-station .ring-track { fill: none; stroke: var(--line); }
-.campus-station .ring-val { fill: none; stroke: var(--accent); stroke-linecap: round; }
-.campus-station .ring--brand .ring-val { stroke: var(--brand); }
-.campus-station .ring--ok .ring-val { stroke: var(--ok); }
-.campus-station .ring-c { display: flex; flex-direction: column; align-items: center; gap: 1px; }
-.campus-station .ring-n {
+.campus-station .dial { display: block; }
+.campus-station .dial-track { fill: none; stroke: var(--line); }
+.campus-station .dial-val { fill: none; stroke: var(--accent); stroke-linecap: round; }
+.campus-station .dial--brand .dial-val { stroke: var(--brand); }
+.campus-station .dial--ok .dial-val { stroke: var(--ok); }
+.campus-station .dial-c { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.campus-station .dial-n {
   font-family: var(--mono); font-size: 11.5px; font-weight: 600; line-height: 16px; color: var(--ink);
 }
-.campus-station .ring-l { font-size: 10.5px; line-height: 15px; color: var(--faint); }
+.campus-station .dial-l { font-size: 10.5px; line-height: 15px; color: var(--faint); }
 
 .campus-station .heat { display: flex; gap: 3px; flex-wrap: wrap; }
 .campus-station .hc { width: 12px; height: 12px; border-radius: var(--r-3); background: var(--line); }
@@ -771,3 +771,126 @@
   font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint);
 }
 .campus-station .rank-x { font-size: 11.5px; line-height: 17px; color: var(--faint); }
+
+/* ============================================================================
+   考研备考台的五个业务模块
+   ---------------------------------------------------------------------------
+   设计稿 ui-mocks/stealth-study-redesign/css/campus-kaoyan.css。考研台的主语不是
+   「一道题」而是一份跨月的计划：进度环 → 打卡 → 周组 → 周报，由近及远。计划板是
+   只读的（真实实现就没有拖拽与状态切换），所以不给它任何「看起来可拖」的把手。
+   ============================================================================ */
+
+/* --------------------------------------------------------------- 资料库 */
+/* 解析状态是这一屏唯一会自己变的东西，所以胶囊旁边再给一条进度。 */
+.campus-station .doc-acts { display: flex; align-items: center; gap: 6px; }
+.campus-station .parse {
+  width: 148px; flex: none; display: flex; flex-direction: column; gap: 4px;
+}
+.campus-station .parse-k { font-size: 11px; line-height: 16px; color: var(--faint); }
+/* 后端不给解析百分比，所以进行中只给一条呼吸的轨道，不画一个假的完成量 */
+.campus-station .parse-bar {
+  height: 6px; border-radius: var(--r-3); background: var(--paper);
+  animation: cs-sk-breathe 1.5s ease-in-out infinite;
+}
+.campus-station button.lrow-title {
+  border: 0; background: transparent; padding: 0; text-align: left;
+  font-family: inherit; cursor: pointer;
+  transition: color .14s ease;
+}
+.campus-station button.lrow-title:hover { color: var(--brand-deep); }
+/* 导入入口：真实实现是 label 包一个隐藏 file input，样式表保留同一结构 */
+.campus-station .import { position: relative; overflow: hidden; display: inline-flex; }
+.campus-station .import input[type='file'] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0;
+}
+
+/* ------------------------------------------------------------------ 问答 */
+.campus-station .qa-ask { display: flex; align-items: center; gap: 8px; }
+.campus-station .qa-ask .input { flex: 1; }
+.campus-station .qa-ans { display: flex; flex-direction: column; gap: 9px; }
+.campus-station .qa-ans-k {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; line-height: 16px; color: var(--faint);
+}
+.campus-station .qa-ans-k > svg { color: var(--brand); flex: none; }
+.campus-station .qa-body {
+  margin: 0; font-size: 12.5px; line-height: 20px; color: var(--ink);
+}
+
+/* 引用角标：可点，样式上给足 affordance */
+.campus-station .cites { display: flex; flex-wrap: wrap; gap: 6px; }
+.campus-station .cite {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 24px; padding: 0 9px; border: 0; border-radius: var(--r-full);
+  background: var(--brand-soft); color: var(--brand-deep);
+  font-family: inherit; font-size: 11.5px; line-height: 17px;
+  cursor: pointer; white-space: nowrap; transition: filter .14s ease;
+}
+.campus-station .cite:hover { filter: brightness(.96); }
+.campus-station .cite:focus-visible { outline: none; box-shadow: var(--focus); }
+.campus-station .cite .num { font-size: 11px; opacity: .8; }
+
+/* --------------------------------------------------------------- 计划板 */
+/* 四轨完成率 + 总体：环的几何与 PlanBoard 的 TrackRing 一致（r=26 / viewBox 64） */
+.campus-station .rings { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+.campus-station .rings-end {
+  margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+}
+.campus-station .rings-note { font-size: 11px; line-height: 16px; color: var(--faint); }
+.campus-station .wk { display: flex; flex-direction: column; }
+.campus-station .wk-h {
+  display: flex; align-items: baseline; gap: 8px; padding: 10px 2px 4px;
+}
+.campus-station .wk-d {
+  font-family: var(--mono); font-size: 11.5px; font-weight: 600; line-height: 17px; color: var(--ink);
+}
+.campus-station .wk-n { margin-left: auto; font-size: 11px; line-height: 16px; color: var(--faint); }
+.campus-station .trow-d {
+  width: 44px; flex: none;
+  font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint);
+}
+.campus-station .plan-edit { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.campus-station .plan-edit .field { width: 168px; flex: none; }
+
+/* ------------------------------------------------------------------ 周报 */
+/* 周卡默认折叠：一屏能看到近 8 周；展开后才给完成率、错点与建议 */
+.campus-station .rpt {
+  display: flex; flex-direction: column; border-radius: var(--r-14);
+  box-shadow: var(--ring); overflow: hidden;
+}
+.campus-station .rpt-h {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  background: var(--panel); border: 0; width: 100%; text-align: left;
+  font-family: inherit; cursor: pointer; transition: background .14s ease;
+}
+.campus-station .rpt-h:hover { background: var(--paper); }
+.campus-station .rpt-h:focus-visible { outline: none; box-shadow: var(--focus); }
+.campus-station .rpt-d {
+  font-family: var(--mono); font-size: 12px; line-height: 18px; color: var(--ink);
+}
+.campus-station .rpt-n { margin-left: auto; font-size: 11.5px; line-height: 17px; color: var(--faint); }
+.campus-station .rpt-chev { transition: transform .16s ease; flex: none; }
+.campus-station .rpt.is-on .rpt-chev { transform: rotate(90deg); }
+.campus-station .rpt-b {
+  display: none; flex-direction: column; gap: 12px;
+  padding: 14px; border-top: 1px solid var(--line);
+}
+.campus-station .rpt.is-on .rpt-b { display: flex; }
+
+/* 周报正文：模型产出的 markdown，字号比 UI 正文小一档以示「是文章」 */
+.campus-station .prose {
+  display: flex; flex-direction: column; gap: 7px;
+  font-size: 12px; line-height: 20px; color: var(--muted);
+}
+.campus-station .prose h4 {
+  margin: 2px 0 0; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--ink);
+}
+.campus-station .prose p { margin: 0; }
+.campus-station .prose ul {
+  margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 3px; list-style: disc;
+}
+.campus-station .prose li::marker { color: var(--faint); }
+
+/* ------------------------------------------------------------- 科目辅导 */
+.campus-station .tutor-kinds { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.campus-station .tutor-kinds .field { flex: 1; min-width: 148px; }

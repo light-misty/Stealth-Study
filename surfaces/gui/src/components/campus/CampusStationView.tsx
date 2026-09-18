@@ -100,7 +100,15 @@ const LIBRARY_PANELS: readonly PanelSpec[] = [
       <LibraryPanel profileId={profileId} selectedDocId={selectedDocId} onSelectDoc={onSelectDoc} />
     ),
   },
-  { key: "qa", tab: "qa", render: ({ profileId }) => <MajorQAView profileId={profileId} /> },
+  { key: "qa", tab: "qa", render: ({ profileId, onSelectDoc, onGotoTab }) => (
+      <MajorQAView
+        profileId={profileId}
+        onCite={(docId) => {
+          onSelectDoc(docId);
+          onGotoTab("library");
+        }}
+      />
+    ) },
 ];
 
 const CERT_PANELS: readonly PanelSpec[] = [
