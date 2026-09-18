@@ -1763,7 +1763,6 @@ export function App() {
         integrationsActive={surface === "integrations"}
         auditActive={surface === "audit"}
         inboxActive={surface === "inbox"}
-        collapsed={navCollapsed}
         onCollapse={toggleNav}
       />
       {surface === "scheduled" ? (

@@ -153,7 +153,6 @@ interface Props {
   auditActive: boolean;
   inboxActive: boolean;
   // Collapse control (⌘B mirrors it): `onCollapse` docks/undocks the nav.
-  collapsed?: boolean;
   onCollapse?: () => void;
 }
 
@@ -1015,12 +1014,13 @@ export function Sidebar(props: Props) {
           the two affordances swap places without the cursor travelling.
           data-tauri-drag-region drags the window; on desktop the row clears the traffic lights. */}
       <div className="brand px-3.5 pt-2.5 pb-2 flex items-center gap-2" data-tauri-drag-region>
-        {/* Collapse (dock) / pin the sidebar. ⌘B mirrors this. */}
+        {/* Collapse / pin the sidebar. ⌘B mirrors this. While the nav is collapsed the whole
+            panel is off-screen, so this button is only ever reachable as "collapse". */}
         {props.onCollapse && (
           <button
             className="nav-pin-btn w-7 h-7 grid place-items-center rounded-md text-faint hover:text-ink hover:bg-chromeHover shrink-0"
-            title={props.collapsed ? t("sidebar.dock") + " (⌘B)" : t("sidebar.collapse") + " (⌘B)"}
-            aria-label={props.collapsed ? t("sidebar.dock") : t("sidebar.collapse")}
+            title={t("sidebar.collapse") + " (⌘B)"}
+            aria-label={t("sidebar.collapse")}
             onClick={props.onCollapse}
           >
             <Icon name="sidebar" size={16} />
