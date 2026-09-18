@@ -34,7 +34,15 @@ const recent = archived("a1", "四级冲刺", daysAgo(200), daysAgo(2));
 const older = archived("a2", "六级冲关", daysAgo(120), daysAgo(90));
 const legacy = archived("a3", "历史归档", daysAgo(40), null);
 
-const dayText = (value: string | null): string => (value ?? "").slice(0, 10);
+// formatTimestamp renders in the viewer's timezone, so the expected day has to be taken
+// the same way — slicing the UTC ISO string only matched while the run happened to sit on
+// the same local date as the UTC one, and broke the moment the clock crossed midnight.
+const dayText = (value: string | null): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
 
 describe("ArchivedProfilesDialog", () => {
   it("lists the archived profiles with their create and archive dates", () => {
