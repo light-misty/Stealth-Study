@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { installContextMenuGuard } from "./desktopChrome";
+import { installContextMenuGuard, shouldBeginWindowDrag } from "./desktopChrome";
 
 describe("installContextMenuGuard", () => {
   let dispose: (() => void) | null = null;
@@ -34,5 +34,31 @@ describe("installContextMenuGuard", () => {
     dispose();
     dispose = null;
     expect(rightClick(document.body)).toBe(false);
+  });
+});
+
+describe("shouldBeginWindowDrag", () => {
+  const region = document.createElement("div");
+  const label = document.createElement("span");
+  const button = document.createElement("button");
+  const glyph = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  button.appendChild(glyph);
+  const input = document.createElement("input");
+  const link = document.createElement("a");
+  const exempt = document.createElement("div");
+  exempt.setAttribute("data-no-drag", "");
+  const exemptInner = document.createElement("em");
+  exempt.appendChild(exemptInner);
+  region.append(label, button, input, link, exempt);
+
+  it("drags the window from the bare surfaces of a drag region", () => {
+    expect(shouldBeginWindowDrag(region)).toBe(true);
+    expect(shouldBeginWindowDrag(label)).toBe(true);
+  });
+
+  it("never drags from a control, its glyph, or a data-no-drag subtree", () => {
+    for (const target of [button, glyph, input, link, exempt, exemptInner]) {
+      expect(shouldBeginWindowDrag(target), target.tagName).toBe(false);
+    }
   });
 });
