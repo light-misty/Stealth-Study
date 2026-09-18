@@ -58,6 +58,22 @@
   <symbol id="i-chev-right" viewBox="0 0 24 24"><polyline points="9.5 6 15.5 12 9.5 18"/></symbol>
   <symbol id="i-minus" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="6"/><polyline points="6 12 12 6 18 12"/></symbol>
+
+  <!-- 备考台图标：与真实实现的侧栏映射保持一致（CET=book / 考研=clock / 证书=shield） -->
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7.5" r="4"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M17 3.5a2.12 2.12 0 0 1 3 3L7.5 19 3.5 20.5 5 16.5z"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="2.5" y="3.8" width="19" height="4.4" rx="1.6"/><path d="M4.6 8.2V19a1.6 1.6 0 0 0 1.6 1.6h11.6A1.6 1.6 0 0 0 19.4 19V8.2"/><line x1="10" y1="12.4" x2="14" y2="12.4"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13.4"/><line x1="12" y1="16.6" x2="12" y2="16.7"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><line x1="8.6" y1="6" x2="20.5" y2="6"/><line x1="8.6" y1="12" x2="20.5" y2="12"/><line x1="8.6" y1="18" x2="20.5" y2="18"/><circle cx="4.3" cy="6" r="1.2"/><circle cx="4.3" cy="12" r="1.2"/><circle cx="4.3" cy="18" r="1.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><polyline points="4.5 12.6 9.4 17.5 19.5 6.8"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="6.2" y1="6.2" x2="17.8" y2="17.8"/><line x1="17.8" y1="6.2" x2="6.2" y2="17.8"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2.5"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2.6" x2="8" y2="6.4"/><line x1="16" y1="2.6" x2="16" y2="6.4"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><line x1="3.5" y1="20.5" x2="20.5" y2="20.5"/><rect x="6.4" y="11.4" width="3.6" height="9" rx="1.5"/><rect x="14" y="4.6" width="3.6" height="15.8" rx="1.5"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="20.6 4.6 20.6 10.2 15 10.2"/><path d="M18.4 15a7.6 7.6 0 1 1-1.9-8.4l4.1 3.6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><line x1="5.5" y1="21.5" x2="5.5" y2="3.5"/><path d="M5.5 4.2h12.6l-2.5 4 2.5 4H5.5z"/></symbol>
 </defs></svg>
 
 <div class="stage">
@@ -85,6 +101,25 @@
         <button class="nav-item" data-nav="语音输入"><svg class="ic" width="17" height="17"><use href="#i-mic"/></svg><span class="nav-label">语音输入</span></button>
         <button class="nav-item" data-nav="记忆"><svg class="ic" width="17" height="17"><use href="#i-memory"/></svg><span class="nav-label">记忆</span></button>
         <button class="nav-item" data-nav="同事"><svg class="ic" width="17" height="17"><use href="#i-coworker"/></svg><span class="nav-label">同事</span></button>
+      </div>
+
+      <!-- 备考台导航：三行与真实侧栏同序同图标，另给两个回跳入口 -->
+      <div class="nav-set nav-set--campus">
+        <div class="group-label">
+          <svg class="ic" width="15" height="15"><use href="#i-book"/></svg>
+          <span class="group-text">备考台</span>
+        </div>
+        <button class="nav-item" data-open="cet"><svg class="ic" width="17" height="17"><use href="#i-book"/></svg><span class="nav-label">CET 备考台</span></button>
+        <button class="nav-item" data-open="kaoyan"><svg class="ic" width="17" height="17"><use href="#i-clock"/></svg><span class="nav-label">考研备考台</span></button>
+        <button class="nav-item" data-open="cert"><svg class="ic" width="17" height="17"><use href="#i-shield"/></svg><span class="nav-label">证书备考台</span></button>
+        <div class="gap-8"></div>
+        <div class="divider"></div>
+        <div class="group-label">
+          <svg class="ic" width="15" height="15"><use href="#i-panel"/></svg>
+          <span class="group-text">常用</span>
+        </div>
+        <button class="nav-item" data-open="new"><svg class="ic" width="17" height="17"><use href="#i-plus"/></svg><span class="nav-label">新建会话</span></button>
+        <button class="nav-item" data-open="settings"><svg class="ic" width="17" height="17"><use href="#i-settings"/></svg><span class="nav-label">设置</span></button>
       </div>
 
       <!-- 会话导航 -->
@@ -350,7 +385,707 @@
           </div>
         </div>
       </section>
+      <!-- ================== 05 · CET 备考台 ================== -->
+      <section class="view view--station" id="viewCet" data-view-name="cet">
+        <header class="st-top">
+          <span class="win-title">CET 备考台</span>
+          <span class="fl"></span>
+          <div class="who">
+            <span class="who-l">切换档案</span>
+            <div class="who-list">
+              <div class="who-item is-on">
+                <button class="who-pill"><span class="dot"></span>大三上 · 四级</button>
+                <span class="who-tools">
+                  <button class="icon-btn" data-dlg="rename" aria-label="档案改名"><svg class="ic" width="13" height="13"><use href="#i-pencil"/></svg></button>
+                  <button class="icon-btn icon-btn--danger" aria-label="归档此档案"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg></button>
+                </span>
+              </div>
+              <div class="who-item">
+                <button class="who-pill">二战 · 冲 600</button>
+                <span class="who-tools">
+                  <button class="icon-btn" data-dlg="rename" aria-label="档案改名"><svg class="ic" width="13" height="13"><use href="#i-pencil"/></svg></button>
+                  <button class="icon-btn icon-btn--danger" aria-label="归档此档案"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg></button>
+                </span>
+              </div>
+              <button class="btn btn--ghost btn--sm" data-dlg="create"><svg class="ic" width="13" height="13"><use href="#i-plus"/></svg>新建</button>
+              <button class="btn btn--text btn--sm" data-dlg="archived"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg>已归档&nbsp;<span class="num">3</span></button>
+            </div>
+          </div>
+        </header>
+
+        <div class="st-body thin">
+          <div class="st-col">
+            <header class="st-head">
+              <h1 class="st-title">CET 四六级</h1>
+              <p class="st-sub">听力 · 阅读 · 写作 · 翻译</p>
+            </header>
+
+            <nav class="st-tabs" role="tablist" aria-label="CET 备考台模块">
+              <button class="st-tab is-on" role="tab" aria-selected="true" data-tab="mistake">错题本</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="review">今日复习<span class="tb num">8</span></button>
+            </nav>
+
+            <!-- 错题本 -->
+            <div class="st-pane is-on" role="tabpanel" data-pane="mistake">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-list"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">错题本</span>
+                    <span class="mod-desc">按错因归类，先把重复犯的那一类解决掉</span>
+                  </div>
+                  <div class="mod-acts">
+                    <span class="sec-n">共 128 条</span>
+                    <div class="sel sel--sm">
+                      <select aria-label="错因归因">
+                        <option>全部错因</option><option>概念不清</option><option>审题失误</option>
+                        <option>计算或操作失误</option><option>超纲</option><option>时间不足</option><option>待判定</option>
+                      </select>
+                      <svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rows rows--fix thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">阅读 · 长篇匹配 — 先找限定词再定位</span><span class="lrow-meta">错 5 次 · 2026-09-10</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option selected>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">词汇 — elaborate / integrate 形近混用</span><span class="lrow-meta">错 6 次 · 2026-09-09</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">听力 · Section B 讲座 — 笔记填空漏听后缀</span><span class="lrow-meta">错 3 次 · 2026-09-07</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option selected>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">写作 — 主题句与论据错位</span><span class="lrow-meta">错 2 次 · 2026-09-05</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">翻译 — 定语从句拆分位置不当</span><span class="lrow-meta">错 4 次 · 2026-09-02</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">听力 · Section C — 态度题被细节带偏</span><span class="lrow-meta">错 2 次 · 2026-08-30</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option selected>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">阅读 · 细节题 — 回文定位跳段</span><span class="lrow-meta">错 3 次 · 2026-08-27</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option selected>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">翻译 — 被动语态误译为主动</span><span class="lrow-meta">错 1 次 · 2026-08-24</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option>时间不足</option><option selected>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                </div>
+
+                <div class="mod-foot">
+                  <span class="sec-n">显示 8 / 128 条</span>
+                  <span class="fl"></span>
+                  <button class="btn btn--text btn--sm">加载更多</button>
+                </div>
+              </section>
+            </div>
+
+            <!-- 今日复习 -->
+            <div class="st-pane" role="tabpanel" data-pane="review">
+              <section class="mod" data-review data-review-done="2" data-review-total="10">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-refresh"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">今日待复习</span>
+                    <span class="mod-desc">间隔重复队列，答对即顺延</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">2 / 10</span></div>
+                </div>
+
+                <div class="bar bar--ok"><i style="--w:20%"></i></div>
+
+                <div class="rows rows--fix thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">abandon — v. 放弃；n. 放任</span><span class="lrow-meta">下次复习：4 天后</span></div>
+                    <div class="lrow-acts">
+                      <button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button>
+                      <button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button>
+                    </div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">comprehensive — adj. 全面的，综合的</span><span class="lrow-meta">下次复习：1 天后</span></div>
+                    <div class="lrow-acts">
+                      <button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button>
+                      <button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button>
+                    </div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">听力 · Section B 讲座笔记 · 第 2 段</span><span class="lrow-meta">下次复习：12 天后</span></div>
+                    <div class="lrow-acts">
+                      <button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button>
+                      <button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button>
+                    </div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">写作 — 因果链模板（Because…, …）</span><span class="lrow-meta">下次复习：2 天后</span></div>
+                    <div class="lrow-acts">
+                      <button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button>
+                      <button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button>
+                    </div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">spare — adj. 备用的；v. 分出</span><span class="lrow-meta">下次复习：6 天后</span></div>
+                    <div class="lrow-acts">
+                      <button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button>
+                      <button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <aside class="st-rail thin">
+            <div class="hero">
+              <div class="hero-kicker"><svg class="ic" width="13" height="13"><use href="#i-calendar"/></svg>考试日期 2026-12-19 · 四级</div>
+              <div class="hero-num-row"><span class="hero-num">91</span><span class="hero-unit">天</span></div>
+              <div class="bar bar--brand"><i style="--w:38%"></i></div>
+              <div class="hero-meta">备考进度 38% · 目标 550 · 当前预估 468</div>
+            </div>
+
+            <div class="card">
+              <div class="sec">
+                <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-chart"/></svg></span>
+                <div class="sec-text"><span class="sec-title">今日进度</span><span class="sec-desc">按每日 90 分钟安排</span></div>
+                <span class="sec-n">47%</span>
+              </div>
+              <div class="prog"><span class="prog-k">时长</span><span class="bar"><i style="--w:47%"></i></span><span class="prog-v">42/90</span></div>
+              <div class="prog"><span class="prog-k">词汇</span><span class="bar"><i style="--w:60%"></i></span><span class="prog-v">12/20</span></div>
+              <div class="prog"><span class="prog-k">复习</span><span class="bar"><i style="--w:20%"></i></span><span class="prog-v">2/10</span></div>
+              <div class="prog"><span class="prog-k">批改</span><span class="bar"><i style="--w:50%"></i></span><span class="prog-v">1/2</span></div>
+              <button class="btn btn--soft btn--sm" data-goto-tab="review">去做今日复习<svg class="ic" width="12" height="12"><use href="#i-chev-right"/></svg></button>
+            </div>
+
+            <div class="card">
+              <div class="sec">
+                <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-flame"/></svg></span>
+                <div class="sec-text"><span class="sec-title">连续打卡</span><span class="sec-desc">近 21 天</span></div>
+                <span class="sec-n">12 天</span>
+              </div>
+              <div class="heat">
+                <span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc"></span>
+                <span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--3"></span>
+                <span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--1"></span><span class="hc hc--3"></span>
+              </div>
+              <span class="lrow-meta">本周 6 / 7 天 · 本月 18 / 21 天</span>
+            </div>
+
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================== 06 · 考研备考台 ================== -->
+      <section class="view view--station" id="viewKaoyan" data-view-name="kaoyan">
+        <header class="st-top">
+          <span class="win-title">考研备考台</span>
+          <span class="fl"></span>
+          <div class="who">
+            <span class="who-l">切换档案</span>
+            <div class="who-list">
+              <div class="who-item is-on">
+                <button class="who-pill"><span class="dot"></span>2027 一战 · 计算机</button>
+                <span class="who-tools">
+                  <button class="icon-btn" data-dlg="rename" aria-label="档案改名"><svg class="ic" width="13" height="13"><use href="#i-pencil"/></svg></button>
+                  <button class="icon-btn icon-btn--danger" aria-label="归档此档案"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg></button>
+                </span>
+              </div>
+              <button class="btn btn--ghost btn--sm" data-dlg="create"><svg class="ic" width="13" height="13"><use href="#i-plus"/></svg>新建</button>
+              <button class="btn btn--text btn--sm" data-dlg="archived"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg>已归档&nbsp;<span class="num">1</span></button>
+            </div>
+          </div>
+        </header>
+
+        <div class="st-body thin">
+          <div class="st-col">
+            <header class="st-head">
+              <h1 class="st-title">考研</h1>
+              <p class="st-sub">政治 · 英语 · 数学 · 专业课</p>
+            </header>
+
+            <!-- EmptyModelGuide：模型能力不足时整行提示，不可用的模块不会静默消失 -->
+            <div class="alert">
+              <svg class="ic" width="15" height="15"><use href="#i-alert"/></svg>
+              <div class="alert-text">
+                <span class="alert-title">当前模型能力不足</span>
+                <span class="alert-desc">以下功能暂不可用，换用更强的模型后自动恢复：批改 · 出题 · 讲解</span>
+              </div>
+              <button class="btn btn--ghost btn--sm" data-dismiss>知道了</button>
+            </div>
+
+            <nav class="st-tabs" role="tablist" aria-label="考研备考台模块">
+              <button class="st-tab is-on" role="tab" aria-selected="true" data-tab="mistake">错题本</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="review">今日复习<span class="tb num">14</span></button>
+            </nav>
+
+            <div class="st-pane is-on" role="tabpanel" data-pane="mistake">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-list"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">错题本</span>
+                    <span class="mod-desc">四轨错题合流，按错因归类</span>
+                  </div>
+                  <div class="mod-acts">
+                    <span class="sec-n">共 342 条</span>
+                    <div class="sel sel--sm">
+                      <select aria-label="错因归因">
+                        <option>全部错因</option><option>概念不清</option><option>审题失误</option>
+                        <option>计算或操作失误</option><option>超纲</option><option>时间不足</option><option>待判定</option>
+                      </select>
+                      <svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rows rows--fix thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">数学 · 中值定理 — 构造辅助函数方向错</span><span class="lrow-meta">错 7 次 · 2026-09-14</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">数学 · 二重积分 — 交换积分次序漏分情况</span><span class="lrow-meta">错 4 次 · 2026-09-13</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option selected>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">政治 · 马原 — 剩余价值率与利润率混淆</span><span class="lrow-meta">错 5 次 · 2026-09-11</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">英语 · 完形 — 逻辑连接词反义误判</span><span class="lrow-meta">错 3 次 · 2026-09-09</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option selected>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">专业课 · 操作系统 — 死锁四个必要条件记漏一个</span><span class="lrow-meta">错 2 次 · 2026-09-06</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">数学 · 线性代数 — 特征值重根时几何重数判断</span><span class="lrow-meta">错 3 次 · 2026-09-03</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option selected>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">专业课 · 数据结构 — KMP 的 next 数组下标偏移</span><span class="lrow-meta">错 6 次 · 2026-08-31</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option selected>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">政治 · 史纲 — 会议时间线前后颠倒</span><span class="lrow-meta">错 2 次 · 2026-08-28</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option>时间不足</option><option selected>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                </div>
+
+                <div class="mod-foot">
+                  <span class="sec-n">显示 8 / 342 条</span>
+                  <span class="fl"></span>
+                  <button class="btn btn--text btn--sm">加载更多</button>
+                </div>
+              </section>
+            </div>
+
+            <div class="st-pane" role="tabpanel" data-pane="review">
+              <section class="mod" data-review data-review-done="5" data-review-total="14">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-refresh"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">今日待复习</span>
+                    <span class="mod-desc">间隔重复队列，答对即顺延</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">5 / 14</span></div>
+                </div>
+
+                <div class="bar bar--ok"><i style="--w:36%"></i></div>
+
+                <div class="rows rows--fix thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">毛中特 · 新民主主义革命总路线</span><span class="lrow-meta">下次复习：3 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">数学 · 泰勒展开三阶余项</span><span class="lrow-meta">下次复习：1 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">英语 · ambiguous / aggravated 辨析</span><span class="lrow-meta">下次复习：8 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">OS · 银行家算法步骤</span><span class="lrow-meta">下次复习：2 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">线代 · 相似对角化的充分条件</span><span class="lrow-meta">下次复习：15 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <aside class="st-rail thin">
+            <div class="hero is-near">
+              <div class="hero-kicker"><svg class="ic" width="13" height="13"><use href="#i-calendar"/></svg>考试日期 2026-12-26 · 计算机学硕</div>
+              <div class="hero-num-row"><span class="hero-num">28</span><span class="hero-unit">天</span></div>
+              <div class="bar bar--brand"><i style="--w:88%"></i></div>
+              <div class="hero-meta">目标 380 · 当前预估 341 · 已进入冲刺阶段</div>
+            </div>
+
+            <div class="card">
+              <div class="sec">
+                <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-chart"/></svg></span>
+                <div class="sec-text"><span class="sec-title">今日进度</span><span class="sec-desc">按每日 300 分钟安排</span></div>
+                <span class="sec-n">62%</span>
+              </div>
+              <div class="prog"><span class="prog-k">时长</span><span class="bar"><i style="--w:62%"></i></span><span class="prog-v">186/300</span></div>
+              <div class="prog"><span class="prog-k">任务</span><span class="bar"><i style="--w:50%"></i></span><span class="prog-v">4/8</span></div>
+              <div class="prog"><span class="prog-k">复习</span><span class="bar"><i style="--w:36%"></i></span><span class="prog-v">5/14</span></div>
+              <div class="prog"><span class="prog-k">资料</span><span class="bar"><i style="--w:80%"></i></span><span class="prog-v">4/5</span></div>
+              <button class="btn btn--soft btn--sm" data-goto-tab="review">去做今日复习<svg class="ic" width="12" height="12"><use href="#i-chev-right"/></svg></button>
+            </div>
+
+            <div class="card">
+              <div class="sec">
+                <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-flame"/></svg></span>
+                <div class="sec-text"><span class="sec-title">连续打卡</span><span class="sec-desc">近 21 天</span></div>
+                <span class="sec-n">31 天</span>
+              </div>
+              <div class="heat">
+                <span class="hc hc--3"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--3"></span><span class="hc hc--2"></span>
+                <span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span>
+                <span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--3"></span>
+              </div>
+              <span class="lrow-meta">本周 7 / 7 天 · 本月 27 / 30 天</span>
+            </div>
+
+          </aside>
+        </div>
+      </section>
+
+      <!-- ================== 07 · 证书备考台 ================== -->
+      <section class="view view--station" id="viewCert" data-view-name="cert">
+        <header class="st-top">
+          <span class="win-title">证书备考台</span>
+          <span class="fl"></span>
+          <div class="who">
+            <span class="who-l">切换档案</span>
+            <div class="who-list">
+              <div class="who-item is-on">
+                <button class="who-pill"><span class="dot"></span>高中数学教资</button>
+                <span class="who-tools">
+                  <button class="icon-btn" data-dlg="rename" aria-label="档案改名"><svg class="ic" width="13" height="13"><use href="#i-pencil"/></svg></button>
+                  <button class="icon-btn icon-btn--danger" aria-label="归档此档案"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg></button>
+                </span>
+              </div>
+              <div class="who-item">
+                <button class="who-pill">普通话二甲</button>
+                <span class="who-tools">
+                  <button class="icon-btn" data-dlg="rename" aria-label="档案改名"><svg class="ic" width="13" height="13"><use href="#i-pencil"/></svg></button>
+                  <button class="icon-btn icon-btn--danger" aria-label="归档此档案"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg></button>
+                </span>
+              </div>
+              <button class="btn btn--ghost btn--sm" data-dlg="create"><svg class="ic" width="13" height="13"><use href="#i-plus"/></svg>新建</button>
+              <button class="btn btn--text btn--sm" data-dlg="archived"><svg class="ic" width="13" height="13"><use href="#i-archive"/></svg>已归档&nbsp;<span class="num">2</span></button>
+            </div>
+          </div>
+        </header>
+
+        <div class="st-body thin">
+          <div class="st-col">
+            <header class="st-head">
+              <h1 class="st-title">证书</h1>
+              <p class="st-sub">知识树 · 刷题 · 批改</p>
+            </header>
+
+            <nav class="st-tabs" role="tablist" aria-label="证书备考台模块">
+              <button class="st-tab is-on" role="tab" aria-selected="true" data-tab="mistake">错题本</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="review">今日复习<span class="tb num">6</span></button>
+            </nav>
+
+            <div class="st-pane is-on" role="tabpanel" data-pane="mistake">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-list"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">错题本</span>
+                    <span class="mod-desc">错题挂在知识树节点上，先补最薄的那一枝</span>
+                  </div>
+                  <div class="mod-acts">
+                    <span class="sec-n">共 76 条</span>
+                    <div class="sel sel--sm">
+                      <select aria-label="错因归因">
+                        <option>全部错因</option><option>概念不清</option><option>审题失误</option>
+                        <option>计算或操作失误</option><option>超纲</option><option>时间不足</option><option>待判定</option>
+                      </select>
+                      <svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="rows rows--fix thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">学科知识 · 函数单调性证明 — 缺端点讨论</span><span class="lrow-meta">错 4 次 · 2026-09-13</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">教学知识 · 导入环节设计 — 与目标脱节</span><span class="lrow-meta">错 3 次 · 2026-09-11</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option selected>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">综合素质 · 教育法规 — 教师权利条款混淆</span><span class="lrow-meta">错 5 次 · 2026-09-08</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">教学设计 · 课时分配 — 练习量不足</span><span class="lrow-meta">错 2 次 · 2026-09-05</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option selected>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">学科知识 · 数列求和 — 错位相减算错符号</span><span class="lrow-meta">错 3 次 · 2026-09-02</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option selected>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">教学知识 · 评价方式 — 忽视过程性评价</span><span class="lrow-meta">错 1 次 · 2026-08-30</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option selected>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">综合素质 · 写作 — 立意跑偏到教学方法</span><span class="lrow-meta">错 2 次 · 2026-08-26</span></div>
+                    <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option selected>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
+                  </div>
+                </div>
+
+                <div class="mod-foot">
+                  <span class="sec-n">显示 7 / 76 条</span>
+                  <span class="fl"></span>
+                  <button class="btn btn--text btn--sm">加载更多</button>
+                </div>
+              </section>
+            </div>
+
+            <div class="st-pane" role="tabpanel" data-pane="review">
+              <section class="mod" data-review data-review-done="1" data-review-total="6">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-refresh"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">今日待复习</span>
+                    <span class="mod-desc">间隔重复队列，答对即顺延</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">1 / 6</span></div>
+                </div>
+
+                <div class="bar bar--ok"><i style="--w:17%"></i></div>
+
+                <div class="rows rows--fix thin">
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">知识点 · 闭区间连续函数三大定理</span><span class="lrow-meta">下次复习：2 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">简答题 · 启发性教学原则的内涵</span><span class="lrow-meta">下次复习：5 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">法规 · 教师法第七条 教师权利</span><span class="lrow-meta">下次复习：1 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                  <div class="lrow">
+                    <div class="lrow-text"><span class="lrow-title">教学设计 · 三维目标的写法</span><span class="lrow-meta">下次复习：9 天后</span></div>
+                    <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <aside class="st-rail thin">
+            <!-- 证书是多节点截止：DeadlineBanner 的六类节点按 tier 分档，不是一条日期 -->
+            <div class="hero">
+              <div class="hero-kicker"><svg class="ic" width="13" height="13"><use href="#i-flag"/></svg>倒计时 · 以官方公告为准</div>
+              <div class="hero-num-row"><span class="hero-num">17</span><span class="hero-unit">天</span></div>
+              <div class="hero-meta">最近节点：准考证打印 · 2026-10-05</div>
+              <div class="dl">
+                <div class="dl-row" data-tier="overdue"><span class="dl-name">报名开始</span><span class="dl-date">09-05</span><span class="dl-left">已过</span></div>
+                <div class="dl-row" data-tier="d7"><span class="dl-name">报名截止</span><span class="dl-date">09-25</span><span class="dl-left">7 天</span></div>
+                <div class="dl-row" data-tier="d30"><span class="dl-name">缴费截止</span><span class="dl-date">09-28</span><span class="dl-left">10 天</span></div>
+                <div class="dl-row" data-tier="today"><span class="dl-name">准考证打印</span><span class="dl-date">10-05</span><span class="dl-left">今天</span></div>
+                <div class="dl-row" data-tier="normal"><span class="dl-name">考试</span><span class="dl-date">11-01</span><span class="dl-left">44 天</span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="sec">
+                <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-chart"/></svg></span>
+                <div class="sec-text"><span class="sec-title">今日进度</span><span class="sec-desc">按每日 120 分钟安排</span></div>
+                <span class="sec-n">35%</span>
+              </div>
+              <div class="prog"><span class="prog-k">时长</span><span class="bar"><i style="--w:35%"></i></span><span class="prog-v">42/120</span></div>
+              <div class="prog"><span class="prog-k">刷题</span><span class="bar"><i style="--w:40%"></i></span><span class="prog-v">8/20</span></div>
+              <div class="prog"><span class="prog-k">复习</span><span class="bar"><i style="--w:17%"></i></span><span class="prog-v">1/6</span></div>
+              <div class="prog"><span class="prog-k">批改</span><span class="bar"><i style="--w:0%"></i></span><span class="prog-v">0/1</span></div>
+              <button class="btn btn--soft btn--sm" data-goto-tab="review">去做今日复习<svg class="ic" width="12" height="12"><use href="#i-chev-right"/></svg></button>
+            </div>
+
+            <div class="card">
+              <div class="sec">
+                <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-flame"/></svg></span>
+                <div class="sec-text"><span class="sec-title">连续打卡</span><span class="sec-desc">近 21 天</span></div>
+                <span class="sec-n">5 天</span>
+              </div>
+              <div class="heat">
+                <span class="hc"></span><span class="hc"></span><span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc"></span><span class="hc hc--1"></span><span class="hc"></span>
+                <span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc"></span><span class="hc hc--1"></span><span class="hc hc--2"></span>
+                <span class="hc hc--1"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span><span class="hc hc--2"></span><span class="hc hc--3"></span>
+              </div>
+              <span class="lrow-meta">本周 4 / 7 天 · 本月 12 / 21 天</span>
+            </div>
+
+          </aside>
+        </div>
+      </section>
+
     </main>
+
+    <!-- ===================== 档案弹窗组（三站点共用一套） =====================
+         对应 CampusDialog：遮罩 + 居中纸页 + 右上关闭 + 底部动作区。
+         建档 / 改名 / 已归档三个入口都收在顶栏的档案条上，不再往正文里长卡片。 -->
+
+    <div class="dlg" id="dlgCreate" data-dlg-id="create" hidden>
+      <div class="dlg-card">
+        <div class="dlg-head">
+          <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-user"/></svg></span>
+          <h3 class="dlg-title">新建备考档案</h3>
+          <button class="icon-btn" data-dlg-close aria-label="关闭"><svg class="ic" width="14" height="14"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="dlg-body">
+          <div class="field">
+            <span class="field-label">档案名称</span>
+            <input class="input" type="text" value="研三 · 冲刺班" />
+            <span class="field-hint">用于在多个档案之间快速认出它</span>
+          </div>
+          <div class="field">
+            <span class="field-label">考试日期</span>
+            <input class="input input--num" type="date" value="2027-06-12" />
+          </div>
+          <div class="field-rows">
+            <div class="field">
+              <span class="field-label">目标分数</span>
+              <input class="input input--num" type="number" value="600" min="0" />
+            </div>
+            <div class="field">
+              <span class="field-label">每日时长（分钟）</span>
+              <input class="input input--num" type="number" value="120" min="0" />
+            </div>
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn btn--text" data-dlg-close>取消</button>
+          <button class="btn btn--primary" data-dlg-close>创建档案</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dlg" id="dlgRename" data-dlg-id="rename" hidden>
+      <div class="dlg-card">
+        <div class="dlg-head">
+          <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-pencil"/></svg></span>
+          <h3 class="dlg-title">档案改名</h3>
+          <button class="icon-btn" data-dlg-close aria-label="关闭"><svg class="ic" width="14" height="14"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="dlg-body">
+          <div class="field is-bad">
+            <span class="field-label">档案名称</span>
+            <input class="input" type="text" value="大三上 · 四级" />
+            <span class="field-err">「大三上 · 四级」已被一个未归档的档案占用。先把那个档案归档，这个名字就会空出来。</span>
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn btn--text" data-dlg-close>取消</button>
+          <button class="btn btn--primary" disabled>保存名称</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dlg dlg--wide" id="dlgArchived" data-dlg-id="archived" hidden>
+      <div class="dlg-card">
+        <div class="dlg-head">
+          <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-archive"/></svg></span>
+          <h3 class="dlg-title">已归档档案</h3>
+          <button class="icon-btn" data-dlg-close aria-label="关闭"><svg class="ic" width="14" height="14"><use href="#i-x"/></svg></button>
+        </div>
+        <div class="dlg-body">
+          <div class="arch-list">
+            <div class="field-rows">
+              <div class="field">
+                <div class="sel"><select aria-label="按归档时间筛选">
+                  <option>全部归档时间</option><option>最近 7 天</option><option>最近 30 天</option><option>更早</option>
+                </select><svg class="ic" width="14" height="14"><use href="#i-chev-down"/></svg></div>
+              </div>
+              <div class="field">
+                <div class="sel"><select aria-label="排序方式">
+                  <option>按归档时间</option><option>按创建时间</option>
+                </select><svg class="ic" width="14" height="14"><use href="#i-chev-down"/></svg></div>
+              </div>
+            </div>
+            <div class="rows">
+              <div class="lrow">
+                <div class="lrow-text"><span class="lrow-title">大二下 · 四级未过</span><span class="lrow-meta">创建 2025-09-01 · 归档 2026-03-12</span></div>
+                <div class="lrow-acts">
+                  <button class="btn btn--text btn--sm" data-arch-detail>查看详情</button>
+                  <button class="btn btn--text btn--sm">改名</button>
+                  <button class="btn btn--soft btn--sm">恢复</button>
+                </div>
+              </div>
+              <div class="lrow">
+                <div class="lrow-text"><span class="lrow-title">大二上 · 五级</span><span class="lrow-meta">创建 2025-02-20 · 归档 2025-08-30</span></div>
+                <div class="lrow-acts">
+                  <button class="btn btn--text btn--sm" data-arch-detail>查看详情</button>
+                  <button class="btn btn--text btn--sm">改名</button>
+                  <button class="btn btn--soft btn--sm">恢复</button>
+                </div>
+              </div>
+              <div class="lrow">
+                <div class="lrow-text"><span class="lrow-title">社会考生 · 自用</span><span class="lrow-meta">创建 2024-11-05 · 归档 2025-01-18</span></div>
+                <div class="lrow-acts">
+                  <button class="btn btn--text btn--sm" data-arch-detail>查看详情</button>
+                  <button class="btn btn--text btn--sm">改名</button>
+                  <button class="btn btn--soft btn--sm">恢复</button>
+                </div>
+              </div>
+            </div>
+            <div class="alert alert--info">
+              <svg class="ic" width="14" height="14"><use href="#i-alert"/></svg>
+              <div class="alert-text"><span class="alert-desc">恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。</span></div>
+            </div>
+          </div>
+
+          <!-- 详情态：归档档案只剩元信息可读，因此这里不给操作区留主行动按钮 -->
+          <div class="arch-detail" hidden>
+            <div class="sec">
+              <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-user"/></svg></span>
+              <div class="sec-text"><span class="sec-title">大二下 · 四级未过</span><span class="sec-desc">已归档，不参与当前备考台的统计与推送</span></div>
+            </div>
+            <div class="kv">
+              <div class="kv-row"><span class="kv-k">档案名称</span><span class="kv-v">大二下 · 四级未过</span></div>
+              <div class="kv-row"><span class="kv-k">考试日期</span><span class="kv-v kv-v--mono">2026-06-14</span></div>
+              <div class="kv-row"><span class="kv-k">目标分数</span><span class="kv-v kv-v--mono">425</span></div>
+              <div class="kv-row"><span class="kv-k">每日时长</span><span class="kv-v kv-v--mono">60 分钟</span></div>
+              <div class="kv-row"><span class="kv-k">创建时间</span><span class="kv-v kv-v--mono">2025-09-01</span></div>
+              <div class="kv-row"><span class="kv-k">归档时间</span><span class="kv-v kv-v--mono">2026-03-12</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="dlg-foot">
+          <button class="btn btn--text arch-list-foot" data-dlg-close>关闭</button>
+          <span class="fl arch-detail-foot" hidden></span>
+          <button class="btn btn--ghost btn--sm arch-detail-foot" data-arch-back hidden>返回列表</button>
+          <button class="btn btn--primary arch-detail-foot" data-dlg-close hidden>恢复</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -359,6 +1094,9 @@
   <div class="dock-group">
     <button data-view-btn="settings" class="is-on">设置 · 通用</button>
     <button data-view-btn="new">新建会话</button>
+    <button data-view-btn="cet">CET 备考台</button>
+    <button data-view-btn="kaoyan">考研备考台</button>
+    <button data-view-btn="cert">证书备考台</button>
   </div>
   <div class="dock-sep"></div>
   <div class="dock-group">
@@ -366,7 +1104,7 @@
     <button data-mode-btn="dark">深色</button>
     <button data-mode-btn="auto" class="is-on">自动</button>
   </div>
-  <span class="dock-hint">1 / 2 切屏 · T 切主题</span>
+  <span class="dock-hint">1–5 切屏 · ← → 切页签 · T 切主题</span>
 </div>
 
 <script src="js/theme.js" defer></script>

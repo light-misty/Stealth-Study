@@ -42,38 +42,55 @@
    @media 判定的是浏览器视口而非设计宽度，写了也不会按设计意图触发）。
    落地到真实工程时的降级顺序：页签条先横向滚动（已实现，不折行）→ 右栏在
    内容列不足 760 设计像素时收进主列上方 → 指标三列降为两列。
+
+   ── 功能映射（对真实实现的逐项交代）──────────────────────────────────────
+   CampusStationView     → .st-top / .st-body / .st-head / .st-tabs
+   ProfileSwitcher       → .who（含改名、归档、新建、已归档四个入口，低频动作 hover 现形）
+   EmptyModelGuide       → .alert（页头下方整行，A8 能力警告）
+   CountdownBanner       → .hero（CET / 考研右栏首卡；30·7·1·0 天才升 warn 档）
+   DeadlineBanner        → .hero + .dl（证书右栏，六类节点按 tier 分档）
+   MistakeBookPanel      → .mod + .rows/.lrow + .sel（归因），虚拟滚动条用 .thin
+   ReviewQueuePanel      → .mod + .rows + 答对/答错双按钮
+   档案为 0 的站点空态不复述一遍卡片：建档统一走 .dlg 表单，空态即「无档案 + 同一个弹窗」。
    ============================================================================ */
 
 /* ============================================================ 站点外壳 == */
 
 .view--station { flex-direction: column; }
 
-/* 顶栏：与新建会话的 .topbar 同构，只承载窗口标题与窗口级操作 */
-.st-top { height: 48px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 18px; }
+/* 顶栏：只放窗口标题与档案切换器。左右内缩与正文对齐（40），
+   这样档案胶囊的右边缘正好压在右栏上，读起来是同一条竖线。 */
+.st-top {
+  height: 48px; flex: none;
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 40px;
+}
 .st-top .win-title { flex: none; }
-.st-top .st-top-line { flex: 1; min-width: 0; }
 
-/* 主体：这里是全站唯一的滚动容器 —— 真实实现缺的就是它 */
+/* 主体：外壳固定不滚 —— 滚动只发生在模块内部。
+   真实实现缺滚动容器，内容被 .app 的 overflow:hidden 直接裁掉；这里不是把
+   整页拉长成一条长滚，而是让页头、页签、右栏钉住，只有当前模块在滚。
+   备考台是每天要重复进出的工作台，屏幕里的锚点不该随内容位移。        */
 .st-body {
   flex: 1; min-height: 0;
-  display: flex; align-items: flex-start; gap: 20px;
-  padding: 20px 40px 24px;
-  overflow: auto;
+  display: flex; align-items: stretch; gap: 20px;
+  padding: 16px 40px 20px;
+  overflow: hidden;
 }
-.st-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
-.st-rail { width: 292px; flex: none; display: flex; flex-direction: column; gap: 14px; }
+.st-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+/* 右栏与主列同高、各自内滚：常驻状态永远不被模块推走，也不去抢模块的滚动 */
+.st-rail {
+  width: 292px; flex: none;
+  display: flex; flex-direction: column; gap: 12px;
+  min-height: 0; overflow-y: auto;
+}
+.st-rail .card, .st-rail .hero { padding: 15px 17px; gap: 10px; }
+.st-rail .card--plain { padding: 14px 17px; }
 
 /* ---------------------------------------------------------------- 页头 */
-.st-head { display: flex; align-items: flex-start; gap: 20px; }
-.st-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.st-head { display: flex; flex-direction: column; gap: 5px; }
 .st-title { margin: 0; font-size: 22px; font-weight: 700; line-height: 30px; color: var(--ink); }
 .st-sub   { margin: 0; font-size: 12.5px; line-height: 19px; color: var(--ink-2); }
-.st-kicker {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 11px; font-weight: 600; line-height: 16px; letter-spacing: .4px;
-  color: var(--ink-3);
-}
-.st-kicker .ic { color: var(--icon); }
 
 /* ============================================================ 页签条 == */
 /* 下划线式而非分段胶囊：.seg 在设置页表达的是「取值」，页签表达的是「位置」，
@@ -115,9 +132,11 @@
 }
 .st-tab.is-on .tb { background: var(--accent-soft); color: var(--accent-deep); }
 
-/* 一屏一模块：非当前页签直接退出布局与朗读 */
+/* 一屏一模块：非当前页签直接退出布局与朗读。
+   当前模块吃掉主列的剩余高度，装不下时由它自己内滚（外壳不动）。      */
 .st-pane { display: none; flex-direction: column; gap: 14px; }
-.st-pane.is-on { display: flex; }
+.st-pane.is-on { display: flex; flex: 1; min-height: 0; overflow-y: auto; animation: pane-in .18s ease both; }
+@keyframes pane-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
 /* ========================================================== 模块卡 == */
 /* 一个面板 = 一张纸页卡（与设置页 .panel 同一套投影语言），内部再分节。
@@ -126,11 +145,10 @@
   background: var(--surface);
   border-radius: var(--r-16);
   box-shadow: var(--shadow-panel);
-  padding: 18px 20px;
-  display: flex; flex-direction: column; gap: 14px;
+  padding: 16px 20px;
+  display: flex; flex-direction: column; gap: 12px;
   transition: background .28s ease, box-shadow .2s ease;
 }
-.mod--flush { padding: 0; overflow: hidden; }
 .mod-head { display: flex; align-items: center; gap: 12px; }
 .mod-head-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .mod-title { font-size: 13px; font-weight: 600; line-height: 20px; color: var(--ink); }
@@ -191,9 +209,18 @@
 .btn--text { color: var(--ink-2); padding: 0 6px; }
 .btn--text:hover:not(:disabled) { color: var(--ink); }
 
+/* 复习队列的判卷按钮：语义即颜色，答对绿 / 答错红，都是描边态 ——
+   一次判卷不算「主行动」，不配用橙色。 */
+.btn--right { color: var(--success); box-shadow: var(--ring); }
+.btn--right:hover:not(:disabled) { background: var(--success-soft); }
+.btn--wrong { color: var(--danger); box-shadow: var(--ring); }
+.btn--wrong:hover:not(:disabled) { background: var(--danger-soft); }
+
 .btn--sm { height: 26px; padding: 0 9px; font-size: 11.5px; border-radius: var(--r-8); gap: 5px; }
 .btn--lg { height: 36px; padding: 0 16px; }
-.btn--block { width: 100%; }
+
+/* .btn 自带 display，会把 [hidden] 的 UA 默认值盖掉，显式补一刀 */
+.btn[hidden] { display: none; }
 
 /* 图标按钮的语义变体（base.css 的 .icon-btn 只有中性态） */
 .icon-btn--danger:hover { background: var(--danger-soft); }
@@ -220,7 +247,6 @@
 .input::placeholder, .textarea::placeholder { color: var(--ink-3); }
 .input:hover, .textarea:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
 .input:focus, .textarea:focus { box-shadow: inset 0 0 0 1.5px var(--brand); }
-.input--mono, .textarea--mono { font-family: var(--font-mono); }
 
 /* 数字与日期：用等宽，跳动时不抖列 */
 .input--num, .input[type='date'] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -233,6 +259,10 @@
 .sel > select:hover { box-shadow: inset 0 0 0 1px var(--ink-3); }
 .sel > select:focus { box-shadow: inset 0 0 0 1.5px var(--brand); }
 .sel .ic { position: absolute; right: 10px; top: 8px; pointer-events: none; color: var(--icon); }
+
+/* 紧凑档：行内下拉（错题归因等），与 .btn--sm 同高，避免行被控件撑开 */
+.sel--sm > select { height: 26px; padding: 0 24px 0 8px; font-size: 11.5px; line-height: 17px; border-radius: var(--r-8); }
+.sel--sm .ic { right: 7px; top: 6px; }
 
 /* 校验/错误态：描边转红并给出行内说明 */
 .field.is-bad .input, .field.is-bad .textarea, .field.is-bad .sel > select {
@@ -328,6 +358,15 @@
 .lrow-acts { flex: none; display: flex; align-items: center; gap: 6px; }
 .lrow--link { cursor: pointer; transition: background .14s ease; margin: 0 -10px; padding: 10px 12px; }
 .lrow--link:hover { background: var(--surface-sunken); }
+.lrow-ctl { flex: none; width: 118px; }
+/* 已判卷的复习行：降到低优层，动作区换成结果胶囊 */
+.lrow.is-done { opacity: .62; }
+.lrow.is-done .lrow-title { color: var(--ink-3); }
+
+/* 长列表内滚：真实实现是虚拟滚动（行高 72px），原型给同样的「列表自己滚、
+   卡头卡脚不动」这一层关系 —— 单卡模块撑满主列后，剩余高度全部让给列表。 */
+.st-pane.is-on > .mod:only-child { flex: 1; min-height: 0; }
+.rows--fix { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
 
 /* ======================================================== 数值与图表 == */
 .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
@@ -337,10 +376,21 @@
 .stat-u { font-size: 11px; color: var(--ink-3); margin-left: 2px; }
 .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
+/* 进度条的完成量由使用方用 --w 传入，样式表不认识具体数字 */
 .bar { height: 6px; border-radius: var(--r-3); background: var(--surface-sunken); overflow: hidden; }
-.bar > i { display: block; height: 100%; border-radius: var(--r-3); background: var(--accent); }
+.bar > i { display: block; width: var(--w, 0%); height: 100%; border-radius: var(--r-3); background: var(--accent); }
 .bar--brand > i { background: var(--brand); }
 .bar--ok > i { background: var(--success); }
+
+/* 带键值的细进度条：右栏「今日进度」这类紧凑汇总 */
+.prog { display: flex; align-items: center; gap: 8px; }
+.prog-k { width: 40px; flex: none; font-size: 11.5px; line-height: 17px; color: var(--ink-2); }
+.prog .bar { flex: 1; min-width: 0; }
+.prog-v {
+  width: 46px; flex: none; text-align: right;
+  font-family: var(--font-mono); font-size: 11px; line-height: 16px;
+  font-variant-numeric: tabular-nums; color: var(--ink-3);
+}
 
 .ring { display: block; }
 .ring-track { fill: none; stroke: var(--divider); }
@@ -453,7 +503,6 @@
 }
 .who-item:hover .who-tools, .who-item:focus-within .who-tools { opacity: 1; }
 .who-tools .icon-btn { width: 22px; height: 22px; border-radius: var(--r-8); }
-.who--plain { color: var(--ink-3); }
 
 /* ======================================================= 倒计时 / 截止 == */
 .hero {
@@ -475,7 +524,6 @@
 .hero.is-near { background: var(--warn-soft); }
 .hero.is-near .hero-num { color: var(--warn); }
 .hero.is-near .hero-kicker, .hero.is-near .hero-unit { color: var(--warn); opacity: .85; }
-.hero.is-passed .hero-num { color: var(--ink-3); }
 
 /* 证书的多节点截止：与 DeadlineBanner 的 tier 分档一致 */
 .dl { display: flex; flex-direction: column; gap: 2px; }
@@ -488,3 +536,64 @@
 .dl-row[data-tier='d7'] .dl-left, .dl-row[data-tier='d1'] .dl-left { color: var(--warn); font-weight: 600; }
 .dl-row[data-tier='today'] .dl-left { color: var(--danger); font-weight: 600; }
 .dl-row[data-tier='overdue'] { opacity: .55; }
+
+/* ====================================================== 可选项胶囊行 == */
+/* 词汇掌握度、批改题型这类「有限且并列」的选择：横向胶囊，选中用蓝描边，
+   把橙色留给同一模块里唯一的主行动按钮。 */
+.picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.pick {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 26px; padding: 0 10px;
+  border: 0; border-radius: var(--r-full);
+  background: var(--surface-sunken);
+  font-family: inherit; font-size: 11.5px; font-weight: 500; line-height: 17px;
+  color: var(--ink-2); cursor: pointer; white-space: nowrap;
+  transition: background .14s ease, color .14s ease, box-shadow .14s ease;
+}
+.pick:hover { color: var(--ink); background: var(--border-strong); }
+.pick:focus-visible { outline: none; box-shadow: var(--focus); }
+.pick.is-on { background: var(--surface); color: var(--brand-deep); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.pick .md { flex: none; }
+
+/* ======================================================= 键值 / 滚动条 == */
+.kv { display: flex; flex-direction: column; gap: 7px; }
+.kv-row { display: flex; align-items: baseline; gap: 10px; }
+.kv-k { width: 72px; flex: none; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.kv-v { flex: 1; min-width: 0; font-size: 12px; line-height: 18px; color: var(--ink); word-break: break-word; }
+.kv-v--mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+.thin { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.thin::-webkit-scrollbar-track { background: transparent; }
+.thin::-webkit-scrollbar-thumb {
+  background: var(--border-strong); background-clip: content-box;
+  border: 2px solid transparent; border-radius: 4px;
+}
+
+/* ============================================================ 弹窗 == */
+/* 对应 CampusDialog：遮罩 + 居中纸页卡 + 右上关闭。
+   遮罩绝对定位在 .device 内（device 是 transform 后的定宽容器），因此弹窗
+   永远只盖住应用窗口本身，不溢出到圆角之外 —— 与桌面端一致。 */
+.dlg {
+  position: absolute; inset: 0; z-index: 20;
+  display: grid; place-items: center;
+  background: var(--scrim);
+}
+.dlg[hidden] { display: none; }
+.dlg-card {
+  width: 440px; max-width: 90%; max-height: 78%;
+  display: flex; flex-direction: column; gap: 14px;
+  padding: 18px 20px;
+  background: var(--surface); border-radius: var(--r-16);
+  box-shadow: var(--shadow-device), var(--ring);
+  overflow: hidden;
+}
+.dlg--wide .dlg-card { width: 540px; }
+.dlg-head { display: flex; align-items: center; gap: 10px; flex: none; }
+.dlg-title { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--ink); }
+.dlg-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.dlg-foot { flex: none; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+/* 已归档弹窗的详情态：列表 ↔ 详情整块互换，页脚动作跟着换一组 */
+.arch-list, .arch-detail { display: flex; flex-direction: column; gap: 12px; }
+.arch-list[hidden], .arch-detail[hidden] { display: none; }

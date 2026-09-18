@@ -9,6 +9,7 @@
 .dock {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
   display: flex; align-items: center; gap: 6px; padding: 6px;
+  max-width: calc(100vw - 32px);
   border-radius: var(--r-full);
   background: rgba(23, 26, 33, .9);
   -webkit-backdrop-filter: blur(14px);
@@ -17,9 +18,12 @@
   box-shadow: 0 12px 34px -10px rgba(15, 18, 24, .5);
   z-index: 20;
   font-family: var(--font-sans);
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.dock-group { display: flex; align-items: center; gap: 2px; }
+.dock-group { display: flex; align-items: center; gap: 2px; flex: none; }
+.dock::-webkit-scrollbar { display: none; }
 .dock-sep   { width: 1px; height: 20px; background: rgba(255, 255, 255, .12); margin: 0 4px; }
 
 .dock button {

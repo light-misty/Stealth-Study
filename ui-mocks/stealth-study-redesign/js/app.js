@@ -36,6 +36,11 @@
     for (var b = 0; b < viewButtons.length; b++) {
       viewButtons[b].classList.toggle('is-on', viewButtons[b].getAttribute('data-view-btn') === name);
     }
+    /* 侧栏里指向本屏的那一行同时点亮，避免「进了备考台但侧栏没高亮」 */
+    var opens = document.querySelectorAll('.nav-item[data-open]');
+    for (var o = 0; o < opens.length; o++) {
+      opens[o].classList.toggle('is-active', opens[o].getAttribute('data-open') === name);
+    }
   }
 
   function viewNameAt(index) {
@@ -187,6 +192,148 @@
         selectTab(btn.closest('.view'), btn.getAttribute('data-goto-tab'), false);
       });
     })(gotoTabs[gt]);
+  }
+
+  /* ==================================================== 备考台：侧栏入口 ==
+     data-open 的导航行既切屏也自带选中态（选中态在 setView 里统一同步）。 */
+  var openLinks = document.querySelectorAll('[data-open]');
+  for (var ol = 0; ol < openLinks.length; ol++) {
+    (function (btn) {
+      btn.addEventListener('click', function () { setView(btn.getAttribute('data-open')); });
+    })(openLinks[ol]);
+  }
+
+  /* ================================================ 备考台：档案切换器 ==
+     「全部档案一眼可见」是这套切换器存在的理由，因此保持横条而非下拉；
+     当前档案用橙色胶囊，改名/归档作为低频动作只在 hover 时出现。        */
+  var whoPills = document.querySelectorAll('.who-pill');
+  for (var wp = 0; wp < whoPills.length; wp++) {
+    (function (pill) {
+      pill.addEventListener('click', function () {
+        var items = pill.closest('.who-list').querySelectorAll('.who-item');
+        for (var x = 0; x < items.length; x++) {
+          items[x].classList.toggle('is-on', items[x] === pill.parentNode);
+        }
+      });
+    })(whoPills[wp]);
+  }
+
+  /* ================================================ 备考台：档案弹窗 ==
+     对应 CampusDialog：点遮罩关、按 Esc 关，焦点回到触发它的那个按钮上。 */
+  var dialogs = {};
+  var allDialogs = document.querySelectorAll('.dlg');
+  for (var d = 0; d < allDialogs.length; d++) {
+    dialogs[allDialogs[d].getAttribute('data-dlg-id')] = allDialogs[d];
+  }
+  var lastTrigger = null;
+
+  function closeDialog(el) {
+    if (!el) return;
+    el.setAttribute('hidden', '');
+    if (lastTrigger) { try { lastTrigger.focus(); } catch (e) { /* 已移出文档 */ } }
+    lastTrigger = null;
+  }
+  function openDialog(id, trigger) {
+    var el = dialogs[id];
+    if (!el) return;
+    lastTrigger = trigger || null;
+    el.removeAttribute('hidden');
+    var first = el.querySelector('input, select, .btn:not([disabled])');
+    if (first) { try { first.focus(); } catch (e) { /* 不可聚焦则跳过 */ } }
+  }
+
+  var dlgTriggers = document.querySelectorAll('[data-dlg]');
+  for (var dt = 0; dt < dlgTriggers.length; dt++) {
+    (function (btn) {
+      btn.addEventListener('click', function () { openDialog(btn.getAttribute('data-dlg'), btn); });
+    })(dlgTriggers[dt]);
+  }
+  for (var dc = 0; dc < allDialogs.length; dc++) {
+    (function (el) {
+      el.addEventListener('click', function (e) { if (e.target === el) closeDialog(el); });
+      var closes = el.querySelectorAll('[data-dlg-close]');
+      for (var c = 0; c < closes.length; c++) {
+        (function (btn) { btn.addEventListener('click', function () { closeDialog(el); }); })(closes[c]);
+      }
+    })(allDialogs[dc]);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    for (var i = 0; i < allDialogs.length; i++) {
+      if (!allDialogs[i].hasAttribute('hidden')) closeDialog(allDialogs[i]);
+    }
+  });
+
+  /* 已归档弹窗：列表 ↔ 详情是同一张弹窗的两个态，页脚动作整组跟着换。
+     每次重新打开都回到列表态 —— 详情页不该有跨次打开的记忆。            */
+  var archDialog = document.querySelector('[data-dlg-id="archived"]');
+  if (archDialog) {
+    function archMode(detail) {
+      archDialog.querySelector('.arch-list').toggleAttribute('hidden', detail);
+      archDialog.querySelector('.arch-detail').toggleAttribute('hidden', !detail);
+      var swaps = archDialog.querySelectorAll('.arch-list-foot, .arch-detail-foot');
+      for (var i = 0; i < swaps.length; i++) {
+        var wantDetail = swaps[i].classList.contains('arch-detail-foot');
+        swaps[i].toggleAttribute('hidden', wantDetail !== detail);
+      }
+    }
+    var archIn = archDialog.querySelectorAll('[data-arch-detail]');
+    for (var ai = 0; ai < archIn.length; ai++) {
+      (function (btn) { btn.addEventListener('click', function () { archMode(true); }); })(archIn[ai]);
+    }
+    var archBack = archDialog.querySelectorAll('[data-arch-back]');
+    for (var ab = 0; ab < archBack.length; ab++) {
+      (function (btn) { btn.addEventListener('click', function () { archMode(false); }); })(archBack[ab]);
+    }
+    archDialog.addEventListener('click', function (e) {
+      if (e.target === archDialog) archMode(false);
+    });
+    var archTrigger = document.querySelector('[data-dlg="archived"]');
+    if (archTrigger) archTrigger.addEventListener('click', function () { archMode(false); });
+  }
+
+  /* ======================================================= 复习队列判卷 ==
+     答对 / 答错是这一屏唯一的高频动作，点下去必须看得见结果：行落成状态胶囊、
+     今日进度与页签上的待办数同时前进。                                   */
+  var reviewMods = document.querySelectorAll('.mod[data-review]');
+  for (var rv = 0; rv < reviewMods.length; rv++) {
+    (function (mod) {
+      var total = parseInt(mod.getAttribute('data-review-total'), 10);
+      var done = parseInt(mod.getAttribute('data-review-done'), 10);
+      var label = mod.querySelector('.sec-n');
+      var fill = mod.querySelector('.bar > i');
+
+      function judge(btn, ok) {
+        var row = btn.closest('.lrow');
+        if (row.classList.contains('is-done')) return;
+        row.classList.add('is-done');
+        row.querySelector('.lrow-acts').innerHTML =
+          '<span class="tag ' + (ok ? 'tag--ok' : 'tag--danger') + '">' + (ok ? '已答对' : '已答错') + '</span>';
+        done = Math.min(total, done + 1);
+        label.textContent = done + ' / ' + total;
+        fill.style.setProperty('--w', Math.round(done / total * 100) + '%');
+      }
+
+      var rights = mod.querySelectorAll('.btn--right');
+      var wrongs = mod.querySelectorAll('.btn--wrong');
+      for (var q = 0; q < rights.length; q++) {
+        (function (btn) { btn.addEventListener('click', function () { judge(btn, true); }); })(rights[q]);
+      }
+      for (var w = 0; w < wrongs.length; w++) {
+        (function (btn) { btn.addEventListener('click', function () { judge(btn, false); }); })(wrongs[w]);
+      }
+    })(reviewMods[rv]);
+  }
+
+  /* 能力提示条的「知道了」：关掉即让位给正文，不做二次确认 */
+  var dismissals = document.querySelectorAll('[data-dismiss]');
+  for (var ds = 0; ds < dismissals.length; ds++) {
+    (function (btn) {
+      btn.addEventListener('click', function () {
+        var box = btn.closest('.alert');
+        if (box) box.parentNode.removeChild(box);
+      });
+    })(dismissals[ds]);
   }
 
   /* ============================================================ 步进器 ==
