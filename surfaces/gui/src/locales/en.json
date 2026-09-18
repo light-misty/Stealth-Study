@@ -602,7 +602,7 @@
       "auto_allowed": "auto-allowed",
       "auto_allowed_tip": "Auto-allowed by this automation's standing approval: {{name}}. Revoke on its Automations page.",
       "hidden_count_label": "{{n}} hidden",
-      "hidden_tip": "Removed by your privacy filters before the agent saw the results — agents get no trace of these.",
+      "hidden_tip": "Removed by your privacy filters before your study partner saw the results — it gets no trace of these.",
       "tried_skill_pre": "Tried skill: ",
       "tried_skill_post": " — not available"
     },
@@ -624,9 +624,9 @@
     "user_less": "less…",
     "reviewer": {
       "blocked": "Blocked by the reviewer",
-      "explain": "The agent was told only that it was blocked — not why — so it can’t argue its way past this. If the action is actually fine, you can run it as proposed:",
+      "explain": "Your study partner was told only that it was blocked — not why — so it can’t argue its way past this. If the action is actually fine, you can run it as proposed:",
       "allow_anyway": "Allow anyway",
-      "override_sent": "Approved — the agent will retry this exact action."
+      "override_sent": "Approved — your study partner will retry this exact action."
     },
     "memory": {
       "saved": "I'll remember that",
@@ -1944,20 +1944,20 @@
     "chat_empty": "No messages yet. Agents post here only when something needs a reply — @mention a study partner to reach it.",
     "you": "You",
     "chat_placeholder": "Message # team chat…  (posts as you — every member sees it)",
-    "proposed_one": "Proposed team — {{count}} worker",
-    "proposed_other": "Proposed team — {{count}} workers",
+    "proposed_one": "Proposed study team — {{count}} partner",
+    "proposed_other": "Proposed study team — {{count}} partners",
     "enable_chat": "Enable <b># team chat</b>",
     "chat_info": "A group channel for questions and consensus — @mentions wake the mentioned study partner. Status stays on the board either way.",
     "grant_note": "Approving grants the lead create, assign & steer — this team only, revocable.",
     "not_now": "Not now",
     "create_start": "Create team & start",
-    "proposed_items": "Proposed work items — {{count}}",
+    "proposed_items": "Proposed study tasks — {{count}}",
     "items_done_when": "Done when:",
     "show_less": "Show less",
     "show_full_criteria": "Show full criteria",
     "more_items_one": "＋ {{count}} more item",
     "more_items_other": "＋ {{count}} more items",
-    "items_grant": "Reply to edit the split; approval creates these on the board.",
+    "items_grant": "Reply to adjust the split; approval creates these on the board.",
     "approve_items": "Approve items"
   },
   "toolreq": {

@@ -21,7 +21,7 @@ test("the decomposition gate shows items with criteria; approval lands them on t
   await page.getByRole("button", { name: "Send" }).click();
   const card = page.getByTestId("itemsreq-card");
   await expect(card).toBeVisible();
-  await expect(card).toContainText("Proposed work items — 4");
+  await expect(card).toContainText("Proposed study tasks — 4");
   await expect(card).toContainText("Done when:");
   // 3 visible + expander with the true remainder
   await expect(card.getByText("Verification pass")).toHaveCount(0);
@@ -99,7 +99,7 @@ test("the staffing gate shows named workers, the chat toggle, and the grant sent
 }) => {
   await proposeTeam(page);
   const card = page.getByTestId("teamreq-card");
-  await expect(card).toContainText("Proposed team — 3 workers");
+  await expect(card).toContainText("Proposed study team — 3 partners");
   // callnames lead the rows; persona + reason follow
   await expect(card).toContainText("nia");
   await expect(card).toContainText("swe-worker");

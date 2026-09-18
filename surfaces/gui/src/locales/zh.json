@@ -595,7 +595,7 @@
       "auto_allowed": "已自动允许",
       "auto_allowed_tip": "已根据此自动化的常驻授权自动允许：{{name}}。可在其自动化页面撤销。",
       "hidden_count_label": "{{n}} 项已隐藏",
-      "hidden_tip": "在 agent 看到结果前已被你的隐私过滤器移除 —— agent 不会获知任何痕迹。",
+      "hidden_tip": "在学习伙伴看到结果前已被你的隐私过滤器移除 —— 它不会获知任何痕迹。",
       "tried_skill_pre": "尝试技能：",
       "tried_skill_post": " —— 不可用"
     },
@@ -616,9 +616,9 @@
     "user_less": "收起…",
     "reviewer": {
       "blocked": "已被审查者拦截",
-      "explain": "agent 只被告知操作被拦截 —— 而非原因 —— 因此无法辩解绕过。如果该操作确实没问题，你可以按原样执行它：",
+      "explain": "学习伙伴只被告知操作被拦截 —— 而非原因 —— 因此无法辩解绕过。如果该操作确实没问题，你可以按原样执行它：",
       "allow_anyway": "仍然允许",
-      "override_sent": "已批准 —— agent 将原样重试该操作。"
+      "override_sent": "已批准 —— 学习伙伴将原样重试该操作。"
     },
     "memory": {
       "saved": "我会记住这一点",
@@ -1910,18 +1910,18 @@
     "chat_empty": "还没有消息。Agent 只在需要回复时才会在这里发言 —— @提及某位学习伙伴即可联系它。",
     "you": "你",
     "chat_placeholder": "发消息到 # 团队聊天…（以你的身份发送 —— 所有成员可见）",
-    "proposed_other": "提议团队 —— {{count}} 名成员",
+    "proposed_other": "学习小组提议 —— {{count}} 位伙伴",
     "enable_chat": "启用 <b># 团队聊天</b>",
     "chat_info": "用于问题与共识的群聊频道 —— @提及会唤醒被提及的学习伙伴。无论是否启用，状态都保留在看板上。",
     "grant_note": "批准后授予负责人创建、指派与引导权限 —— 仅限本团队，可随时撤销。",
     "not_now": "暂不",
     "create_start": "创建团队并开始",
-    "proposed_items": "提议的工作项 —— {{count}}",
+    "proposed_items": "提议的学习任务 —— {{count}}",
     "items_done_when": "完成标准：",
     "show_less": "收起",
     "show_full_criteria": "显示完整标准",
     "more_items_other": "＋ 还有 {{count}} 项",
-    "items_grant": "回复可调整拆分；批准后将在看板上创建这些条目。",
+    "items_grant": "回复可调整拆分；批准后将在看板上创建这些学习任务。",
     "approve_items": "批准工作项"
   },
   "toolreq": {
