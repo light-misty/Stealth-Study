@@ -26,6 +26,7 @@ test("top-left cluster renders only while the sidebar is collapsed", async ({ pa
   await cluster.getByRole("button", { name: "Search" }).click();
   await expect(page.getByPlaceholder("Search chats")).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(page.getByPlaceholder("Search chats")).toHaveCount(0);
 
   // The cluster's sidebar button docks the nav back — and the cluster leaves with it.
   await cluster.getByRole("button", { name: "Show sidebar" }).click();

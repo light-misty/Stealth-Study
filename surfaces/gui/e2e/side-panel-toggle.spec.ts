@@ -73,6 +73,23 @@ test("an empty stretch of the topbar still starts the window drag", async ({ pag
   expect(await dragCalls(page)).toBe(1);
 });
 
+test("every control in the topbar's collapsed cluster stays clickable", async ({ page }) => {
+  await installShell(page);
+  await openNewSessionPage(page);
+
+  await page.keyboard.press("Control+b");
+  const cluster = page.getByTestId("topbar-cluster");
+  await expect(cluster).toBeVisible();
+  await cluster.getByRole("button", { name: "Search" }).click();
+  await expect(page.getByPlaceholder("Search chats")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await cluster.getByRole("button", { name: "New session" }).click();
+  await expect(page.getByText("What are we studying today?")).toBeVisible();
+  await cluster.getByRole("button", { name: "Show sidebar" }).click();
+  await expect(page.locator(".app")).not.toHaveClass(/nav-collapsed/);
+  expect(await dragCalls(page)).toBe(0);
+});
+
 test("the topbar Artifacts entry reopens the rail without starting a window drag", async ({
   page,
 }) => {
