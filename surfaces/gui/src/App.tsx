@@ -57,6 +57,7 @@ import { addTurnUsage, emptyUsage, usageFromMessages } from "./usage";
 import { streamMode } from "./streamGate";
 import { InboxItemCard, approvalItemFromParked } from "./components/InboxItemCard";
 import { chooseFolder, isTauri, platformOS, startWindowDrag } from "./tauri";
+import { shouldBeginWindowDrag } from "./desktopChrome";
 import { Icon } from "./components/Icon";
 import { Sidebar } from "./components/Sidebar";
 import { ThinkingBlock, Transcript } from "./components/Transcript";
@@ -1609,7 +1610,7 @@ export function App() {
   // they rendered as misalignments under Windows' native bar (caught 2026-07-21).
   const overlay = (desktop && platformOS() === "macos") || simOverlay;
   const beginWindowDrag = (event: PointerEvent) => {
-    if (!desktop || event.button !== 0) return;
+    if (!desktop || event.button !== 0 || !shouldBeginWindowDrag(event.target)) return;
     startWindowDrag();
   };
 
@@ -1874,7 +1875,6 @@ export function App() {
                     <button
                       className="text-accent hover:underline"
                       data-testid="save-as-project"
-                      onMouseDown={(e) => e.stopPropagation()}
                       onClick={() => void saveAsProject()}
                     >
                       {t("app.save_as_project")}
@@ -1890,7 +1890,6 @@ export function App() {
             {railHidden && artifactCount > 0 && (
               <button
                 className="topbar-artifacts-btn"
-                onMouseDown={(e) => e.stopPropagation()}
                 onClick={() => setRailHidden(false)}
                 title={t("topbar.show_artifacts")}
               >
@@ -1904,7 +1903,6 @@ export function App() {
             {agent !== "chat" && (
               <button
                 className="topbar-icon-btn"
-                onMouseDown={(e) => e.stopPropagation()}
                 onClick={() => setRailHiddenPersist(!railHidden)}
                 aria-label={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
                 title={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
