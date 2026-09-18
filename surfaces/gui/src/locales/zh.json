@@ -424,8 +424,6 @@
     "new_session": "新建会话",
     "new_project": "新建项目",
     "collapse": "收起侧栏",
-    "choose_persona": "选择角色",
-    "start_with_persona": "从特定角色开始",
     "filter_coworker": "按同事筛选",
     "group_by": "分组方式",
     "group_and_filter": "分组与筛选会话",
@@ -436,7 +434,6 @@
     "not_signed_in": "未登录 —— 一键连接需要 OpenWorker Cloud",
     "sign_in": "登录 OpenWorker",
     "signed_in_tooltip": "已登录 OpenWorker Cloud",
-    "cloud_suffix": "OpenWorker Cloud",
     "automations": "自动化",
     "search": "搜索",
     "recent": "最近",
@@ -477,8 +474,6 @@
     "not_signed_in_row": "未登录",
     "more": "更多",
     "inbox_chip_pending": "收件箱 —— {{n}} 项待你处理",
-    "start_session_as": "以此身份开始会话",
-    "manage_personas": "管理角色…",
     "group_and_filter_short": "分组与筛选会话",
     "unseen_new_other": "{{count}} 次新运行",
     "unseen_failed_other": "{{count}} 次新运行 —— 最新一次失败"
@@ -1050,11 +1045,8 @@
     "recent": "最近的会话"
   },
   "integrations": {
-    "tab_mcp": "MCP 服务器",
     "connectors_title": "连接器",
-    "connectors_sub": "同事可以使用的应用和工具，已连接的排在前面。",
-    "mcp_title": "MCP 服务器",
-    "mcp_sub": "外部工具服务器（stdio 或 HTTP），所有 agent 共享。"
+    "connectors_sub": "同事可以使用的应用和工具，已连接的排在前面。"
   },
   "intro": {
     "greeting": "需要我产出什么？",
