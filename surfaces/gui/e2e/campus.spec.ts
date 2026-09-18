@@ -187,3 +187,68 @@ test("campus: advance a CET mock exam past writing into the listening lock", asy
   // Writing stage completed -> writing textarea is disabled (locked).
   await expect(page.getByTestId("campus-mock-essay")).toBeDisabled();
 });
+
+// E2E-9: profile-name conflict. A duplicate name is refused by a dialog that leaves the
+// station and the typed-in name alone, and the name is free again once the rival is archived.
+test("campus: a duplicate profile name is refused in a dialog, not by the whole page", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByTestId("nav-campus-cet").click();
+  await createProfile(page, { title: "同名档案" });
+
+  await page.getByTestId("campus-profile-create").click();
+  await page.getByTestId("campus-profile-create-title").fill("同名档案");
+  await page.getByTestId("campus-profile-create-submit").click();
+
+  await expect(page.getByTestId("campus-profile-conflict")).toBeVisible();
+  await expect(page.getByTestId("campus-profile-conflict-body")).toContainText(
+    "A profile with this title already exists",
+  );
+  await expect(page.getByTestId("campus-station")).toBeVisible();
+  await expect(page.getByTestId("campus-profile-create-title")).toHaveValue("同名档案");
+  await expect(page.getByTestId("campus-profile-item")).toHaveCount(1);
+
+  await page.getByTestId("campus-profile-conflict-close").click();
+  await expect(page.getByTestId("campus-profile-conflict")).toHaveCount(0);
+
+  await page.getByTestId("campus-profile-create-title").fill("另一个档案");
+  await page.getByTestId("campus-profile-create-submit").click();
+  await expect(page.getByTestId("campus-profile-item")).toHaveCount(2);
+});
+
+// E2E-10: the archived box. Archiving hands the name back, the station keeps an entry to the
+// archived profiles, and restoring puts the boxed one back on the desk beside its twin.
+test("campus: archive a profile, find it in the archived list and restore it", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("nav-campus-cet").click();
+  await createProfile(page, { title: "归档演练", examDate: "2026-12-19" });
+
+  await page.locator('[data-testid^="campus-profile-archive-"]').first().click();
+  await expect(page.getByTestId("campus-station-empty")).toBeVisible();
+  await expect(page.getByTestId("campus-profile-archived-entry")).toBeVisible();
+
+  await createProfile(page, { title: "归档演练" });
+  await expect(page.getByTestId("campus-profile-item")).toHaveCount(1);
+
+  await page.getByTestId("campus-profile-archived-entry").click();
+  await expect(page.getByTestId("campus-archived-dialog")).toBeVisible();
+  await expect(page.getByTestId("campus-archived-list")).toContainText("归档演练");
+  await expect(page.locator('[data-testid^="campus-archived-created-"]').first()).toContainText(
+    "2026-09-16",
+  );
+
+  await page.getByTestId("campus-archived-search").fill("找不到");
+  await expect(page.getByTestId("campus-archived-nomatch")).toBeVisible();
+  await page.getByTestId("campus-archived-search").fill("");
+
+  await page.getByTestId("campus-archived-filter").selectOption("older");
+  await expect(page.getByTestId("campus-archived-nomatch")).toBeVisible();
+  await page.getByTestId("campus-archived-filter").selectOption("all");
+
+  await page.locator('[data-testid^="campus-archived-restore-"]').first().click();
+  await expect(page.getByTestId("campus-archived-empty")).toBeVisible();
+  await page.getByTestId("campus-archived-dialog-close").click();
+  await expect(page.getByTestId("campus-profile-item")).toHaveCount(2);
+  await expect(page.getByTestId("campus-profile-archived-entry")).toHaveCount(0);
+});
