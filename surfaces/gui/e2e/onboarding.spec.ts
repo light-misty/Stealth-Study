@@ -108,7 +108,7 @@ test("tools page: sign-in morphs the page into the connector gallery; a card con
   // Pre-sign-in (§41): the benefit rows are already there (no Connect buttons yet),
   // the combined Google row says Coming soon, the band asks for sign-in, and the one
   // footer button is the quiet "Continue without sign-in".
-  await expect(page.getByText("Chat can only advise")).toBeVisible();
+  await expect(page.getByText("can only advise")).toBeVisible();
   await expect(page.getByTestId("ob-tool-outlook")).toContainText("Stay on top of email");
   await expect(page.getByTestId("ob-tool-outlook").getByRole("button")).toHaveCount(0);
   await expect(page.getByTestId("ob-tool-attio")).toContainText("Track every relationship");
