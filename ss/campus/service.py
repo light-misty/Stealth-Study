@@ -4526,7 +4526,17 @@ class CampusService:
             self._store.delete_state(SETTINGS_KEY)
 
     def _assert_title_free(self, title: str, *, exclude: Optional[str] = None) -> None:
-        row = self._store.query_one('SELECT "id" FROM "exam_profile" WHERE "title" = ?', (title,))
+        """Refuse a title an on-desk profile already holds (A2/A4).
+
+        An archived profile is in the box, not on the desk: it gave its name back, so it does
+        not block a new one. Restoring it later is deliberately not a create — see 02 §7.2 — so
+        the box and the desk can end up holding the same name, which the station's switcher
+        already distinguishes by row.
+        """
+        row = self._store.query_one(
+            'SELECT "id" FROM "exam_profile" WHERE "title" = ? AND "status" != ?',
+            (title, models.ProfileStatus.ARCHIVED.value),
+        )
         if row is not None and row["id"] != exclude:
             raise CampusError("DUPLICATE_TITLE", f"同名档案已存在：{title}")
 

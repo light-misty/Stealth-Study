@@ -196,6 +196,55 @@ def test_a2_refuses_a_duplicate_title(client: TestClient) -> None:
     assert _detail(response)["retryable"] is False
 
 
+def test_a2_refuses_a_title_a_finished_profile_still_holds(client: TestClient) -> None:
+    """结课档案只是只读，仍在台面上占名，所以它挡得住同名新建。"""
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "已结课"},
+    )
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a2_allows_a_title_only_an_archived_profile_holds(client: TestClient) -> None:
+    """归档把档案收进箱子，名字就此归还给台面（02 §7.2：active ↔ archived 可逆）。"""
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CERT.value, "title": "已归档"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["id"] != ARCHIVED_ID
+
+
+def test_a2_allows_the_same_title_again_once_the_rival_is_archived(client: TestClient) -> None:
+    client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={"status": models.ProfileStatus.ARCHIVED.value},
+    )
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == models.ProfileStatus.ACTIVE.value
+
+
+def test_a2_refuses_two_profiles_of_the_same_active_title(client: TestClient) -> None:
+    assert (
+        client.post(
+            f"{routes.CAMPUS_PREFIX}/profiles",
+            json={"track_type": models.TrackType.CET.value, "title": "同名新建"},
+        ).status_code
+        == 200
+    )
+    refused = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.KAOYAN.value, "title": "同名新建"},
+    )
+    assert refused.status_code == 409
+    assert _detail(refused)["code"] == "DUPLICATE_TITLE"
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -335,10 +384,65 @@ def test_a4_refuses_an_unknown_status_value(client: TestClient) -> None:
 
 def test_a4_refuses_a_duplicate_title_on_rename(client: TestClient) -> None:
     response = client.patch(
-        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已归档"}
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已结课"}
     )
     assert response.status_code == 409
     assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a4_allows_rename_onto_a_title_only_an_archived_profile_holds(client: TestClient) -> None:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已归档"}
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["title"] == "已归档"
+
+
+def test_a4_restore_does_not_recheck_the_title(client: TestClient) -> None:
+    """恢复是「把箱子放回台面」，不是新建动作，所以不做同名查重。
+
+    台面与箱子里各留一个同名档案，好过在恢复点上再设一道卡：用户要找回的从来不是
+    「名字」，是那一份数据本身。
+    """
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    twin = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "六级 12 月"},
+    ).json()
+
+    restored = _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)
+
+    assert restored["id"] == ACTIVE_ID
+    assert restored["title"] == twin["title"] == "六级 12 月"
+    assert restored["archived_at"] is None
+    active_titles = [
+        item["title"]
+        for item in client.get(f"{routes.CAMPUS_PREFIX}/profiles").json()["items"]
+        if item["status"] == models.ProfileStatus.ACTIVE.value
+    ]
+    assert active_titles.count("六级 12 月") == 2
+
+
+def test_a4_a_restore_that_also_renames_still_respects_the_title_rule(client: TestClient) -> None:
+    """恢复顺带改名时，改名的查重照旧：放行的只是「回到原来那个名字」这一步。"""
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CET.value, "title": "台面上的名字"},
+    )
+
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}",
+        json={
+            "status": models.ProfileStatus.ACTIVE.value,
+            "title": "台面上的名字",
+        },
+    )
+    assert response.status_code == 409
+    assert _detail(response)["code"] == "DUPLICATE_TITLE"
+    body = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["status"] == models.ProfileStatus.ARCHIVED.value
+    assert body["title"] == "六级 12 月"
 
 
 def test_a4_keeps_reading_a_finished_profile_available(client: TestClient) -> None:
