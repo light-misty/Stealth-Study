@@ -79,7 +79,7 @@ export async function selectMode(page: Page, label: "Full access" | "Plan" | "Di
 
 /** Type a task and send it. */
 export async function sendTask(page: Page, text: string) {
-  await page.getByPlaceholder(/Ask the coworker/).fill(text);
+  await page.getByPlaceholder(/Ask your study partner/).fill(text);
   // exact — "Send" is a substring of the Inbox control's "Sending approvals…" title when unattended.
   await page.getByRole("button", { name: "Send", exact: true }).click();
 }

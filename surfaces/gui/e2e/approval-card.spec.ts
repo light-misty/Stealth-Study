@@ -10,7 +10,7 @@ test("routine write → compact row: humanized title, inline preview, Allow reso
   page,
 }) => {
   await page.goto("/");
-  const box = page.getByPlaceholder(/Ask the coworker/);
+  const box = page.getByPlaceholder(/Ask your study partner/);
   await box.fill("please write a file");
   await page.getByRole("button", { name: "Send" }).click();
 
@@ -37,7 +37,7 @@ test("run_shell → full card: description title, command preview, stays-on-this
   page,
 }) => {
   await page.goto("/");
-  const box = page.getByPlaceholder(/Ask the coworker/);
+  const box = page.getByPlaceholder(/Ask your study partner/);
   await box.fill("please run a tool");
   await page.getByRole("button", { name: "Send" }).click();
 
@@ -61,7 +61,7 @@ test("a one-paragraph digest send is clamped to a card, expandable in place", as
   page,
 }) => {
   await page.goto("/");
-  const box = page.getByPlaceholder(/Ask the coworker/);
+  const box = page.getByPlaceholder(/Ask your study partner/);
   await box.fill("post the long digest");
   await page.getByRole("button", { name: "Send" }).click();
 
@@ -84,7 +84,7 @@ test("read-only session grant: offered on classified commands, resolves the card
   page,
 }) => {
   await page.goto("/");
-  const box = page.getByPlaceholder(/Ask the coworker/);
+  const box = page.getByPlaceholder(/Ask your study partner/);
   await box.fill("please run a tool");
   await page.getByRole("button", { name: "Send" }).click();
 

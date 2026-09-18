@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 describe("Sidebar group/filter control", () => {
-  it("choosing Coworker persists via setNavLayout and switches to the per-persona accordion", async () => {
+  it("choosing Study partner persists via setNavLayout and switches to the per-persona accordion", async () => {
     const calls = stubFetch([
       { match: "/v1/personas", method: "GET", json: PERSONAS },
       { match: "/v1/settings", method: "GET", json: { nav_layout: "flat" } },
@@ -86,7 +86,7 @@ describe("Sidebar group/filter control", () => {
 
     // Open the popover and choose "Group by → Coworker".
     fireEvent.click(control);
-    fireEvent.click(await screen.findByText("Coworker"));
+    fireEvent.click(await screen.findByText("Study partner"));
 
     // POSTs the new layout pref.
     await waitFor(() => {
