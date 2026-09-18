@@ -459,6 +459,11 @@
     "stop": "Stop",
     "desktop_only": "This feature is available in the desktop app."
   },
+  "tray": {
+    "open": "Open Stealth Study",
+    "settings": "Settings",
+    "quit": "Quit"
+  },
   "sidebar": {
     "new_session": "New session",
     "new_project": "New project",

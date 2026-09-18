@@ -64,3 +64,26 @@ describe("intlLocale 跟随应用语言", () => {
     expect(bubbleTime()).toBe("9:09 PM");
   });
 });
+
+describe("原生托盘菜单跟随语言", () => {
+  it("切换语言时把译文下发给 set_tray_labels", async () => {
+    const calls: { cmd: string; args: unknown }[] = [];
+    (globalThis as any).__TAURI__ = {
+      core: {
+        invoke: async (cmd: string, args: unknown) => {
+          calls.push({ cmd, args });
+          return null;
+        },
+      },
+    };
+    try {
+      await setLanguage("zh");
+      await setLanguage("en");
+    } finally {
+      delete (globalThis as any).__TAURI__;
+    }
+    expect(calls.map((c) => c.cmd)).toEqual(["set_tray_labels", "set_tray_labels"]);
+    expect(calls[0].args).toEqual({ open: "打开 Stealth Study", settings: "设置", quit: "退出" });
+    expect(calls[1].args).toEqual({ open: "Open Stealth Study", settings: "Settings", quit: "Quit" });
+  });
+});

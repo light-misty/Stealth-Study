@@ -127,6 +127,10 @@ export const clearPendingUpdate = () => invokeStrict<void>("clear_pending_update
  * Windows hands off to the installer). */
 export const installUpdate = () => invokeStrict<void>("install_update");
 
+/** Relabel the native tray menu, which can't read the SPA's i18n resources. Inert in the browser. */
+export const setTrayLabels = (open: string, settings: string, quit: string) =>
+  invoke<void>("set_tray_labels", { open, settings, quit });
+
 /** Best-effort open a URL in the user's browser. Uses the Tauri opener plugin if present, else
  * `window.open`. The caller should also render the raw URL so it stays copyable if both no-op
  * (the desktop webview has no opener plugin wired yet). */

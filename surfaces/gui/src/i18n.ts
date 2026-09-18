@@ -10,6 +10,7 @@ import { initReactI18next } from "react-i18next";
 
 import en from "./locales/en.json";
 import zh from "./locales/zh.json";
+import { setTrayLabels } from "./tauri";
 
 const STORAGE_KEY = "ss.lang";
 
@@ -35,8 +36,11 @@ export function intlLocale(): string {
   return getCurrentLanguage() === "zh" ? "zh-CN" : "en-US";
 }
 
-function applyDocumentLang(lang: Lang) {
+function applyDocumentLang() {
+  const lang = getCurrentLanguage();
   if (typeof document !== "undefined") document.documentElement.lang = lang;
+  const t = i18n.getFixedT(null, "translation");
+  void setTrayLabels(t("tray.open"), t("tray.settings"), t("tray.quit"));
 }
 
 export async function initI18n() {
@@ -50,7 +54,7 @@ export async function initI18n() {
     interpolation: { escapeValue: false }, // React already escapes
     returnNull: false,
   });
-  applyDocumentLang(getCurrentLanguage());
+  applyDocumentLang();
   return i18n;
 }
 
@@ -63,7 +67,7 @@ export function setLanguage(lang: Lang | null) {
     /* persistence failure shouldn't block the switch */
   }
   return i18n.changeLanguage(lang ?? resolveLang()).then(() => {
-    applyDocumentLang(getCurrentLanguage());
+    applyDocumentLang();
   });
 }
 

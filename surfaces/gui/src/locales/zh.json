@@ -454,6 +454,11 @@
     "stop": "停止",
     "desktop_only": "此功能需在桌面应用中运行。"
   },
+  "tray": {
+    "open": "打开 Stealth Study",
+    "settings": "设置",
+    "quit": "退出"
+  },
   "sidebar": {
     "new_session": "新建会话",
     "new_project": "新建项目",

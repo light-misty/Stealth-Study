@@ -523,6 +523,23 @@ fn show_main(app: &tauri::AppHandle) {
     }
 }
 
+#[tauri::command]
+fn set_tray_labels(
+    app: tauri::AppHandle,
+    open: String,
+    settings: String,
+    quit: String,
+) -> tauri::Result<()> {
+    let Some(tray) = app.tray_by_id("main") else {
+        return Ok(());
+    };
+    let open_i = MenuItem::with_id(&app, "open", open, true, None::<&str>)?;
+    let settings_i = MenuItem::with_id(&app, "settings", settings, true, None::<&str>)?;
+    let quit_i = MenuItem::with_id(&app, "quit", quit, true, None::<&str>)?;
+    let menu = Menu::with_items(&app, &[&open_i, &settings_i, &quit_i])?;
+    tray.set_menu(Some(menu))
+}
+
 // --- Auto-update (tauri-plugin-updater) -------------------------------------------
 // The GUI drives updates through these commands (same invoke bridge as everything
 // else — no global plugin JS): check, background pre-download, install. Update
@@ -653,7 +670,8 @@ pub fn run() {
             check_for_update,
             download_update,
             clear_pending_update,
-            install_update
+            install_update,
+            set_tray_labels
         ])
         .setup(move |app| {
             // 1. Start the Python server sidecar on the chosen port (inherits our env).
@@ -783,7 +801,7 @@ pub fn run() {
             // A monochrome template icon (black + alpha, raw RGBA 44×44) so the menu bar tints
             // it for light/dark automatically — not the full-color app icon.
             let tray_icon = tauri::image::Image::new(include_bytes!("../icons/tray.rgba"), 44, 44);
-            TrayIconBuilder::new()
+            TrayIconBuilder::with_id("main")
                 .tooltip("Stealth Study")
                 .icon(tray_icon)
                 .icon_as_template(true)
