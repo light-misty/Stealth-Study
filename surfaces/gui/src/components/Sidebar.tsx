@@ -1078,7 +1078,7 @@ export function Sidebar(props: Props) {
           as the rows above. Labels ride the campus.nav.* keys (04 §7.2 folded the
           sidebar.campus_* sketch into that namespace); book/clock/shield are existing
           IconName members, so no new icon types. */}
-      <div className="px-2.5 mt-1">
+      <div className="px-2.5 mt-1 space-y-1">
         {([["cet", "book"], ["kaoyan", "clock"], ["cert", "shield"]] as const).map(
           ([track, icon]) => (
             <button
