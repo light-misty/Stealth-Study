@@ -39,7 +39,7 @@ const dayText = (value: string | null): string => (value ?? "").slice(0, 10);
 describe("ArchivedProfilesDialog", () => {
   it("lists the archived profiles with their create and archive dates", () => {
     render(
-      <ArchivedProfilesDialog profiles={[recent, older, legacy]} onRestore={vi.fn()} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[recent, older, legacy]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     expect(screen.getByTestId("campus-archived-row-a1").textContent).toContain("四级冲刺");
@@ -54,7 +54,7 @@ describe("ArchivedProfilesDialog", () => {
 
   it("narrows the list by profile name", () => {
     render(
-      <ArchivedProfilesDialog profiles={[recent, older, legacy]} onRestore={vi.fn()} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[recent, older, legacy]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     fireEvent.change(screen.getByTestId("campus-archived-search"), {
@@ -68,7 +68,7 @@ describe("ArchivedProfilesDialog", () => {
 
   it("filters by when the profile was archived and keeps pre-timestamp rows as older", () => {
     render(
-      <ArchivedProfilesDialog profiles={[recent, older, legacy]} onRestore={vi.fn()} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[recent, older, legacy]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     fireEvent.change(screen.getByTestId("campus-archived-filter"), {
@@ -88,7 +88,7 @@ describe("ArchivedProfilesDialog", () => {
 
   it("sorts by archive date first and can switch to creation date", () => {
     render(
-      <ArchivedProfilesDialog profiles={[older, recent, legacy]} onRestore={vi.fn()} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[older, recent, legacy]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     expect(screen.getByTestId("campus-archived-list").textContent).toMatch(/四级冲刺.*六级冲关.*历史归档/s);
@@ -101,7 +101,7 @@ describe("ArchivedProfilesDialog", () => {
 
   it("says so when a search matches nothing", () => {
     render(
-      <ArchivedProfilesDialog profiles={[recent]} onRestore={vi.fn()} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[recent]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     fireEvent.change(screen.getByTestId("campus-archived-search"), {
@@ -113,13 +113,13 @@ describe("ArchivedProfilesDialog", () => {
   });
 
   it("says so when there is nothing archived at all", () => {
-    render(<ArchivedProfilesDialog profiles={[]} onRestore={vi.fn()} onClose={vi.fn()} />);
+    render(<ArchivedProfilesDialog profiles={[]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />);
     expect(screen.getByTestId("campus-archived-empty")).toBeTruthy();
   });
 
   it("opens one profile's details and returns to the list", () => {
     render(
-      <ArchivedProfilesDialog profiles={[recent]} onRestore={vi.fn()} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[recent]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     fireEvent.click(screen.getByTestId("campus-archived-detail-a1"));
@@ -135,10 +135,30 @@ describe("ArchivedProfilesDialog", () => {
     expect(screen.getByTestId("campus-archived-list")).toBeTruthy();
   });
 
+  it("asks for a rename from both the list and the detail view", () => {
+    const onRename = vi.fn();
+    render(
+      <ArchivedProfilesDialog
+        profiles={[recent]}
+        onRestore={vi.fn()}
+        onRename={onRename}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-archived-rename-a1"));
+    expect(onRename).toHaveBeenCalledWith("a1");
+
+    fireEvent.click(screen.getByTestId("campus-archived-detail-a1"));
+    fireEvent.click(screen.getByTestId("campus-archived-detail-rename"));
+    expect(onRename).toHaveBeenCalledTimes(2);
+    expect(onRename).toHaveBeenLastCalledWith("a1");
+  });
+
   it("restores a profile from both the list and the detail view", () => {
     const onRestore = vi.fn();
     render(
-      <ArchivedProfilesDialog profiles={[recent]} onRestore={onRestore} onClose={vi.fn()} />,
+      <ArchivedProfilesDialog profiles={[recent]} onRestore={onRestore} onRename={vi.fn()} onClose={vi.fn()} />,
     );
 
     fireEvent.click(screen.getByTestId("campus-archived-restore-a1"));

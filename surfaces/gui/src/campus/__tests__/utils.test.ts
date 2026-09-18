@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CampusApiError } from "../api";
+import type { ExamProfile } from "../types";
 import {
   campusErrorInfo,
   campusErrorKey,
@@ -11,7 +12,9 @@ import {
   isCountdownHighlight,
   nextIntervalDays,
   REVIEW_LADDER,
+  profileTitleTaken,
   scoringStateOf,
+  suggestProfileTitle,
 } from "../utils";
 
 describe("nextIntervalDays (simplified SM-2 ladder, 01 §3)", () => {
@@ -152,5 +155,31 @@ describe("formatPercent", () => {
     expect(formatPercent(-0.5)).toBe("0%");
     expect(formatPercent(1.8)).toBe("100%");
     expect(formatPercent(Number.NaN)).toBe("0%");
+  });
+});
+
+describe("profileTitleTaken (the desk holds a name, the box does not)", () => {
+  const onDesk = { id: "p1", title: "四级冲刺", status: "active" };
+  const finished = { id: "p2", title: "已结课", status: "finished" };
+  const boxed = { id: "p3", title: "箱子里", status: "archived" };
+  const all = [onDesk, finished, boxed] as unknown as ExamProfile[];
+
+  it("matches an unarchived profile's title, ignoring case and surrounding space", () => {
+    expect(profileTitleTaken(all, " 四级冲刺 ")).toBe(true);
+    expect(profileTitleTaken(all, "四级冲刺", "p1")).toBe(false);
+    expect(profileTitleTaken(all, "已结课")).toBe(true);
+    expect(profileTitleTaken(all, "箱子里")).toBe(false);
+    expect(profileTitleTaken(all, "没人的名字")).toBe(false);
+    expect(profileTitleTaken(all, "   ")).toBe(false);
+  });
+});
+
+describe("suggestProfileTitle", () => {
+  const taken = [{ id: "p1", title: "冲刺 (2)", status: "active" }] as unknown as ExamProfile[];
+
+  it("offers the first free numbered variant", () => {
+    expect(suggestProfileTitle([], "四级冲刺")).toBe("四级冲刺 (2)");
+    expect(suggestProfileTitle(taken, "冲刺")).toBe("冲刺 (3)");
+    expect(suggestProfileTitle(taken, "  ")).toBe("");
   });
 });

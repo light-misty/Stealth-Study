@@ -88,7 +88,13 @@
       "action_create_failed": "Profile not created",
       "action_archive_failed": "Profile not archived",
       "action_restore_failed": "Profile not restored",
-      "dialog_close": "Close"
+      "dialog_close": "Close",
+      "rename": "Rename",
+      "rename_title": "Rename profile",
+      "rename_save": "Save name",
+      "action_rename_failed": "Profile not renamed",
+      "restore_and_rename": "Rename and restore",
+      "restore_rename_hint": "“{{title}}” is taken by a profile on the desk. Give it another name and it comes back."
     },
     "archived": {
       "title": "Archived profiles",
@@ -108,7 +114,7 @@
       "restore": "Restore",
       "empty": "No archived profiles yet",
       "nomatch": "No archived profile matches these filters",
-      "restore_hint": "Restoring puts the profile back on the station. If a profile with the same name is already there, both stay."
+      "restore_hint": "Restoring puts the profile back on the desk, name included: if that name is already taken, the dialog asks for a new one."
     },
     "settings": {
       "title": "Station settings",

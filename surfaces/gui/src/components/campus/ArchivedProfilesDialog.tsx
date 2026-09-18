@@ -32,10 +32,11 @@ function timeValue(value: string | null): number {
 interface Props {
   profiles: ExamProfile[];
   onRestore: (id: string) => void;
+  onRename: (id: string) => void;
   onClose: () => void;
 }
 
-export function ArchivedProfilesDialog({ profiles, onRestore, onClose }: Props) {
+export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose }: Props) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ArchiveFilter>("all");
@@ -113,6 +114,7 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onClose }: Props) 
             <ProfileDetail
               profile={detail}
               onBack={() => setDetailId(null)}
+              onRename={() => onRename(detail.id)}
               onRestore={() => onRestore(detail.id)}
             />
           ) : visible.length === 0 ? (
@@ -152,6 +154,14 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onClose }: Props) 
                   </button>
                   <button
                     type="button"
+                    className="px-2 py-1 text-[12.5px] text-muted hover:text-ink"
+                    onClick={() => onRename(p.id)}
+                    data-testid={`campus-archived-rename-${p.id}`}
+                  >
+                    {t("campus.profile.rename")}
+                  </button>
+                  <button
+                    type="button"
                     className="px-2.5 py-1 rounded-lg text-[12.5px] bg-accent text-white"
                     onClick={() => onRestore(p.id)}
                     data-testid={`campus-archived-restore-${p.id}`}
@@ -171,10 +181,12 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onClose }: Props) 
 function ProfileDetail({
   profile,
   onBack,
+  onRename,
   onRestore,
 }: {
   profile: ExamProfile;
   onBack: () => void;
+  onRename: () => void;
   onRestore: () => void;
 }) {
   const { t } = useTranslation();
@@ -208,6 +220,14 @@ function ProfileDetail({
           data-testid="campus-archived-detail-back"
         >
           {t("campus.archived.back")}
+        </button>
+        <button
+          type="button"
+          className="px-2.5 py-1.5 rounded-lg text-[13px] text-muted border border-line hover:text-ink"
+          onClick={onRename}
+          data-testid="campus-archived-detail-rename"
+        >
+          {t("campus.profile.rename")}
         </button>
         <button
           type="button"

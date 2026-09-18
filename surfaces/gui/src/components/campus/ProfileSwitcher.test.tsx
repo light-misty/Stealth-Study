@@ -94,6 +94,23 @@ describe("ProfileSwitcher", () => {
     expect(screen.queryByTestId("campus-profile-archive-p1")).toBeNull();
   });
 
+  it("asks for a rename per on-desk profile", () => {
+    const onRename = vi.fn();
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1"), profile("p2", "archived")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onRename={onRename}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-profile-rename-p1"));
+    expect(onRename).toHaveBeenCalledWith("p1");
+    expect(screen.queryByTestId("campus-profile-rename-p2")).toBeNull();
+  });
+
   it("offers the archived profiles with their count", () => {
     const onShowArchived = vi.fn();
     render(

@@ -340,6 +340,93 @@ describe("CampusStationView", () => {
     expect(screen.queryByTestId("campus-profile-archived-entry")).toBeNull();
   });
 
+  it("renames an on-desk profile from the switcher", async () => {
+    const twin = { ...profile("p2"), title: "已占用的名字" };
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1"), twin] });
+    apiMock.patchProfile.mockResolvedValue({ ...profile("p1"), title: "改好了" });
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-rename-p1")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-rename-p1"));
+    const input = screen.getByTestId("campus-profile-rename-input") as HTMLInputElement;
+    expect(input.value).toBe("四级冲刺");
+
+    fireEvent.change(input, { target: { value: "已占用的名字" } });
+    expect(screen.getByTestId("campus-profile-rename-error")).toBeTruthy();
+    expect((screen.getByTestId("campus-profile-rename-save") as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+
+    fireEvent.change(input, { target: { value: "改好了" } });
+    fireEvent.click(screen.getByTestId("campus-profile-rename-save"));
+
+    await waitFor(() =>
+      expect(apiMock.patchProfile).toHaveBeenCalledWith("p1", { title: "改好了" }),
+    );
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-rename")).toBeNull());
+  });
+
+  it("renames a boxed profile from the archived list", async () => {
+    const boxed = { ...profile("a1"), status: "archived" as const, archived_at: "2026-09-05T00:00:00Z" };
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1"), boxed] });
+    apiMock.patchProfile.mockResolvedValue(boxed);
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-archived-entry")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-archived-entry"));
+    fireEvent.click(screen.getByTestId("campus-archived-rename-a1"));
+
+    const input = screen.getByTestId("campus-profile-rename-input") as HTMLInputElement;
+    expect(input.value).toBe("四级冲刺");
+    fireEvent.change(input, { target: { value: "箱子里的新名" } });
+    fireEvent.click(screen.getByTestId("campus-profile-rename-save"));
+    await waitFor(() =>
+      expect(apiMock.patchProfile).toHaveBeenCalledWith("a1", { title: "箱子里的新名" }),
+    );
+    expect(screen.getByTestId("campus-archived-dialog")).toBeTruthy();
+  });
+
+  it("restores a boxed profile under a new name when the desk took its old one", async () => {
+    const boxed = { ...profile("a1"), status: "archived" as const, archived_at: "2026-09-05T00:00:00Z" };
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1"), boxed] });
+    apiMock.patchProfile.mockImplementation(async (id: string, patch: { title?: string }) => {
+      if (!patch.title) {
+        throw new CampusApiError("DUPLICATE_TITLE", "同名档案已存在：四级冲刺", false, 409);
+      }
+      return { ...profile(id), status: "active", title: patch.title, archived_at: null };
+    });
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-archived-entry")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-archived-entry"));
+    fireEvent.click(screen.getByTestId("campus-archived-restore-a1"));
+
+    const dialog = await screen.findByTestId("campus-profile-conflict");
+    expect(dialog.textContent).toContain("A profile with this title already exists");
+    const input = screen.getByTestId("campus-profile-conflict-title") as HTMLInputElement;
+    expect(input.value).toBe("四级冲刺 (2)");
+    expect((screen.getByTestId("campus-profile-conflict-ok") as HTMLButtonElement).textContent).toContain(
+      "Rename and restore",
+    );
+
+    fireEvent.change(input, { target: { value: "四级冲刺" } });
+    expect(screen.getByTestId("campus-profile-conflict-error")).toBeTruthy();
+    expect((screen.getByTestId("campus-profile-conflict-ok") as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+
+    fireEvent.change(input, { target: { value: "回归档案" } });
+    fireEvent.click(screen.getByTestId("campus-profile-conflict-ok"));
+
+    await waitFor(() =>
+      expect(apiMock.patchProfile).toHaveBeenCalledWith("a1", {
+        status: "active",
+        title: "回归档案",
+      }),
+    );
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-conflict")).toBeNull());
+  });
+
   it("still offers the archived profiles when every profile of the station is archived", async () => {
     const boxed = { ...profile("a1"), status: "archived" as const };
     apiMock.listProfiles.mockResolvedValue({ items: [boxed] });

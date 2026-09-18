@@ -3,8 +3,14 @@ import { useTranslation } from "react-i18next";
 import type { ProfileAction, ProfileActionError } from "./CampusProfileContext";
 import { useCapabilities, useDeadlineViews } from "../../campus/hooks";
 import type { CampusTrack, ExamProfile } from "../../campus/types";
-import { campusErrorInfo, campusErrorKey } from "../../campus/utils";
+import {
+  campusErrorInfo,
+  campusErrorKey,
+  profileTitleTaken,
+  suggestProfileTitle,
+} from "../../campus/utils";
 import { CampusProfileProvider, useCampusProfile } from "./CampusProfileContext";
+import { ProfileRenameDialog } from "./ProfileRenameDialog";
 import { ArchivedProfilesDialog } from "./ArchivedProfilesDialog";
 import { CampusDialog } from "./CampusDialog";
 import { Icon } from "../Icon";
@@ -135,6 +141,7 @@ function StationBody({ track }: { track: CampusTrack }) {
     setActive,
     createProfile,
     setStatus,
+    renameProfile,
     actionError,
     clearActionError,
     creating: creatingProfile,
@@ -147,6 +154,7 @@ function StationBody({ track }: { track: CampusTrack }) {
   // is always on screen and nothing ever sets the flag.
   const [showCreateCard, setShowCreateCard] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
+  const [renameId, setRenameId] = useState<string | null>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const archivedCount = profiles.filter((p) => p.status === "archived").length;
 
@@ -184,14 +192,36 @@ function StationBody({ track }: { track: CampusTrack }) {
     );
   }
 
+  const renameTarget = renameId ? profiles.find((p) => p.id === renameId) ?? null : null;
+
   const dialogs = (
     <>
-      {actionError ? <ProfileActionDialog error={actionError} onClose={clearActionError} /> : null}
       {showArchived ? (
         <ArchivedProfilesDialog
           profiles={profiles}
           onRestore={(id) => void setStatus(id, "active")}
+          onRename={(id) => setRenameId(id)}
           onClose={() => setShowArchived(false)}
+        />
+      ) : null}
+      {renameTarget ? (
+        <ProfileRenameDialog
+          profile={renameTarget}
+          profiles={profiles}
+          onSubmit={async (title) => (await renameProfile(renameTarget.id, title)).ok}
+          onClose={() => setRenameId(null)}
+        />
+      ) : null}
+      {actionError ? (
+        <ProfileActionDialog
+          error={actionError}
+          profiles={profiles}
+          onRestoreNamed={(title) =>
+            actionError.profileId
+              ? void setStatus(actionError.profileId, "active", title)
+              : undefined
+          }
+          onClose={clearActionError}
         />
       ) : null}
     </>
@@ -246,6 +276,7 @@ function StationBody({ track }: { track: CampusTrack }) {
             onSwitch={(id) => void setActive(id)}
             onCreate={() => setShowCreateCard(true)}
             onArchive={(id) => void setStatus(id, "archived")}
+            onRename={(id) => setRenameId(id)}
             onShowArchived={() => setShowArchived(true)}
           />
           {showCreateCard ? (
@@ -285,44 +316,92 @@ const ACTION_HEADING_KEY: Record<ProfileAction, string> = {
   create: "campus.profile.action_create_failed",
   archive: "campus.profile.action_archive_failed",
   restore: "campus.profile.action_restore_failed",
+  rename: "campus.profile.action_rename_failed",
 };
 
 function ProfileActionDialog({
   error,
+  profiles,
+  onRestoreNamed,
   onClose,
 }: {
   error: ProfileActionError;
+  profiles: ExamProfile[];
+  onRestoreNamed: (title: string) => void;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
   const info = campusErrorInfo(error.error);
-  const duplicate = error.action === "create" && info.code === "DUPLICATE_TITLE";
+  const code = info.code;
+  const duplicate = code === "DUPLICATE_TITLE";
+  const restoring = error.action === "restore" && duplicate && error.profileId !== null;
+  const [title, setTitle] = useState(() =>
+    restoring ? suggestProfileTitle(profiles, error.title, error.profileId ?? undefined) : "",
+  );
+  const clean = title.trim();
+  const free =
+    clean !== "" && !profileTitleTaken(profiles, clean, error.profileId ?? undefined);
+
   return (
     <CampusDialog
       testId="campus-profile-conflict"
       title={t(ACTION_HEADING_KEY[error.action])}
       onClose={onClose}
       footer={
-        <button
-          type="button"
-          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px]"
-          onClick={onClose}
-          data-testid="campus-profile-conflict-ok"
-        >
-          {t("campus.common.got_it")}
-        </button>
+        <>
+          <button
+            type="button"
+            className="px-2.5 py-1.5 text-[13px] text-faint hover:text-muted"
+            onClick={onClose}
+            data-testid="campus-profile-conflict-cancel"
+          >
+            {t("campus.profile.create_cancel")}
+          </button>
+          <button
+            type="button"
+            className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] disabled:opacity-40"
+            onClick={() => (restoring ? onRestoreNamed(clean) : onClose())}
+            disabled={restoring && !free}
+            data-testid="campus-profile-conflict-ok"
+          >
+            {t(restoring ? "campus.profile.restore_and_rename" : "campus.common.got_it")}
+          </button>
+        </>
       }
     >
       <div className="grid gap-1.5" data-testid="campus-profile-conflict-body">
         <p className="text-[13px] leading-[20px] text-ink">
-          {t(campusErrorKey(info.code), {
+          {t(campusErrorKey(code), {
             defaultValue: info.message || t("campus.common.error"),
           })}
         </p>
-        {duplicate ? (
+        {duplicate && error.action === "create" ? (
           <p className="text-[12.5px] leading-[19px] text-muted">
             {t("campus.profile.duplicate_hint", { title: error.title })}
           </p>
+        ) : null}
+        {restoring ? (
+          <>
+            <p className="text-[12.5px] leading-[19px] text-muted">
+              {t("campus.profile.restore_rename_hint", { title: error.title })}
+            </p>
+            <label className="block">
+              <span className="text-[12px] text-muted">{t("campus.profile.title_label")}</span>
+              <input
+                className="mt-1 w-full rounded-lg border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-ink outline-none"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                data-testid="campus-profile-conflict-title"
+              />
+            </label>
+            {!free ? (
+              <p className="text-[12px] text-warnInk" data-testid="campus-profile-conflict-error">
+                {t(
+                  clean === "" ? "campus.profile.title_required" : "campus.error.duplicate_title",
+                )}
+              </p>
+            ) : null}
+          </>
         ) : null}
       </div>
     </CampusDialog>

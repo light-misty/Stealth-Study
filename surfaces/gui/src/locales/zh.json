@@ -87,7 +87,13 @@
       "action_create_failed": "档案未创建",
       "action_archive_failed": "档案未归档",
       "action_restore_failed": "档案未恢复",
-      "dialog_close": "关闭"
+      "dialog_close": "关闭",
+      "rename": "改名",
+      "rename_title": "档案改名",
+      "rename_save": "保存名称",
+      "action_rename_failed": "档案未改名",
+      "restore_and_rename": "改名并恢复",
+      "restore_rename_hint": "「{{title}}」已被台面上的档案占用。换个名字即可把它恢复回来。"
     },
     "archived": {
       "title": "已归档档案",
@@ -107,7 +113,7 @@
       "restore": "恢复",
       "empty": "还没有已归档的档案",
       "nomatch": "没有符合条件的已归档档案",
-      "restore_hint": "恢复后档案回到台面上，可继续学习；若台面上已有同名档案，两者会并存。"
+      "restore_hint": "恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。"
     },
     "settings": {
       "title": "备考台设置",

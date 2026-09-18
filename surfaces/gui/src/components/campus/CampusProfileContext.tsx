@@ -5,6 +5,7 @@ import type {
   CampusTrack,
   ExamProfile,
   ProfileCreateInput,
+  ProfilePatch,
   ProfileStatus,
 } from "../../campus/types";
 import { campusErrorInfo } from "../../campus/utils";
@@ -12,13 +13,16 @@ import { campusErrorInfo } from "../../campus/utils";
 // The single place the station reads its profile from (04 §3.1): panels consume the
 // active profile through this context instead of each firing their own A1/A6 request.
 
-export type ProfileAction = "create" | "archive" | "restore";
+export type ProfileAction = "create" | "archive" | "restore" | "rename";
 
 export interface ProfileActionError {
   action: ProfileAction;
+  profileId: string | null;
   title: string;
   error: unknown;
 }
+
+export type ProfileRenameResult = { ok: true } | { ok: false; error: unknown };
 
 export interface CampusProfileContextValue {
   profiles: ExamProfile[];
@@ -33,7 +37,8 @@ export interface CampusProfileContextValue {
   reload: () => void;
   setActive: (id: string | null) => Promise<void>;
   createProfile: (input: ProfileCreateInput) => Promise<ExamProfile | null>;
-  setStatus: (id: string, status: ProfileStatus) => Promise<void>;
+  renameProfile: (id: string, title: string) => Promise<ProfileRenameResult>;
+  setStatus: (id: string, status: ProfileStatus, title?: string) => Promise<void>;
 }
 
 const CampusProfileContext = createContext<CampusProfileContextValue | null>(null);
@@ -71,7 +76,7 @@ export function CampusProfileProvider({
         reload();
         return created;
       } catch (err) {
-        setActionError({ action: "create", title: input.title, error: err });
+        setActionError({ action: "create", profileId: null, title: input.title, error: err });
         return null;
       } finally {
         setCreating(false);
@@ -80,15 +85,34 @@ export function CampusProfileProvider({
     [reload, setActive],
   );
 
-  const setStatus = useCallback(
-    async (id: string, status: ProfileStatus) => {
-      setActionError(null);
-      const title = profiles.find((p) => p.id === id)?.title ?? "";
+  const renameProfile = useCallback(
+    async (id: string, title: string): Promise<ProfileRenameResult> => {
       try {
-        await patchProfile(id, { status });
+        await patchProfile(id, { title });
+        reload();
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, error: err };
+      }
+    },
+    [reload],
+  );
+
+  const setStatus = useCallback(
+    async (id: string, status: ProfileStatus, title?: string) => {
+      const patch: ProfilePatch = title === undefined ? { status } : { status, title };
+      const carrying = title ?? profiles.find((p) => p.id === id)?.title ?? "";
+      try {
+        await patchProfile(id, patch);
+        setActionError(null);
         reload();
       } catch (err) {
-        setActionError({ action: statusAction(status), title, error: err });
+        setActionError({
+          action: statusAction(status),
+          profileId: id,
+          title: carrying,
+          error: err,
+        });
       }
     },
     [profiles, reload],
@@ -107,6 +131,7 @@ export function CampusProfileProvider({
       creating,
       actionError,
       clearActionError,
+      renameProfile,
       reload,
       setActive,
       createProfile: create,
@@ -123,6 +148,7 @@ export function CampusProfileProvider({
       creating,
       actionError,
       clearActionError,
+      renameProfile,
       reload,
       setActive,
       create,

@@ -1,5 +1,5 @@
 import { CampusApiError } from "./api";
-import type { DegradeLevel, DeadlineTier, ScoringState } from "./types";
+import type { DegradeLevel, DeadlineTier, ExamProfile, ScoringState } from "./types";
 
 // Shared display helpers for the campus station UI. Kept dependency-free and pure so
 // every panel can be tested without rendering or network access.
@@ -112,4 +112,26 @@ export function daysSince(value: string | null | undefined): number | null {
   const at = new Date(value).getTime();
   if (Number.isNaN(at)) return null;
   return (Date.now() - at) / (24 * 60 * 60 * 1000);
+}
+
+export function profileTitleTaken(
+  profiles: ExamProfile[],
+  title: string,
+  exceptId?: string | null,
+): boolean {
+  const wanted = title.trim().toLowerCase();
+  if (!wanted) return false;
+  return profiles.some(
+    (p) => p.id !== exceptId && p.status !== "archived" && p.title.trim().toLowerCase() === wanted,
+  );
+}
+
+export function suggestProfileTitle(profiles: ExamProfile[], title: string, exceptId?: string): string {
+  const base = title.trim();
+  if (!base) return "";
+  for (let n = 2; n < 100; n += 1) {
+    const candidate = `${base} (${n})`;
+    if (!profileTitleTaken(profiles, candidate, exceptId)) return candidate;
+  }
+  return "";
 }

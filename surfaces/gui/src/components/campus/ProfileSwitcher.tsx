@@ -11,6 +11,7 @@ export function ProfileSwitcher({
   onSwitch,
   onCreate,
   onArchive,
+  onRename,
   onShowArchived,
 }: {
   profiles: ExamProfile[];
@@ -18,6 +19,7 @@ export function ProfileSwitcher({
   onSwitch: (id: string) => void;
   onCreate: () => void;
   onArchive?: (id: string) => void;
+  onRename?: (id: string) => void;
   onShowArchived?: () => void;
 }) {
   const { t } = useTranslation();
@@ -53,6 +55,18 @@ export function ProfileSwitcher({
             >
               {p.title}
             </button>
+            {onRename && (
+              <button
+                type="button"
+                className="ml-1 p-1 text-faint hover:text-muted"
+                onClick={() => onRename(p.id)}
+                data-testid={`campus-profile-rename-${p.id}`}
+                title={t("campus.profile.rename")}
+                aria-label={t("campus.profile.rename")}
+              >
+                <Icon name="pencil" size={14} />
+              </button>
+            )}
             {onArchive && (
               <button
                 type="button"
