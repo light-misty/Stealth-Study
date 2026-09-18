@@ -559,8 +559,12 @@ const ARTIFACT_CSP =
   '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; ' +
   "style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:;\">";
 
+// The sandboxed document is a separate DOM — the app window's guard never sees its events.
+const NO_CONTEXT_MENU =
+  '<script>addEventListener("contextmenu",function(e){e.preventDefault()},true)</script>';
+
 function sandboxHtml(html: string): string {
-  return ARTIFACT_CSP + html;
+  return ARTIFACT_CSP + NO_CONTEXT_MENU + html;
 }
 
 function ArtifactViewer({
