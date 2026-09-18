@@ -152,7 +152,7 @@ test("a sleeping lead shows the strip; Ask for a status wakes it", async ({ page
   await expect(strip).toContainText("Sleeping until");
   await expect(strip).toContainText("while the team works");
   await page.getByTestId("sleep-status-btn").click();
-  await expect(page.getByText(/Echo: Quick status check/)).toBeVisible();
+  await expect(page.getByText(/Echo: Quick check on my studying/)).toBeVisible();
 });
 
 test("with chat declined at the gate, no chat row renders", async ({ page }) => {

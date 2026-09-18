@@ -20,7 +20,7 @@ test("Settings opens as a full page and navigates sections", async ({ page }) =>
   await expect(page.getByRole("button", { name: "Study partners", exact: true })).toBeVisible();
 
   // The Files card lives inside General.
-  await expect(page.getByText("Each conversation gets its own folder")).toBeVisible();
+  await expect(page.getByText("Each study session gets its own folder")).toBeVisible();
 
   await page.getByRole("button", { name: "Models", exact: true }).click();
   await expect(page.getByTestId("set-provider-openai")).toBeVisible();
