@@ -313,12 +313,12 @@ export function App() {
     setRailHidden(v);
     try { localStorage.setItem(RAIL_HIDDEN_KEY, v ? "1" : "0"); } catch { /* best effort */ }
   }, []);
-  // Left-nav collapse (⌘B): when collapsed the sidebar leaves the grid so content reclaims the
-  // width; hovering the left edge peeks it back as a floating overlay. Persisted per-device.
+  // Left-nav collapse (⌘B): when collapsed the sidebar slides out and the content reclaims the
+  // width. Only an explicit action (button / ⌘B) docks or reveals it — no hover trigger.
+  // Persisted per-device.
   const [navCollapsed, setNavCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(NAV_COLLAPSED_KEY) === "1"; } catch { return false; }
   });
-  const [navPeek, setNavPeek] = useState(false);
   // While an artifact preview is open we auto-collapse the nav (#3). Remember the pre-preview
   // collapse state so we can restore it on close — unless the user re-opened the nav meanwhile.
   const navBeforePreview = useRef<boolean | null>(null);
@@ -327,7 +327,6 @@ export function App() {
     try { localStorage.setItem(NAV_COLLAPSED_KEY, v ? "1" : "0"); } catch { /* best effort */ }
   }, []);
   const toggleNav = useCallback(() => {
-    setNavPeek(false);
     navBeforePreview.current = null; // a manual toggle takes control from the artifact auto-collapse
     setNavCollapsedPersist(!navCollapsed);
   }, [navCollapsed, setNavCollapsedPersist]);
@@ -339,7 +338,6 @@ export function App() {
   // collapse state is read through the functional updater instead.
   const onArtifactPreview = useCallback((open: boolean) => {
     if (open) {
-      setNavPeek(false);
       setNavCollapsed((cur) => {
         if (navBeforePreview.current === null) navBeforePreview.current = cur;
         return true;
@@ -1623,12 +1621,7 @@ export function App() {
 
   return (
     <div
-      className={
-        "app" +
-        (overlay ? " tauri-overlay" : "") +
-        (navCollapsed ? " nav-collapsed" : "") +
-        (navCollapsed && navPeek ? " nav-peek" : "")
-      }
+      className={"app" + (overlay ? " tauri-overlay" : "") + (navCollapsed ? " nav-collapsed" : "")}
     >
       {/* Dev-only fake traffic lights so ?overlay=1 previews the real desktop top-left. */}
       {simOverlay && (
@@ -1677,22 +1670,13 @@ export function App() {
           </div>
         </div>
       )}
-      {/* When collapsed, a thin left-edge zone peeks the nav back as a floating overlay. */}
-      {navCollapsed && (
-        <div
-          className="nav-hover-zone"
-          onMouseEnter={() => setNavPeek(true)}
-          aria-hidden="true"
-        />
-      )}
-      {/* Explicit reveal affordance while collapsed (alongside hover-peek + ⌘B) — on every
-          surface EXCEPT the session view, whose topbar carries the [sidebar][+][search] cluster
-          instead (§22; no duplicate reveal buttons). */}
-      {navCollapsed && !navPeek && surface !== "session" && (
+      {/* Explicit reveal affordance while collapsed (⌘B mirrors it) — on every surface EXCEPT
+          the session view, whose topbar carries the [sidebar][+][search] cluster instead (§22;
+          no duplicate reveal buttons). */}
+      {navCollapsed && surface !== "session" && (
         <button
           className="nav-reveal-btn"
           onClick={toggleNav}
-          onMouseEnter={() => setNavPeek(true)}
           title={t("topbar.show_sidebar")}
           aria-label={t("topbar.show_sidebar_short")}
         >
@@ -1757,7 +1741,6 @@ export function App() {
         inboxActive={surface === "inbox"}
         collapsed={navCollapsed}
         onCollapse={toggleNav}
-        onPeekLeave={() => setNavPeek(false)}
       />
       {surface === "scheduled" ? (
         <ScheduledView

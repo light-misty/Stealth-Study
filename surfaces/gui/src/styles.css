@@ -188,10 +188,9 @@ body {
   min-height: 0;
 }
 
-/* ---------- collapsible left nav (⌘B + hover-peek) ---------- */
+/* ---------- collapsible left nav (⌘B) ---------- */
 /* Collapsed: the grid column goes to 0 so the content reclaims the width; the sidebar slides
-   off-screen. Hovering the left edge (.nav-hover-zone) adds .nav-peek, floating it back OVER the
-   content as an overlay with a shadow. */
+   off-screen. Only an explicit action (collapse/reveal button, ⌘B) changes the state. */
 /* Single column when collapsed: the sidebar is taken out of flow (absolute), so the main content
    must occupy the whole grid — a leading 0-width column would swallow it instead. */
 .app.nav-collapsed { grid-template-columns: 1fr; }
@@ -206,20 +205,8 @@ body {
   transition: transform 0.18s ease;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.16);
 }
-.app.nav-collapsed.nav-peek .sidebar { transform: translateX(0); }
-/* Thin left-edge zone that triggers the peek while collapsed. Starts BELOW the topbar row so the
-   peek can never fire while the cursor is on the collapsed cluster's [sidebar][+][search] icons
-   (§22 build note; the cluster's sidebar button docks the nav on click instead). */
-.nav-hover-zone {
-  position: fixed;
-  top: 48px;
-  left: 0;
-  bottom: 0;
-  width: 14px;
-  z-index: 55;
-}
 /* Reveal button while collapsed. Positioned to land EXACTLY on the brand's pin button (.nav-pin-btn,
-   14px/14px inside the brand row) so peeking the nav puts the pin under the cursor — no travel. */
+   14px/14px inside the brand row) so opening the nav puts the pin under the cursor — no travel. */
 .nav-reveal-btn {
   position: fixed;
   top: 10px; /* center (10+14) aligns with the topbar title in the browser build */

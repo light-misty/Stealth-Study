@@ -152,11 +152,9 @@ interface Props {
   integrationsActive: boolean;
   auditActive: boolean;
   inboxActive: boolean;
-  // Collapse controls (⌘B / hover-peek). `onCollapse` docks/undocks; `onPeekLeave` hides the
-  // floating peek when the pointer leaves the panel.
+  // Collapse control (⌘B mirrors it): `onCollapse` docks/undocks the nav.
   collapsed?: boolean;
   onCollapse?: () => void;
-  onPeekLeave?: () => void;
 }
 
 // Compact age for project session rows: "now" / "5m" / "6h" / "3d" / "2w" / "4mo" / "2y".
@@ -1011,13 +1009,10 @@ export function Sidebar(props: Props) {
   };
 
   return (
-    <div
-      className="sidebar flex flex-col min-h-0 bg-chrome border-r border-line"
-      onMouseLeave={props.onPeekLeave}
-    >
+    <div className="sidebar flex flex-col min-h-0 bg-chrome border-r border-line">
       {/* Header: collapse/pin control FIRST + wordmark. The pin sits at the same screen position
           as the collapsed reveal button (see .nav-pin-btn / .nav-reveal-btn in styles.css), so
-          hovering the reveal peeks the nav and the pin lands right under the cursor — no travel.
+          the two affordances swap places without the cursor travelling.
           data-tauri-drag-region drags the window; on desktop the row clears the traffic lights. */}
       <div className="brand px-3.5 pt-2.5 pb-2 flex items-center gap-2" data-tauri-drag-region>
         {/* Collapse (dock) / pin the sidebar. ⌘B mirrors this. */}

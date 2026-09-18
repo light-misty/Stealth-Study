@@ -29,6 +29,44 @@ test("⌘B toggles the sidebar collapse", async ({ page }) => {
   await expect(app).not.toHaveClass(/nav-collapsed/);
 });
 
+// The collapsed nav is off-screen to the left: its right edge never crosses x=0.
+async function sidebarRightEdge(page) {
+  const box = await page.locator(".sidebar").boundingBox();
+  return box.x + box.width;
+}
+
+test("collapsing leaves no hover-trigger zone in the DOM", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.locator(".app")).toHaveClass(/nav-collapsed/);
+  await expect(page.locator(".nav-hover-zone")).toHaveCount(0);
+});
+
+test("hovering the left edge while collapsed never peeks the nav back", async ({ page }) => {
+  await page.goto("/");
+  const app = page.locator(".app");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(app).toHaveClass(/nav-collapsed/);
+  await expect.poll(() => sidebarRightEdge(page)).toBeLessThanOrEqual(1);
+
+  for (const y of [60, 240, 480, 700]) {
+    await page.mouse.move(0, y);
+    await page.waitForTimeout(120);
+    expect(await sidebarRightEdge(page)).toBeLessThanOrEqual(1);
+    expect(await app.getAttribute("class")).not.toMatch(/nav-peek/);
+  }
+
+  // Sliding in from deeper inside the content edge is the other way a peek used to fire.
+  await page.mouse.move(120, 400);
+  await page.mouse.move(2, 400);
+  await page.waitForTimeout(300);
+  expect(await sidebarRightEdge(page)).toBeLessThanOrEqual(1);
+
+  // Only an explicit action brings it back.
+  await page.getByTestId("topbar-cluster").getByRole("button", { name: "Show sidebar" }).click();
+  await expect(app).not.toHaveClass(/nav-collapsed/);
+});
+
 test("RECENT header group/filter popover: switch grouping + see coworker filters", async ({
   page,
 }) => {
