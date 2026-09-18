@@ -856,7 +856,11 @@
       "error": "错误：",
       "context_compacted": "上下文已压缩",
       "input_rejected": "该消息已被拒绝。",
-      "unknown": "未知"
+      "unknown": "未知",
+      "mcp_failed": "有 MCP 服务器启动失败",
+      "mcp_not_started": "MCP 服务器「{{server}}」未能启动，其工具在本次会话不可用",
+      "auto_approve_paused": "本轮次内自动批准已暂停。",
+      "auto_approve_on": "自动批准已开启。"
     },
     "jump_to_latest": "跳到最新",
     "waiting_for_agent": "正在等待 agent…",

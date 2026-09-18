@@ -869,7 +869,11 @@
       "error": "Error: ",
       "context_compacted": "Context compacted",
       "input_rejected": "That message was rejected.",
-      "unknown": "unknown"
+      "unknown": "unknown",
+      "mcp_failed": "An MCP server failed to start",
+      "mcp_not_started": "MCP server “{{server}}” didn’t start — its tools are unavailable here",
+      "auto_approve_paused": "Auto-approve paused for the rest of this turn.",
+      "auto_approve_on": "Auto-approve is on."
     },
     "jump_to_latest": "Jump to latest",
     "waiting_for_agent": "Waiting for agent...",
