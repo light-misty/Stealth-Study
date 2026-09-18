@@ -13,7 +13,7 @@ test("opening a session with a live turn shows Stop and the waiting row", async 
 
   // ready carried running:true — Stop replaces Send, the waiting row spins.
   await expect(page.getByRole("button", { name: /Stop/ })).toBeVisible();
-  await expect(page.getByText("Waiting for agent...")).toBeVisible();
+  await expect(page.getByText("Waiting for your study partner…")).toBeVisible();
 
   // An idle session still gets the plain send arrow (running:false path).
   await page.getByText("Draft the launch note").first().click();

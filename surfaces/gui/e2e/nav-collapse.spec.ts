@@ -180,10 +180,10 @@ test("RECENT header group/filter popover: switch grouping + see coworker filters
   const header = page.getByTestId("recent-header");
   await expect(header).toContainText("Recent");
 
-  await header.getByRole("button", { name: "Group and filter conversations" }).click();
+  await header.getByRole("button", { name: "Group and filter study sessions" }).click();
   const menu = page.getByTestId("group-filter-menu");
   await expect(menu).toContainText("Group by");
-  await expect(menu).toContainText("Filter by coworker");
+  await expect(menu).toContainText("Filter by study partner");
 
   // Switch to Chronological → the persona accordion collapses into a flat list (the "StealthStudy"
   // persona group header is no longer a row; sessions list directly).

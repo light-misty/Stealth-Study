@@ -45,13 +45,14 @@ afterAll(async () => {
 });
 
 describe("persona 名称跟随语言", () => {
-  it("同事家族名用中文", () => {
-    expect(shortPersonaName("Coworker", "cowork")).toBe("同事");
-    expect(fullPersonaName("Coworker", "cowork")).toBe("同事");
+  it("学习伙伴家族名用中文，后端英文角色名不整名直出", () => {
+    expect(shortPersonaName("Coworker", "cowork")).toBe("学习伙伴");
+    expect(fullPersonaName("Coworker", "cowork")).toBe("学习伙伴");
     expect(shortPersonaName("Code Coworker", "code")).toBe("Code");
-    expect(fullPersonaName("Code Coworker", "code")).toBe("Code 同事");
-    expect(fullPersonaName("Ops", "ops")).toBe("Ops 同事");
+    expect(fullPersonaName("Code Coworker", "code")).toBe("Code");
+    expect(fullPersonaName("Ops", "ops")).toBe("Ops");
     expect(fullPersonaName("Chat", "chat")).toBe("Chat");
+    expect(shortPersonaName("Ops Coworker", "ops")).not.toMatch(/[A-Za-z]+\s+Coworker/);
   });
 });
 
@@ -89,10 +90,10 @@ describe("切回英文后保持原样", () => {
     await i18n.changeLanguage("en");
   });
 
-  it("沿用既有英文", () => {
-    expect(shortPersonaName("Coworker", "cowork")).toBe("Coworker");
-    expect(fullPersonaName("Code Coworker", "code")).toBe("Code Coworker");
-    expect(fullPersonaName("coworker", "ops")).toBe("coworker");
+  it("沿用主分支的英文称谓", () => {
+    expect(shortPersonaName("Coworker", "cowork")).toBe("Study Partner");
+    expect(fullPersonaName("Code Coworker", "code")).toBe("Code Partner");
+    expect(fullPersonaName("Ops", "ops")).toBe("Ops Partner");
     renderChecklist("bedrock");
     const select = screen.getByRole("combobox", { name: "Model family" });
     expect(Array.from(select.querySelectorAll("option")).map((o) => o.textContent)).toEqual([

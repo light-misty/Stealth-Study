@@ -121,7 +121,7 @@ describe("the same surfaces still work when the flag is on (reversibility)", () 
     localStorage.setItem("ocw.flag.login", "1");
     render(<GmailDetail {...props(connector({ name: "gmail", title: "Gmail" }))} />);
     expect(screen.getByTestId("add-account-btn").getAttribute("title")).toBe(
-      "Sign in to OpenWorker Cloud first",
+      "Sign in to Stealth Study Cloud first",
     );
   });
 });

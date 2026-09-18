@@ -64,11 +64,10 @@ export function newestFile(scratchBase: string, name: string): string | null {
   return best?.path ?? null;
 }
 
-/** Open a fresh Cowork session via the split button's persona menu. */
+/** Open a fresh session — the sidebar's New session starts the last-used (default) persona. */
 export async function startCoworkSession(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "Choose a persona" }).click();
-  await page.getByText(/Produce a deliverable/).click();
+  await page.getByTestId("nav-new-session").click();
 }
 
 /** Switch the composer's permission mode from the default "Ask for approval". */
@@ -79,7 +78,7 @@ export async function selectMode(page: Page, label: "Full access" | "Plan" | "Di
 
 /** Type a task and send it. */
 export async function sendTask(page: Page, text: string) {
-  await page.getByPlaceholder(/Ask the coworker/).fill(text);
+  await page.getByPlaceholder(/Ask your study partner/).fill(text);
   // exact — "Send" is a substring of the Inbox control's "Sending approvals…" title when unattended.
   await page.getByRole("button", { name: "Send", exact: true }).click();
 }
