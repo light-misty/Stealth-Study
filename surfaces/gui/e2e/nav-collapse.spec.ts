@@ -103,17 +103,40 @@ test("expanding slides the nav in while the content narrows in sync", async ({ p
   expectSynchronizedNav(frames, 0, 300);
 });
 
-test("non-session surfaces reclaim width in sync with the nav too", async ({ page }) => {
-  await page.goto("/");
-  await page.getByTestId("nav-automations").click();
-  await expect(page.locator(".app > main")).toBeVisible();
-  await expect(page.locator(".app")).not.toHaveClass(/nav-collapsed/);
+// Every surface shares the flex row with the nav, so the fix is structural — but each full-page
+// one is checked anyway: a page with its own absolute chrome could still snap.
+const NAV_SURFACES = [
+  ["Automations", async (page) => { await page.getByTestId("nav-automations").click(); }],
+  [
+    "Activity",
+    async (page) => {
+      await page.getByTestId("account-row").click();
+      await page.getByRole("button", { name: "Activity", exact: true }).click();
+    },
+  ],
+  [
+    "Connectors",
+    async (page) => {
+      await page.getByTestId("account-row").click();
+      await page.getByRole("button", { name: "Connectors", exact: true }).click();
+    },
+  ],
+  ["Inbox", async (page) => { await page.getByTestId("inbox-chip").click(); }],
+];
 
-  const frames = await navAnimationFrames(page, async () => {
-    await page.keyboard.press("Meta+b");
+for (const [name, open] of NAV_SURFACES) {
+  test(`the ${name} surface reclaims width in sync with the nav`, async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".sidebar")).toBeVisible();
+    await open(page);
+    await expect(page.locator(".app > main")).toBeVisible();
+
+    const frames = await navAnimationFrames(page, async () => {
+      await page.keyboard.press("Meta+b");
+    });
+    expectSynchronizedNav(frames, 300, 0);
   });
-  expectSynchronizedNav(frames, 300, 0);
-});
+}
 
 test("collapsing leaves no hover-trigger zone in the DOM", async ({ page }) => {
   await page.goto("/");
