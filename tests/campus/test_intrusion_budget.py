@@ -88,7 +88,12 @@ def _allowed(path: str) -> bool:
 
 def _git(*args: str) -> str:
     result = subprocess.run(
-        ["git", *args], cwd=ROOT, capture_output=True, text=True, check=False
+        ["git", "-c", "core.quotePath=false", *args],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
     )
     return result.stdout if result.returncode == 0 else ""
 
