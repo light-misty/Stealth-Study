@@ -22,7 +22,7 @@ test("live: install a persona from a directory, enable it, and run a task as it"
   await page.goto("/");
 
   // Open persona management (Settings ▸ Personas) via the New-session menu.
-  await page.getByRole("button", { name: "Choose a persona" }).click();
+  await page.getByRole("button", { name: "Choose a study partner" }).click();
   await page.getByText(/Manage personas/).click();
   await expect(page.getByText("Add personas")).toBeVisible();
 
@@ -49,7 +49,7 @@ test("live: install a persona from a directory, enable it, and run a task as it"
   // Select by the unique tagline — it appears only on the dropdown item, whereas the name "E2E
   // Tester" also shows in the top bar/sidebar once a session is on it.
   await page.getByRole("button", { name: "New session" }).click();
-  await page.getByRole("button", { name: "Choose a persona" }).click();
+  await page.getByRole("button", { name: "Choose a study partner" }).click();
   await page.getByText(/Throwaway persona/).click();
   await expect(page.getByText("E2E Tester").first()).toBeVisible(); // the session is this persona
 

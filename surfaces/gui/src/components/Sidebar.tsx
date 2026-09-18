@@ -1027,7 +1027,7 @@ export function Sidebar(props: Props) {
           </button>
         )}
         <img src={brandGlyph} alt="" className="sb-glyph" />
-        <div className="brand-wordmark text-[14px]">StealthStudy<span className="beta-tag">BETA</span></div>
+        <div className="brand-wordmark text-[14px]">Stealth Study<span className="beta-tag">BETA</span></div>
       </div>
 
       {/* New session: a quiet nav row like its siblings (UX-040 — the filled accent block
@@ -1192,7 +1192,7 @@ export function Sidebar(props: Props) {
                 role="menu"
               >
                 {cloud?.signed_in ? (
-                  /* Just the email — being signed in to OpenWorker Cloud is implicit. */
+                  /* Just the email — being signed in to Stealth Study Cloud is implicit. */
                   <div
                     className="px-3 py-1.5 mb-1 text-[11px] text-faint truncate border-b border-line"
                     title={accountEmail}

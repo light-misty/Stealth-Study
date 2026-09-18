@@ -33,7 +33,7 @@ test("campus: the three stations navigate cleanly and render the empty-state cre
   // Round-trip back to a classic surface still works: opening a session from the sidebar
   // unmounts the station and restores the conversation composer.
   await page.getByTitle("Weekly plan 1").click();
-  await expect(page.getByPlaceholder(/Ask the coworker/)).toBeVisible();
+  await expect(page.getByPlaceholder(/Ask your study partner/)).toBeVisible();
   await expect(page.getByTestId("campus-station-empty")).toHaveCount(0);
 });
 

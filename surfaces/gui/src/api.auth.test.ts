@@ -34,5 +34,5 @@ it("authenticates REST and session WebSocket calls with the launch token", async
 
   const session = new Session("s1", "/workspace", "code", { onEvent: vi.fn() });
   const socket = (session as unknown as { ws: FakeWebSocket }).ws;
-  expect(socket.protocols).toEqual(["openworker", "launch-token"]);
+  expect(socket.protocols).toEqual(["StealthStudy", "launch-token"]);
 });

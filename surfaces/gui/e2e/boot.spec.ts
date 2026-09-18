@@ -5,7 +5,7 @@
 import { expect } from "@playwright/test";
 import { test } from "./fixtures";
 
-test("boot splash shows the OpenWorker star, not the sparkle glyph", async ({ page }) => {
+test("boot splash shows the Stealth Study star, not the sparkle glyph", async ({ page }) => {
   // Hold health long enough to observe the splash.
   await page.route("**/v1/health", async (route) => {
     await new Promise((r) => setTimeout(r, 1500));
@@ -78,6 +78,6 @@ test("coworker picker recovers when the persona fetch dies during sidecar boot",
 
   // The menu must list real coworkers, not just its Import/Manage footer.
   const menu = page.locator(".setup-menu");
-  await expect(menu.getByText("Security Coworker")).toBeVisible({ timeout: 10_000 });
+  await expect(menu.getByText("Security Partner")).toBeVisible({ timeout: 10_000 });
   await expect(menu.getByTestId("import-coworker")).toBeVisible();
 });

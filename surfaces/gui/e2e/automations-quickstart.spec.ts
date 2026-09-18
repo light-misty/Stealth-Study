@@ -8,7 +8,7 @@ import { test } from "./fixtures";
 async function openAutomations(page) {
   await page.goto("/");
   await page.getByTestId("nav-automations").click();
-  await expect(page.getByText("Recurring tasks OpenWorker runs on a schedule.")).toBeVisible();
+  await expect(page.getByText("Review reminders, digests and other recurring study tasks Stealth Study runs on a schedule.")).toBeVisible();
 }
 
 // The fixtures seed one task, so the quickstart isn't on the bare list — surface it via the
@@ -96,12 +96,12 @@ test("connect narrates itself: Opening browser → waiting strip → Cancel rest
   await expect(page.getByTestId("ob-connect-hubspot")).toBeVisible();
 });
 
-test("read-only recipe (Morning brief) carries disclosure, not a grant", async ({ page }) => {
+test("read-only recipe (Daily study brief) carries disclosure, not a grant", async ({ page }) => {
   await openQuickstart(page);
   await page.getByTestId("qs-template-brief").click();
 
   // Calendar + Gmail rows; no consent checkbox anywhere — reads never gate.
-  await expect(page.getByText("Today's meetings and gaps")).toBeVisible();
+  await expect(page.getByText("Today's classes and free slots")).toBeVisible();
   await expect(page.getByText("What arrived overnight")).toBeVisible();
   await expect(page.getByTestId("ob-consent")).toHaveCount(0);
 });
@@ -121,5 +121,5 @@ test("no-connection template: When is editable and create opens the detail", asy
   await page.getByTestId("ob-create").click();
 
   await expect(page.getByRole("button", { name: /Run now/ })).toBeVisible();
-  await expect(page.getByText("Morning news briefing").first()).toBeVisible();
+  await expect(page.getByText("Daily current-affairs notes").first()).toBeVisible();
 });
