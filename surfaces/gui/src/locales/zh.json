@@ -455,7 +455,7 @@
     "desktop_only": "此功能需在桌面应用中运行。"
   },
   "tray": {
-    "open": "打开 Stealth Study",
+    "open": "打开偷偷学",
     "settings": "设置",
     "quit": "退出"
   },
@@ -859,7 +859,7 @@
     "context_bar_desc": "一个小指示条，显示模型上下文窗口的占用程度。关闭后将改为以数字形式显示。",
     "context_sub": "会话如何消耗 token —— 附件处理方式与长历史压缩。",
     "compaction_title": "上下文压缩",
-    "compaction_desc": "长会话会被自动压缩：较早的轮次会被摘要，让同事继续工作而不是耗尽上下文。你看到的对话记录不会被改动 —— 只会在发生压缩的位置留下一个标记。",
+    "compaction_desc": "长会话会被自动压缩：较早的轮次会被摘要，让学习伙伴继续工作而不是耗尽上下文。你看到的对话记录不会被改动 —— 只会在发生压缩的位置留下一个标记。",
     "compaction_at": "压缩于",
     "compaction_pct_unit": "% 的上下文窗口时",
     "compaction_or_at": "或",
@@ -1020,7 +1020,7 @@
     "tmpl_brief_save": "把它保存为本次会话的产出。",
     "tmpl_brief_slack": "通过 Slack 私信发给我。",
     "tmpl_github_repo_default": "（已连接的仓库）",
-    "tmpl_github_instructions": "总结 GitHub 仓库 {{repo}} 自上次摘要以来的活动：已合并的 pull request、值得关注的 commit，以及任何需要注意的事项。使用 send_message 把摘要发布到 Slack 频道 {{channel}}。",
+    "tmpl_github_instructions": "总结 GitHub 仓库 {{repo}} 自上次摘要以来的活动：已合并的 Pull Request、值得关注的提交记录，以及任何需要注意的事项。使用 send_message 把摘要发布到 Slack 频道 {{channel}}。",
     "tmpl_pipeline_instructions": "回顾自上次摘要以来的 HubSpot 活动：变更了阶段的交易、趋于沉寂的交易，以及超过关闭日期的交易。使用 send_message 把简短的管线摘要发布到 Slack 频道 {{channel}}。",
     "tmpl_news_instructions": "搜索过去 24 小时最重要的科技与世界新闻，撰写一份简洁的 5 条要点简报，保存为 markdown 文件。",
     "tmpl_inbox_instructions": "把我的未读邮件总结成一份简短的摘要笔记。",
@@ -1036,7 +1036,7 @@
     "cadence_daily": "每天",
     "cadence_weekdays": "工作日",
     "tmpl_github_title": "编程练习周报",
-    "tmpl_github_blurb": "把练习仓库里合并的 PR 与 commit 汇总发布到 Slack。",
+    "tmpl_github_blurb": "把练习仓库里合并的 PR 与提交记录汇总发布到 Slack。",
     "why_digest_posts": "摘要发布的位置",
     "why_digest_summarizes": "摘要总结的内容",
     "tmpl_pipeline_title": "销售管道摘要",
@@ -1544,7 +1544,7 @@
     "accounts": "账户",
     "disconnect_account_title": "断开此账户",
     "disconnect_tip": "断开此账户并清除其令牌——其他账户不受影响。",
-    "default_tip": "当智能体未指明账户时，工具默认使用此账户。",
+    "default_tip": "当 agent 未指明账户时，工具默认使用此账户。",
     "foot": "每个账户独立保留 —— 工具结果和批准会指明所使用的账户。"
   },
   "available": {

@@ -83,7 +83,7 @@ describe("原生托盘菜单跟随语言", () => {
       delete (globalThis as any).__TAURI__;
     }
     expect(calls.map((c) => c.cmd)).toEqual(["set_tray_labels", "set_tray_labels"]);
-    expect(calls[0].args).toEqual({ open: "打开 Stealth Study", settings: "设置", quit: "退出" });
+    expect(calls[0].args).toEqual({ open: "打开偷偷学", settings: "设置", quit: "退出" });
     expect(calls[1].args).toEqual({ open: "Open Stealth Study", settings: "Settings", quit: "Quit" });
   });
 });

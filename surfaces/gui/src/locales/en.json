@@ -872,7 +872,7 @@
     "context_bar_desc": "A small meter showing how full the model’s context window is. Turn it off to show the same thing as a number instead.",
     "context_sub": "How sessions spend tokens — attachment handling and long-history compaction.",
     "compaction_title": "Context compaction",
-    "compaction_desc": "Long sessions are compacted automatically: older turns are summarized so the coworker keeps working instead of running out of context. Your visible transcript is never changed — a small marker shows where compaction happened.",
+    "compaction_desc": "Long sessions are compacted automatically: older turns are summarized so your study partner keeps working instead of running out of context. Your visible transcript is never changed — a small marker shows where compaction happened.",
     "compaction_at": "Compact at",
     "compaction_pct_unit": "% of the context window",
     "compaction_or_at": "or at",
