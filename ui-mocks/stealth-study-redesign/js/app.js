@@ -336,6 +336,208 @@
     })(dismissals[ds]);
   }
 
+  /* ============================================ 备考台：模块内作答交互 ==
+     作答类模块的每个状态都要点得动：选项互斥、掌握度互斥、助记有进行中、
+     测评与模考能在阶段之间推进。原型的价值就在这条状态链上，静态图做不到。 */
+
+  /* 单选：一组里只能有一个选中 */
+  function bindExclusive(root, itemSel, after) {
+    var items = root.querySelectorAll(itemSel);
+    for (var n = 0; n < items.length; n++) {
+      (function (item) {
+        item.addEventListener('click', function () {
+          for (var m = 0; m < items.length; m++) {
+            var on = items[m] === item;
+            items[m].classList.toggle('is-on', on);
+            if (after) after(items[m], on);
+          }
+        });
+      })(items[n]);
+    }
+  }
+  var optGroups = document.querySelectorAll('.opts');
+  for (var og = 0; og < optGroups.length; og++) bindExclusive(optGroups[og], '.opt');
+  var pickGroups = document.querySelectorAll('.picks');
+  for (var pg = 0; pg < pickGroups.length; pg++) {
+    bindExclusive(pickGroups[pg], '.pick', function (item, on) {
+      var dot = item.querySelector('.md');
+      if (dot) dot.classList.toggle('is-on', on);
+    });
+  }
+
+  /* 生成助记：先给「生成中…」，再落结果 —— 模型调用没有中间态会被当成假数据 */
+  var mnemonicBtns = document.querySelectorAll('[data-mnemonic]');
+  for (var mb = 0; mb < mnemonicBtns.length; mb++) {
+    (function (btn) {
+      var label = btn.textContent;
+      btn.addEventListener('click', function () {
+        var box = btn.closest('.word').querySelector('.mnemonic');
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>生成中…';
+        setTimeout(function () {
+          box.hidden = false;
+          btn.disabled = false;
+          btn.innerHTML = '<svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>' + label;
+        }, 520);
+      });
+    })(mnemonicBtns[mb]);
+  }
+
+  /* 定级测评：作答卷 ↔ 成绩两张态互换 */
+  var papers = document.querySelectorAll('[data-assess="paper"]');
+  for (var ap = 0; ap < papers.length; ap++) {
+    (function (paper) {
+      var mod = paper.closest('.mod');
+      var result = mod.querySelector('[data-assess="result"]');
+      mod.querySelector('[data-assess="finish"]').addEventListener('click', function () {
+        paper.hidden = true;
+        result.hidden = false;
+        result.querySelector('.fill').scrollTop = 0;
+      });
+      result.querySelector('[data-assess="again"]').addEventListener('click', function () {
+        result.hidden = true;
+        paper.hidden = false;
+      });
+    })(papers[ap]);
+  }
+
+  /* 听力：提交即判卷，对错都给出下一步；主观题走批改所以这里只有客观题分支 */
+  var listenSubmits = document.querySelectorAll('[data-listen="submit"]');
+  for (var ls = 0; ls < listenSubmits.length; ls++) {
+    (function (submit) {
+      var mod = submit.closest('.mod');
+      var group = mod.querySelector('.opts');
+      var feedback = mod.querySelector('[data-listen="feedback"]');
+      var verdict = mod.querySelector('[data-listen-verdict]');
+      var next = mod.querySelector('[data-listen="next"]');
+      var label = mod.querySelector('[data-listen-label]');
+      var index = 3, total = 12;
+
+      submit.addEventListener('click', function () {
+        var picked = group.querySelector('.opt.is-on');
+        var answer = group.getAttribute('data-answer');
+        var right = !!picked && picked.querySelector('.opt-k').textContent === answer;
+        for (var i = 0; i < group.children.length; i++) {
+          var kid = group.children[i];
+          kid.classList.toggle('is-right', right && kid === picked);
+          if (!right && kid === picked) kid.classList.add('is-wrong');
+        }
+        feedback.className = 'verdict ' + (right ? 'verdict--right' : 'verdict--wrong');
+        feedback.querySelector('use').setAttribute('href', right ? '#i-check' : '#i-x');
+        verdict.textContent = right ? '回答正确' : '回答错误';
+        feedback.hidden = false;
+        submit.hidden = true;
+        next.hidden = false;
+      });
+      next.addEventListener('click', function () {
+        index = index % total + 1;
+        label.textContent = '第 ' + index + ' / ' + total + ' 题';
+        feedback.hidden = true;
+        next.hidden = true;
+        submit.hidden = false;
+        for (var i = 0; i < group.children.length; i++) {
+          group.children[i].classList.remove('is-on', 'is-right', 'is-wrong');
+        }
+      });
+    })(listenSubmits[ls]);
+  }
+
+  /* 模考：三阶段倒计时 + 暂停 + 收卡锁定 + 交卷出成绩。
+     真实实现的时长由服务端持有，本地 tick 只管显示；原型同样只管显示。 */
+  var MOCK_STAGE_SECONDS = [30 * 60, 25 * 60, 40 * 60];
+  var mockTimers = document.querySelectorAll('[data-mock-timer]');
+  for (var mt = 0; mt < mockTimers.length; mt++) {
+    (function (face) {
+      var mod = face.closest('.mod');
+      var stages = mod.querySelectorAll('.stage');
+      var answers = mod.querySelectorAll('.answer');
+      var counter = mod.querySelector('.mod-acts .sec-n');
+      var pauseBtn = mod.querySelector('[data-mock="pause"]');
+      var ffBtn = mod.querySelector('[data-mock="ff"]');
+      var advBtn = mod.querySelector('[data-mock="advance"]');
+      var answerBox = mod.querySelector('.fill');
+      var result = mod.querySelector('[data-mock-result]');
+      var stage = 0, left = MOCK_STAGE_SECONDS[0], paused = false, over = false;
+
+      function clock(sec) {
+        var m = Math.floor(Math.max(0, sec) / 60), s = Math.max(0, sec) % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+      function paint() {
+        face.textContent = clock(left);
+        face.classList.toggle('is-over', left <= 0);
+      }
+      function lock(box, note) {
+        var ta = box.querySelector('textarea');
+        box.classList.add('is-locked');
+        ta.disabled = true;
+        ta.placeholder = note;
+        var tag = box.querySelector('.tag');
+        tag.className = 'tag tag--muted';
+        tag.innerHTML = '<svg class="ic" width="11" height="11"><use href="#i-lock"/></svg>' +
+          (note === '本阶段尚未开始' ? '未开始' : '已锁定');
+      }
+      function unlock(box) {
+        box.classList.remove('is-locked');
+        box.querySelector('textarea').disabled = false;
+        box.querySelector('textarea').placeholder = '';
+        var tag = box.querySelector('.tag');
+        tag.className = 'tag tag--accent';
+        tag.textContent = '当前阶段';
+      }
+      function show() {
+        for (var i = 0; i < stages.length; i++) {
+          stages[i].classList.toggle('is-on', i === stage);
+          stages[i].classList.toggle('is-done', i < stage);
+          stages[i].querySelector('.stage-k').innerHTML = i < stage
+            ? '<svg class="ic" width="12" height="12"><use href="#i-check"/></svg>已结束'
+            : (i === stage
+              ? '<svg class="ic" width="12" height="12"><use href="#i-pause"/></svg>进行中'
+              : '<svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始');
+          if (i < stage) lock(answers[i], '本阶段已收卡');
+          else if (i === stage) unlock(answers[i]);
+          else lock(answers[i], '本阶段尚未开始');
+        }
+        counter.textContent = '第 ' + (stage + 1) + ' / ' + stages.length + ' 阶段';
+        advBtn.textContent = stage === stages.length - 1 ? '交卷' : '结束本阶段';
+        left = MOCK_STAGE_SECONDS[stage];
+        over = false;
+        paint();
+      }
+      setInterval(function () {
+        if (paused || over || result.hidden === false) return;
+        if (left > 0) { left -= 1; paint(); return; }
+        if (stage < stages.length - 1) advance();
+      }, 1000);
+      function advance() {
+        if (left <= 0) over = true;
+        if (stage < stages.length - 1) { stage += 1; show(); }
+        else submitAll();
+      }
+      function submitAll() {
+        result.hidden = false;
+        answerBox.hidden = true;
+        pauseBtn.hidden = true;
+        ffBtn.hidden = true;
+        advBtn.hidden = true;
+        counter.textContent = '已交卷';
+        for (var i = 0; i < stages.length; i++) {
+          stages[i].classList.remove('is-on');
+          stages[i].classList.add('is-done');
+        }
+        result.scrollIntoView({ block: 'nearest' });
+      }
+      pauseBtn.addEventListener('click', function () {
+        paused = !paused;
+        pauseBtn.querySelector('use').setAttribute('href', paused ? '#i-play' : '#i-pause');
+        pauseBtn.querySelector('span').textContent = paused ? '继续' : '暂停';
+      });
+      ffBtn.addEventListener('click', function () { left = Math.max(0, left - 600); paint(); });
+      advBtn.addEventListener('click', advance);
+      show();
+    })(mockTimers[mt]);
+  }
+
   /* ============================================================ 步进器 ==
      侧栏密度：1–9。数值设计稿为 5。                                    */
   var densityVal = document.getElementById('densityVal');

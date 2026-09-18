@@ -54,6 +54,10 @@
    档案为 0 的站点空态不复述一遍卡片：建档统一走 .dlg 表单，空态即「无档案 + 同一个弹窗」。
    ============================================================================ */
 
+/* .btn / .col / .sub 这类自带 display 的类会把 [hidden] 的 UA 默认值盖掉，
+   统一补一刀，避免每个组件各写一条。 */
+[hidden] { display: none !important; }
+
 /* ============================================================ 站点外壳 == */
 
 .view--station { flex-direction: column; }
@@ -219,8 +223,6 @@
 .btn--sm { height: 26px; padding: 0 9px; font-size: 11.5px; border-radius: var(--r-8); gap: 5px; }
 .btn--lg { height: 36px; padding: 0 16px; }
 
-/* .btn 自带 display，会把 [hidden] 的 UA 默认值盖掉，显式补一刀 */
-.btn[hidden] { display: none; }
 
 /* 图标按钮的语义变体（base.css 的 .icon-btn 只有中性态） */
 .icon-btn--danger:hover { background: var(--danger-soft); }
@@ -295,6 +297,8 @@
 /* 判卷后的正确/错误标注，仅出现在反馈态 */
 .opt.is-right .opt-k { background: var(--success); color: #fff; }
 .opt.is-right { box-shadow: inset 0 0 0 1.5px var(--success); }
+.opt.is-wrong .opt-k { background: var(--danger); color: #fff; }
+.opt.is-wrong { box-shadow: inset 0 0 0 1.5px var(--danger); }
 
 /* ========================================================== 状态表达 == */
 /* 状态胶囊：色底 + 文字，颜色永远不是唯一线索 */
@@ -356,20 +360,32 @@
 }
 .lrow-meta { font-size: 11px; line-height: 16px; color: var(--ink-3); }
 .lrow-acts { flex: none; display: flex; align-items: center; gap: 6px; }
-.lrow--link { cursor: pointer; transition: background .14s ease; margin: 0 -10px; padding: 10px 12px; }
+/* 可点整行：hover 底色内缩在卡片里，不用负边距外扩 —— 外扩会顶穿 .fill 的
+   内边距，在横向出现 10px 的隐形溢出。 */
+.lrow--link { cursor: pointer; padding: 10px 12px; border-radius: var(--r-9); transition: background .14s ease; }
 .lrow--link:hover { background: var(--surface-sunken); }
 .lrow-ctl { flex: none; width: 118px; }
 /* 已判卷的复习行：降到低优层，动作区换成结果胶囊 */
 .lrow.is-done { opacity: .62; }
 .lrow.is-done .lrow-title { color: var(--ink-3); }
 
-/* 长列表内滚：真实实现是虚拟滚动（行高 72px），原型给同样的「列表自己滚、
-   卡头卡脚不动」这一层关系 —— 单卡模块撑满主列后，剩余高度全部让给列表。 */
+/* 高度分配原语：模块卡吃掉主列剩余高度后，内部再逐层把剩余让给滚动区。
+   .col = 继续向下传递弹性；.fill = 这一层吸收剩余并自己内滚。
+   卡头与卡脚因此固定，只有题目区/列表在滚 —— 与虚拟滚动的真实实现同构。 */
+.col { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 12px; }
 .st-pane.is-on > .mod:only-child { flex: 1; min-height: 0; }
-.rows--fix { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.fill { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
 
 /* ======================================================== 数值与图表 == */
 .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+/* 大数字：倒计时、测评估分、模考成绩、批改得分共用同一档，
+   避免「哪个分数更重要」被字号差异误传给用户。 */
+.score { display: flex; align-items: baseline; gap: 8px; }
+.score-n {
+  font-family: var(--font-mono); font-size: 30px; font-weight: 500; line-height: 36px;
+  letter-spacing: -.5px; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.score-u { font-size: 12.5px; line-height: 19px; color: var(--ink-3); }
 .stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .stat-k { font-size: 11px; line-height: 16px; color: var(--ink-3); }
 .stat-v { font-size: 16px; font-weight: 600; line-height: 22px; color: var(--ink); }
@@ -436,9 +452,6 @@
 /* ==================================================== 批改结果卡共享 == */
 /* GradingResultCard 被 CET 写作/翻译、考研科目辅导、证书主观题批改三处复用 */
 .grade { display: flex; flex-direction: column; gap: 12px; }
-.grade-top { display: flex; align-items: baseline; gap: 10px; }
-.grade-score { font-family: var(--font-mono); font-size: 30px; font-weight: 500; line-height: 38px; color: var(--ink); }
-.grade-max { font-family: var(--font-mono); font-size: 12.5px; line-height: 19px; color: var(--ink-3); }
 .dims { display: flex; flex-direction: column; gap: 8px; }
 .dim { display: flex; align-items: center; gap: 10px; }
 .dim-n { width: 62px; flex: none; font-size: 11.5px; line-height: 17px; color: var(--ink-2); }
@@ -579,7 +592,6 @@
   display: grid; place-items: center;
   background: var(--scrim);
 }
-.dlg[hidden] { display: none; }
 .dlg-card {
   width: 440px; max-width: 90%; max-height: 78%;
   display: flex; flex-direction: column; gap: 14px;
@@ -596,4 +608,3 @@
 
 /* 已归档弹窗的详情态：列表 ↔ 详情整块互换，页脚动作跟着换一组 */
 .arch-list, .arch-detail { display: flex; flex-direction: column; gap: 12px; }
-.arch-list[hidden], .arch-detail[hidden] { display: none; }

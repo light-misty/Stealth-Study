@@ -29,6 +29,7 @@
 <link rel="stylesheet" href="css/settings.css" />
 <link rel="stylesheet" href="css/conversation.css" />
 <link rel="stylesheet" href="css/campus.css" />
+<link rel="stylesheet" href="css/campus-cet.css" />
 <link rel="stylesheet" href="css/dock.css" />
 </head>
 <body>
@@ -74,6 +75,17 @@
   <symbol id="i-chart" viewBox="0 0 24 24"><line x1="3.5" y1="20.5" x2="20.5" y2="20.5"/><rect x="6.4" y="11.4" width="3.6" height="9" rx="1.5"/><rect x="14" y="4.6" width="3.6" height="15.8" rx="1.5"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="20.6 4.6 20.6 10.2 15 10.2"/><path d="M18.4 15a7.6 7.6 0 1 1-1.9-8.4l4.1 3.6"/></symbol>
   <symbol id="i-flag" viewBox="0 0 24 24"><line x1="5.5" y1="21.5" x2="5.5" y2="3.5"/><path d="M5.5 4.2h12.6l-2.5 4 2.5 4H5.5z"/></symbol>
+
+  <!-- 备考台业务面板图标 -->
+  <symbol id="i-activity" viewBox="0 0 24 24"><polyline points="21.5 12.5 17.5 12.5 14.5 20 9 4 6 12.5 2.5 12.5"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 3.2 12.7 8.3 17.8 10 12.7 11.7 11 16.8 9.3 11.7 4.2 10 9.3 8.3z"/><path d="M18.2 15.2 19 17.4 21.2 18.2 19 19 18.2 21.2 17.4 19 15.2 18.2 17.4 17.4z"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><polygon points="4 9.2 8.6 9.2 13.4 5 13.4 19 8.6 14.8 4 14.8"/><path d="M16.8 8.6a5 5 0 0 1 0 6.8"/><path d="M19.4 6a8.6 8.6 0 0 1 0 12"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13.8" r="7.8"/><polyline points="12 13.8 12 9.2"/><line x1="9.2" y1="2.6" x2="14.8" y2="2.6"/><line x1="12" y1="2.6" x2="12" y2="6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M1.9 12S5.7 5.6 12 5.6 22.1 12 22.1 12 18.3 18.4 12 18.4 1.9 12 1.9 12z"/><circle cx="12" cy="12" r="3.1"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect x="7.4" y="4.6" width="3.4" height="14.8" rx="1.6"/><rect x="13.2" y="4.6" width="3.4" height="14.8" rx="1.6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="7.4 4.6 19.4 12 7.4 19.4"/></symbol>
+  <symbol id="i-forward" viewBox="0 0 24 24"><polygon points="4.4 5.6 12.4 12 4.4 18.4"/><line x1="17.4" y1="5" x2="17.4" y2="19"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.6" y="10.4" width="14.8" height="10.4" rx="2.6"/><path d="M8.2 10.4V7.6a3.8 3.8 0 0 1 7.6 0v2.8"/></symbol>
 </defs></svg>
 
 <div class="stage">
@@ -423,6 +435,13 @@
             <nav class="st-tabs" role="tablist" aria-label="CET 备考台模块">
               <button class="st-tab is-on" role="tab" aria-selected="true" data-tab="mistake">错题本</button>
               <button class="st-tab" role="tab" aria-selected="false" data-tab="review">今日复习<span class="tb num">8</span></button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="assessment">定级</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="vocab">词汇</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="listening">听力</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="essay">写作</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="translation">翻译</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="mock">模考</button>
+              <button class="st-tab" role="tab" aria-selected="false" data-tab="errors">易错</button>
             </nav>
 
             <!-- 错题本 -->
@@ -446,7 +465,7 @@
                   </div>
                 </div>
 
-                <div class="rows rows--fix thin">
+                <div class="rows fill thin">
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">阅读 · 长篇匹配 — 先找限定词再定位</span><span class="lrow-meta">错 5 次 · 2026-09-10</span></div>
                     <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option selected>审题失误</option><option>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
@@ -503,7 +522,7 @@
 
                 <div class="bar bar--ok"><i style="--w:20%"></i></div>
 
-                <div class="rows rows--fix thin">
+                <div class="rows fill thin">
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">abandon — v. 放弃；n. 放任</span><span class="lrow-meta">下次复习：4 天后</span></div>
                     <div class="lrow-acts">
@@ -538,6 +557,482 @@
                       <button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button>
                       <button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button>
                     </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+            <!-- 定级测评：整套卷子一次铺开，卡头钉住进度，卷子本身内滚 -->
+            <div class="st-pane" role="tabpanel" data-pane="assessment">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-activity"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">CET 定级测评</span>
+                    <span class="mod-desc">快速摸底听力、阅读、写作与翻译水平，作答自动保存，中断后可继续</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n" data-assess-label>已答 6 / 24 题</span></div>
+                </div>
+
+                <div class="col" data-assess="paper">
+                  <div class="bar"><i style="--w:25%"></i></div>
+                  <div class="fill thin qcol">
+                    <div class="q">
+                      <div class="q-head"><span class="tag tag--brand">听力</span><span class="q-no">第 7 题 · 单选</span></div>
+                      <p class="q-stem">What does the professor imply about the laboratory assignment?</p>
+                      <div class="opts" data-answer="B">
+                        <button class="opt"><span class="opt-k">A</span>It was announced one week too early.</button>
+                        <button class="opt is-on"><span class="opt-k">B</span>It covers material that has not been lectured yet.</button>
+                        <button class="opt"><span class="opt-k">C</span>Students may work in pairs instead of alone.</button>
+                        <button class="opt"><span class="opt-k">D</span>It will be graded together with the midterm.</button>
+                      </div>
+                    </div>
+                    <div class="q">
+                      <div class="q-head"><span class="tag tag--brand">阅读</span><span class="q-no">第 8 题 · 填空</span></div>
+                      <p class="q-stem">The findings suggest that sleep ______ plays a larger role than diet in memory consolidation.（每空一词）</p>
+                      <input class="input" type="text" placeholder="输入答案" value="deprivation" />
+                    </div>
+                    <div class="q">
+                      <div class="q-head"><span class="tag tag--brand">写作与翻译</span><span class="q-no">第 9 题 · 主观题</span></div>
+                      <p class="q-stem">In many countries, people are working longer hours than before. Give reasons and examples to support your view.</p>
+                      <textarea class="textarea" rows="4" placeholder="写下你的作答，随时都会自动保存">There are two reasons why working hours keep growing. First, ...</textarea>
+                      <span class="q-tip">主观题按档计分，提交后可在「写作」模块查看逐句批改</span>
+                    </div>
+                    <div class="q">
+                      <div class="q-head"><span class="tag tag--muted">题目缺失</span><span class="q-no">第 10 题</span></div>
+                      <span class="q-tip">题目内容缺失，可跳过此题</span>
+                    </div>
+                  </div>
+                  <div class="mod-foot">
+                    <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-check"/></svg>作答已自动保存</span>
+                    <span class="fl"></span>
+                    <button class="btn btn--primary" data-assess="finish">完成定级</button>
+                  </div>
+                </div>
+
+                <div class="col" data-assess="result" hidden>
+                  <div class="fill thin qcol">
+                    <div class="stat">
+                      <span class="stat-k">预计总分</span>
+                      <div class="score"><span class="score-n">468</span><span class="score-u">目标 550 · 还差 82</span></div>
+                    </div>
+                    <div class="sec-cells">
+                      <div class="sec-cell"><span class="sec-cell-k">听力</span><span class="sec-cell-v">168</span></div>
+                      <div class="sec-cell"><span class="sec-cell-k">阅读</span><span class="sec-cell-v">172</span></div>
+                      <div class="sec-cell"><span class="sec-cell-k">写作与翻译</span><span class="sec-cell-v">128</span></div>
+                    </div>
+                    <div class="sec"><div class="sec-text"><span class="sec-title">与目标分的差距（按 425 分折算）</span></div></div>
+                    <table class="tbl">
+                      <thead><tr><th>区块</th><th>当前</th><th>目标</th><th>差距</th></tr></thead>
+                      <tbody>
+                        <tr><td>听力</td><td class="n">168</td><td class="n">210</td><td class="n neg">+42</td></tr>
+                        <tr><td>阅读</td><td class="n">172</td><td class="n">190</td><td class="n neg">+18</td></tr>
+                        <tr><td>写作与翻译</td><td class="n">128</td><td class="n">150</td><td class="n neg">+22</td></tr>
+                      </tbody>
+                    </table>
+                    <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>AI 生成，仅供参考</span>
+                  </div>
+                  <div class="mod-foot">
+                    <button class="btn btn--ghost" data-assess="again">再测一次</button>
+                    <span class="fl"></span>
+                    <button class="btn btn--soft btn--sm" data-goto-tab="vocab">从最弱的词汇开始</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 词汇：今日新词与到期复习两组，掌握度就地标记 -->
+            <div class="st-pane" role="tabpanel" data-pane="vocab">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-book"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">词汇</span>
+                    <span class="mod-desc">标记掌握度即写入间隔重复队列，不认识的词会自动排进明日复习</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">新词 12 / 20 · 复习 8 / 20</span></div>
+                </div>
+
+                <div class="fill thin qcol">
+                  <div class="sec"><div class="sec-text"><span class="sec-title">今日新词</span></div><span class="sec-n">12 / 20</span></div>
+                  <div class="sub word">
+                    <div class="word-h"><span class="word-t">abandon</span><span class="word-p">/əˈbændən/</span><span class="tag tag--muted">v.</span></div>
+                    <p class="word-m">放弃，中止；放纵 n. 放任</p>
+                    <p class="word-x">He decided to abandon the experiment after the third failure.</p>
+                    <div class="word-foot">
+                      <div class="picks">
+                        <button class="pick"><span class="md md--unknown is-on"></span>不认识</button>
+                        <button class="pick"><span class="md md--fuzzy"></span>模糊</button>
+                        <button class="pick"><span class="md md--mastered"></span>已掌握</button>
+                      </div>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm" data-mnemonic><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>生成助记</button>
+                    </div>
+                    <div class="mnemonic" hidden>
+                      <svg class="ic" width="14" height="14"><use href="#i-sparkle"/></svg>
+                      <div class="mnemonic-text"><span class="mnemonic-k">助记</span><span>a + bandon（band 乐队）—— 乐队散了，就是「放弃」。</span></div>
+                    </div>
+                  </div>
+                  <div class="sub word">
+                    <div class="word-h"><span class="word-t">comprehensive</span><span class="word-p">/ˌkɒmprɪˈhensɪv/</span><span class="tag tag--muted">adj.</span></div>
+                    <p class="word-m">全面的，综合的</p>
+                    <p class="word-x">The report gives a comprehensive overview of the market.</p>
+                    <div class="word-foot">
+                      <div class="picks">
+                        <button class="pick"><span class="md md--unknown"></span>不认识</button>
+                        <button class="pick is-on"><span class="md md--fuzzy is-on"></span>模糊</button>
+                        <button class="pick"><span class="md md--mastered"></span>已掌握</button>
+                      </div>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm" data-mnemonic><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>生成助记</button>
+                    </div>
+                    <div class="mnemonic" hidden>
+                      <svg class="ic" width="14" height="14"><use href="#i-sparkle"/></svg>
+                      <div class="mnemonic-text"><span class="mnemonic-k">助记</span><span>comprehend（理解）+ sive —— 能全部理解的，就是「全面的」。</span></div>
+                    </div>
+                  </div>
+                  <div class="sub word">
+                    <div class="word-h"><span class="word-t">spare</span><span class="word-p">/speə(r)/</span><span class="tag tag--muted">adj. / v.</span></div>
+                    <p class="word-m">备用的，多余的；抽出（时间）</p>
+                    <p class="word-x">Could you spare me a few minutes before the meeting?</p>
+                    <div class="word-foot">
+                      <div class="picks">
+                        <button class="pick"><span class="md md--unknown"></span>不认识</button>
+                        <button class="pick"><span class="md md--fuzzy"></span>模糊</button>
+                        <button class="pick is-on"><span class="md md--mastered is-on"></span>已掌握</button>
+                      </div>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm" data-mnemonic><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>生成助记</button>
+                    </div>
+                    <div class="mnemonic" hidden>
+                      <svg class="ic" width="14" height="14"><use href="#i-sparkle"/></svg>
+                      <div class="mnemonic-text"><span class="mnemonic-k">助记</span><span>「死拍」——  spare tire 备胎，多出来的那个。</span></div>
+                    </div>
+                  </div>
+
+                  <div class="sec"><div class="sec-text"><span class="sec-title">今日复习</span></div><span class="sec-n">8 / 20</span></div>
+                  <div class="sub word">
+                    <div class="word-h"><span class="word-t">elaborate</span><span class="word-p">/ɪˈlæbərət/</span><span class="tag tag--warn">易混 integrate</span></div>
+                    <p class="word-m">adj. 详尽的，精心制作的 v. 详细说明</p>
+                    <p class="word-x">Could you elaborate on the third point?</p>
+                    <div class="word-foot">
+                      <div class="picks">
+                        <button class="pick"><span class="md md--unknown"></span>不认识</button>
+                        <button class="pick is-on"><span class="md md--fuzzy is-on"></span>模糊</button>
+                        <button class="pick"><span class="md md--mastered"></span>已掌握</button>
+                      </div>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm" data-mnemonic><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>生成助记</button>
+                    </div>
+                    <div class="mnemonic" hidden>
+                      <svg class="ic" width="14" height="14"><use href="#i-sparkle"/></svg>
+                      <div class="mnemonic-text"><span class="mnemonic-k">助记</span><span>e-labor（劳动）—— 花劳动打磨出来的，就是「详尽的」。</span></div>
+                    </div>
+                  </div>
+                  <div class="sub word">
+                    <div class="word-h"><span class="word-t">inevitable</span><span class="word-p">/ɪnˈevɪtəbl/</span><span class="tag tag--muted">adj.</span></div>
+                    <p class="word-m">不可避免的，必然发生的</p>
+                    <p class="word-x">Change is inevitable in a growing city.</p>
+                    <div class="word-foot">
+                      <div class="picks">
+                        <button class="pick"><span class="md md--unknown"></span>不认识</button>
+                        <button class="pick"><span class="md md--fuzzy"></span>模糊</button>
+                        <button class="pick is-on"><span class="md md--mastered is-on"></span>已掌握</button>
+                      </div>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm" data-mnemonic><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>生成助记</button>
+                    </div>
+                    <div class="mnemonic" hidden>
+                      <svg class="ic" width="14" height="14"><use href="#i-sparkle"/></svg>
+                      <div class="mnemonic-text"><span class="mnemonic-k">助记</span><span>in-(不)+ evit(避开) + able —— 不能被避开的。</span></div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 听力：逐题作答。现状没有音频播放控件，这里也不假装有 -->
+            <div class="st-pane" role="tabpanel" data-pane="listening">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-sound"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">听力训练</span>
+                    <span class="mod-desc">客观题即时判分，主观题转入批改队列后回显得分</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n" data-listen-label>第 3 / 12 题</span></div>
+                </div>
+
+                <div class="col">
+                  <div class="bar"><i style="--w:25%"></i></div>
+                  <div class="fill thin qcol">
+                    <div class="q">
+                      <div class="q-head"><span class="tag tag--brand">Section B</span><span class="q-no">讲座 · 单选</span></div>
+                      <p class="q-stem">What is the main purpose of the experiment described by the speaker?</p>
+                      <div class="opts" data-answer="C">
+                        <button class="opt"><span class="opt-k">A</span>To compare two teaching methods.</button>
+                        <button class="opt"><span class="opt-k">B</span>To measure the effect of noise on reading speed.</button>
+                        <button class="opt"><span class="opt-k">C</span>To test whether sleep affects recall accuracy.</button>
+                        <button class="opt"><span class="opt-k">D</span>To demonstrate how to design a questionnaire.</button>
+                      </div>
+                    </div>
+                    <div class="verdict" data-listen="feedback" hidden>
+                      <svg class="ic" width="14" height="14"><use href="#i-x"/></svg>
+                      <div class="verdict-text">
+                        <span data-listen-verdict>回答错误</span>
+                        <span class="verdict-k">标准答案 C · To test whether sleep affects recall accuracy.</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="mod-foot">
+                    <span class="ai-note">本题库暂无音频层，题目以文本形式呈现</span>
+                    <span class="fl"></span>
+                    <button class="btn btn--primary" data-listen="submit">提交答案</button>
+                    <button class="btn btn--ghost" data-listen="next" hidden>下一题</button>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 作文批改：GradingWorkshopBody 的三段式（原文 → 结果 → 历史） -->
+            <div class="st-pane" role="tabpanel" data-pane="essay">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-pencil"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">作文批改</span>
+                    <span class="mod-desc">提交作答原文，返回分项得分、错误清单与范文要点</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">已批改 14 篇</span></div>
+                </div>
+
+                <div class="fill thin qcol">
+                  <div class="field">
+                    <span class="field-label">作答原文</span>
+                    <textarea class="textarea" rows="5">Nowadays, a lot of students believe that the university should focus on practical skills. In my opinion, I agree with this view because the society need more capable people.</textarea>
+                    <div class="word-foot">
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-alert"/></svg>弱模型批改，结果仅供参考</span>
+                      <span class="fl"></span>
+                      <button class="btn btn--primary btn--sm">提交批改</button>
+                    </div>
+                  </div>
+
+                  <div class="grade">
+                    <div class="sec"><div class="sec-text"><span class="sec-title">分项得分</span></div><span class="sec-n">Rubric: 内容 · 语言 · 结构</span></div>
+                    <div class="dims">
+                      <div class="dim"><span class="dim-n">内容</span><span class="bar dim-bar"><i style="--w:80%"></i></span><span class="dim-v">8.0 / 10</span></div>
+                      <div class="dim"><span class="dim-n">语言</span><span class="bar dim-bar"><i style="--w:62%"></i></span><span class="dim-v">6.2 / 10</span></div>
+                      <div class="dim"><span class="dim-n">结构</span><span class="bar dim-bar"><i style="--w:70%"></i></span><span class="dim-v">7.0 / 10</span></div>
+                    </div>
+
+                    <div class="sec"><div class="sec-text"><span class="sec-title">错误清单</span></div><span class="sec-n">3 处</span></div>
+                    <div class="errs">
+                      <div class="err">
+                        <span class="err-k">主谓一致</span>
+                        <span class="err-orig">the society need more capable people</span>
+                        <span class="err-fix">society needs more capable people</span>
+                        <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                      </div>
+                      <div class="err">
+                        <span class="err-k">冗余表达</span>
+                        <span class="err-orig">In my opinion, I agree with this view because</span>
+                        <span class="err-fix">I agree with this view because</span>
+                        <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                      </div>
+                      <div class="err">
+                        <span class="err-k">冠词缺失</span>
+                        <span class="err-orig">focus on practical skills</span>
+                        <span class="err-fix">focus on the practical skills it teaches</span>
+                        <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                      </div>
+                    </div>
+
+                    <div class="sec"><div class="sec-text"><span class="sec-title">范文要点</span></div></div>
+                    <p class="word-m">先承认实用技能的必要性，再用「可迁移能力」反驳单一导向，结尾回到个人选择与社会分工的平衡。</p>
+
+                    <div class="mod-foot">
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>批改模型 gpt-4o · AI 生成，仅供参考</span>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-plus"/></svg>加入错题本</button>
+                    </div>
+                  </div>
+
+                  <div class="sub">
+                    <div class="sec"><div class="sec-text"><span class="sec-title">老毛病 TOP3</span></div><span class="sec-n">近 14 次</span></div>
+                    <div class="rank rank--1"><span class="rank-n">1</span><div class="rank-body"><div class="rank-t"><span class="rank-name">主谓一致</span><span class="rank-times">出现 9 次</span></div><span class="rank-x">the society need / information are</span></div></div>
+                    <div class="rank"><span class="rank-n">2</span><div class="rank-body"><div class="rank-t"><span class="rank-name">冗余表达</span><span class="rank-times">出现 6 次</span></div><span class="rank-x">In my opinion, I think</span></div></div>
+                    <div class="rank"><span class="rank-n">3</span><div class="rank-body"><div class="rank-t"><span class="rank-name">冠词缺失</span><span class="rank-times">出现 4 次</span></div><span class="rank-x">focus on practical skills</span></div></div>
+                  </div>
+
+                  <div class="sec"><div class="sec-text"><span class="sec-title">批改历史</span></div><span class="sec-n">最近 10 次</span></div>
+                  <div class="rows">
+                    <div class="lrow lrow--link"><div class="lrow-text"><span class="lrow-title">2026-09-15 · 档位得分 21.2 / 30</span><span class="lrow-meta">提交原文 1 026 词</span></div><span class="lrow-acts"><svg class="ic" width="13" height="13"><use href="#i-chev-right"/></svg></span></div>
+                    <div class="lrow lrow--link"><div class="lrow-text"><span class="lrow-title">2026-09-11 · 档位得分 19.4 / 30</span><span class="lrow-meta">提交原文 968 词</span></div><span class="lrow-acts"><svg class="ic" width="13" height="13"><use href="#i-chev-right"/></svg></span></div>
+                    <div class="lrow lrow--link"><div class="lrow-text"><span class="lrow-title">2026-09-04 · 档位得分 18.1 / 30</span><span class="lrow-meta">提交原文 1 104 词</span></div><span class="lrow-acts"><svg class="ic" width="13" height="13"><use href="#i-chev-right"/></svg></span></div>
+                  </div>
+                  <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>批改模型 gpt-4o · AI 生成，仅供参考</span>
+                </div>
+              </section>
+            </div>
+
+            <!-- 翻译批改：与作文批改同一套版式，只换内容 -->
+            <div class="st-pane" role="tabpanel" data-pane="translation">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-globe"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">翻译批改</span>
+                    <span class="mod-desc">段落汉译英，按准确性、完整性与语言质量三档计分</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">已批改 9 段</span></div>
+                </div>
+
+                <div class="fill thin qcol">
+                  <div class="field">
+                    <span class="field-label">作答原文</span>
+                    <textarea class="textarea" rows="5">China has sent traditional Chinese medicine to more than 500 million people around the world, which shows the wisdom of our ancestors.</textarea>
+                    <div class="word-foot">
+                      <span class="ai-note">原文：中医药学是中华民族的伟大创造，已惠及世界 500 多万人。</span>
+                      <span class="fl"></span>
+                      <button class="btn btn--primary btn--sm">提交批改</button>
+                    </div>
+                  </div>
+
+                  <div class="grade">
+                    <div class="sec"><div class="sec-text"><span class="sec-title">分项得分</span></div><span class="sec-n">Rubric: 准确 · 完整 · 语言</span></div>
+                    <div class="dims">
+                      <div class="dim"><span class="dim-n">准确性</span><span class="bar dim-bar"><i style="--w:70%"></i></span><span class="dim-v">7.0 / 10</span></div>
+                      <div class="dim"><span class="dim-n">完整性</span><span class="bar dim-bar"><i style="--w:85%"></i></span><span class="dim-v">8.5 / 10</span></div>
+                      <div class="dim"><span class="dim-n">语言质量</span><span class="bar dim-bar"><i style="--w:66%"></i></span><span class="dim-v">6.6 / 10</span></div>
+                    </div>
+
+                    <div class="sec"><div class="sec-text"><span class="sec-title">错误清单</span></div><span class="sec-n">2 处</span></div>
+                    <div class="errs">
+                      <div class="err">
+                        <span class="err-k">漏译</span>
+                        <span class="err-orig">中华民族的伟大创造</span>
+                        <span class="err-fix">a great creation of the Chinese nation</span>
+                        <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                      </div>
+                      <div class="err">
+                        <span class="err-k">搭配不当</span>
+                        <span class="err-orig">sent traditional Chinese medicine to</span>
+                        <span class="err-fix">brought traditional Chinese medicine to</span>
+                        <div class="err-acts"><button class="btn btn--text btn--sm"><svg class="ic" width="12" height="12"><use href="#i-eye"/></svg>定位原文</button></div>
+                      </div>
+                    </div>
+
+                    <div class="sec"><div class="sec-text"><span class="sec-title">范文要点</span></div></div>
+                    <p class="word-m">先译判断句主干，再用 which 引导非限定从句承接「惠及」，最后补上「伟大创造」这一评价成分。</p>
+
+                    <div class="mod-foot">
+                      <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>批改模型 gpt-4o · AI 生成，仅供参考</span>
+                      <span class="fl"></span>
+                      <button class="btn btn--ghost btn--sm"><svg class="ic" width="12" height="12"><use href="#i-plus"/></svg>加入错题本</button>
+                    </div>
+                  </div>
+
+                  <div class="sec"><div class="sec-text"><span class="sec-title">批改历史</span></div><span class="sec-n">最近 9 段</span></div>
+                  <div class="rows">
+                    <div class="lrow lrow--link"><div class="lrow-text"><span class="lrow-title">2026-09-14 · 档位得分 14.8 / 15</span><span class="lrow-meta">提交原文 213 词</span></div><span class="lrow-acts"><svg class="ic" width="13" height="13"><use href="#i-chev-right"/></svg></span></div>
+                    <div class="lrow lrow--link"><div class="lrow-text"><span class="lrow-title">2026-09-08 · 档位得分 13.1 / 15</span><span class="lrow-meta">提交原文 186 词</span></div><span class="lrow-acts"><svg class="ic" width="13" height="13"><use href="#i-chev-right"/></svg></span></div>
+                    <div class="lrow lrow--link"><div class="lrow-text"><span class="lrow-title">2026-09-01 · 未检出错误</span><span class="lrow-meta">提交原文 204 词</span></div><span class="lrow-acts"><svg class="ic" width="13" height="13"><use href="#i-chev-right"/></svg></span></div>
+                  </div>
+                  <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>批改模型 gpt-4o · AI 生成，仅供参考</span>
+                </div>
+              </section>
+            </div>
+
+            <!-- 模考：三阶段计时，收卡锁定必须比「还没写」更显眼 -->
+            <div class="st-pane" role="tabpanel" data-pane="mock">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-timer"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">CET 模拟卷</span>
+                    <span class="mod-desc">按写作、听力、阅读与翻译三阶段计时作答，阶段结束自动收卡锁定</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">第 1 / 3 阶段</span></div>
+                </div>
+
+                <div class="col">
+                  <div class="stages">
+                    <div class="stage is-on"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-pencil"/></svg>进行中</span><span class="stage-t">写作</span><span class="stage-n">30 分钟</span></div>
+                    <div class="stage"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="stage-t">听力</span><span class="stage-n">25 分钟</span></div>
+                    <div class="stage"><span class="stage-k"><svg class="ic" width="12" height="12"><use href="#i-lock"/></svg>未开始</span><span class="stage-t">阅读与翻译</span><span class="stage-n">40 分钟</span></div>
+                  </div>
+
+                  <div class="sub sub--ring">
+                    <div class="timer-row">
+                      <div class="col">
+                        <span class="timer-k">本阶段剩余时间</span>
+                        <span class="timer" data-mock-timer>27:48</span>
+                      </div>
+                      <span class="fl"></span>
+                      <div class="mod-acts">
+                        <button class="btn btn--ghost btn--sm" data-mock="pause"><svg class="ic" width="12" height="12"><use href="#i-pause"/></svg><span>暂停</span></button>
+                        <button class="btn btn--text btn--sm" data-mock="ff"><svg class="ic" width="12" height="12"><use href="#i-forward"/></svg>快进（调试）</button>
+                        <button class="btn btn--primary btn--sm" data-mock="advance">结束本阶段</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="fill thin qcol">
+                    <div class="answer">
+                      <div class="answer-h"><span class="answer-t">写作作答</span><span class="tag tag--accent">当前阶段</span></div>
+                      <textarea class="textarea" rows="6">With the rapid development of online education, an increasing number of students choose to study online. However, ...</textarea>
+                    </div>
+                    <div class="answer is-locked">
+                      <div class="answer-h"><span class="answer-t">听力作答</span><span class="tag tag--muted"><svg class="ic" width="11" height="11"><use href="#i-lock"/></svg>已锁定</span></div>
+                      <textarea class="textarea" rows="4" placeholder="本阶段尚未开始" disabled></textarea>
+                    </div>
+                    <div class="answer is-locked">
+                      <div class="answer-h"><span class="answer-t">阅读与翻译作答</span><span class="tag tag--muted"><svg class="ic" width="11" height="11"><use href="#i-lock"/></svg>已锁定</span></div>
+                      <textarea class="textarea" rows="4" placeholder="本阶段尚未开始" disabled></textarea>
+                    </div>
+                  </div>
+
+                  <div class="col" data-mock-result hidden>
+                    <div class="sec"><div class="sec-text"><span class="sec-title">模考成绩</span><span class="sec-desc">三阶段已收卡，成绩按当次评分标准折算</span></div></div>
+                    <div class="stat">
+                      <span class="stat-k">预计总分</span>
+                      <div class="score"><span class="score-n">452</span><span class="score-u">目标 550 · 还差 98</span></div>
+                    </div>
+                    <div class="sec-cells">
+                      <div class="sec-cell"><span class="sec-cell-k">写作</span><span class="sec-cell-v">11.0 / 15</span></div>
+                      <div class="sec-cell"><span class="sec-cell-k">听力</span><span class="sec-cell-v">163</span></div>
+                      <div class="sec-cell"><span class="sec-cell-k">阅读与翻译</span><span class="sec-cell-v">178</span></div>
+                    </div>
+                    <span class="ai-note"><svg class="ic" width="12" height="12"><use href="#i-sparkle"/></svg>AI 生成，仅供参考</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- 易错点：与批改模块里的同名卡片同源，这里是全量视图 -->
+            <div class="st-pane" role="tabpanel" data-pane="errors">
+              <section class="mod">
+                <div class="mod-head">
+                  <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-alert"/></svg></span>
+                  <div class="mod-head-text">
+                    <span class="mod-title">老毛病 TOP3</span>
+                    <span class="mod-desc">批改满 3 次后，这里会汇总你的高频错误</span>
+                  </div>
+                  <div class="mod-acts"><span class="sec-n">样本 23 次批改</span></div>
+                </div>
+                <div class="fill thin qcol">
+                  <div class="sub">
+                    <div class="rank rank--1"><span class="rank-n">1</span><div class="rank-body"><div class="rank-t"><span class="rank-name">主谓一致</span><span class="rank-times">出现 9 次</span></div><span class="rank-x">the society need / information are / he don't</span></div></div>
+                  </div>
+                  <div class="sub">
+                    <div class="rank"><span class="rank-n">2</span><div class="rank-body"><div class="rank-t"><span class="rank-name">冗余表达</span><span class="rank-times">出现 6 次</span></div><span class="rank-x">In my opinion, I think / return back</span></div></div>
+                  </div>
+                  <div class="sub">
+                    <div class="rank"><span class="rank-n">3</span><div class="rank-body"><div class="rank-t"><span class="rank-name">冠词缺失</span><span class="rank-times">出现 4 次</span></div><span class="rank-x">focus on practical skills / play important role</span></div></div>
+                  </div>
+                  <div class="mod-foot">
+                    <span class="ai-note">按出现次数排序，同义错误已合并</span>
+                    <span class="fl"></span>
+                    <button class="btn btn--soft btn--sm" data-goto-tab="essay">去作文里改它<svg class="ic" width="12" height="12"><use href="#i-chev-right"/></svg></button>
                   </div>
                 </div>
               </section>
@@ -646,7 +1141,7 @@
                   </div>
                 </div>
 
-                <div class="rows rows--fix thin">
+                <div class="rows fill thin">
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">数学 · 中值定理 — 构造辅助函数方向错</span><span class="lrow-meta">错 7 次 · 2026-09-14</span></div>
                     <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
@@ -702,7 +1197,7 @@
 
                 <div class="bar bar--ok"><i style="--w:36%"></i></div>
 
-                <div class="rows rows--fix thin">
+                <div class="rows fill thin">
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">毛中特 · 新民主主义革命总路线</span><span class="lrow-meta">下次复习：3 天后</span></div>
                     <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
@@ -827,7 +1322,7 @@
                   </div>
                 </div>
 
-                <div class="rows rows--fix thin">
+                <div class="rows fill thin">
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">学科知识 · 函数单调性证明 — 缺端点讨论</span><span class="lrow-meta">错 4 次 · 2026-09-13</span></div>
                     <div class="lrow-ctl"><div class="sel sel--sm"><select aria-label="错因归因"><option>审题失误</option><option selected>概念不清</option><option>时间不足</option><option>超纲</option><option>计算或操作失误</option><option>待判定</option></select><svg class="ic" width="13" height="13"><use href="#i-chev-down"/></svg></div></div>
@@ -879,7 +1374,7 @@
 
                 <div class="bar bar--ok"><i style="--w:17%"></i></div>
 
-                <div class="rows rows--fix thin">
+                <div class="rows fill thin">
                   <div class="lrow">
                     <div class="lrow-text"><span class="lrow-title">知识点 · 闭区间连续函数三大定理</span><span class="lrow-meta">下次复习：2 天后</span></div>
                     <div class="lrow-acts"><button class="btn btn--right btn--sm"><svg class="ic" width="13" height="13"><use href="#i-check"/></svg>答对</button><button class="btn btn--wrong btn--sm"><svg class="ic" width="13" height="13"><use href="#i-x"/></svg>答错</button></div>
