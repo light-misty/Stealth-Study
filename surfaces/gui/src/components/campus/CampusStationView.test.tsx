@@ -438,4 +438,96 @@ describe("CampusStationView", () => {
     await screen.findByTestId("campus-archived-dialog");
     expect(screen.getByTestId("campus-archived-row-a1")).toBeTruthy();
   });
+
+  it("shows one module per screen and switches on the tab", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+
+    const pane = (key: string) => screen.getByTestId(`campus-station-pane-${key}`);
+    expect(pane("mistake").hasAttribute("hidden")).toBe(false);
+    expect(pane("vocab").hasAttribute("hidden")).toBe(true);
+
+    fireEvent.click(screen.getByTestId("campus-station-tab-vocab"));
+    expect(pane("mistake").hasAttribute("hidden")).toBe(true);
+    expect(pane("vocab").hasAttribute("hidden")).toBe(false);
+    expect(screen.getByTestId("campus-station-tab-vocab").getAttribute("aria-selected")).toBe(
+      "true",
+    );
+    expect(screen.getByTestId("campus-station-tab-mistake").getAttribute("aria-selected")).toBe(
+      "false",
+    );
+  });
+
+  it("walks the tab strip with the arrow keys", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station-tab-mistake")).toBeTruthy());
+
+    const tabs = screen.getByRole("tablist");
+    fireEvent.keyDown(tabs, { key: "ArrowRight" });
+    expect(screen.getByTestId("campus-station-pane-review").hasAttribute("hidden")).toBe(false);
+    fireEvent.keyDown(tabs, { key: "End" });
+    expect(screen.getByTestId("campus-station-pane-common-errors").hasAttribute("hidden")).toBe(
+      false,
+    );
+    fireEvent.keyDown(tabs, { key: "Home" });
+    expect(screen.getByTestId("campus-station-pane-mistake").hasAttribute("hidden")).toBe(false);
+  });
+
+  it("keeps every panel mounted, so a hidden module keeps its own loaded state", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    // The mock-exam console is three tabs in; it must already exist, not mount on demand.
+    expect(screen.getByTestId("campus-station-pane-mock")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("campus-station-tab-mock"));
+    expect(screen.getByTestId("campus-station-pane-mock").hasAttribute("hidden")).toBe(false);
+  });
+
+  it("badges the review tab and jumps there from the rail's quick action", async () => {
+    apiMock.listDueReviews.mockResolvedValue({
+      items: [
+        {
+          id: "r1",
+          profile_id: "p1",
+          item_type: "vocab",
+          item_id: "v1",
+          interval_days: 4,
+          ease: 2.5,
+          reps: 1,
+          streak_right: 1,
+          next_due: "2026-09-19",
+          payload: { word: "abandon" },
+        },
+      ],
+    });
+    render(<CampusStationView track="cet" />);
+    const tab = await screen.findByTestId("campus-station-tab-review");
+    expect(tab.textContent).toContain("1");
+
+    fireEvent.click(screen.getByTestId("campus-station-goto-review"));
+    expect(screen.getByTestId("campus-station-pane-review").hasAttribute("hidden")).toBe(false);
+    expect(screen.getByTestId("campus-station-pane-mistake").hasAttribute("hidden")).toBe(true);
+  });
+
+  it("fills the rail from the progress report, and hides cards the report has no data for", async () => {
+    apiMock.getProgress.mockResolvedValue({
+      by_track: { politics: { done: 3, total: 8, rate: 0.375 } },
+      streak_days: 5,
+      heatmap: [{ date: "2026-09-17", count: 4 }],
+    });
+    render(<CampusStationView track="cet" />);
+
+    await waitFor(() => expect(screen.getByTestId("campus-station-progress")).toBeTruthy());
+    expect(screen.getByTestId("campus-station-progress-rate").textContent).toBe("38%");
+    expect(screen.getByTestId("campus-station-progress-row").textContent).toContain("3/8");
+    expect(screen.getByTestId("campus-station-streak").textContent).toContain("5");
+    expect(screen.getByTestId("campus-station-heat-cell").getAttribute("class")).toContain("hc--3");
+  });
+
+  it("leaves the progress and streak cards out when the report is empty", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    expect(screen.queryByTestId("campus-station-progress")).toBeNull();
+    expect(screen.queryByTestId("campus-station-streak")).toBeNull();
+    expect(screen.getByTestId("campus-station-rail")).toBeTruthy();
+  });
 });

@@ -19,6 +19,35 @@
         "tagline": "知识树 · 刷题 · 批改"
       }
     },
+    "station": {
+      "tabs_aria": "{{track}} 模块",
+      "tab": {
+        "mistake": "错题本",
+        "review": "今日复习",
+        "assessment": "定级",
+        "vocab": "词汇",
+        "listening": "听力",
+        "essay": "写作",
+        "translation": "翻译",
+        "mock": "模考",
+        "common_errors": "易错",
+        "library": "资料",
+        "qa": "问答",
+        "plan": "计划",
+        "weekly": "周报",
+        "tutor": "辅导",
+        "cert_tree": "知识树",
+        "cert_grading": "主观题",
+        "cert_setup": "节点"
+      },
+      "progress_title": "学习进度",
+      "progress_desc": "计划任务的完成情况",
+      "streak_title": "连续打卡",
+      "streak_desc": "有打卡记录的日期",
+      "streak_days_one": "{{count}} 天",
+      "streak_days_other": "{{count}} 天",
+      "goto_review": "去做今日复习"
+    },
     "common": {
       "mastery": {
         "unknown": "未掌握",

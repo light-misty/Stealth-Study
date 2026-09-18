@@ -19,6 +19,35 @@
         "tagline": "Knowledge tree · Practice · Grading"
       }
     },
+    "station": {
+      "tabs_aria": "{{track}} modules",
+      "tab": {
+        "mistake": "Mistakes",
+        "review": "Review",
+        "assessment": "Placement",
+        "vocab": "Vocab",
+        "listening": "Listening",
+        "essay": "Writing",
+        "translation": "Translation",
+        "mock": "Mock exam",
+        "common_errors": "Top errors",
+        "library": "Library",
+        "qa": "Q&A",
+        "plan": "Plan",
+        "weekly": "Weekly",
+        "tutor": "Tutor",
+        "cert_tree": "Knowledge tree",
+        "cert_grading": "Subjective",
+        "cert_setup": "Milestones"
+      },
+      "progress_title": "Study progress",
+      "progress_desc": "How the plan's tasks are going",
+      "streak_title": "Study streak",
+      "streak_desc": "Days with completed tasks",
+      "streak_days_one": "{{count}} day",
+      "streak_days_other": "{{count}} days",
+      "goto_review": "Go to today's review"
+    },
     "common": {
       "mastery": {
         "unknown": "Unknown",

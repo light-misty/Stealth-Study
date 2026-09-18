@@ -19,6 +19,15 @@ async function createProfile(
   await expect(page.getByTestId("campus-station")).toBeVisible();
 }
 
+// The station shows one module per screen, so a journey that ends in a panel has to take that
+// panel's tab first. The tab strip is TRACK_PANELS order, keyed by panel key.
+async function openTab(page: import("@playwright/test").Page, key: string) {
+  const tab = page.getByTestId(`campus-station-tab-${key}`);
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId(`campus-station-pane-${key}`)).toBeVisible();
+}
+
 // E2E-1: three-station navigation — empty-state create card renders on first run.
 test("campus: the three stations navigate cleanly and render the empty-state create card", async ({
   page,
@@ -68,6 +77,7 @@ test("campus: create a CET profile then grade an essay — result shows dimensio
   await page.getByTestId("nav-campus-cet").click();
   await createProfile(page, { title: "四级冲关", examDate: "2026-12-18" });
 
+  await openTab(page, "essay");
   await page.getByTestId("campus-cet-essay-grading-text").fill("The important of study.");
   await page.getByTestId("campus-cet-essay-grading-submit").click();
   await expect(page.getByTestId("campus-grading-result")).toBeVisible();
@@ -82,6 +92,8 @@ test("campus: start a CET assessment, answer five questions, interrupt, and resu
   await page.goto("/");
   await page.getByTestId("nav-campus-cet").click();
   await createProfile(page, { title: "四级定级" });
+
+  await openTab(page, "assessment");
   await page.getByTestId("campus-cet-assessment-start").click();
   await expect(page.getByTestId("campus-cet-assessment-progress")).toBeVisible();
 
@@ -102,9 +114,11 @@ test("campus: start a CET assessment, answer five questions, interrupt, and resu
   // once the save has landed — the panel's own saved marker is that signal.
   await expect(page.getByTestId("campus-cet-assessment-saved")).toBeVisible();
 
-  // Reload — the persisted assessment resumes with answers intact.
+  // Reload — the persisted assessment resumes with answers intact. Re-entering the station
+  // lands on its first tab, so the paper is one tab away rather than on screen.
   await page.reload();
   await page.getByTestId("nav-campus-cet").click();
+  await openTab(page, "assessment");
   await expect(page.getByTestId("campus-cet-assessment-progress")).toHaveAttribute(
     "data-answered",
     "5",
@@ -117,6 +131,7 @@ test("campus: generate a kaoyan plan, reschedule, open the weekly report", async
   await page.getByTestId("nav-campus-kaoyan").click();
   await createProfile(page, { title: "考研规划" });
 
+  await openTab(page, "plan");
   await page.getByTestId("campus-plan-generate").click();
   await expect(page.getByTestId("campus-kaoyan-plan-panel")).toBeVisible();
   // One ring per track in the progress report, so the count is what "four tracks are live" means.
@@ -128,6 +143,7 @@ test("campus: generate a kaoyan plan, reschedule, open the weekly report", async
   await reschedule.click();
   await expect(page.getByTestId("campus-plan-notice")).toBeVisible();
 
+  await openTab(page, "weekly");
   await page.getByTestId("campus-weekly-generate").click();
   await expect(page.getByTestId("campus-weekly-view")).toBeVisible();
   await expect(page.getByTestId("campus-weekly-item-report-1")).toBeVisible();
@@ -141,6 +157,7 @@ test("campus: import a document then ask a library question — citations are cl
   await page.getByTestId("nav-campus-kaoyan").click();
   await createProfile(page, { title: "考研资料" });
 
+  await openTab(page, "library");
   await page.getByTestId("campus-library-import").setInputFiles({
     name: "notes.md",
     mimeType: "text/markdown",
@@ -148,6 +165,7 @@ test("campus: import a document then ask a library question — citations are cl
   });
   await expect(page.getByTestId("campus-library-row")).toBeVisible();
 
+  await openTab(page, "qa");
   await page.getByTestId("campus-qa-input").fill("这个句子的主干是什么？");
   await page.getByTestId("campus-qa-send").click();
   await expect(page.getByTestId("campus-qa-answer")).toBeVisible();
@@ -163,6 +181,7 @@ test("campus: build a CERT knowledge tree and grade a subjective answer", async 
   // The tree is grown from the panel itself: `campus-cert-tree-add-root` opens the inline form
   // (there is no syllabus-upload entry in the UI, which is why 08 §7's `campus-cert-setup-*`
   // steps — those belong to the deadline timeline — never produced a node).
+  await openTab(page, "cert_tree");
   await page.getByTestId("campus-cert-tree-add-root").click();
   await page.getByTestId("campus-cert-tree-add-title").fill("第一章 基础");
   await page.getByTestId("campus-cert-tree-add-submit").click();
@@ -170,6 +189,7 @@ test("campus: build a CERT knowledge tree and grade a subjective answer", async 
   await expect(page.getByTestId("campus-cert-tree-node").first()).toBeVisible();
   await expect(page.getByTestId("campus-cert-tree-coverage")).toBeVisible();
 
+  await openTab(page, "cert_grading");
   await page.getByTestId("campus-cert-grading-answer").fill("参考答案要点分析...");
   await page.getByTestId("campus-cert-grading-submit").click();
   await expect(page.getByTestId("campus-cert-grading-state").first()).toBeVisible();
@@ -199,6 +219,7 @@ test("campus: advance a CET mock exam past writing into the listening lock", asy
   await page.getByTestId("nav-campus-cet").click();
   await createProfile(page, { title: "模考演练" });
 
+  await openTab(page, "mock");
   await page.getByTestId("campus-mock-start").click();
   await expect(page.getByTestId("campus-mock-timer")).toBeVisible();
 

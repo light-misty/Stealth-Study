@@ -119,6 +119,27 @@ describe("campus i18n key coverage", () => {
         "score_query",
       ].map((node) => `campus.cert.deadline.node.${node}`),
       [1, 2, 3].map((level) => `campus.grading.degrade_notice_${level}`),
+      // One tab label per station panel (CampusStationView's PanelSpec.tab); the keys are built
+      // at runtime by template, so the strip's whole vocabulary is spelled out here instead.
+      [
+        "mistake",
+        "review",
+        "assessment",
+        "vocab",
+        "listening",
+        "essay",
+        "translation",
+        "mock",
+        "common_errors",
+        "library",
+        "qa",
+        "plan",
+        "weekly",
+        "tutor",
+        "cert_tree",
+        "cert_grading",
+        "cert_setup",
+      ].map((tab) => `campus.station.tab.${tab}`),
     ];
     for (const family of families) {
       for (const key of family) {
