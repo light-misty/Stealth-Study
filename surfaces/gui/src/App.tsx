@@ -2132,17 +2132,34 @@ export function App() {
                 // Live inline cards are for ATTENDED sessions only; when Unattended the prompt is
                 // parked in the Inbox and surfaced via the answer-in-context card below.
                 !unattended && pendingPlan?.kind === "planreq" ? (
-                  <PlanCard item={pendingPlan} onRespond={respondPlan} />
+                  <PlanCard key={JSON.stringify(pendingPlan)} item={pendingPlan} onRespond={respondPlan} />
                 ) : !unattended && pendingItemsReq?.kind === "itemsreq" ? (
-                  <WorkItemsCard item={pendingItemsReq} onRespond={respondItemsReq} />
+                  <WorkItemsCard
+                    key={JSON.stringify(pendingItemsReq)}
+                    item={pendingItemsReq}
+                    onRespond={respondItemsReq}
+                  />
                 ) : !unattended && pendingTeam?.kind === "teamreq" ? (
-                  <TeamRequestCard item={pendingTeam} onRespond={respondTeam} />
+                  <TeamRequestCard
+                    key={JSON.stringify(pendingTeam)}
+                    item={pendingTeam}
+                    onRespond={respondTeam}
+                  />
                 ) : !unattended && pendingToolReq?.kind === "toolreq" ? (
-                  <ToolRequestCard item={pendingToolReq} onRespond={respondTool} />
+                  <ToolRequestCard
+                    key={JSON.stringify(pendingToolReq)}
+                    item={pendingToolReq}
+                    onRespond={respondTool}
+                  />
                 ) : !unattended && pendingDirReq?.kind === "dirreq" ? (
-                  <DirectoryRequestCard item={pendingDirReq} onRespond={respondDirectory} />
+                  <DirectoryRequestCard
+                    key={JSON.stringify(pendingDirReq)}
+                    item={pendingDirReq}
+                    onRespond={respondDirectory}
+                  />
                 ) : !unattended && pendingApproval?.kind === "approval" ? (
                   <ApprovalCard
+                    key={JSON.stringify(pendingApproval)}
                     item={pendingApproval}
                     onApprove={approve}
                     runTask={runContext}
@@ -2152,6 +2169,7 @@ export function App() {
                 ) : !unattended && pendingQuestion?.kind === "question" ? (
                   // Live ask_user in an attended session — answer inline (reuses the Inbox card UI).
                   <InboxItemCard
+                    key={JSON.stringify(pendingQuestion)}
                     item={{
                       id: "live-question",
                       session_id: sessionId,
@@ -2183,6 +2201,7 @@ export function App() {
                     const d = sessionInbox[0].data;
                     return parked ? (
                       <ApprovalCard
+                        key={sessionInbox[0].id}
                         item={parked}
                         onApprove={(decision) =>
                           void resolveSessionInbox(sessionInbox[0].id, decision)
@@ -2196,7 +2215,12 @@ export function App() {
                         compact
                       />
                     ) : (
-                      <InboxItemCard item={sessionInbox[0]} onResolve={resolveSessionInbox} compact />
+                      <InboxItemCard
+                        key={sessionInbox[0].id}
+                        item={sessionInbox[0]}
+                        onResolve={resolveSessionInbox}
+                        compact
+                      />
                     );
                   })()
                 ) : undefined
