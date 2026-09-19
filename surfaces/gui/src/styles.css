@@ -123,6 +123,9 @@
      follows the same slide, so one duration governs both). */
   --nav-w: 300px;
   --nav-slide: 0.2s;
+  --motion-fast: 0.16s;
+  --motion-dur: 0.24s;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* 备考台设计层令牌，取自 ui-mocks/stealth-study-redesign/css/tokens.css。圆角梯度与主题
      无关，故只写在 :root。--ring 是内阴影描边环：设计稿的 stroke 不占布局，用 border 会让
      自动高度凭空多 2px，所以统一走 inset shadow。 */
@@ -2118,4 +2121,31 @@ html[data-platform="linux"] ::-webkit-scrollbar-thumb:hover { background-color: 
   background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
   font-family: var(--mono); font-size: var(--fs-mono); line-height: 1.5;
   color: var(--muted); white-space: pre-wrap; text-align: left;
+}
+
+/* ---------- unified motion ---------- */
+@keyframes ss-fade-in {
+  from { opacity: 0; }
+}
+@keyframes ss-fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes ss-pop-in {
+  from { opacity: 0; transform: scale(0.96); }
+}
+@keyframes ss-slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+}
+.surface-view { animation: ss-fade-in var(--motion-dur) var(--motion-ease) both; }
+.anim-fade-up { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
+.overlay-fade { animation: ss-fade-in var(--motion-fast) var(--motion-ease) both; }
+.card-pop { animation: ss-pop-in var(--motion-fast) var(--motion-ease) both; }
+.toast-in { animation: ss-slide-down 0.28s var(--motion-ease) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
