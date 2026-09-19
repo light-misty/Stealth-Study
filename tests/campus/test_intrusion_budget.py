@@ -58,6 +58,14 @@ REGISTERED_PATCH: set[str] = {
     ".gitignore",
     "docs/logging-system-test-report.md",
     "docs/superpowers/specs/2026-09-16-logging-system-design.md",
+    # skip-question-card 分支登记：OPE-153 跳过提问——ask 工具的哨兵值与跳过结算、
+    # 引擎对全跳过卡片的 denied 判定、Slack 镜像的 Skip 按钮、收件箱卡片的跳过
+    # 入口，以及覆盖四个跳过场景的 e2e 规格
+    "ss/tools/ask.py",
+    "ss/engine.py",
+    "ss/interactions.py",
+    "surfaces/gui/src/components/InboxItemCard.tsx",
+    "surfaces/gui/e2e/ask-skip.spec.ts",
     # The campus e2e harness: `fixtures.ts` is shared test infrastructure every spec routes
     # through (the same category as `app.py`), and `campus.spec.ts` is the campus smoke itself.
     # Listed by file — not by directory — so the other 60 specs stay outside the budget. The live
