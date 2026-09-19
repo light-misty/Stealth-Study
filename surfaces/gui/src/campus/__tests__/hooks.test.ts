@@ -38,6 +38,7 @@ vi.mock("../api", async (importOriginal) => {
 
 import * as api from "../api";
 import {
+  clearCampusCache,
   pollDocReady,
   useActiveProfile,
   useCapabilities,
@@ -122,6 +123,7 @@ const doc = (id: string, parseStatus: SourceDoc["parse_status"] = "pending"): So
 });
 
 beforeEach(() => {
+  clearCampusCache();
   for (const fn of Object.values(apiMock)) if (typeof fn?.mockReset === "function") fn.mockReset();
 });
 
@@ -561,5 +563,97 @@ describe("useWeeklyReports", () => {
       await result.current.generate();
     });
     expect(apiMock.generateWeeklyReport).not.toHaveBeenCalled();
+  });
+});
+
+describe("cross-mount cache", () => {
+  it("serves the cached list on remount instead of flashing the loading state", async () => {
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1")] });
+    const first = renderHook(() => useProfiles("cet"));
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1"), profile("p2")] });
+    const second = renderHook(() => useProfiles("cet"));
+    expect(second.result.current.loading).toBe(false);
+    expect(second.result.current.profiles.map((p: ExamProfile) => p.id)).toEqual(["p1"]);
+    await waitFor(() =>
+      expect(second.result.current.profiles.map((p: ExamProfile) => p.id)).toEqual(["p1", "p2"]),
+    );
+  });
+
+  it("keeps the loading state when no cached value exists for the key", async () => {
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useProfiles("kaoyan"));
+    expect(result.current.loading).toBe(true);
+    expect(result.current.profiles).toEqual([]);
+  });
+
+  it("does not leak one track's cache into another", async () => {
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1")] });
+    const cet = renderHook(() => useProfiles("cet"));
+    await waitFor(() => expect(cet.result.current.loading).toBe(false));
+
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    const kaoyan = renderHook(() => useProfiles("kaoyan"));
+    expect(kaoyan.result.current.loading).toBe(true);
+  });
+
+  it("keeps data visible across a reload instead of dropping back to loading", async () => {
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1")] });
+    const { result } = renderHook(() => useProfiles("cet"));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    await act(async () => {
+      result.current.reload();
+    });
+    expect(result.current.loading).toBe(false);
+    expect(result.current.profiles.map((p: ExamProfile) => p.id)).toEqual(["p1"]);
+  });
+
+  it("keeps mutations in the cache so a remount shows the updated row", async () => {
+    apiMock.listMistakes.mockResolvedValue({ items: [mistake("m1")], total: 1 });
+    const first = renderHook(() => useMistakes("p1"));
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+
+    apiMock.patchMistake.mockResolvedValue(mistake("m1", "misread"));
+    apiMock.listMistakes.mockResolvedValue({ items: [mistake("m1", "misread")], total: 1 });
+    await act(async () => {
+      await first.result.current.setAttribution("m1", "misread");
+    });
+    expect(first.result.current.items[0].attribution).toBe("misread");
+
+    const second = renderHook(() => useMistakes("p1"));
+    expect(second.result.current.loading).toBe(false);
+    expect(second.result.current.items[0].attribution).toBe("misread");
+  });
+
+  it("caches the remembered active profile so a remount resolves it immediately", async () => {
+    apiMock.getAppState.mockResolvedValue({ active_profile_id: "p1", settings: {} });
+    const first = renderHook(() => useActiveProfile([profile("p1")]));
+    await waitFor(() => expect(first.result.current.loading).toBe(false));
+    expect(first.result.current.profile?.id).toBe("p1");
+
+    apiMock.getAppState.mockReturnValue(new Promise(() => {}));
+    const second = renderHook(() => useActiveProfile([profile("p1")]));
+    expect(second.result.current.loading).toBe(false);
+    expect(second.result.current.profile?.id).toBe("p1");
+  });
+
+  it("writes an active-profile switch through the cache", async () => {
+    apiMock.getAppState.mockResolvedValue({ active_profile_id: null, settings: {} });
+    apiMock.patchAppState.mockResolvedValue({ active_profile_id: "p2", settings: {} });
+    const { result } = renderHook(() => useActiveProfile([profile("p1"), profile("p2")]));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.setActive("p2");
+    });
+    expect(result.current.profile?.id).toBe("p2");
+
+    apiMock.getAppState.mockReturnValue(new Promise(() => {}));
+    const remount = renderHook(() => useActiveProfile([profile("p1"), profile("p2")]));
+    expect(remount.result.current.loading).toBe(false);
+    expect(remount.result.current.profile?.id).toBe("p2");
   });
 });
