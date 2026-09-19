@@ -3006,7 +3006,7 @@ class SessionManager:
         from ..web import provider_names
 
         if provider not in provider_names():
-            return {"ok": False, "error": f"unknown provider: {provider}"}
+            return coded_error(f"unknown provider: {provider}", "PROVIDER_UNKNOWN", ok=False)
         before = self.get_web_search()["provider"]
         profile: dict[str, Any] = {"provider": provider}
         if api_key:
@@ -3149,7 +3149,7 @@ class SessionManager:
         its cached client. Merges provided fields into any existing profile."""
         d = get_descriptor(name)
         if d is None:
-            return {"ok": False, "error": f"unknown provider: {name}"}
+            return coded_error(f"unknown provider: {name}", "PROVIDER_UNKNOWN", ok=False)
         fields = fields or {}
         profile = dict(self.secrets.get(f"provider:{name}") or {})
         for f in d.fields:
@@ -3194,7 +3194,7 @@ class SessionManager:
         as never configured. Curated models stay; they just gray out until a new key."""
         d = get_descriptor(name)
         if d is None:
-            return {"ok": False, "error": f"unknown provider: {name}"}
+            return coded_error(f"unknown provider: {name}", "PROVIDER_UNKNOWN", ok=False)
         self.secrets.delete(f"provider:{name}")
         self._refresh_provider(name)
         return {"ok": True, "provider": name}
@@ -3261,7 +3261,7 @@ class SessionManager:
 
         d = get_descriptor(name)
         if d is None:
-            return {"ok": False, "error": f"unknown provider: {name}"}
+            return coded_error(f"unknown provider: {name}", "PROVIDER_UNKNOWN", ok=False)
         if d.auth == "oauth":
             # No key form — verify from the stored token set (signed-out / expired / OK).
             from ..providers import codex_auth
@@ -3281,7 +3281,7 @@ class SessionManager:
             api_key = os.environ.get(d.env_key, "").strip()
         has_key_field = any(f.key == "api_key" for f in d.fields)
         if d.needs_key and has_key_field and not api_key:
-            return {"ok": False, "error": "Enter an API key to test."}
+            return coded_error("Enter an API key to test.", "API_KEY_REQUIRED", ok=False)
         if d.needs_key and not has_key_field:
             # Multi-field cloud providers (Bedrock): required fields must be present;
             # actual credentials may be ambient (~/.aws, env) and are checked by the call.
@@ -3405,7 +3405,7 @@ class SessionManager:
 
         model = (model or "").strip()
         if not model:
-            return {"ok": False, "error": "empty model"}
+            return coded_error("empty model", "MODEL_REQUIRED", ok=False)
         hidden = [m for m in self._prefs.get("hidden_models") or [] if m != model]
         if hidden:
             self._prefs["hidden_models"] = hidden
@@ -3703,7 +3703,7 @@ class SessionManager:
         built lazily on the next turn, so it picks the key up without a restart."""
         api_key = (api_key or "").strip()
         if not api_key:
-            return {"ok": False, "error": "empty api key"}
+            return coded_error("empty api key", "API_KEY_REQUIRED", ok=False)
         # Merge, don't replace: the profile may also hold a custom endpoint (base_url).
         profile = dict(self.secrets.get("provider:openai") or {})
         profile.update({"type": "api_key", "api_key": api_key})
@@ -3715,7 +3715,7 @@ class SessionManager:
         """Set + persist the default model for new sessions (the UI pre-selects it)."""
         model = (model or "").strip()
         if not model:
-            return {"ok": False, "error": "empty model"}
+            return coded_error("empty model", "MODEL_REQUIRED", ok=False)
         self.model = model
         self._prefs["default_model"] = model
         self._save_prefs()

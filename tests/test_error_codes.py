@@ -221,7 +221,7 @@ def test_every_code_has_a_locale_string_in_both_languages(code: str) -> None:
 
 # 中文值里允许出现的技术标识：文件名、格式名与协议名，翻成中文反而更差。
 # 不能用 \b —— `.zip` 以句点开头，前一个字符是空格时根本没有词边界。
-_LATIN_OK = re.compile(r"SKILL\.md|\.zip|\.md|YAML|MCP|Slack|PDF", re.IGNORECASE)
+_LATIN_OK = re.compile(r"SKILL\.md|\.zip|\.md|YAML|MCP|Slack|PDF|API", re.IGNORECASE)
 
 
 @pytest.mark.parametrize("code", sorted(CODES))

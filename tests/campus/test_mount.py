@@ -126,6 +126,7 @@ BACKEND_PATCH = {
     # i18n-chinese-coverage 分支续：连接器与 PDF 检查的自写守卫消息带代号
     "M\tss/connectors/setup.py",
     "M\tss/pdf_support.py",
+    "M\tss/providers/registry.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
 # campus 挂载、日志系统、inbox 修复与错误代号四条分支各自的 app.py 增量预算

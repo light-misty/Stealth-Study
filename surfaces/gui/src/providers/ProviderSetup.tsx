@@ -12,6 +12,7 @@ import {
   type ProviderField as ProviderFieldT,
   type ProviderInfo,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { openExternal } from "../tauri";
 import { PROVIDER_LOGOS, providerRank } from "./logos";
 import { showLogin } from "../flags";
@@ -165,7 +166,7 @@ export function useProviderSetup(opts?: { onSaved?: () => void }): ProviderSetup
     setVerify({ state: "testing" });
     const res = await verifyProvider(sel, fields).catch(() => ({ ok: false, error: t("provider.err_unreachable") }));
     if (!res.ok) {
-      setVerify({ state: "error", msg: res.error || t("provider.err_couldnt_verify") });
+      setVerify({ state: "error", msg: apiErrorText(res, t, t("provider.err_couldnt_verify")) });
       return false;
     }
     if (dirty || !info?.configured) await setProvider(sel, fields).catch(() => {});

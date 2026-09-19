@@ -1939,7 +1939,7 @@ export async function removeProvider(name: string): Promise<{ ok: boolean; error
 export async function verifyProvider(
   name: string,
   fields: Record<string, string>,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/providers/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

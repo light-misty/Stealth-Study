@@ -19,6 +19,7 @@ UNCLASSIFIED = "UNCLASSIFIED"
 # 前端 `error.<小写代号>` 必须逐条备齐，由 tests/test_error_codes.py 守住。
 CODES: frozenset[str] = frozenset(
     {
+        "API_KEY_REQUIRED",
         "APPROVAL_OWNER_LAST_ONE",
         "APPROVAL_OWNER_REQUIRED",
         "ARTIFACT_BINARY",
@@ -55,6 +56,7 @@ CODES: frozenset[str] = frozenset(
         "MANAGED_CONNECT_UNSUPPORTED",
         "MCP_CONNECT_PATH_MISSING",
         "MCP_SERVER_UNKNOWN",
+        "MODEL_REQUIRED",
         "NAME_REQUIRED",
         "NETWORK_PROTOCOL",
         "NETWORK_RESET",
@@ -87,6 +89,10 @@ CODES: frozenset[str] = frozenset(
         "PERSONA_SOURCE_REQUIRED",
         "PERSONA_UNKNOWN",
         "PRIMARY_FOLDER_PROTECTED",
+        "PROVIDER_KEY_REJECTED",
+        "PROVIDER_REJECTED",
+        "PROVIDER_SIGNIN_ONLY",
+        "PROVIDER_UNKNOWN",
         "RATE_LIMITED",
         "RESOURCE_NOT_FOUND",
         "RISK_ACK_REQUIRED",
