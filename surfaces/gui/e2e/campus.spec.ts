@@ -46,6 +46,17 @@ test("campus: the three stations navigate cleanly and render the empty-state cre
   await expect(page.getByTestId("campus-station-empty")).toHaveCount(0);
 });
 
+test("campus: switching stations does not replay a station-wide fade-in", async ({ page }) => {
+  await page.goto("/");
+  for (const track of ["cet", "kaoyan", "cert"] as const) {
+    await page.getByTestId(`nav-campus-${track}`).click();
+    const station = page.getByTestId("campus-station-empty");
+    await expect(station).toHaveAttribute("data-track", track);
+    const animationName = await station.evaluate((el) => getComputedStyle(el).animationName);
+    expect(animationName).toBe("none");
+  }
+});
+
 test("sidebar: the campus station rows share the nav rows' vertical rhythm", async ({ page }) => {
   await page.goto("/");
   const order = [
