@@ -92,6 +92,19 @@ describe("campus api transport", () => {
     expect(calls[1].url).toBe("http://127.0.0.1:8765/v1/campus/profiles/p1");
   });
 
+  it("reads the cost of a delete through A11 before anything is removed", async () => {
+    const calls = installFetch(200, {
+      profile_id: "p1",
+      cascade: { exam_profile: 1 },
+      automation_tasks: 0,
+      export_files: 0,
+    });
+    const impact = await api.getProfileImpact("p1");
+    expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/profiles/p1/impact");
+    expect(calls[0].init.method ?? "GET").toBe("GET");
+    expect(impact.cascade).toEqual({ exam_profile: 1 });
+  });
+
   it("submits grading with snake_case payload fields", async () => {
     const calls = installFetch(200, { attempt_id: "a1", degrade_level: 0 });
     await api.submitGrading({

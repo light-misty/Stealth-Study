@@ -19,21 +19,12 @@ export function DegradeBadge({
   const shown = Math.min(Math.floor(level ?? 0), 3);
 
   return (
-    <div
-      className="rounded-lg border border-warnInk/40 bg-warnSoft px-3 py-2 text-[12px] text-warnInk"
-      role="status"
-      data-testid="campus-degrade-badge"
-      data-degrade-level={shown}
-    >
-      <div className="flex items-center gap-1.5">
-        <Icon name="warning" size={13} />
-        <span>{t(key)}</span>
+    <div className="alert" role="status" data-testid="campus-degrade-badge" data-degrade-level={shown}>
+      <Icon name="warning" size={14} />
+      <div className="alert-text">
+        <span className="alert-title">{t(key)}</span>
+        {notice ? <span className="alert-desc" data-testid="campus-degrade-notice-detail">{notice}</span> : null}
       </div>
-      {notice ? (
-        <div className="mt-1 text-[12px] text-muted" data-testid="campus-degrade-notice-detail">
-          {notice}
-        </div>
-      ) : null}
     </div>
   );
 }

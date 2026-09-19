@@ -61,7 +61,7 @@ describe("WeeklyReportView", () => {
     });
 
     render(<WeeklyReportView profileId="p1" />);
-    fireEvent.click(await waitFor(() => screen.getByTestId("campus-weekly-item-w1")));
+    fireEvent.click(await waitFor(() => screen.getByTestId("campus-weekly-head-w1")));
 
     const detail = await waitFor(() => screen.getByTestId("campus-weekly-detail-w1"));
     expect(detail.textContent).toContain("25%");

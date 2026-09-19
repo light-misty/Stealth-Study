@@ -67,7 +67,7 @@ describe("GradingWorkshopBody", () => {
     apiMock.getCommonErrors.mockResolvedValue({
       top3: [{ type: "tense", count: 4, samples: ["teached"] }],
     });
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
 
     fireEvent.change(screen.getByTestId("campus-cet-grading-text"), {
       target: { value: "Yesterday he teached us English." },
@@ -90,7 +90,7 @@ describe("GradingWorkshopBody", () => {
 
   it("locates the error inside the submitted text", async () => {
     apiMock.submitGrading.mockResolvedValue(gradeResult());
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
 
     fireEvent.change(screen.getByTestId("campus-cet-grading-text"), {
       target: { value: "Yesterday he teached us English." },
@@ -105,7 +105,7 @@ describe("GradingWorkshopBody", () => {
   });
 
   it("keeps the submit disabled until the text is non-empty", () => {
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
     expect(
       (screen.getByTestId("campus-cet-grading-submit") as HTMLButtonElement).disabled,
     ).toBe(true);
@@ -124,7 +124,7 @@ describe("GradingWorkshopBody", () => {
         resolveGrading = resolve;
       }),
     );
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
 
     fireEvent.change(screen.getByTestId("campus-cet-grading-text"), {
       target: { value: "Something." },
@@ -146,7 +146,7 @@ describe("GradingWorkshopBody", () => {
   it("reports grading failures and recovers through retry", async () => {
     apiMock.submitGrading.mockRejectedValueOnce(new Error("no model"));
     apiMock.submitGrading.mockResolvedValue(gradeResult());
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
 
     fireEvent.change(screen.getByTestId("campus-cet-grading-text"), {
       target: { value: "Something." },
@@ -165,7 +165,7 @@ describe("GradingWorkshopBody", () => {
       page: 1,
       page_size: 10,
     });
-    render(<GradingWorkshopBody profileId="p1" kind="translation" />);
+    render(<GradingWorkshopBody profileId="p1" kind="translation" title="翻译批改" desc="三档计分" />);
 
     await waitFor(() =>
       expect(screen.getAllByTestId("campus-cet-grading-history-item")).toHaveLength(2),
@@ -185,7 +185,7 @@ describe("GradingWorkshopBody", () => {
       page_size: 10,
     });
     apiMock.getAttempt.mockResolvedValue(historyAttempt("h1"));
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
 
     await waitFor(() =>
       expect(screen.getByTestId("campus-cet-grading-history-item")).toBeTruthy(),
@@ -201,7 +201,7 @@ describe("GradingWorkshopBody", () => {
   });
 
   it("shows the empty history hint when nothing was graded yet", async () => {
-    render(<GradingWorkshopBody profileId="p1" kind="essay" />);
+    render(<GradingWorkshopBody profileId="p1" kind="essay" title="作文批改" desc="分项得分与错误清单" />);
     await waitFor(() => expect(screen.getByTestId("campus-cet-grading-history-empty")).toBeTruthy());
   });
 });

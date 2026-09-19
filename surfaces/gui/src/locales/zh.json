@@ -19,6 +19,58 @@
         "tagline": "知识树 · 刷题 · 批改"
       }
     },
+    "station": {
+      "tabs_aria": "{{track}} 模块",
+      "tab": {
+        "mistake": "错题本",
+        "review": "今日复习",
+        "assessment": "定级",
+        "vocab": "词汇",
+        "listening": "听力",
+        "essay": "写作",
+        "translation": "翻译",
+        "mock": "模考",
+        "common_errors": "易错",
+        "library": "资料",
+        "qa": "问答",
+        "plan": "计划",
+        "weekly": "周报",
+        "tutor": "辅导",
+        "cert_tree": "知识树",
+        "cert_grading": "主观题",
+        "cert_setup": "节点"
+      },
+      "progress_title": "今日进度",
+      "progress_desc": "按每日 {{minutes}} 分钟安排",
+      "streak_title": "连续打卡",
+      "streak_desc": "近 21 天",
+      "streak_days_one": "{{count}} 天",
+      "streak_days_other": "{{count}} 天",
+      "goto_review": "去做今日复习",
+      "countdown_kicker": "考试日期 {{date}}",
+      "countdown_unit_one": "天",
+      "countdown_unit_other": "天",
+      "hero_plan_rate": "计划完成 {{rate}}%",
+      "hero_target": "目标 {{score}}",
+      "hero_estimate": "当前预估 {{score}}",
+      "dl_days_one": "{{count}} 天",
+      "dl_days_other": "{{count}} 天",
+      "dl_today": "今天",
+      "dl_overdue": "已过",
+      "streak_window": "本周 {{weekDone}} / {{weekTotal}} 天 · 本月 {{monthDone}} / {{monthTotal}} 天",
+      "row_minutes": "时长",
+      "row_vocab": "词汇",
+      "row_tasks": "任务",
+      "row_review": "复习",
+      "row_grading": "批改",
+      "row_docs": "资料",
+      "row_knowledge": "知识点",
+      "countdown_no_date": "考试日期 未设置",
+      "hero_nothing_yet": "今天还没有完成记录",
+      "hero_set_exam_date": "在档案里设置考试日期即可开始倒计时",
+      "dl_nearest": "最近节点：{{node}} · {{date}}",
+      "dl_none": "尚未登记考试节点"
+    },
     "common": {
       "mastery": {
         "unknown": "未掌握",
@@ -56,7 +108,18 @@
       "retry": "重试",
       "error": "出错了",
       "exam_passed": "考试日期已过",
-      "got_it": "知道了"
+      "got_it": "知道了",
+      "qtype": {
+        "single": "单选",
+        "multiple": "多选",
+        "judge": "判断",
+        "blank": "填空",
+        "short_answer": "简答",
+        "essay": "作文",
+        "material": "材料分析",
+        "lesson_plan": "教学设计",
+        "practical": "实务题"
+      }
     },
     "model": {
       "empty_title": "未配置模型",
@@ -93,7 +156,8 @@
       "rename_save": "保存名称",
       "action_rename_failed": "档案未改名",
       "restore_and_rename": "改名并恢复",
-      "restore_rename_hint": "「{{title}}」已被台面上的档案占用。换个名字即可把它恢复回来。"
+      "restore_rename_hint": "「{{title}}」已被台面上的档案占用。换个名字即可把它恢复回来。",
+      "delete": "完全删除"
     },
     "archived": {
       "title": "已归档档案",
@@ -113,7 +177,8 @@
       "restore": "恢复",
       "empty": "还没有已归档的档案",
       "nomatch": "没有符合条件的已归档档案",
-      "restore_hint": "恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。"
+      "restore_hint": "恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。",
+      "delete_hint": "完全删除会把该档案连同它的全部学习数据从本机移除，无法恢复；只是想把名字放回台面，用「恢复」。"
     },
     "settings": {
       "title": "备考台设置",
@@ -152,14 +217,17 @@
       "empty": "还没有错题记录",
       "count_other": "共 {{count}} 条",
       "wrong_count_other": "错 {{count}} 次",
-      "window_info": "显示 {{shown}} / {{total}} 条"
+      "window_info": "显示 {{shown}} / {{total}} 条",
+      "hint": "按错因归类，先把重复犯的那一类解决掉",
+      "attribution_all": "全部错因"
     },
     "review": {
       "due_today": "今日待复习",
       "correct": "答对",
       "wrong": "答错",
       "interval": "下次复习：{{days}} 天后",
-      "empty": "当前没有到期的复习项"
+      "empty": "当前没有到期的复习项",
+      "hint": "间隔重复队列，答对即顺延"
     },
     "question": {
       "import": "导入题库",
@@ -179,7 +247,9 @@
       "retry": "重新解析",
       "delete": "删除",
       "ask_placeholder": "向资料提问…",
-      "asking": "检索中…"
+      "asking": "检索中…",
+      "hint": "导入讲义与真题解析，解析完成后可在「问答」里按页引用",
+      "local_note": "导入内容只存在本机，提问时才会送模型"
     },
     "cet": {
       "assessment": {
@@ -201,12 +271,22 @@
         "section_listening": "听力",
         "section_reading": "阅读",
         "section_writing_translation": "写作与翻译",
-        "again": "再测一次"
+        "again": "再测一次",
+        "hint": "快速摸底听力、阅读、写作与翻译水平，作答自动保存，中断后可继续",
+        "missing_tag": "题目缺失",
+        "qno": "第 {{index}} 题",
+        "subjective_tip": "主观题按档计分，提交后可在「写作」模块查看逐句批改",
+        "idle_title": "开始一次定级测评",
+        "goto_vocab": "从最弱的词汇开始",
+        "estimate_unit": "分"
       },
       "errors": {
         "title": "老毛病 TOP3",
         "empty": "批改满 3 次后，这里会汇总你的高频错误",
-        "times_other": "出现 {{count}} 次"
+        "times_other": "出现 {{count}} 次",
+        "hint": "批改满 3 次后，这里会汇总你的高频错误",
+        "rank_note": "按出现次数排序，同义错误已合并",
+        "goto": "去作文里改它"
       },
       "vocab": {
         "today_new": "今日新词",
@@ -218,7 +298,9 @@
         "mastery_unknown": "不认识",
         "mastery_fuzzy": "模糊",
         "mastery_mastered": "已掌握",
-        "mastery_error": "标记失败，已恢复原状态"
+        "mastery_error": "标记失败，已恢复原状态",
+        "title": "词汇",
+        "hint": "标记掌握度即写入间隔重复队列，不认识的词会自动排进明日复习"
       },
       "listening": {
         "loading": "听力题加载中",
@@ -230,7 +312,11 @@
         "wrong": "回答错误",
         "standard_answer": "标准答案",
         "score": "得分 {{score}}/{{max}}",
-        "pending": "主观题已同步批改"
+        "pending": "主观题已同步批改",
+        "title": "听力训练",
+        "hint": "客观题即时判分，主观题转入批改队列后回显得分",
+        "no_audio": "本题库暂无音频层，题目以文本形式呈现",
+        "qno": "第 {{index}} 题"
       },
       "grading": {
         "input_label": "作答原文",
@@ -239,13 +325,19 @@
         "history_title": "批改历史",
         "history_empty": "暂无批改记录",
         "detail_score": "档位得分",
-        "detail_answer": "提交原文"
+        "detail_answer": "提交原文",
+        "graded_count_one": "已批改 {{count}} 篇",
+        "graded_count_other": "已批改 {{count}} 篇",
+        "input_hint": "提交作答原文，返回分项得分、错误清单与范文要点",
+        "history_recent_one": "最近 {{count}} 次",
+        "history_recent_other": "最近 {{count}} 次"
       },
       "essay": {
         "title": "作文批改"
       },
       "translation": {
-        "title": "翻译批改"
+        "title": "翻译批改",
+        "hint": "段落汉译英，按准确性、完整性与语言质量三档计分"
       },
       "mock": {
         "start": "开始模考",
@@ -267,7 +359,16 @@
         "answer_reading": "阅读与翻译作答",
         "result_title": "模考成绩",
         "estimate": "预计总分",
-        "fast_forward": "快进（调试）"
+        "fast_forward": "快进（调试）",
+        "hint": "按写作、听力、阅读与翻译三阶段计时作答，阶段结束自动收卡锁定",
+        "stage_of": "第 {{index}} / {{total}} 阶段",
+        "locked_note": "本阶段尚未开始",
+        "current_stage": "当前阶段",
+        "result_hint": "三阶段已收卡，成绩按当次评分标准折算",
+        "idle_title": "开一套限时模考",
+        "stage_running": "进行中",
+        "stage_done": "已完成",
+        "stage_todo": "未开始"
       }
     },
     "kaoyan": {
@@ -279,7 +380,9 @@
         "new_exam_date": "新考试日期（可选）",
         "generated": "已生成 {{total}} 项任务，始于 {{date}}",
         "rescheduled": "已重排 {{moved}} 项任务，保留已完成 {{kept}} 项",
-        "tracks": "四轨"
+        "tracks": "四轨",
+        "hint": "生成后按周铺到计划板上；改考试日期会重排未完成任务",
+        "title": "复习计划"
       },
       "board": {
         "no_plan": "还没有计划，先用上方按钮生成一份",
@@ -300,7 +403,9 @@
         "empty": "还没有周报，点上方按钮生成一份",
         "top_mistakes": "高频错点",
         "no_mistakes": "本周没有错题记录",
-        "suggestion": "下周建议"
+        "suggestion": "下周建议",
+        "hint": "按 ISO 周汇总完成情况、高频错点与下周建议",
+        "title": "学习周报"
       },
       "tutor": {
         "subject": "科目",
@@ -313,11 +418,16 @@
         },
         "answer": "把你的作答粘贴进来",
         "submit": "提交批改",
-        "submitting": "批改中…"
+        "submitting": "批改中…",
+        "hint": "按科目与题型提交作答，返回采分点与修改建议",
+        "title": "科目辅导"
       },
       "major_qa": {
         "title": "专业课资料问答",
-        "doc_all": "全部资料"
+        "doc_all": "全部资料",
+        "hint": "限定到单个资料时命中率更高；答案里的角标可跳回原文页",
+        "doc_aria": "选择资料",
+        "answer_kicker": "回答"
       },
       "progress": {
         "streak_other": "连续学习 {{count}} 天",
@@ -343,7 +453,10 @@
         "submit": "添加",
         "cancel": "取消",
         "stats": "题目 {{questions}} · 错题 {{mistakes}}",
-        "weak_empty": "暂无薄弱点"
+        "weak_empty": "暂无薄弱点",
+        "hint": "知识点分三层，掌握度挂在节点上，覆盖率就是这棵树被点亮的比例",
+        "expand": "展开子节点",
+        "collapse": "折叠子节点"
       },
       "practice": {
         "title": "刷题",
@@ -365,7 +478,8 @@
           "hit": "命中",
           "partial": "部分命中",
           "miss": "未命中"
-        }
+        },
+        "hint": "按题型提交作答，返回采分点命中情况与修改建议"
       },
       "setup": {
         "title": "考试节点",
@@ -373,7 +487,9 @@
         "date_required": "请先选择日期",
         "create": "添加节点",
         "reminders_done": "已创建提醒",
-        "empty": "还没有考试节点"
+        "empty": "还没有考试节点",
+        "hint": "六类节点各一条；添加后即可为整条时间线创建提醒",
+        "node_type": "节点类型"
       },
       "deadline": {
         "banner": "倒计时",
@@ -440,6 +556,37 @@
       "export_not_found": "导出文件不存在",
       "no_task_data": "暂无任务数据，无法生成周报",
       "schema_version_error": "数据版本高于当前应用版本"
+    },
+    "delete": {
+      "title": "完全删除档案",
+      "lead": "“{{title}}” 连同它名下的全部学习数据将从本机移除。",
+      "confirm": "永久删除",
+      "irreversible": "此操作不可撤销",
+      "archived_note": "档案已在归档箱里，不在备考台台面上；删除后无法找回。",
+      "finished_note": "档案已结课，只读不改写，但数据仍占着本机；删除后无法找回。",
+      "unavailable": "暂时读不到数据规模。确认删除仍会移除该档案名下的全部数据。",
+      "none": "该档案没有其它数据，只删档案本身。",
+      "total_one": "共 {{count}} 条记录将被删除",
+      "total_other": "共 {{count}} 条记录将被删除",
+      "total_unknown": "记录条数未知",
+      "group": {
+        "library": "资料与切片",
+        "questions": "题库",
+        "vocab": "词表",
+        "knowledge": "知识点与掌握度",
+        "attempts": "作答与批改记录",
+        "mistakes": "错题本",
+        "review": "复习队列",
+        "plans": "计划与任务",
+        "exams": "模考与测评",
+        "reports": "周报",
+        "deadlines": "考试报名节点",
+        "school": "院校资料",
+        "other": "其它数据",
+        "profile": "档案本身",
+        "automations": "定时提醒任务",
+        "exports": "导出文件"
+      }
     }
   },
   "boot": {

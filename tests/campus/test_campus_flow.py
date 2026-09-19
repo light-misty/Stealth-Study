@@ -34,6 +34,7 @@ T09_ENDPOINTS: tuple[tuple[str, str], ...] = (
     ("GET", "/profiles/{pid}"),
     ("PATCH", "/profiles/{pid}"),
     ("DELETE", "/profiles/{pid}"),
+    ("GET", "/profiles/{pid}/impact"),
     ("GET", "/app-state"),
     ("PATCH", "/app-state"),
     ("GET", "/capabilities"),

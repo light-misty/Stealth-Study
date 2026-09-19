@@ -91,6 +91,7 @@
   --warn-soft: #fef3c7;
   --danger: #b91c1c;
   --danger-soft: #f9e7e5;
+  --on-danger: #ffffff;       /* 红底文字（不可逆操作的确认按钮） */
   --teal-ink: #0f766e;        /* connector approval badges */
   --teal-line: #cfebea;
   --teal-soft: #edfafa;
@@ -122,6 +123,20 @@
      follows the same slide, so one duration governs both). */
   --nav-w: 300px;
   --nav-slide: 0.2s;
+  /* 备考台设计层令牌，取自 ui-mocks/stealth-study-redesign/css/tokens.css。圆角梯度与主题
+     无关，故只写在 :root。--ring 是内阴影描边环：设计稿的 stroke 不占布局，用 border 会让
+     自动高度凭空多 2px，所以统一走 inset shadow。 */
+  --r-3: 3px;   --r-5: 5px;   --r-8: 8px;   --r-9: 9px;   --r-10: 10px;  --r-11: 11px;
+  --r-12: 12px; --r-13: 13px; --r-14: 14px; --r-16: 16px; --r-24: 24px;
+  --r-full: 999px;
+  --ring: inset 0 0 0 1px var(--line);
+  --focus: 0 0 0 2px var(--brand-soft), 0 0 0 3px var(--brand);
+  --icon: #6e7a8c;            /* 线性图标描边（.ib 底内 currentColor 优先） */
+  --on-accent: #ffffff;       /* 橙底文字 */
+  --shadow-panel: 0 2px 12px -2px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 8px 24px -8px rgba(0, 0, 0, 0.12);
+  --shadow-seg: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-device: 0 20px 44px -14px rgba(0, 0, 0, 0.08);
 }
 
 /* Dark palette. `data-theme` is set on <html> by an inline script in index.html (pre-paint)
@@ -154,6 +169,7 @@ html[data-theme="dark"] {
   --warn-soft: #36280f;
   --danger: #f07067;
   --danger-soft: #3d2422;
+  --on-danger: #241310;
   --teal-ink: #46c0b2;
   --teal-line: #1f4a45;
   --teal-soft: #11302d;
@@ -165,6 +181,12 @@ html[data-theme="dark"] {
   --scrim: rgba(0, 0, 0, 0.5);
   --check-a: #25272c;
   --check-b: #1c1e22;
+  --icon: #98a3b5;            /* 画布原值 #6e7a8c 在夜读底上约 2.9:1，提亮一档 */
+  --on-accent: #1b1d21;
+  --shadow-panel: 0 6px 18px -6px rgba(0, 0, 0, 0.34);
+  --shadow-hover: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
+  --shadow-seg: 0 1px 4px rgba(0, 0, 0, 0.34);
+  --shadow-device: 0 24px 60px -14px rgba(0, 0, 0, 0.62);
 }
 
 * { box-sizing: border-box; }

@@ -8,6 +8,7 @@ A 组是 campus 的第一个真实端点组，因此这里同时钉住三件事�
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +17,9 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from ss import secrets
-from ss.campus import config, models, routes, service, store
+from ss.automation.models import Schedule, ScheduledTask
+from ss.automation.store import TaskStore
+from ss.campus import automation_templates, config, models, routes, service, store
 
 ACTIVE_ID = "profile-active"
 FINISHED_ID = "profile-finished"
@@ -51,11 +54,13 @@ class FakeManager:
         ready: bool = True,
         provider: Any = None,
         models: tuple[str, ...] | None = None,
+        task_store: Any = None,
     ) -> None:
         self.model = model
         self._ready = ready
         self.provider = provider if provider is not None else FakeProvider()
         self._models = models if models is not None else ((model,) if model else ())
+        self.task_store = task_store
 
     def get_settings(self) -> dict[str, Any]:
         return {
@@ -98,6 +103,23 @@ def seeded_store(campus_db_path: Path) -> store.CampusStore:
 def client(manager: FakeManager, seeded_store: store.CampusStore) -> TestClient:
     app = FastAPI()
     app.include_router(routes.build_campus_router(manager))
+    return TestClient(app)
+
+
+@pytest.fixture()
+def task_store(tmp_path: Path) -> TaskStore:
+    instance = TaskStore(tmp_path / "tasks.db")
+    try:
+        yield instance
+    finally:
+        instance.close()
+
+
+@pytest.fixture()
+def tasks_client(task_store: TaskStore, seeded_store: store.CampusStore) -> TestClient:
+    """The same app with a real automation store wired in, i.e. what the desktop shell runs."""
+    app = FastAPI()
+    app.include_router(routes.build_campus_router(FakeManager(task_store=task_store)))
     return TestClient(app)
 
 
@@ -620,16 +642,183 @@ def test_a5_returns_not_found_for_a_forged_profile_id(client: TestClient) -> Non
     assert _detail(response)["code"] == "PROFILE_NOT_FOUND"
 
 
-def test_a5_refuses_to_delete_a_finished_profile(client: TestClient) -> None:
+def test_a5_deletes_a_finished_profile(client: TestClient) -> None:
+    """03 §4.1 lists no `PROFILE_READ_ONLY` for A5: 结课只冻结改写，不冻结删除。"""
     response = client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{FINISHED_ID}")
-    assert response.status_code == 409
-    assert _detail(response)["code"] == "PROFILE_READ_ONLY"
+    assert response.status_code == 200
+    assert response.json()["cascade"]["exam_profile"] == 1
+    assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{FINISHED_ID}").status_code == 404
 
 
 def test_a5_keeps_the_deleted_profile_out_of_later_reads(client: TestClient) -> None:
     client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}")
     assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}").status_code == 404
     assert _profile_ids(client.get(f"{routes.CAMPUS_PREFIX}/profiles")) == {ACTIVE_ID, FINISHED_ID}
+
+
+# ---------------------------------------------------------------------------
+# A5 连带清理：内核自动化任务与导出文件
+# ---------------------------------------------------------------------------
+
+UNIQUE_ID = "ab12cd34e5f60718293a4b5c6d7e8f90"
+TWIN_ID = "ab12cd3400000000000000000000001a"
+
+
+def _seed_profile(campus_store: store.CampusStore, profile_id: str) -> None:
+    campus_store.insert(
+        "exam_profile",
+        {
+            "id": profile_id,
+            "track_type": models.TrackType.CET.value,
+            "title": f"档案 {profile_id[:6]}",
+        },
+    )
+
+
+def _cron_task(task_store: TaskStore, marker: str) -> str:
+    task = ScheduledTask(
+        title="备考提醒",
+        instructions="提醒内容",
+        schedule=Schedule(kind="cron", cron="0 8 * * *"),
+        workspace=".",
+        origin_surface="campus",
+        origin_session_id=marker,
+    )
+    task_store.save(task)
+    return task.id
+
+
+def _export_file(campus_db_path: Path, name: str) -> Path:
+    directory = campus_db_path.parent / "campus" / "exports"
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / name
+    target.write_text("内容", encoding="utf-8")
+    return target
+
+
+def test_a5_deletes_the_reminders_recorded_on_the_deadlines(
+    tasks_client: TestClient, seeded_store: store.CampusStore, task_store: TaskStore
+) -> None:
+    reminder = _cron_task(task_store, "")
+    seeded_store.insert(
+        "cert_deadline",
+        {
+            "profile_id": ACTIVE_ID,
+            "node_type": "exam",
+            "date": "2026-12-19",
+            "automation_ids": json.dumps([reminder]),
+        },
+    )
+    body = tasks_client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["automation_tasks"] == 1
+    assert task_store.get(reminder) is None
+
+
+def test_a5_deletes_the_template_tasks_that_name_the_profile(
+    tasks_client: TestClient, seeded_store: store.CampusStore, task_store: TaskStore
+) -> None:
+    prefix = automation_templates.MARKER_PREFIX
+    daily = _cron_task(task_store, f"{prefix}:daily-review:{ACTIVE_ID}")
+    node = _cron_task(task_store, f"{prefix}:deadline-node:{ACTIVE_ID}:30")
+    elsewhere = _cron_task(task_store, f"{prefix}:daily-review:{ARCHIVED_ID}")
+    outsider = _cron_task(task_store, "")
+
+    body = tasks_client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["automation_tasks"] == 2
+    assert task_store.get(daily) is None
+    assert task_store.get(node) is None
+    assert task_store.get(elsewhere) is not None
+    assert task_store.get(outsider) is not None
+
+
+def test_a5_still_deletes_the_profile_when_no_task_store_is_wired(
+    client: TestClient, seeded_store: store.CampusStore
+) -> None:
+    """A sidecar without a task store can hold no campus task, so the sweep is a no-op."""
+    body = client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
+    assert body["automation_tasks"] == 0
+
+
+def test_a5_deletes_the_profile_s_export_files(
+    client: TestClient, seeded_store: store.CampusStore, campus_db_path: Path
+) -> None:
+    _seed_profile(seeded_store, UNIQUE_ID)
+    mine = _export_file(campus_db_path, f"campus-cet-{UNIQUE_ID[:8]}-2026-09-14T00-00-00.md")
+    theirs = _export_file(campus_db_path, "campus-cet-99999999-2026-09-14T00-00-00.md")
+
+    body = client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{UNIQUE_ID}").json()
+    assert body["export_files"] == 1
+    assert not mine.exists()
+    assert theirs.exists()
+
+
+def test_a5_keeps_export_files_whose_name_prefix_two_profiles_share(
+    client: TestClient, seeded_store: store.CampusStore, campus_db_path: Path
+) -> None:
+    """Export names carry only the first eight id characters, so a shared prefix is ambiguous."""
+    _seed_profile(seeded_store, UNIQUE_ID)
+    _seed_profile(seeded_store, TWIN_ID)
+    twin = _export_file(campus_db_path, f"campus-cet-{UNIQUE_ID[:8]}-2026-09-14T00-00-00.md")
+
+    body = client.delete(f"{routes.CAMPUS_PREFIX}/profiles/{UNIQUE_ID}").json()
+    assert body["deleted"] is True
+    assert body["export_files"] == 0
+    assert twin.exists()
+
+
+# ---------------------------------------------------------------------------
+# A11 GET /profiles/{pid}/impact
+# ---------------------------------------------------------------------------
+
+def test_a11_reports_the_rows_tasks_and_files_a_delete_would_take(
+    tasks_client: TestClient,
+    seeded_store: store.CampusStore,
+    task_store: TaskStore,
+    campus_db_path: Path,
+) -> None:
+    _seed_profile(seeded_store, UNIQUE_ID)
+    _seed_cascade(seeded_store, UNIQUE_ID)
+    _cron_task(
+        task_store, f"{automation_templates.MARKER_PREFIX}:daily-review:{UNIQUE_ID}"
+    )
+    _export_file(campus_db_path, f"campus-cet-{UNIQUE_ID[:8]}-2026-09-14T00-00-00.md")
+
+    body = tasks_client.get(f"{routes.CAMPUS_PREFIX}/profiles/{UNIQUE_ID}/impact").json()
+    assert body["profile_id"] == UNIQUE_ID
+    assert body["cascade"]["exam_profile"] == 1
+    assert body["cascade"]["mistake_book"] == 1
+    assert body["automation_tasks"] == 1
+    assert body["export_files"] == 1
+
+
+def test_a11_reports_zero_for_a_profile_that_owns_nothing(
+    client: TestClient, campus_db_path: Path
+) -> None:
+    response = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}/impact")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["cascade"] == {"exam_profile": 1}
+    assert body["automation_tasks"] == 0
+    assert body["export_files"] == 0
+
+
+def test_a11_keeps_every_row_it_counted(
+    client: TestClient, seeded_store: store.CampusStore
+) -> None:
+    _seed_cascade(seeded_store, ACTIVE_ID)
+    client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}/impact")
+    assert seeded_store.get("exam_profile", ACTIVE_ID) is not None
+    assert seeded_store.count("mistake_book", "profile_id = ?", (ACTIVE_ID,)) == 1
+
+
+def test_a11_reads_a_finished_profile(client: TestClient) -> None:
+    assert client.get(f"{routes.CAMPUS_PREFIX}/profiles/{FINISHED_ID}/impact").status_code == 200
+
+
+def test_a11_returns_not_found_for_a_forged_profile_id(client: TestClient) -> None:
+    response = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{FORGED_ID}/impact")
+    assert response.status_code == 404
+    assert _detail(response)["code"] == "PROFILE_NOT_FOUND"
 
 
 # ---------------------------------------------------------------------------

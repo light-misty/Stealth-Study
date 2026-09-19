@@ -3,6 +3,10 @@ import { useTranslation } from "react-i18next";
 import { generatePlan, reschedulePlan } from "../../../campus/api";
 import type { PlanTask } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
+import { Icon } from "../../Icon";
+
+// 生成与重排是这一屏唯一的主行动，所以橙只给「生成计划」；重排在没有计划时禁用，
+// 而不是藏起来 —— 用户看得到这一步存在，只是现在还点不动。
 
 export function PlanEditor({
   profileId,
@@ -61,51 +65,58 @@ export function PlanEditor({
   };
 
   return (
-    <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5" data-testid="campus-plan-editor">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="text-[12px] text-muted" htmlFor="campus-plan-date">
+    <div className="plan-edit" data-testid="campus-plan-editor">
+      <div className="field">
+        <label className="field-label" htmlFor="campus-plan-date">
           {t("campus.kaoyan.plan.new_exam_date")}
         </label>
         <input
           id="campus-plan-date"
+          className="input input--num"
           type="date"
-          className="rounded-lg border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-ink outline-none"
           value={examDate}
           onChange={(e) => setExamDate(e.target.value)}
           data-testid="campus-plan-date"
         />
-        <button
-          type="button"
-          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] disabled:opacity-40"
-          onClick={() => void generate()}
-          disabled={busy !== null}
-          data-testid="campus-plan-generate"
-        >
-          {busy === "generate" ? t("campus.kaoyan.plan.generating") : t("campus.kaoyan.plan.generate")}
-        </button>
-        <button
-          type="button"
-          className="px-3 py-1.5 rounded-lg text-[13px] text-ink border border-line disabled:opacity-40"
-          onClick={() => void reschedule()}
-          disabled={busy !== null || !planId}
-          data-testid="campus-plan-reschedule"
-        >
-          {busy === "reschedule"
-            ? t("campus.kaoyan.plan.rescheduling")
-            : t("campus.kaoyan.plan.reorder")}
-        </button>
       </div>
+      <button
+        type="button"
+        className="btn btn--primary"
+        onClick={() => void generate()}
+        disabled={busy !== null}
+        data-testid="campus-plan-generate"
+      >
+        <Icon name="sparkle" size={13} />
+        {busy === "generate" ? t("campus.kaoyan.plan.generating") : t("campus.kaoyan.plan.generate")}
+      </button>
+      <button
+        type="button"
+        className="btn btn--ghost"
+        onClick={() => void reschedule()}
+        disabled={busy !== null || !planId}
+        data-testid="campus-plan-reschedule"
+      >
+        <Icon name="refresh" size={13} />
+        {busy === "reschedule"
+          ? t("campus.kaoyan.plan.rescheduling")
+          : t("campus.kaoyan.plan.reorder")}
+      </button>
 
-      {notice ? (
-        <div className="pt-2 text-[12px] text-ok" data-testid="campus-plan-notice">
-          {notice}
-        </div>
-      ) : null}
-      {error ? (
-        <div className="pt-2 text-[12px] text-warnInk" data-testid="campus-plan-error">
-          {t(campusErrorKey(campusErrorInfo(error).code), {
-            defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
-          })}
+      {notice || error ? (
+        <div className="stack">
+          {notice ? (
+            <span className="ai-note" data-testid="campus-plan-notice">
+              <Icon name="check" size={12} />
+              {notice}
+            </span>
+          ) : null}
+          {error ? (
+            <span className="field-err" data-testid="campus-plan-error">
+              {t(campusErrorKey(campusErrorInfo(error).code), {
+                defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+              })}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </div>

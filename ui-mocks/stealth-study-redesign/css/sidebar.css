@@ -1,9 +1,10 @@
 /* ============================================================================
    sidebar.css · 侧栏
    ----------------------------------------------------------------------------
-   对应画布节点「侧栏」（248 宽）。两套导航按当前视图切换：
-     设置视图 → 「设置」分组 + 7 个导航项
-     会话视图 → 「新建会话」主按钮 + 搜索 / 自动化 + 最近分组
+   对应画布节点「侧栏」（248 宽）。三套导航按当前视图切换：
+     设置视图   → 「设置」分组 + 7 个导航项
+     会话视图   → 「新建会话」主按钮 + 搜索 / 自动化 + 最近分组
+     备考台视图 → 「备考台」CET / 考研 / 证书 三行 + 常用回跳入口
    ============================================================================ */
 
 .sidebar {
@@ -33,11 +34,16 @@
 }
 
 /* ---------------------------------------------------------------- 导航集 */
-.nav-set { display: flex; flex-direction: column; gap: 2px; }
+/* 三套导航互斥显示，由 device 的 data-view 驱动（见 js/app.js）：
+   设置屏看设置组，会话屏看会话组，三个备考台屏看备考台组。
+   写成「白名单」而不是逐屏隐藏，新增一屏时只需补一行，不会漏。      */
+.nav-set { display: none; flex-direction: column; gap: 2px; }
 
-/* 两套导航互斥显示，由 device 的 data-view 驱动（见 js/app.js） */
-.device[data-view='settings'] .nav-set--new      { display: none; }
-.device[data-view='new']      .nav-set--settings { display: none; }
+.device[data-view='settings'] .nav-set--settings,
+.device[data-view='new']      .nav-set--new,
+.device[data-view='cet']      .nav-set--campus,
+.device[data-view='kaoyan']   .nav-set--campus,
+.device[data-view='cert']     .nav-set--campus { display: flex; }
 
 .group-label { display: flex; align-items: center; gap: 7px; padding: 10px 10px 6px; }
 .group-label .ic { color: var(--icon); }

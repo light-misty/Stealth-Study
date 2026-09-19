@@ -44,6 +44,8 @@ import type {
   PlanTask,
   PrivacyReport,
   ProfileCreateInput,
+  ProfileDeleteResult,
+  ProfileImpact,
   ProfilePatch,
   ProfileStatus,
   ProgressReport,
@@ -171,10 +173,13 @@ export async function patchProfile(profileId: string, patch: ProfilePatch): Prom
   });
 }
 
-export async function deleteProfile(
-  profileId: string,
-): Promise<{ deleted: boolean; cascade: Record<string, number> }> {
+export async function deleteProfile(profileId: string): Promise<ProfileDeleteResult> {
   return request(`/v1/campus/profiles/${profileId}`, { method: "DELETE" });
+}
+
+/** A11: the cost of that delete, counted while the profile is still on disk. */
+export async function getProfileImpact(profileId: string): Promise<ProfileImpact> {
+  return request(`/v1/campus/profiles/${profileId}/impact`);
 }
 
 export async function getAppState(): Promise<CampusAppState> {
@@ -853,6 +858,7 @@ export const CAMPUS_ENDPOINTS: CampusEndpointRef[] = [
   { id: "A3", method: "GET", path: "/v1/campus/profiles/{pid}", fn: getProfile },
   { id: "A4", method: "PATCH", path: "/v1/campus/profiles/{pid}", fn: patchProfile },
   { id: "A5", method: "DELETE", path: "/v1/campus/profiles/{pid}", fn: deleteProfile },
+  { id: "A11", method: "GET", path: "/v1/campus/profiles/{pid}/impact", fn: getProfileImpact },
   { id: "A6", method: "GET", path: "/v1/campus/app-state", fn: getAppState },
   { id: "A7", method: "PATCH", path: "/v1/campus/app-state", fn: patchAppState },
   { id: "A8", method: "GET", path: "/v1/campus/capabilities", fn: getCapabilities },

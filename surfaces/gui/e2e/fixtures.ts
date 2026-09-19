@@ -442,7 +442,33 @@ export async function mockApi(page: import("@playwright/test").Page) {
     return campusCounter[kind];
   };
   const campusNow = () => "2026-09-16T00:00:00Z";
+  /** Whole days from the machine's local today to a `YYYY-MM-DD` milestone (negative once past). */
+  const campusDaysLeft = (day: string): number => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const [year, month, date] = String(day).split("-").map(Number);
+    const target = new Date(year, (month || 1) - 1, date || 1).getTime();
+    return Math.round((target - start) / 86_400_000);
+  };
   const campusProfile = (id: string) => campusProfiles.find((row) => row.id === id) ?? null;
+  /** 02 §7.3's cascade as this fixture can see it: one row per collection the desk holds,
+   *  empty tables dropped — the same shape A5 reports and A11 previews, so the two agree. */
+  const campusCascadeOf = (): Record<string, number> =>
+    Object.fromEntries(
+      Object.entries({
+        exam_profile: 1,
+        source_doc: campusDocs.length,
+        attempt: campusAttempts.length,
+        mistake_book: campusMistakes.length,
+        plan_task: campusTasks.length,
+        weekly_report: campusReports.length,
+        mock_exam: campusMocks.length,
+        knowledge_point: campusPoints.length,
+        cert_deadline: campusDeadlines.length,
+        assessment: campusAssessments.length,
+        vocab_item: campusVocab.length,
+      }).filter(([, count]) => count > 0),
+    );
   const campusTitleTaken = (title: string, exceptId?: string) =>
     campusProfiles.some(
       (row) => row.title === title && row.id !== exceptId && row.status !== "archived",
@@ -772,6 +798,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
     send("ready", sid === "resume-live-1" ? { running: true } : {});
     let pendingTool = "run_shell"; // which proposal the next approval decision resolves
     let epicTimer: ReturnType<typeof setInterval> | null = null; // the slow stream, stoppable via interrupt
+    let liveQuestionId: string | null = null; // the pending per-session Inbox mirror of a live ask_user
     let hadTurn = false; // a user_message landed — set_model is now a mid-session switch
     ws.onMessage((raw) => {
       const msg = JSON.parse(String(raw));
@@ -1023,6 +1050,45 @@ export async function mockApi(page: import("@playwright/test").Page) {
           send("turn_done");
           return;
         }
+        // Live ask_user (attended): the agent asks mid-turn and SUSPENDS on the
+        // answer — the composer head shows the question card until it is answered
+        // or the turn is stopped (interrupt → interrupted, never an answer). Like the
+        // real server's add_question, the ask ALSO parks a pending per-session Inbox
+        // mirror; resolving or interrupting the turn closes it, or the answer-in-context
+        // poll keeps surfacing the card forever.
+        if (/ask me something/i.test(msg.text)) {
+          const mirrorIdx = inbox.findIndex((x) => x.id === "inb-live-question");
+          if (mirrorIdx >= 0) inbox.splice(mirrorIdx, 1);
+          inbox.push({
+            id: "inb-live-question",
+            session_id: sid,
+            kind: "question",
+            title: "Which color should the report use?",
+            body: "",
+            options: ["Red", "Blue"],
+            allow_text: true,
+            multi: false,
+            header: "Report",
+            questions: [],
+            state: "pending",
+            resolution: null,
+            inbox: "default",
+            created_at: "2026-09-19 10:00:00",
+            resolved_at: null,
+            session_title: "Draft the launch note",
+            session_agent: "cowork",
+            session_workspace: "",
+            session_exists: true,
+          });
+          liveQuestionId = "inb-live-question";
+          send("question_requested", {
+            question: "Which color should the report use?",
+            options: ["Red", "Blue"],
+            allow_text: true,
+            header: "Report",
+          });
+          return; // suspended on the answer
+        }
         // A deliberately SLOW multi-second stream (~40 ticks × 120ms) so specs can
         // interact mid-turn — the follow/pin scroll contract (FB-004) is untestable
         // against the instant echo below.
@@ -1159,12 +1225,31 @@ export async function mockApi(page: import("@playwright/test").Page) {
           });
         }
         send("turn_done");
+      } else if (msg.type === "question_response") {
+        // The live ask_user answer resolves the suspended turn, mirroring the real
+        // engine: the answer lands as the tool result and the turn continues.
+        const mirror = inbox.find((x) => x.id === liveQuestionId);
+        if (mirror) {
+          mirror.state = "resolved";
+          mirror.resolution = String(msg.answer ?? "");
+        }
+        liveQuestionId = null;
+        send("assistant_message", { text: `Noted: ${msg.answer}` });
+        send("turn_done");
       } else if (msg.type === "interrupt") {
         // Stop mid-stream: like the real engine, end the turn with `interrupted` and
         // NO assistant_message — the client owns promoting the partial into the transcript.
         if (epicTimer) {
           clearInterval(epicTimer);
           epicTimer = null;
+        }
+        if (liveQuestionId) {
+          const mirror = inbox.find((x) => x.id === liveQuestionId);
+          if (mirror) {
+            mirror.state = "resolved";
+            mirror.resolution = "interrupted by user";
+          }
+          liveQuestionId = null;
         }
         send("interrupted", {});
         send("turn_done");
@@ -2382,7 +2467,19 @@ export async function mockApi(page: import("@playwright/test").Page) {
       }
 
       // -- A 组：全局与设置 ------------------------------------------------
-      if (sub === "/profiles" && m === "GET") return json({ items: campusProfiles });
+      if (sub === "/profiles" && m === "GET") {
+        // A1 filters by track and status on the server; without this the cert desk would
+        // happily show the CET profile it was never given.
+        const asked = new URL(req.url()).searchParams;
+        const track = asked.get("track");
+        const status = asked.get("status");
+        return json({
+          items: campusProfiles.filter(
+            (row) =>
+              (!track || row.track_type === track) && (!status || row.status === status),
+          ),
+        });
+      }
       if (sub === "/profiles" && m === "POST") {
         const b = req.postDataJSON() || {};
         const title = b.title || "新建档案";
@@ -2430,11 +2527,23 @@ export async function mockApi(page: import("@playwright/test").Page) {
         Object.assign(row, patch, { updated_at: campusNow() });
         return json(row);
       }
+      const impactMatch = sub.match(/^\/profiles\/([^/]+)\/impact$/);
+      if (impactMatch && m === "GET") {
+        const target = decodeURIComponent(impactMatch[1]);
+        if (!campusProfile(target)) return json(campusNotFound("profile"), 404);
+        return json({
+          profile_id: target,
+          cascade: campusCascadeOf(),
+          automation_tasks: 0,
+          export_files: 0,
+        });
+      }
       if (pidMatch && m === "DELETE") {
         const i = campusProfiles.findIndex((row) => row.id === pidMatch[1]);
         if (i < 0) return json(campusNotFound("profile"), 404);
+        const cascade = campusCascadeOf();
         campusProfiles.splice(i, 1);
-        return json({ deleted: true, cascade: {} });
+        return json({ deleted: true, cascade, automation_tasks: 0, export_files: 0 });
       }
       if (sub === "/app-state" && m === "GET") {
         return json({ active_profile_id: campusActiveProfileId, settings: campusSettings });
@@ -2705,13 +2814,39 @@ export async function mockApi(page: import("@playwright/test").Page) {
       }
       if (sub === "/progress" && m === "GET") {
         // The board renders one ring per entry here — an empty `by_track` means no rings at all.
+        // `today` mirrors what the real G4 derives from the plan board, so the rail's four rows
+        // read off the same fixture state the rest of the desk does instead of a made-up number.
+        const stamp = new Date();
+        const pad = (part: number) => String(part).padStart(2, "0");
+        const localToday = `${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}`;
+        const todays = campusTasks.filter((task) => task.scheduled_date === localToday);
+        const finished = todays.filter((task) => task.status === "done");
         return json({
           by_track: {
             overall: { done: 1, total: 3, rate: 0.33 },
             english: { done: 0, total: 1, rate: 0 },
           },
           streak_days: 2,
-          heatmap: [{ date: "2026-09-16", count: 1 }],
+          heatmap: [{ date: localToday, count: 1 }],
+          today: {
+            date: localToday,
+            minutes: {
+              done: finished.reduce((sum, task) => sum + (task.est_minutes ?? 0), 0),
+              plan: campusSettings.daily_minutes,
+            },
+            tasks: { done: finished.length, total: todays.length },
+            review: { done: 0, total: 0 },
+            grading: { done: 0, total: campusAttempts.length },
+            vocab: {
+              done: campusVocab.filter((word) => word.mastery !== "unknown").length,
+              quota: 30,
+            },
+            docs: {
+              ready: campusDocs.filter((doc) => doc.parse_status === "ready").length,
+              total: campusDocs.length,
+            },
+            knowledge: { mastered: 0, total: campusPoints.length },
+          },
         });
       }
       if (sub === "/weekly-reports" && m === "GET") return json({ items: campusReports });
@@ -2829,7 +2964,10 @@ export async function mockApi(page: import("@playwright/test").Page) {
           weak_top5: [{ point_id: "kp-1", title: "第一节 听力", level: "unknown" }],
         });
       }
-      if (sub === "/deadlines" && m === "GET") return json({ items: campusDeadlines });
+      if (sub === "/deadlines" && m === "GET")
+        return json({
+          items: campusDeadlines.map((row) => ({ ...row, days_left: campusDaysLeft(row.date) })),
+        });
       if (sub === "/deadlines" && m === "POST") {
         const b = req.postDataJSON() || {};
         const deadline = {
@@ -2841,7 +2979,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
           automation_ids: [],
           created_at: campusNow(),
           updated_at: campusNow(),
-          days_left: 180,
+          days_left: campusDaysLeft(b.date || "2027-03-14"),
         };
         campusDeadlines.push(deadline);
         return json(deadline);
@@ -2849,7 +2987,22 @@ export async function mockApi(page: import("@playwright/test").Page) {
       if (sub.match(/^\/deadlines\/[^/]+\/reminders$/) && m === "POST") {
         return json({ automation_ids: ["auto-1", "auto-2", "auto-3"] });
       }
-      if (sub === "/reminders" && m === "GET") return json({ banner: [], expired: [] });
+      if (sub === "/reminders" && m === "GET") {
+        // H10 splits the timeline into the banner (still ahead) and the expired tail; the
+        // client re-derives a missing tier from days_left, exactly as it does against the
+        // real snapshot.
+        const views = campusDeadlines.map((row) => ({
+          id: row.id,
+          node_type: row.node_type,
+          date: row.date,
+          days_left: campusDaysLeft(row.date),
+          is_reference: Boolean(row.is_reference),
+        }));
+        return json({
+          banner: views.filter((row) => row.days_left >= 0),
+          expired: views.filter((row) => row.days_left < 0),
+        });
+      }
       if (sub === "/automation-templates" && m === "GET") {
         return json({
           items: [{ id: "daily-review", title: "每日复习推送", cron_desc: "每天 20:00", kind: "cron" }],

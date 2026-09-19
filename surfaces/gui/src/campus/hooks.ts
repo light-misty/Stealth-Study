@@ -12,6 +12,7 @@ import {
   getKnowledgeTree,
   getLibraryDoc,
   getMasteryCoverage,
+  getProfileImpact,
   getProgress,
   getReminders,
   importLibraryDoc,
@@ -48,6 +49,7 @@ import type {
   MistakeBookEntry,
   MistakeFilters,
   PlanTask,
+  ProfileImpact,
   ProgressReport,
   ReviewDueItem,
   SourceDoc,
@@ -112,6 +114,16 @@ export function useProfiles(track?: CampusTrack) {
     [],
   );
   return { profiles: data, loading, error, retryable, reload };
+}
+
+/** A11: what deleting one profile costs. Read only while the confirmation dialog is open. */
+export function useProfileImpact(profileId: string | null) {
+  const { data, loading, error, retryable, reload } = useAsync<ProfileImpact | null>(
+    () => (profileId ? getProfileImpact(profileId) : Promise.resolve(null)),
+    [profileId],
+    null,
+  );
+  return { impact: data, loading, error, retryable, reload };
 }
 
 /** A6 + A7: the remembered active profile, with the write-back on switch. */

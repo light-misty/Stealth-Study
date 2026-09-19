@@ -19,6 +19,58 @@
         "tagline": "Knowledge tree · Practice · Grading"
       }
     },
+    "station": {
+      "tabs_aria": "{{track}} modules",
+      "tab": {
+        "mistake": "Mistakes",
+        "review": "Review",
+        "assessment": "Placement",
+        "vocab": "Vocab",
+        "listening": "Listening",
+        "essay": "Writing",
+        "translation": "Translation",
+        "mock": "Mock exam",
+        "common_errors": "Top errors",
+        "library": "Library",
+        "qa": "Q&A",
+        "plan": "Plan",
+        "weekly": "Weekly",
+        "tutor": "Tutor",
+        "cert_tree": "Knowledge tree",
+        "cert_grading": "Subjective",
+        "cert_setup": "Milestones"
+      },
+      "progress_title": "Today's progress",
+      "progress_desc": "{{minutes}} minutes a day",
+      "streak_title": "Study streak",
+      "streak_desc": "Last 21 days",
+      "streak_days_one": "{{count}} day",
+      "streak_days_other": "{{count}} days",
+      "goto_review": "Go to today's review",
+      "countdown_kicker": "Exam {{date}}",
+      "countdown_unit_one": "day",
+      "countdown_unit_other": "days",
+      "hero_plan_rate": "{{rate}}% of the plan done",
+      "hero_target": "target {{score}}",
+      "hero_estimate": "estimate {{score}}",
+      "dl_days_one": "{{count}}d",
+      "dl_days_other": "{{count}}d",
+      "dl_today": "today",
+      "dl_overdue": "past",
+      "streak_window": "{{weekDone}} / {{weekTotal}} days this week · {{monthDone}} / {{monthTotal}} this month",
+      "row_minutes": "Minutes",
+      "row_vocab": "Words",
+      "row_tasks": "Tasks",
+      "row_review": "Review",
+      "row_grading": "Grading",
+      "row_docs": "Documents",
+      "row_knowledge": "Concepts",
+      "countdown_no_date": "Exam date not set",
+      "hero_nothing_yet": "Nothing finished yet today",
+      "hero_set_exam_date": "Set an exam date on the profile to start the countdown",
+      "dl_nearest": "Next up: {{node}} · {{date}}",
+      "dl_none": "No exam milestones yet"
+    },
     "common": {
       "mastery": {
         "unknown": "Unknown",
@@ -57,7 +109,18 @@
       "retry": "Retry",
       "error": "Something went wrong",
       "exam_passed": "The exam date has passed",
-      "got_it": "Got it"
+      "got_it": "Got it",
+      "qtype": {
+        "single": "Single choice",
+        "multiple": "Multiple choice",
+        "judge": "True/false",
+        "blank": "Fill in",
+        "short_answer": "Short answer",
+        "essay": "Essay",
+        "material": "Material analysis",
+        "lesson_plan": "Lesson plan",
+        "practical": "Practical"
+      }
     },
     "model": {
       "empty_title": "No model configured",
@@ -94,7 +157,8 @@
       "rename_save": "Save name",
       "action_rename_failed": "Profile not renamed",
       "restore_and_rename": "Rename and restore",
-      "restore_rename_hint": "“{{title}}” is taken by a profile on the desk. Give it another name and it comes back."
+      "restore_rename_hint": "“{{title}}” is taken by a profile on the desk. Give it another name and it comes back.",
+      "delete": "Delete permanently"
     },
     "archived": {
       "title": "Archived profiles",
@@ -114,7 +178,8 @@
       "restore": "Restore",
       "empty": "No archived profiles yet",
       "nomatch": "No archived profile matches these filters",
-      "restore_hint": "Restoring puts the profile back on the desk, name included: if that name is already taken, the dialog asks for a new one."
+      "restore_hint": "Restoring puts the profile back on the desk, name included: if that name is already taken, the dialog asks for a new one.",
+      "delete_hint": "Deleting removes the profile and every row it owns from this machine, with no way back; to put the name back on the desk, use Restore."
     },
     "settings": {
       "title": "Station settings",
@@ -155,14 +220,17 @@
       "count_other": "{{count}} entries",
       "wrong_count_one": "wrong {{count}} time",
       "wrong_count_other": "wrong {{count}} times",
-      "window_info": "showing {{shown}} of {{total}}"
+      "window_info": "showing {{shown}} of {{total}}",
+      "hint": "Grouped by cause, so the repeat offenders come first",
+      "attribution_all": "All causes"
     },
     "review": {
       "due_today": "Due today",
       "correct": "Correct",
       "wrong": "Wrong",
       "interval": "Next review in {{days}} days",
-      "empty": "Nothing due for review right now"
+      "empty": "Nothing due for review right now",
+      "hint": "Spaced-repetition queue; a correct answer pushes it back"
     },
     "question": {
       "import": "Import questions",
@@ -182,7 +250,9 @@
       "retry": "Re-parse",
       "delete": "Delete",
       "ask_placeholder": "Ask your materials…",
-      "asking": "Searching…"
+      "asking": "Searching…",
+      "hint": "Import notes and past-paper walkthroughs; finished docs can be cited page by page in Q&A",
+      "local_note": "Imports stay on this machine; only the question goes to the model"
     },
     "cet": {
       "assessment": {
@@ -204,13 +274,23 @@
         "section_listening": "Listening",
         "section_reading": "Reading",
         "section_writing_translation": "Writing & Translation",
-        "again": "Take again"
+        "again": "Take again",
+        "hint": "Sizes up listening, reading, writing and translation; answers autosave and you can pick it up later",
+        "missing_tag": "Missing",
+        "qno": "Question {{index}}",
+        "subjective_tip": "Written answers are banded; the line-by-line correction shows up under Writing",
+        "idle_title": "Start a placement run",
+        "goto_vocab": "Start with the weakest: vocabulary",
+        "estimate_unit": "points"
       },
       "errors": {
         "title": "Common mistakes TOP3",
         "empty": "Your most frequent mistakes show up here after 3 graded runs",
         "times_one": "{{count}} time",
-        "times_other": "{{count}} times"
+        "times_other": "{{count}} times",
+        "hint": "After three graded runs your most frequent errors land here",
+        "rank_note": "Ranked by occurrences; synonyms merged",
+        "goto": "Fix it in the essay"
       },
       "vocab": {
         "today_new": "New words today",
@@ -222,7 +302,9 @@
         "mastery_unknown": "New",
         "mastery_fuzzy": "Fuzzy",
         "mastery_mastered": "Mastered",
-        "mastery_error": "Mark failed; reverted to the previous state"
+        "mastery_error": "Mark failed; reverted to the previous state",
+        "title": "Vocabulary",
+        "hint": "Marking mastery writes into the spaced-repetition queue; unknown words come back tomorrow"
       },
       "listening": {
         "loading": "Loading listening questions",
@@ -234,7 +316,11 @@
         "wrong": "Incorrect",
         "standard_answer": "Standard answer",
         "score": "Score {{score}}/{{max}}",
-        "pending": "Subjective answer graded"
+        "pending": "Subjective answer graded",
+        "title": "Listening drill",
+        "hint": "Objective questions grade instantly; written ones come back scored from the grading queue",
+        "no_audio": "This bank has no audio layer yet, so questions appear as text",
+        "qno": "Question {{index}}"
       },
       "grading": {
         "input_label": "Your text",
@@ -243,13 +329,19 @@
         "history_title": "Grading history",
         "history_empty": "No graded attempts yet",
         "detail_score": "Band score",
-        "detail_answer": "Submitted text"
+        "detail_answer": "Submitted text",
+        "graded_count_one": "{{count}} graded",
+        "graded_count_other": "{{count}} graded",
+        "input_hint": "Paste your answer to get dimension scores, the error list and the model outline",
+        "history_recent_one": "last {{count}}",
+        "history_recent_other": "last {{count}}"
       },
       "essay": {
         "title": "Essay grading"
       },
       "translation": {
-        "title": "Translation grading"
+        "title": "Translation grading",
+        "hint": "Chinese paragraph to English, scored on accuracy, completeness and language quality"
       },
       "mock": {
         "start": "Start mock exam",
@@ -271,7 +363,16 @@
         "answer_reading": "Reading & translation answer",
         "result_title": "Mock exam result",
         "estimate": "Estimated score",
-        "fast_forward": "Fast-forward (debug)"
+        "fast_forward": "Fast-forward (debug)",
+        "hint": "Three timed stages — writing, listening, reading & translation; each card locks when its stage ends",
+        "stage_of": "Stage {{index}} / {{total}}",
+        "locked_note": "This stage has not started",
+        "current_stage": "Current stage",
+        "result_hint": "All three cards are in; scores are converted with this run's rubric",
+        "idle_title": "Run a timed mock paper",
+        "stage_running": "Running",
+        "stage_done": "Done",
+        "stage_todo": "Not started"
       }
     },
     "kaoyan": {
@@ -283,7 +384,9 @@
         "new_exam_date": "New exam date (optional)",
         "generated": "Generated {{total}} tasks, starting {{date}}",
         "rescheduled": "Rescheduled {{moved}} tasks, {{kept}} done tasks kept",
-        "tracks": "Tracks"
+        "tracks": "Tracks",
+        "hint": "Generated tasks land on the weekly board; changing the exam date reorders what is still open",
+        "title": "Study plan"
       },
       "board": {
         "no_plan": "No plan yet — generate one above",
@@ -304,7 +407,9 @@
         "empty": "No reports yet — generate one above",
         "top_mistakes": "Top mistake points",
         "no_mistakes": "No mistakes recorded this week",
-        "suggestion": "Next week's suggestion"
+        "suggestion": "Next week's suggestion",
+        "hint": "Per ISO week: completion, most frequent errors and a plan for next week",
+        "title": "Weekly report"
       },
       "tutor": {
         "subject": "Subject",
@@ -317,11 +422,16 @@
         },
         "answer": "Paste your answer here",
         "submit": "Submit for grading",
-        "submitting": "Grading…"
+        "submitting": "Grading…",
+        "hint": "Submit an answer by subject and kind to get scoring points and revisions",
+        "title": "Subject tutor"
       },
       "major_qa": {
         "title": "Major document Q&A",
-        "doc_all": "All documents"
+        "doc_all": "All documents",
+        "hint": "Limiting to one document raises the hit rate; the markers in an answer jump back to its page",
+        "doc_aria": "Pick a document",
+        "answer_kicker": "Answer"
       },
       "progress": {
         "streak_one": "{{count}}-day streak",
@@ -348,7 +458,10 @@
         "submit": "Add",
         "cancel": "Cancel",
         "stats": "{{questions}} questions · {{mistakes}} mistakes",
-        "weak_empty": "No weak points"
+        "weak_empty": "No weak points",
+        "hint": "Three levels deep; mastery sits on each node and coverage is how much of the tree is lit up",
+        "expand": "Expand children",
+        "collapse": "Collapse children"
       },
       "practice": {
         "title": "Practice",
@@ -370,7 +483,8 @@
           "hit": "Hit",
           "partial": "Partial",
           "miss": "Miss"
-        }
+        },
+        "hint": "Submit an answer by kind to get point-by-point hits and revisions"
       },
       "setup": {
         "title": "Exam nodes",
@@ -378,7 +492,9 @@
         "date_required": "Pick a date first",
         "create": "Add node",
         "reminders_done": "Reminders created",
-        "empty": "No exam nodes yet"
+        "empty": "No exam nodes yet",
+        "hint": "One row per node type; once added you can create reminders for the whole timeline",
+        "node_type": "Node type"
       },
       "deadline": {
         "banner": "Countdown",
@@ -445,6 +561,37 @@
       "export_not_found": "Export file not found",
       "no_task_data": "No task data to generate a weekly report",
       "schema_version_error": "Data version is newer than this app"
+    },
+    "delete": {
+      "title": "Delete profile permanently",
+      "lead": "{{title}} and everything it owns are removed from this machine.",
+      "confirm": "Delete permanently",
+      "irreversible": "This cannot be undone",
+      "archived_note": "The profile is already off the desk, so nothing you study changes; it cannot be recovered afterwards.",
+      "finished_note": "The profile has finished: read-only, but its data still sits on this machine and cannot be recovered afterwards.",
+      "unavailable": "The counts are unavailable right now. Confirming still removes every row the profile owns.",
+      "none": "This profile owns nothing else, so only the profile row goes.",
+      "total_one": "{{count}} record will be deleted",
+      "total_other": "{{count}} records will be deleted",
+      "total_unknown": "Record count unavailable",
+      "group": {
+        "library": "Documents and chunks",
+        "questions": "Question bank",
+        "vocab": "Word lists",
+        "knowledge": "Knowledge points and mastery",
+        "attempts": "Attempts and grading",
+        "mistakes": "Mistake book",
+        "review": "Review queue",
+        "plans": "Plans and tasks",
+        "exams": "Mock exams and assessments",
+        "reports": "Weekly reports",
+        "deadlines": "Registration deadlines",
+        "school": "School profile",
+        "other": "Other data",
+        "profile": "The profile itself",
+        "automations": "Scheduled reminders",
+        "exports": "Export files"
+      }
     }
   },
   "boot": {

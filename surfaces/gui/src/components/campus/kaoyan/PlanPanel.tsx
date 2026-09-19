@@ -1,8 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { usePlanProgress, usePlanTasks } from "../../../campus/hooks";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
+import { Icon } from "../../Icon";
 import { PlanBoard } from "./PlanBoard";
 import { PlanEditor } from "./PlanEditor";
+
+// One module card for the whole plan: 生成 / 重排在上，四轨完成率与按周任务在下。
+// 计划板是只读的（真实实现就没有拖拽与状态切换），所以不给它任何「看起来可拖」的把手。
 
 export function PlanPanel({ profileId }: { profileId: string }) {
   const { t } = useTranslation();
@@ -15,23 +19,42 @@ export function PlanPanel({ profileId }: { profileId: string }) {
   };
 
   const error = tasks.error ?? progressState.error;
+  const done = tasks.items.filter((task) => task.status === "done").length;
 
   return (
-    <div className="flex flex-col gap-3" data-testid="campus-kaoyan-plan-panel">
+    <section className="mod" data-testid="campus-kaoyan-plan-panel">
+      <div className="mod-head">
+        <span className="ib ib--accent">
+          <Icon name="calendar" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.kaoyan.plan.title")}</span>
+          <span className="mod-desc">{t("campus.kaoyan.plan.hint")}</span>
+        </div>
+        <div className="mod-acts">
+          {tasks.items.length > 0 ? (
+            <span className="sec-n" data-testid="campus-kaoyan-plan-summary">
+              {t("campus.kaoyan.board.group_summary", { total: tasks.items.length, done })}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
       <PlanEditor profileId={profileId} tasks={tasks.items} onMutated={reloadAll} />
+
       {error ? (
-        <div
-          className="flex items-center gap-2 rounded-xl2 border border-line bg-panel px-3 py-2 text-[12px] text-warnInk"
-          data-testid="campus-kaoyan-plan-error"
-        >
-          <span>
-            {t(campusErrorKey(campusErrorInfo(error).code), {
-              defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
-            })}
-          </span>
+        <div className="alert" data-testid="campus-kaoyan-plan-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">
+              {t(campusErrorKey(campusErrorInfo(error).code), {
+                defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+              })}
+            </span>
+          </div>
           <button
             type="button"
-            className="rounded-full border border-line px-2 py-[1px] text-[11px] text-ink hover:bg-chromeHover"
+            className="btn btn--ghost btn--sm"
             onClick={reloadAll}
             data-testid="campus-kaoyan-plan-retry"
           >
@@ -39,13 +62,17 @@ export function PlanPanel({ profileId }: { profileId: string }) {
           </button>
         </div>
       ) : null}
+
       {tasks.loading ? (
-        <div className="rounded-xl2 border border-dashed border-line p-4 text-center text-[13px] text-muted">
-          {t("campus.common.loading")}
+        <div className="stack-gap">
+          <div className="sk" style={{ width: 200 }} />
+          <div className="sk" />
+          <div className="sk" style={{ width: "80%" }} />
+          <span className="body-text">{t("campus.common.loading")}</span>
         </div>
       ) : (
         <PlanBoard tasks={tasks.items} progress={progressState.progress} />
       )}
-    </div>
+    </section>
   );
 }

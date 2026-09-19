@@ -1,0 +1,147 @@
+/* ============================================================================
+   campus-cet.css · CET 备考台的七个业务模块
+   ----------------------------------------------------------------------------
+   对应 surfaces/gui/src/components/campus/cet/：
+     AssessmentFlow / VocabPanel / ListeningDrill / Essay+TranslationGrading
+     （共用 GradingWorkshopBody）/ MockExamConsole / CommonErrorsCard
+   错题本与今日复习属于三站点共用层，见 campus.css。
+
+   ── 这一屏的设计命题 ──────────────────────────────────────────────────
+   CET 台是三个备考台里模块最多的（9 个），而且模块之间是**不同种类的作答**：
+   整套测评卷、单词卡、逐题听力、长文写作、三阶段计时模考。把它们排成一条
+   纵向长流时，用户永远看不出「我现在该做哪件事」。所以这里的原则是：
+     1. 一屏一模块，模块内自带「进度 + 主行动」，离开列表就不必再滚动外壳；
+     2. 作答类界面一律把**卷面**当主体（题目卡成列、卡头卡脚固定），
+        把统计与提示降为次要层；
+     3. 计时器、锁定、自动保存这三类「系统状态」必须比正文更显眼，
+        因为它们决定用户下一步能不能做。
+
+   ── 与真实实现的差异（有意为之）───────────────────────────────────────
+   · 定级测评在真实实现里是 24 题一次性铺开的长卷，滚动区就是卷子本身；
+     原型保留这一形态（.fill 内滚），只把「已答 X/24 + 进度条 + 自动保存」
+     钉在卡头，避免滚到第 18 题时看不见进度。
+   · 听力模块现状是**文本题训练，没有音频播放控件**。这里不假装有一个播放器，
+     图标只用 i-sound 标识「听力」这一科目，不暗示可播放。
+   · 模考的「快进（调试）」在真实实现里被 import.meta.env.DEV 包住，
+     原型同样标注为调试用，避免被当成正式功能验收。
+   ============================================================================ */
+
+/* 卷面列：题目卡成列排布，装在 .fill 里内滚 */
+.qcol { display: flex; flex-direction: column; gap: 10px; }
+
+/* ============================================================== 题目卡 == */
+/* 一张题 = 一个子卡：题号与题型在上，题干居中，选项成列。
+   子卡用浅底而不是第二层阴影，卡中卡不允许叠投影。 */
+.q {
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 13px 14px; border-radius: var(--r-14);
+  background: var(--surface-sunken);
+}
+.q-head { display: flex; align-items: center; gap: 8px; }
+.q-no {
+  font-family: var(--font-mono); font-size: 11px; line-height: 16px;
+  color: var(--ink-3); font-variant-numeric: tabular-nums;
+}
+.q-stem { margin: 0; font-size: 13px; line-height: 21px; color: var(--ink); }
+.q-tip  { font-size: 11.5px; line-height: 17px; color: var(--ink-3); }
+
+/* 作答反馈：正确/错误用整条底色说话，图标+文字同时给出，不单靠色相 */
+.verdict {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; border-radius: var(--r-12);
+  font-size: 12px; line-height: 18px;
+}
+.verdict .ic { color: inherit; margin-top: 1px; }
+.verdict-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.verdict-k { font-size: 11px; line-height: 16px; opacity: .75; }
+.verdict--right { background: var(--success-soft); color: var(--success); }
+.verdict--wrong { background: var(--danger-soft); color: var(--danger); }
+
+/* ========================================================== 测评结果 == */
+/* 分数行复用 campus.css 的 .score / .score-n / .score-u：
+   测评估分、模考成绩与批改得分是同一个量级的数字，不该各有一套字号。 */
+.sec-cells { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sec-cell {
+  display: flex; flex-direction: column; gap: 2px; min-width: 0;
+  padding: 10px 12px; border-radius: var(--r-12); background: var(--surface-sunken);
+}
+.sec-cell-k { font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.sec-cell-v {
+  font-family: var(--font-mono); font-size: 13px; font-weight: 600; line-height: 19px;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================== 词汇卡 == */
+.word { display: flex; flex-direction: column; gap: 8px; }
+.word-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.word-t { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--ink); }
+.word-p {
+  font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3);
+}
+.word-m { margin: 0; font-size: 12.5px; line-height: 19px; color: var(--ink-2); }
+.word-x {
+  margin: 0; padding-left: 9px; border-left: 2px solid var(--divider);
+  font-size: 11.5px; line-height: 18px; color: var(--ink-3);
+}
+.word-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* 助记结果：AI 产出，用品牌蓝底与用户自己的作答区分开 */
+.mnemonic {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 10px 12px; border-radius: var(--r-12);
+  background: var(--brand-soft); color: var(--brand-deep);
+  font-size: 12px; line-height: 18px;
+}
+.mnemonic .ic { color: inherit; margin-top: 1px; }
+.mnemonic-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mnemonic-k { font-size: 11px; line-height: 16px; opacity: .8; }
+
+/* ============================================================== 模考台 == */
+/* 三阶段条：当前阶段橙底、已结束绿点、未开始灰锁 —— 一眼看出「现在能写哪张卡」 */
+.mstages { display: flex; gap: 8px; }
+.mstage {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 12px; border-radius: var(--r-12);
+  background: var(--surface-sunken);
+}
+.mstage-k { display: flex; align-items: center; gap: 5px; font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.mstage-k .ic { color: inherit; }
+.mstage-t { font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink-2); }
+.mstage-n { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.mstage.is-on { background: var(--accent-soft); }
+.mstage.is-on .mstage-t { color: var(--accent-deep); }
+.mstage.is-on .mstage-k { color: var(--accent-deep); }
+.mstage.is-done .mstage-t { color: var(--ink); }
+.mstage.is-done .mstage-k { color: var(--success); }
+
+/* 计时器：模考里最重要的一个数字，给到与倒计时同档的 30px 等宽 */
+.timer-row { display: flex; align-items: center; gap: 12px; }
+.timer {
+  font-family: var(--font-mono); font-size: 30px; font-weight: 500; line-height: 36px;
+  letter-spacing: -.5px; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.timer-k { font-size: 11.5px; line-height: 17px; color: var(--ink-3); }
+.timer.is-over { color: var(--warn); }
+.timer-row .mod-acts { margin-left: auto; }
+
+/* 收卡锁定：禁用态必须比「还没写」更明确，所以保留正文但压暗 + 锁标 */
+.answer { display: flex; flex-direction: column; gap: 8px; }
+.answer.is-locked { opacity: .5; }
+.answer-h { display: flex; align-items: center; gap: 8px; }
+.answer-t { flex: 1; font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink); }
+.answer .textarea:disabled { background: var(--surface-sunken); color: var(--ink-3); resize: none; }
+
+/* ======================================================== 老毛病 TOP3 == */
+.rank { display: flex; align-items: flex-start; gap: 10px; }
+.rank-n {
+  width: 20px; height: 20px; flex: none; border-radius: var(--r-full);
+  display: grid; place-items: center;
+  background: var(--surface-sunken);
+  font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3);
+}
+.rank--1 .rank-n { background: var(--accent); color: var(--ink-on-accent); }
+.rank-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rank-t { display: flex; align-items: baseline; gap: 8px; }
+.rank-name { font-size: 12.5px; font-weight: 500; line-height: 18px; color: var(--ink); }
+.rank-times { font-family: var(--font-mono); font-size: 11px; line-height: 16px; color: var(--ink-3); }
+.rank-x { font-size: 11.5px; line-height: 17px; color: var(--ink-3); }

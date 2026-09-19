@@ -7,14 +7,20 @@ afterEach(cleanup);
 const now = new Date("2026-09-15T10:00:00");
 
 describe("CountdownBanner", () => {
-  it("renders nothing without an exam date", () => {
+  it("keeps the card on the rail with a blank number when no exam date is set", () => {
     render(<CountdownBanner examDate={null} now={now} />);
-    expect(screen.queryByTestId("campus-countdown-banner")).toBeNull();
+    const banner = screen.getByTestId("campus-countdown-banner");
+    expect(banner.getAttribute("data-days-left")).toBe("");
+    expect(banner.textContent).toContain("--");
+    expect(banner.textContent).toContain("Exam date not set");
+    expect(banner.querySelector(".bar")).toBeTruthy();
   });
 
-  it("renders nothing for an unusable date", () => {
+  it("treats an unusable date as no date instead of guessing one", () => {
     render(<CountdownBanner examDate="2026-02-31" now={now} />);
-    expect(screen.queryByTestId("campus-countdown-banner")).toBeNull();
+    const banner = screen.getByTestId("campus-countdown-banner");
+    expect(banner.getAttribute("data-days-left")).toBe("");
+    expect(banner.textContent).toContain("--");
   });
 
   it("counts the days that are left", () => {

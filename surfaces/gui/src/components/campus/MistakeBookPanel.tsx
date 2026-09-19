@@ -3,12 +3,14 @@ import { useTranslation } from "react-i18next";
 import { useMistakes } from "../../campus/hooks";
 import { ATTRIBUTIONS, type Attribution, type MistakeFilters } from "../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../campus/utils";
+import { Icon } from "../Icon";
 
 // The mistake book is the one list that can reach four figures, so it renders on a
 // window: only the rows near the viewport are mounted (02 §6 backs the query with an
 // index). Row height is fixed, which is what makes the arithmetic cheap.
+// 归因下拉是行内紧凑档（.sel--sm），行高不被控件撑开；卡头再给一个按错因筛选的入口。
 
-const ROW_HEIGHT = 72;
+const ROW_HEIGHT = 58;
 const OVERSCAN = 4;
 const DEFAULT_VIEWPORT = 420;
 
@@ -20,10 +22,10 @@ export function MistakeBookPanel({
   filters?: MistakeFilters;
 }) {
   const { t } = useTranslation();
-  const { items, total, loading, error, retryable, reload, setAttribution } = useMistakes(
-    profileId,
-    filters ?? {},
-  );
+  const [attribution, setAttribution] = useState<Attribution | "">("");
+  const query: MistakeFilters = { ...filters, attribution: attribution || undefined };
+  const { items, total, loading, error, retryable, reload, setAttribution: patchAttribution } =
+    useMistakes(profileId, query);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewport, setViewport] = useState(DEFAULT_VIEWPORT);
   const scroller = useRef<HTMLDivElement | null>(null);
@@ -38,29 +40,60 @@ export function MistakeBookPanel({
   const slice = items.slice(start, start + windowSize);
 
   return (
-    <div className="rounded-xl2 border border-line bg-panel" data-testid="campus-mistake-panel">
-      <div className="flex items-center justify-between px-4 pt-3.5">
-        <div className="text-[13px] font-semibold text-ink">{t("campus.mistake.title")}</div>
-        <div className="text-[11px] text-faint" data-testid="campus-mistake-total">
-          {t("campus.mistake.count", { count: total })}
+    <section className="mod" data-testid="campus-mistake-panel">
+      <div className="mod-head">
+        <span className="ib ib--brand">
+          <Icon name="list" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.mistake.title")}</span>
+          <span className="mod-desc">{t("campus.mistake.hint")}</span>
+        </div>
+        <div className="mod-acts">
+          <span className="sec-n" data-testid="campus-mistake-total">
+            {t("campus.mistake.count", { count: total })}
+          </span>
+          <div className="sel sel--sm">
+            <select
+              value={attribution}
+              onChange={(e) => setAttribution(e.target.value as Attribution | "")}
+              data-testid="campus-mistake-filter"
+              aria-label={t("campus.mistake.attribution")}
+            >
+              <option value="">{t("campus.mistake.attribution_all")}</option>
+              {ATTRIBUTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {t(`campus.common.attribution.${option}`)}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevronDown" size={13} className="sel-chev" />
+          </div>
         </div>
       </div>
 
       {loading ? (
-        <div className="px-4 py-3 text-[12px] text-faint" data-testid="campus-mistake-loading">
-          {t("campus.common.loading")}
+        <div className="stack-gap" data-testid="campus-mistake-loading">
+          <div className="sk" />
+          <div className="sk" style={{ width: "78%" }} />
+          <span className="body-text">{t("campus.common.loading")}</span>
         </div>
       ) : null}
 
       {error ? (
-        <div className="px-4 py-2 text-[12px] text-warnInk" data-testid="campus-mistake-error">
-          {t(campusErrorKey(campusErrorInfo(error).code), {
-            defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
-          })}
+        <div className="alert" data-testid="campus-mistake-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">
+              {t(campusErrorKey(campusErrorInfo(error).code), {
+                defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+              })}
+            </span>
+          </div>
           {retryable ? (
             <button
               type="button"
-              className="ml-2 text-accent"
+              className="btn btn--ghost btn--sm"
               onClick={reload}
               data-testid="campus-mistake-retry"
             >
@@ -71,8 +104,11 @@ export function MistakeBookPanel({
       ) : null}
 
       {!loading && items.length === 0 ? (
-        <div className="px-4 py-3 text-[12px] text-faint" data-testid="campus-mistake-empty">
-          {t("campus.mistake.empty")}
+        <div className="empty" data-testid="campus-mistake-empty">
+          <span className="ib ib--brand">
+            <Icon name="book" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.mistake.empty")}</span>
         </div>
       ) : null}
 
@@ -80,7 +116,7 @@ export function MistakeBookPanel({
         <>
           <div
             ref={scroller}
-            className="mt-2 overflow-y-auto px-4"
+            className="rows fill thin"
             style={{ height: viewport }}
             onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
             data-testid="campus-mistake-scroller"
@@ -89,7 +125,7 @@ export function MistakeBookPanel({
               {slice.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between gap-2 border-b border-line/60 pr-1"
+                  className="lrow"
                   style={{
                     position: "absolute",
                     top: (start + index) * ROW_HEIGHT,
@@ -102,36 +138,44 @@ export function MistakeBookPanel({
                   data-attribution={entry.attribution}
                   data-resolved={String(entry.resolved)}
                 >
-                  <div className="min-w-0">
-                    <div className="text-[12px] text-ink truncate" data-testid="campus-mistake-subject">
+                  <div className="lrow-text">
+                    <span className="lrow-title" data-testid="campus-mistake-subject">
                       {t(`campus.common.subject.${entry.subject}`, { defaultValue: entry.subject })}
-                    </div>
-                    <div className="text-[11px] text-faint">
+                    </span>
+                    <span className="lrow-meta">
                       {t("campus.mistake.wrong_count", { count: entry.wrong_count })}
+                    </span>
+                  </div>
+                  <div className="lrow-ctl">
+                    <div className="sel sel--sm">
+                      <select
+                        value={entry.attribution}
+                        onChange={(e) =>
+                          void patchAttribution(entry.id, e.target.value as Attribution)
+                        }
+                        data-testid="campus-mistake-attribution"
+                        aria-label={t("campus.mistake.attribution")}
+                      >
+                        {ATTRIBUTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {t(`campus.common.attribution.${option}`)}
+                          </option>
+                        ))}
+                      </select>
+                      <Icon name="chevronDown" size={13} className="sel-chev" />
                     </div>
                   </div>
-                  <select
-                    className="shrink-0 rounded-lg border border-line bg-transparent px-2 py-1 text-[12px] text-muted"
-                    value={entry.attribution}
-                    onChange={(e) => void setAttribution(entry.id, e.target.value as Attribution)}
-                    data-testid="campus-mistake-attribution"
-                    aria-label={t("campus.mistake.attribution")}
-                  >
-                    {ATTRIBUTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {t(`campus.common.attribution.${option}`)}
-                      </option>
-                    ))}
-                  </select>
                 </div>
               ))}
             </div>
           </div>
-          <div className="px-4 pb-3 pt-1 text-[11px] text-faint" data-testid="campus-mistake-window">
-            {t("campus.mistake.window_info", { shown: slice.length, total })}
+          <div className="mod-foot">
+            <span className="sec-n" data-testid="campus-mistake-window">
+              {t("campus.mistake.window_info", { shown: slice.length, total })}
+            </span>
           </div>
         </>
       ) : null}
-    </div>
+    </section>
   );
 }

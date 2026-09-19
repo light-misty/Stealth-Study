@@ -3,6 +3,7 @@
 // agent-visible content string carries no trace.
 import { describe, expect, it } from "vitest";
 import { itemsFromMessages } from "./itemsFromMessages";
+import type { Item } from "./types";
 
 describe("itemsFromMessages _display sidecar", () => {
   it("attaches hidden counts to the matching tool item", () => {
@@ -146,5 +147,36 @@ describe("itemsFromMessages mcp failure", () => {
       tone: "info",
       text: "“notes” already has project memory (3 entries) — bind it by name or start a session there to use it.",
     });
+  });
+});
+
+describe("itemsFromMessages interrupted ask_user replay", () => {
+  it("keeps the question text on the replayed tool card after a pause", () => {
+    const items = itemsFromMessages([
+      { role: "user", content: "help me pick a color" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [
+          {
+            id: "tc1",
+            function: {
+              name: "ask_user",
+              arguments: JSON.stringify({ question: "Which color?", options: ["Red", "Blue"] }),
+            },
+          },
+        ],
+      },
+      { role: "tool", tool_call_id: "tc1", content: '{"answer": "", "error": "interrupted by user"}' },
+      { role: "notice", kind: "interrupted" },
+    ] as any);
+
+    const tool = items.find((i) => i.kind === "tool") as Extract<Item, { kind: "tool" }>;
+    expect(tool.name).toBe("ask_user");
+    expect(tool.args.question).toBe("Which color?");
+    expect(tool.args.options).toEqual(["Red", "Blue"]);
+    const notice = items.find((i) => i.kind === "notice") as Extract<Item, { kind: "notice" }>;
+    expect(notice.tone).toBe("warn");
+    expect(items.some((i) => i.kind === "question" && !i.resolved)).toBe(false);
   });
 });

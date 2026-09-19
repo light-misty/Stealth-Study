@@ -32,6 +32,7 @@ vi.mock("../api", async (importOriginal) => {
     getProgress: vi.fn(),
     listWeeklyReports: vi.fn(),
     generateWeeklyReport: vi.fn(),
+    getProfileImpact: vi.fn(),
   };
 });
 
@@ -47,10 +48,12 @@ import {
   useMistakes,
   usePlanProgress,
   usePlanTasks,
+  useProfileImpact,
   useProfiles,
   useWeeklyReports,
 } from "../hooks";
 import type { PlanTask, ProgressReport, WeeklyReport } from "../types";
+import { campusErrorInfo } from "../utils";
 
 const apiMock = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
@@ -152,6 +155,40 @@ describe("useProfiles", () => {
     await waitFor(() => expect(result.current.error).toBeTruthy());
     expect(result.current.retryable).toBe(true);
     expect(apiMock.listProfiles).toHaveBeenLastCalledWith("cet");
+  });
+});
+
+describe("useProfileImpact", () => {
+  it("stays quiet until a profile is named, then reads its cost once", async () => {
+    const { result, rerender } = renderHook(
+      ({ id }: { id: string | null }) => useProfileImpact(id),
+      { initialProps: { id: null as string | null } },
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(apiMock.getProfileImpact).not.toHaveBeenCalled();
+
+    apiMock.getProfileImpact.mockResolvedValue({
+      profile_id: "p1",
+      cascade: { exam_profile: 1, mistake_book: 3 },
+      automation_tasks: 0,
+      export_files: 0,
+    });
+    rerender({ id: "p1" });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.impact?.cascade.mistake_book).toBe(3);
+    expect(apiMock.getProfileImpact).toHaveBeenCalledTimes(1);
+  });
+
+  it("surfaces a structured error so the dialog can say the count is unknown", async () => {
+    apiMock.getProfileImpact.mockRejectedValue(
+      new CampusApiError("MODEL_TIMEOUT", "timeout", true, 504),
+    );
+    const { result } = renderHook(() => useProfileImpact("p1"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.impact).toBe(null);
+    expect(result.current.retryable).toBe(true);
+    expect(campusErrorInfo(result.current.error).code).toBe("MODEL_TIMEOUT");
   });
 });
 
@@ -411,6 +448,16 @@ const progressReport = (): ProgressReport => ({
   },
   streak_days: 3,
   heatmap: [{ date: "2026-09-10", count: 2 }],
+  today: {
+    date: "2026-09-15",
+    minutes: { done: 42, plan: 90 },
+    tasks: { done: 2, total: 8 },
+    review: { done: 1, total: 4 },
+    grading: { done: 0, total: 1 },
+    vocab: { done: 3, quota: 30 },
+    docs: { ready: 2, total: 3 },
+    knowledge: { mastered: 5, total: 12 },
+  },
 });
 
 describe("usePlanTasks", () => {
