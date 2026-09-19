@@ -870,7 +870,8 @@ export function App() {
           ]);
           break;
         case "question_requested":
-          // ask_user in an attended session — answered inline (not routed to the Inbox).
+          // ask_user in an attended session — answered inline by default; the parked item
+          // also lists in the Inbox so the queue matches the attention count.
           setItems((p) => [
             ...p,
             {
