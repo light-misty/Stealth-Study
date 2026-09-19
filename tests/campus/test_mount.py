@@ -121,6 +121,8 @@ BACKEND_PATCH = {
     "M\tss/cloud.py",
     # i18n-chinese-coverage 分支续：项目命名异常改抛带代号类型（定时任务与绑定域）
     "M\tss/projects.py",
+    # i18n-chinese-coverage 分支续：Slack 成员目录的未分类异常改用 forwarded_error 透传原文
+    "M\tss/connectors/slack_directory.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
 # campus 挂载、日志系统、inbox 修复与错误代号四条分支各自的 app.py 增量预算
@@ -129,6 +131,7 @@ APP_PY_PATCHES = {
     "34\t1\tss/server/app.py",
     "6\t3\tss/server/app.py",
     "27\t19\tss/server/app.py",
+    "36\t25\tss/server/app.py",
 }
 
 

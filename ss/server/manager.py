@@ -3796,15 +3796,20 @@ class SessionManager:
         """
         user_id = str(user_id).strip()
         if not user_id:
-            return {"ok": False, "error": "user_id required"}
+            return coded_error("user_id required", "USER_ID_REQUIRED", ok=False)
         profile = self.secrets.get("slack:default")
         if not profile:
-            return {"ok": False, "error": "Slack is not connected in Manual mode."}
+            return coded_error(
+                "Slack is not connected in Manual mode.",
+                "SLACK_MANUAL_MODE_REQUIRED",
+                ok=False,
+            )
         if profile.get("mode") == "relay" or profile.get("managed"):
-            return {
-                "ok": False,
-                "error": "Relay approval ownership is set by the Slack installer.",
-            }
+            return coded_error(
+                "Relay approval ownership is set by the Slack installer.",
+                "SLACK_APPROVAL_OWNERS_INSTALLER_SET",
+                ok=False,
+            )
 
         owners = self.slack_approval_owner_ids()
         if add:
@@ -3812,13 +3817,12 @@ class SessionManager:
         else:
             owners.discard(user_id)
             if not owners and self._has_manual_slack_inbox_binding():
-                return {
-                    "ok": False,
-                    "error": (
-                        "Choose another approval owner before removing the last one "
-                        "while Slack Inbox routing is active."
-                    ),
-                }
+                return coded_error(
+                    "Choose another approval owner before removing the last one "
+                    "while Slack Inbox routing is active.",
+                    "APPROVAL_OWNER_LAST_ONE",
+                    ok=False,
+                )
         profile["approval_owner_ids"] = sorted(owners)
         if add:
             allowed = set(profile.get("allowed_users") or [])
@@ -3872,28 +3876,30 @@ class SessionManager:
         channel = str(channel or "").strip() or None
         target = str(target or "").strip()
         if channel and not target:
-            return {"ok": False, "error": "Choose a destination channel."}
+            return coded_error("Choose a destination channel.", "CHANNEL_REQUIRED", ok=False)
         if channel == "slack":
             settings = load_settings(self.secrets).get("slack")
             if settings is None or not settings.enabled:
-                return {"ok": False, "error": "Slack is not connected."}
+                return coded_error("Slack is not connected.", "SLACK_NOT_CONNECTED", ok=False)
             team_id, destination = slack_split(target)
             if not destination:
-                return {"ok": False, "error": "Choose a destination channel."}
+                return coded_error(
+                    "Choose a destination channel.", "CHANNEL_REQUIRED", ok=False
+                )
             key = f"slack:team:{team_id}" if team_id else "slack:default"
             if not self.secrets.get(key):
-                return {
-                    "ok": False,
-                    "error": "That Slack workspace is not connected.",
-                }
+                return coded_error(
+                    "That Slack workspace is not connected.",
+                    "SLACK_WORKSPACE_NOT_CONNECTED",
+                    ok=False,
+                )
             if not self.slack_approval_owner_ids(team_id):
-                return {
-                    "ok": False,
-                    "error": (
-                        "Choose at least one approval owner in Slack settings before "
-                        "routing Inbox requests there."
-                    ),
-                }
+                return coded_error(
+                    "Choose at least one approval owner in Slack settings before "
+                    "routing Inbox requests there.",
+                    "APPROVAL_OWNER_REQUIRED",
+                    ok=False,
+                )
         self.inbox_routing.set_binding(name, channel=channel, target=target)
         return {"ok": True, "bindings": self.inbox_routing.bindings()}
 
@@ -3906,17 +3912,18 @@ class SessionManager:
         without, the flat `<name>:default` list (manual single-workspace mode)."""
         user_id = str(user_id).strip()
         if not user_id:
-            return {"ok": False, "error": "user_id required"}
+            return coded_error("user_id required", "USER_ID_REQUIRED", ok=False)
         scope = "install" if name == "github" else "team"
         profile_key = f"{name}:{scope}:{team_id}" if team_id else f"{name}:default"
         profile = self.secrets.get(profile_key)
         if not profile:
-            return {
-                "ok": False,
-                "error": (
-                    "workspace not connected" if team_id else "connector not connected"
-                ),
-            }
+            if team_id:
+                return coded_error(
+                    "workspace not connected", "WORKSPACE_NOT_CONNECTED", ok=False
+                )
+            return coded_error(
+                "connector not connected", "CONNECTOR_NOT_CONNECTED", ok=False
+            )
         allowed = set(profile.get("allowed_users") or [])
         allowed.add(user_id) if add else allowed.discard(user_id)
         profile["allowed_users"] = sorted(allowed)
@@ -4027,7 +4034,7 @@ class SessionManager:
         if not installation_id or not self.secrets.get(
             github_installs.PREFIX + installation_id
         ):
-            return {"ok": False, "error": "installation not connected"}
+            return coded_error("installation not connected", "INSTALLATION_NOT_CONNECTED", ok=False)
         await asyncio.to_thread(
             lambda: cloud.github_disconnect_installation(
                 self.secrets, load_config(), installation_id
@@ -4190,11 +4197,11 @@ class SessionManager:
         """
         item = self.parked.pop(item_id)
         if item is None or item.platform != name:
-            return {"ok": False, "error": "unknown item"}
+            return coded_error("unknown item", "UNKNOWN_ITEM", ok=False)
         if action == "dismiss":
             return {"ok": True}
         if action not in ("allow", "allow_deliver"):
-            return {"ok": False, "error": f"unknown action: {action}"}
+            return coded_error(f"unknown action: {action}", "UNKNOWN_ACTION", ok=False)
         allowed = self._set_allowed(name, item.user_id, team_id=item.team_id, add=True)
         if not allowed.get("ok"):
             return allowed

@@ -18,6 +18,7 @@ import {
   type Subscription,
   type UnroutedItem,
 } from "../api";
+import { apiErrorText } from "../errors";
 import type { SessionInfo } from "../types";
 import { ChannelPicker } from "./SubscriptionsChip";
 import { Icon } from "./Icon";
@@ -86,7 +87,7 @@ function InboxRoutingCard() {
     const [platform, id] = addr.includes(":") ? addr.split(":", 2) : ["slack", addr];
     const result = await setInboxBinding("default", platform, id);
     if (!result.ok) {
-      setError(result.error || tt("inbox.routing_update_failed"));
+      setError(apiErrorText(result, tt, tt("inbox.routing_update_failed")));
       return;
     }
     setError(null);
@@ -96,7 +97,7 @@ function InboxRoutingCard() {
   const clear = async () => {
     const result = await setInboxBinding("default", null, "");
     if (!result.ok) {
-      setError(result.error || tt("inbox.routing_clear_failed"));
+      setError(apiErrorText(result, tt, tt("inbox.routing_clear_failed")));
       return;
     }
     setError(null);

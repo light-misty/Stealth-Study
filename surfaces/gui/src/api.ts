@@ -1632,7 +1632,7 @@ export async function setInboxBinding(
   name: string,
   channel: string | null,
   target: string,
-): Promise<{ ok: boolean; bindings?: InboxBinding[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; bindings?: InboxBinding[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/inbox/routing/binding`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1662,7 +1662,7 @@ export async function getRecentChannels(): Promise<RecentChannel[]> {
 export async function subscribeChannel(
   sessionId: string,
   channel: string,
-): Promise<{ ok: boolean; channel?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; channel?: string; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/subscriptions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2162,7 +2162,7 @@ export interface SlackChannelEntry {
 export async function getSlackDirectory(
   teamId: string,
   q = "",
-): Promise<{ ok: boolean; error?: string; members?: SlackMember[] }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; members?: SlackMember[] }> {
   const res = await fetch(
     `${httpBase()}/v1/connectors/slack/workspaces/${encodeURIComponent(teamId)}/directory?q=${encodeURIComponent(q)}`,
   );
@@ -2209,7 +2209,7 @@ export async function disallowUser(name: string, userId: string, teamId?: string
 export async function addSlackApprovalOwner(
   userId: string,
   displayName?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/connectors/slack/approval-owners/add`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2223,7 +2223,7 @@ export async function addSlackApprovalOwner(
 
 export async function removeSlackApprovalOwner(
   userId: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/connectors/slack/approval-owners/remove`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

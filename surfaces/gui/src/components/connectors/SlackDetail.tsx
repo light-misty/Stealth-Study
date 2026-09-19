@@ -17,6 +17,7 @@ import {
   type SlackWorkspace,
   type Subscription,
 } from "../../api";
+import { apiErrorText } from "../../errors";
 import { ConnectorBadge } from "../../connectors/ConnectorIcon";
 import { AddConnectionModal } from "./AddConnectionModal";
 import type { DetailProps } from "./ConnectorsSection";
@@ -396,7 +397,7 @@ function PersonPicker({
           if (r.ok) {
             setRows(r.members || []);
             setErr(null);
-          } else setErr(r.error || tt("slack.directory_unavailable"));
+          } else setErr(apiErrorText(r, tt, tt("slack.directory_unavailable")));
         })
         .catch(() => setErr(tt("slack.directory_unavailable")));
     }, 200);
@@ -417,7 +418,7 @@ function PersonPicker({
       ? await onPick(m)
       : await allowUser("slack", m.id, teamId, m.name);
     if (result?.ok === false) {
-      setErr(result.error || tt("slack.add_person_failed"));
+      setErr(apiErrorText(result, tt, tt("slack.add_person_failed")));
       return;
     }
     setOpen(false);
@@ -513,7 +514,7 @@ function ApprovalOwnersRow({
   const remove = async (userId: string) => {
     const result = await removeSlackApprovalOwner(userId);
     if (!result.ok) {
-      setErr(result.error || t("slack.remove_owner_failed"));
+      setErr(apiErrorText(result, t, t("slack.remove_owner_failed")));
       return;
     }
     setErr(null);

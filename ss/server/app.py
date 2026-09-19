@@ -392,12 +392,15 @@ def create_app(manager: SessionManager) -> FastAPI:
             if raw.strip().startswith("#"):
                 # A bare #name can't be looked up locally — storing it literally would create a
                 # subscription that never matches real traffic (resolve_channel returns "").
-                return {
-                    "ok": False,
-                    "error": "Channel names can't be looked up — paste the channel ID "
+                return coded_error(
+                    "Channel names can't be looked up — paste the channel ID "
                     "(channel name ▸ About) or the channel's Copy-link URL.",
-                }
-            return {"ok": False, "error": "need a session_id and a channel"}
+                    "SUBSCRIBE_CHANNEL_LOOKUP",
+                    ok=False,
+                )
+            return coded_error(
+                "need a session_id and a channel", "SUBSCRIBE_FIELDS_REQUIRED", ok=False
+            )
         manager.subscriptions.subscribe(session_id, addr)
         return {"ok": True, "channel": addr}
 
@@ -423,7 +426,7 @@ def create_app(manager: SessionManager) -> FastAPI:
     def set_inbox_binding(body: dict) -> dict[str, Any]:
         name = str(body.get("name", "")).strip()
         if not name:
-            return {"ok": False, "error": "binding needs a `name`"}
+            return coded_error("binding needs a `name`", "BINDING_NAME_REQUIRED", ok=False)
         return manager.set_inbox_binding(
             name,
             channel=body.get("channel") or None,

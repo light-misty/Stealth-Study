@@ -27,6 +27,7 @@ import {
   type SessionConnections,
   type Subscription,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { ConnectorBadge } from "../connectors/ConnectorIcon";
 import { indexConnectors, labelFor, visualFor, type ConnectorMap } from "../connectors/visuals";
 import { baseName } from "../paths";
@@ -175,7 +176,7 @@ export function AccessSection({
     const channel = raw.includes(":") || raw.startsWith("#") ? raw : `${channelsFor}:${raw}`;
     const r = await subscribeChannel(sessionId, channel);
     if (!r.ok) {
-      setAddErr(r.error || t("access.channel_add_error"));
+      setAddErr(apiErrorText(r, t, t("access.channel_add_error")));
       return;
     }
     setAddErr(null);
