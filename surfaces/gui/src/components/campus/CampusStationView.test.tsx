@@ -48,6 +48,7 @@ vi.mock("../../campus/api", async (importOriginal) => {
 });
 
 import * as api from "../../campus/api";
+import { clearCampusCache } from "../../campus/hooks";
 import { localDay } from "../../campus/utils";
 import { CampusStationView } from "./CampusStationView";
 
@@ -74,6 +75,7 @@ const profile = (id = "p1", examDate: string | null = "2026-12-19"): ExamProfile
 
 describe("CampusStationView", () => {
   beforeEach(() => {
+    clearCampusCache();
     for (const fn of Object.values(apiMock)) if (typeof fn?.mockReset === "function") fn.mockReset();
     apiMock.listProfiles.mockResolvedValue({ items: [profile()] });
     apiMock.getAppState.mockResolvedValue({ active_profile_id: "p1", settings: {} });
@@ -701,5 +703,19 @@ describe("CampusStationView", () => {
     ).toBe("Minutes");
     expect(screen.getByTestId("campus-station-progress-rate").textContent).toBe("0%");
     expect(screen.getAllByTestId("campus-station-heat-cell")).toHaveLength(21);
+  });
+
+  it("remounts from cache without flashing the loading skeleton", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    cleanup();
+
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    apiMock.getAppState.mockReturnValue(new Promise(() => {}));
+
+    render(<CampusStationView track="cet" />);
+    expect(screen.queryByTestId("campus-station-loading")).toBeNull();
+    expect(screen.getByTestId("campus-station")).toBeTruthy();
+    expect(screen.getByTestId("campus-station").getAttribute("data-track")).toBe("cet");
   });
 });
