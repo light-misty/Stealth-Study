@@ -457,9 +457,9 @@ body {
 .tool .status.ok { color: var(--ok); }
 .tool .status.denied, .tool .status.error { color: var(--accent); }
 
-.notice { font-size: 13px; color: var(--muted); text-align: center; }
+.notice { font-size: 13px; color: var(--muted); text-align: left; }
 .notice.warn { color: var(--accent); }
-/* Mode banner: prose, so it reads left-aligned in a card rather than as a centred
+/* Mode banner: prose, so it reads in a bordered card rather than as a bare
    status line. Same `notice` item, switched on by a title. */
 .notice-block {
   /* Full transcript width, like every other item — a narrower measure here reads as a
