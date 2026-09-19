@@ -61,8 +61,20 @@ test("the hide toggle lands exactly where the show toggle was", async ({ page })
   const show = page.getByRole("button", { name: "Show side panel" });
   const showBox = await show.boundingBox();
   await show.click();
+
+  const wobble: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const mid = await page
+      .getByRole("button", { name: "Hide side panel" })
+      .boundingBox()
+      .catch(() => null);
+    if (mid) wobble.push(`${Math.round(mid.x)},${Math.round(mid.y)}`);
+    await page.waitForTimeout(15);
+  }
+  expect(new Set(wobble).size, `the toggle wobbled: ${wobble.join(" -> ")}`).toBe(1);
+
   await expect(page.locator(".right-rail")).not.toHaveClass(/rail-off/);
-  await page.waitForTimeout(300); // let the topbar/rail slide settle before measuring
+  await page.waitForTimeout(300); // let the rail slide settle before measuring
 
   const hide = page.getByRole("button", { name: "Hide side panel" });
   await expect(hide).toBeVisible();

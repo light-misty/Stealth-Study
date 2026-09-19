@@ -1893,8 +1893,10 @@ export function App() {
               </span>
             )}
           </div>
-          {/* Right: session-settings icon (§23) + panel toggle. Model/mode/persona chrome is
-              gone — the facts live in the subtitle, the controls in the composer (§22). */}
+          {/* Right: session-settings icon (§23). Model/mode/persona chrome is
+              gone — the facts live in the subtitle, the controls in the composer (§22).
+              The panel toggle lives OUTSIDE the topbar as a statically positioned control:
+              it must keep the exact same coordinates whether the rail is open or closed. */}
           <div className="main-topbar-side main-topbar-actions" onPointerDown={beginWindowDrag}>
             {railHidden && artifactCount > 0 && (
               <button
@@ -1907,20 +1909,22 @@ export function App() {
                 <span className="topbar-artifacts-count">{artifactCount}</span>
               </button>
             )}
-            {/* §32: the panel toggle is the ONE session-panel entry, for every non-chat persona
-                (the rail now carries Access, so code-family gets it too). */}
-            {agent !== "chat" && (
-              <button
-                className="topbar-icon-btn topbar-panel-toggle"
-                onClick={() => setRailHiddenPersist(!railHidden)}
-                aria-label={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
-                title={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
-              >
-                <Icon name="sidebarRight" size={16} />
-              </button>
-            )}
           </div>
         </div>
+        {/* §32: the panel toggle is the ONE session-panel entry, for every non-chat persona
+            (the rail now carries Access, so code-family gets it too). Statically anchored to
+            .main's top-right corner — the show button's spot — so opening the rail never
+            moves it; it lands on the rail's top-right corner by construction. */}
+        {agent !== "chat" && (
+          <button
+            className="topbar-icon-btn main-panel-toggle"
+            onClick={() => setRailHiddenPersist(!railHidden)}
+            aria-label={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
+            title={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
+          >
+            <Icon name="sidebarRight" size={16} />
+          </button>
+        )}
         {/* # team chat replaces the session view in place (owner ask 2026-08-16 —
             not a modal): the sidebar stays live, Esc/back returns to the session. */}
         {chatTeam && surface === "session" && (
