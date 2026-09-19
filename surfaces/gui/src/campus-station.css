@@ -477,14 +477,16 @@
 /* ------------------------------------------------------------ 档案切换器 */
 /* 保持「全部档案一眼可见」：横向胶囊条，不用下拉收进一个名字里。
    改名/归档是低频动作，hover 现形，避免常驻把条挤乱。 */
-.campus-station .who { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+.campus-station .who {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 8px; flex: 1 1 auto; min-width: 0;
+}
 .campus-station .who-l { font-size: 11px; font-weight: 500; line-height: 16px; color: var(--faint); }
 .campus-station .who-list {
   display: flex; align-items: center; gap: 6px; min-width: 0;
   overflow-x: auto; scrollbar-width: none;
 }
 .campus-station .who-list::-webkit-scrollbar { display: none; }
-.campus-station .who-list .btn--ghost { margin-left: auto; }
 .campus-station .who-item { position: relative; display: flex; align-items: center; flex: none; }
 .campus-station .who-pill {
   display: inline-flex; align-items: center; gap: 5px;
