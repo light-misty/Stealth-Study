@@ -116,6 +116,8 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/errors.ts",
     # 技能子系统的校验异常改抛带代号的 CodedValueError（仍是 ValueError，消息逐字未变）。
     "ss/skills/store.py",
+    # 错误显示点接线第一片：SkillsTab 的 fail() 改走 apiErrorText，原文降级为悬浮提示。
+    "surfaces/gui/src/components/SkillsTab.tsx",
 }
 
 CAMPUS_OWNED_PREFIXES = (

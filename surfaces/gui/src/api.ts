@@ -1,4 +1,5 @@
 import type { GroupedQuestion, QuestionOption, SessionInfo, WsEvent } from "./types";
+import type { ErrorBearing } from "./errors";
 
 declare const __COWORKER_DEV_TOKEN__: string;
 
@@ -1415,7 +1416,7 @@ export interface SessionSkillRow {
   enabled: boolean; // false = muted for this session only
 }
 
-export interface SkillUploadPreview {
+export interface SkillUploadPreview extends ErrorBearing {
   ok: boolean;
   error?: string;
   token?: string;
@@ -1425,7 +1426,10 @@ export interface SkillUploadPreview {
   files?: string[];
 }
 
+type SkillOp = { ok: boolean } & ErrorBearing;
+
 const skillUrl = (path = "") => `${httpBase()}/v1/skills${path}`;
+
 const jsonPost = (body: unknown, method = "POST") => ({
   method,
   headers: { "Content-Type": "application/json" },
@@ -1444,7 +1448,7 @@ export async function createSkill(body: {
   instructions: string;
   scope?: "global" | "project";
   workspace?: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<SkillOp> {
   const res = await fetch(skillUrl(), jsonPost(body));
   return res.json();
 }
@@ -1452,12 +1456,12 @@ export async function createSkill(body: {
 export async function updateSkill(
   name: string,
   patch: { description?: string; instructions?: string; enabled?: boolean; workspace?: string },
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}`), jsonPost(patch, "PATCH"));
   return res.json();
 }
 
-export async function revealSkill(name: string): Promise<{ ok: boolean; error?: string }> {
+export async function revealSkill(name: string): Promise<SkillOp> {
   // §6 "Show folder": the backend opens the skill's folder in the OS file manager.
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}/reveal`), jsonPost({}));
   return res.json();
@@ -1466,7 +1470,7 @@ export async function revealSkill(name: string): Promise<{ ok: boolean; error?: 
 export async function deleteSkill(
   name: string,
   workspace?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const qs = workspace ? `?workspace=${encodeURIComponent(workspace)}` : "";
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}${qs}`), { method: "DELETE" });
   return res.json();
@@ -1476,7 +1480,7 @@ export async function moveSkill(
   name: string,
   scope: "global" | "project",
   workspace?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}/move`), jsonPost({ scope, workspace }));
   return res.json();
 }
@@ -1493,7 +1497,7 @@ export async function confirmSkillUpload(
   token: string,
   scope: "global" | "project" = "global",
   workspace?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const res = await fetch(skillUrl("/upload/confirm"), jsonPost({ token, scope, workspace }));
   return res.json();
 }

@@ -251,7 +251,7 @@ describe("SkillsTab", () => {
   it("surfaces server-side validation errors", async () => {
     stubFetch([
       { match: "/v1/skills", method: "GET", json: { skills: [] } },
-      { match: "/v1/skills", method: "POST", json: { ok: false, error: "A skill named 'x' already exists in that scope." } },
+      { match: "/v1/skills", method: "POST", json: { ok: false, error: "A skill named 'x' already exists in that scope.", error_code: "SKILL_ALREADY_EXISTS", error_params: { name: "x" } } },
     ]);
     render(<SkillsTab />);
     await openWriteForm();
@@ -260,6 +260,30 @@ describe("SkillsTab", () => {
     fireEvent.click(screen.getByText("Save skill"));
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText(/already exists/)).toBeTruthy();
+  });
+
+  it("renders the coded message and keeps the server's raw text for hover", async () => {
+    stubFetch([
+      { match: "/v1/skills", method: "GET", json: { skills: [] } },
+      {
+        match: "/v1/skills",
+        method: "POST",
+        json: {
+          ok: false,
+          error: "raw text only the log should own",
+          error_code: "SKILL_NOT_FOUND",
+          error_params: { name: "weekly-report" },
+        },
+      },
+    ]);
+    render(<SkillsTab />);
+    await openWriteForm();
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "x" } });
+    fireEvent.change(screen.getByLabelText("Instructions"), { target: { value: "y" } });
+    fireEvent.click(screen.getByText("Save skill"));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Unknown skill: weekly-report");
+    expect(alert.getAttribute("title")).toBe("raw text only the log should own");
   });
 });
 
