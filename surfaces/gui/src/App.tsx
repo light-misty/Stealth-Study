@@ -1995,7 +1995,6 @@ export function App() {
                   {streaming && streamMode(streaming, items, running) === "answer" && (
                     <div className="transcript">
                       <div className="bubble-assistant">
-                        <div className="who">{t("transcript.who_assistant")}</div>
                         <Markdown text={streaming} />
                         <span className="stream-cursor">▍</span>
                       </div>

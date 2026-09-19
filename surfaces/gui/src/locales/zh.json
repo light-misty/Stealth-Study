@@ -742,7 +742,6 @@
     "copied": "已复制",
     "thinking_live": "思考中…",
     "thinking_process": "思考过程",
-    "who_assistant": "学习伙伴",
     "retry": "重试",
     "approval": {
       "approved": "✓ 你已批准",
@@ -773,10 +772,19 @@
       "tried_skill_post": " —— 不可用"
     },
     "turn": {
-      "running": "运行 {{label}}…",
+      "running": "执行中：{{label}}",
       "declined": "{{count}} 已拒绝",
       "hidden": "{{count}} 已被你的过滤器隐藏",
-      "steps_label": "{{count}} 步"
+      "steps_label": "{{count}} 步",
+      "summary_sep": "、",
+      "actions_files_read_other": "读了 {{count}} 个文件",
+      "actions_files_written_other": "改了 {{count}} 个文件",
+      "actions_searches_other": "搜索了 {{count}} 次",
+      "actions_commands_other": "运行了 {{count}} 条命令",
+      "actions_messages_other": "发送了 {{count}} 条消息",
+      "actions_skills_other": "使用了 {{count}} 个技能",
+      "actions_questions_other": "提问了 {{count}} 次",
+      "actions_tool_other": "{{name}} ×{{count}}"
     },
     "dir_declined": "已拒绝文件夹访问",
     "dir_granted": "已授予文件夹访问权限",

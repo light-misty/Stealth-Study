@@ -749,7 +749,6 @@
     "copied": "Copied",
     "thinking_live": "Thinking…",
     "thinking_process": "Thought process",
-    "who_assistant": "study partner",
     "retry": "Retry",
     "approval": {
       "approved": "✓ user-approved",
@@ -780,11 +779,28 @@
       "tried_skill_post": " — not available"
     },
     "turn": {
-      "running": "Running {{label}}…",
+      "running": "In progress: {{label}}",
       "declined": "{{count}} declined",
       "hidden": "{{count}} hidden by your filters",
       "steps_label": "{{count}} steps",
-      "steps_label_one": "{{count}} step"
+      "steps_label_one": "{{count}} step",
+      "summary_sep": ", ",
+      "actions_files_read_one": "read {{count}} file",
+      "actions_files_read_other": "read {{count}} files",
+      "actions_files_written_one": "edited {{count}} file",
+      "actions_files_written_other": "edited {{count}} files",
+      "actions_searches_one": "searched {{count}} time",
+      "actions_searches_other": "searched {{count}} times",
+      "actions_commands_one": "ran {{count}} command",
+      "actions_commands_other": "ran {{count}} commands",
+      "actions_messages_one": "sent {{count}} message",
+      "actions_messages_other": "sent {{count}} messages",
+      "actions_skills_one": "used {{count}} skill",
+      "actions_skills_other": "used {{count}} skills",
+      "actions_questions_one": "asked {{count}} question",
+      "actions_questions_other": "asked {{count}} questions",
+      "actions_tool_one": "{{name}} ×{{count}}",
+      "actions_tool_other": "{{name}} ×{{count}}"
     },
     "dir_declined": "Declined folder access",
     "dir_granted": "Granted folder access",
