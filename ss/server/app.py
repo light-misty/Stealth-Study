@@ -1366,7 +1366,9 @@ def create_app(manager: SessionManager) -> FastAPI:
 
         d = get_descriptor(name)
         if d is None or not d.mcp_url:
-            return {"ok": False, "error": f"{name} has no MCP connect path"}
+            return coded_error(
+                f"{name} has no MCP connect path", "MCP_CONNECT_PATH_MISSING", ok=False
+            )
         asyncio.create_task(manager.mcp_connect_connector(name))
         return {"ok": True, "started": True}
 
@@ -1685,10 +1687,11 @@ def create_app(manager: SessionManager) -> FastAPI:
         d = get_descriptor(name)
         if d is not None and d.managed_paused:
             # GUI shows the Coming-soon state; this guard covers stale GUIs/API callers.
-            return {
-                "ok": False,
-                "error": f"one-click connect for {d.title} is coming soon — connect manually for now",
-            }
+            return coded_error(
+                f"one-click connect for {d.title} is coming soon — connect manually for now",
+                "ONE_CLICK_COMING_SOON",
+                ok=False,
+            )
         access = str((body or {}).get("access") or "")
         flow = str((body or {}).get("flow") or "")  # github: "" install | "authorize"
         out = await asyncio.to_thread(

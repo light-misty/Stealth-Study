@@ -771,7 +771,7 @@ export async function cloudLogout(): Promise<{ ok: boolean }> {
 export async function connectManaged(
   name: string,
   options?: { access?: "read" | "write" },
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(
     `${httpBase()}/v1/connectors/${encodeURIComponent(name)}/connect-managed`,
     {
@@ -791,7 +791,9 @@ export async function connectManaged(
 /** One-click connect for an MCP-backed connector (monday, asana, jira): the sidecar
  * opens the vendor's sign-in in the browser (local OAuth, no cloud account needed);
  * poll getConnectors until the card flips to connected. */
-export async function connectMcpBacked(name: string): Promise<{ ok: boolean; error?: string }> {
+export async function connectMcpBacked(
+  name: string,
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(
     `${httpBase()}/v1/connectors/${encodeURIComponent(name)}/mcp-connect`,
     { method: "POST" },
@@ -816,7 +818,7 @@ export async function getConnectors(): Promise<Connector[]> {
 export async function connectConnector(
   name: string,
   fields: Record<string, string>,
-): Promise<{ ok: boolean; account?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; account?: string; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/connectors/${encodeURIComponent(name)}/connect`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -993,7 +995,7 @@ export async function setCompactionSettings(
 /** Local page/size probe for a PDF data URL — the composer's attach-time threshold check. */
 export async function inspectPdf(
   dataUrl: string,
-): Promise<{ ok: boolean; pages?: number; bytes?: number; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; pages?: number; bytes?: number; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/attachments/inspect-pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

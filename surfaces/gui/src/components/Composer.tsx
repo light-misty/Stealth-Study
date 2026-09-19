@@ -4,6 +4,7 @@ import type { Attachment, SessionUsage } from "../types";
 import { isPdfFile, readFile } from "../attach";
 import { ProjectBindMenu } from "./ProjectBindMenu";
 import { getSettings, inspectPdf, sessionSkills, type SessionSkillRow } from "../api";
+import { apiErrorText } from "../errors";
 import { showVoice } from "../flags";
 import { formatTokens, totalTokens } from "../usage";
 import { Dropdown, type Option } from "./Dropdown";
@@ -357,7 +358,12 @@ export function Composer(props: Props) {
           continue;
         }
         if (info && !info.ok) {
-          showAttachNotice(t("composer.pdf_unreadable", { name: a.name, error: info.error || t("composer.pdf_could_not_read") }));
+          showAttachNotice(
+            t("composer.pdf_unreadable", {
+              name: a.name,
+              error: apiErrorText(info, t, t("composer.pdf_could_not_read")),
+            }),
+          );
           continue;
         }
       }

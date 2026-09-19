@@ -24,6 +24,8 @@ import io
 import logging
 from typing import Any, Optional
 
+from .errors import coded_error
+
 logger = logging.getLogger(__name__)
 
 MAX_EXTRACT_CHARS = 200_000  # match attachments.MAX_TEXT_CHARS
@@ -84,7 +86,7 @@ def inspect(file_data: str) -> dict[str, Any]:
     """
     raw = _pdf_bytes(file_data)
     if raw is None:
-        return {"ok": False, "error": "not a PDF data URL"}
+        return coded_error("not a PDF data URL", "PDF_NOT_PDF", ok=False)
     try:
         from pypdf import PdfReader
 
@@ -93,10 +95,14 @@ def inspect(file_data: str) -> dict[str, Any]:
             try:
                 reader.decrypt("")  # unencrypted-with-owner-password PDFs open this way
             except Exception:
-                return {"ok": False, "error": "PDF is password-protected"}
+                return coded_error(
+                    "PDF is password-protected", "PDF_PASSWORD_PROTECTED", ok=False
+                )
         return {"ok": True, "pages": len(reader.pages), "bytes": len(raw)}
     except Exception as exc:
-        return {"ok": False, "error": f"could not read PDF: {exc.__class__.__name__}"}
+        return coded_error(
+            f"could not read PDF: {exc.__class__.__name__}", "PDF_UNREADABLE", ok=False
+        )
 
 
 def extract_text(file_data: str) -> Optional[str]:

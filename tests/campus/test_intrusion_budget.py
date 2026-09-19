@@ -137,6 +137,11 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/components/ProjectBindMenu.tsx",
     # 第二档 C（Slack/Inbox/订阅域）：连接态与入参守卫消息带代号，6 处界面取键。
     "ss/connectors/slack_directory.py",
+    # 第二档 D（连接器一键/手动连接与 PDF 检查）：自写守卫消息带代号，10 处界面取键。
+    "ss/connectors/setup.py",
+    "ss/pdf_support.py",
+    "surfaces/gui/src/components/ManageTabs.tsx",
+    "surfaces/gui/src/components/connectors/AddConnectionModal.tsx",
     # 备考台原型落地：三个台子的样式层与图标集落在 campus 目录之外，因为它们要能被
     # `main.tsx` 直接 import（`src/campus/` 下的文件按约定只放数据层与面板）。
     # `campus-station.css` / `campus-icons.tsx` 是新增文件，另外三处是既有文件的追加式改动。

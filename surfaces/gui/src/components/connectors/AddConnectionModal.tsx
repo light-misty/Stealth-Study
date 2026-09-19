@@ -8,6 +8,7 @@ import {
   type CloudStatus,
   type Connector,
 } from "../../api";
+import { apiErrorText } from "../../errors";
 import { ConnectorBadge } from "../../connectors/ConnectorIcon";
 import { ConnectSetup } from "../ManageTabs";
 import { CloudSignInInline, CloudStatusPending } from "./CloudSignIn";
@@ -155,7 +156,7 @@ function McpOneClick({ c, onConnected }: { c: Connector; onConnected: () => void
     setError(null);
     const res = await connectMcpBacked(c.name);
     if (res.ok) setWaiting(true);
-    else setError(res.error || tt("modal.could_not_start_connect"));
+    else setError(apiErrorText(res, tt, tt("modal.could_not_start_connect")));
   };
   return (
     <div className="px-5 py-4 space-y-3">
@@ -188,7 +189,7 @@ function GenericOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null
     setError(null);
     const res = await connectManaged(c.name);
     if (res.ok) setWaiting(true);
-    else setError(res.error || tt("modal.could_not_start_connect"));
+    else setError(apiErrorText(res, tt, tt("modal.could_not_start_connect")));
   };
   return (
     <div className="px-5 py-4 space-y-3">
@@ -225,7 +226,7 @@ function SlackOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null }
     setError(null);
     const res = await connectManaged(c.name);
     if (res.ok) setWaiting(true);
-    else setError(res.error || tt("modal.could_not_start_install"));
+    else setError(apiErrorText(res, tt, tt("modal.could_not_start_install")));
   };
   return (
     <div className="px-5 py-4 space-y-3">
@@ -257,7 +258,7 @@ function GithubOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null 
     setError(null);
     const res = await connectManaged(c.name);
     if (res.ok) setWaiting(true);
-    else setError(res.error || tt("modal.could_not_start_install"));
+    else setError(apiErrorText(res, tt, tt("modal.could_not_start_install")));
   };
   return (
     <div className="px-5 py-4 space-y-3">
@@ -293,7 +294,7 @@ function HubSpotOneClick({ c, cloud }: { c: Connector; cloud: CloudStatus | null
     setError(null);
     const res = await connectManaged(c.name, { access });
     if (res.ok) setWaiting(true);
-    else setError(res.error || tt("modal.could_not_start_connect"));
+    else setError(apiErrorText(res, tt, tt("modal.could_not_start_connect")));
   };
   return (
     <div className="px-5 py-4 space-y-3">
@@ -352,7 +353,7 @@ function SlackManual({ onConnected }: { onConnected: () => void }) {
     const res = await connectConnector("slack", { bot_token: bot.trim(), app_token: app.trim() });
     setBusy(false);
     if (res.ok) onConnected();
-    else setError(res.error || tt("modal.could_not_connect"));
+    else setError(apiErrorText(res, tt, tt("modal.could_not_connect")));
   };
   return (
     <div className="px-5 py-4 space-y-3">

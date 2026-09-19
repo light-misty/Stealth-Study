@@ -1508,7 +1508,7 @@ class SessionManager:
             finally:
                 self._mcp_authorizing.discard(name)
         self._mcp_authorizing.discard(name)  # begin_mcp_connect flagged a name we never matched
-        return {"ok": False, "error": f"unknown MCP server: {name}"}
+        return coded_error(f"unknown MCP server: {name}", "MCP_SERVER_UNKNOWN", ok=False)
 
     async def mcp_connect_connector(self, name: str) -> dict[str, Any]:
         """One-click connect for an MCP-BACKED connector (descriptor.mcp_url): seed
@@ -1519,7 +1519,9 @@ class SessionManager:
 
         d = get_descriptor(name)
         if d is None or not d.mcp_url:
-            return {"ok": False, "error": f"{name} has no MCP connect path"}
+            return coded_error(
+                f"{name} has no MCP connect path", "MCP_CONNECT_PATH_MISSING", ok=False
+            )
         put_global_server(
             name,
             {

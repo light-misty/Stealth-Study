@@ -19,6 +19,7 @@ import {
   type ModelSettings,
   type ProviderInfo,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { CloudSignInInline, CloudStatusPending } from "./connectors/CloudSignIn";
 import { showLogin } from "../flags";
 import { ModelChecklist } from "./ModelChecklist";
@@ -499,7 +500,7 @@ export function ConnectSetup({
     const res = await connectConnector(c.name, values);
     setBusy(false);
     if (res.ok) onConnected();
-    else setError(res.error || t("manage.could_not_connect"));
+    else setError(apiErrorText(res, t, t("manage.could_not_connect")));
   };
 
   const oneClick = async () => {
@@ -508,7 +509,7 @@ export function ConnectSetup({
     // Completion arrives via the tab's poll: the broker form-POSTs the profile
     // to the sidecar, the connector flips to connected, this card closes itself.
     if (res.ok) setWaiting(true);
-    else setError(res.error || t("manage.could_not_start_managed"));
+    else setError(apiErrorText(res, t, t("manage.could_not_start_managed")));
   };
 
   const mcpOneClick = async () => {
@@ -517,7 +518,7 @@ export function ConnectSetup({
     // Completion likewise arrives via the poll — the sidecar flips the connector
     // to connected once the local OAuth flow lands.
     if (res.ok) setWaiting(true);
-    else setError(res.error || t("manage.could_not_start_connect"));
+    else setError(apiErrorText(res, t, t("manage.could_not_start_connect")));
   };
 
   return (
