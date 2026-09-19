@@ -997,10 +997,11 @@ button.btn.danger { color: var(--accent); }
 
 /* Small inline segmented control (Appearance: Light / Dark / Auto).
    对齐原型：sunken 轨道 + 抬高的选中胶囊。 */
-.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--paper); }
-.seg button { font: inherit; font-size: 13px; padding: 5px 14px; border: none; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; transition: background .14s ease, color .14s ease; }
+.seg { position: relative; display: inline-flex; gap: 2px; padding: 3px; border-radius: 12px; background: var(--paper); }
+.seg-thumb { position: absolute; top: 3px; left: 0; height: calc(100% - 6px); width: 0; border-radius: 9px; background: var(--panel); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); transition: transform 0.25s ease-in-out, width 0.25s ease-in-out; }
+.seg button { position: relative; z-index: 1; font: inherit; font-size: 13px; padding: 5px 14px; border: none; border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; transition: color 0.25s ease-in-out; }
 .seg button:hover { color: var(--ink); }
-.seg button.active { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+.seg button.active { color: var(--ink); }
 
 /* ===== 设置「纸页面板 + 彩色图标行」（对齐 stealth-study-redesign 设置·通用） ===== */
 .set-panel {
@@ -1479,7 +1480,7 @@ html[data-theme="dark"] :not(.connector-badge) > .connector-icon[data-dark-mark]
   cursor: pointer;
   padding: 0;
   flex: none;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.25s ease-in-out, border-color 0.25s ease-in-out;
 }
 .tgl .knob {
   position: absolute;
@@ -1490,7 +1491,7 @@ html[data-theme="dark"] :not(.connector-badge) > .connector-icon[data-dark-mark]
   border-radius: 999px;
   background: var(--panel);
   border: 1px solid var(--line-strong);
-  transition: transform 0.12s;
+  transition: transform 0.25s ease-in-out;
 }
 .tgl.on {
   background: var(--accent);

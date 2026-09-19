@@ -554,7 +554,7 @@ export function ProviderForm({
                   role="radio"
                   aria-checked={active}
                   className={
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-colors " +
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] whitespace-nowrap transition-colors duration-300 ease-in-out " +
                     (active
                       ? "bg-panel text-ink font-medium shadow-sm ring-1 ring-line"
                       : "text-muted hover:text-ink")

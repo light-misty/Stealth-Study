@@ -42,6 +42,7 @@ import {
 } from "../tauri";
 import { useThemePref } from "../theme";
 import { Icon } from "./Icon";
+import { Segmented } from "./Segmented";
 import { PanelHead } from "./IntegrationsView";
 import { ModelsTab } from "./ManageTabs";
 import { MemorySection } from "./MemorySection";
@@ -133,21 +134,23 @@ export function SettingsView({
           )}
           <Icon name="gear" size={16} /> {t("nav.settings")}
         </div>
-        {tabs.map((tb) => {
-          const active = tab === tb.key;
-          return (
-            <button
-              key={tb.key}
-              className={
-                "w-full text-left px-2.5 py-2 rounded-lg text-[13px] flex items-center gap-2 " +
-                (active ? "bg-paper text-accent font-medium" : "text-muted hover:bg-paper hover:text-ink")
-              }
-              onClick={() => setTab(tb.key)}
-            >
-              <Icon name={tb.icon} size={15} /> {t(tb.labelKey)}
-            </button>
-          );
-        })}
+        <div className="flex flex-col gap-1.5">
+          {tabs.map((tb) => {
+            const active = tab === tb.key;
+            return (
+              <button
+                key={tb.key}
+                className={
+                  "w-full text-left px-2.5 py-2 rounded-lg text-[13px] flex items-center gap-2 " +
+                  (active ? "bg-paper text-accent font-medium" : "text-muted hover:bg-paper hover:text-ink")
+                }
+                onClick={() => setTab(tb.key)}
+              >
+                <Icon name={tb.icon} size={15} /> {t(tb.labelKey)}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       <div className="flex-1 min-w-0 overflow-y-auto hairline-scroll">
@@ -492,13 +495,16 @@ function AppearanceSection() {
             <span className="set-desc">{t("settings.theme_auto_help")}</span>
           </div>
           <div className="set-ctl">
-            <div className="seg" role="radiogroup" aria-label={t("settings.appearance_aria")}>
-              {(["light", "dark", "auto"] as const).map((p) => (
-                <button key={p} className={p === theme ? "active" : ""} onClick={() => setTheme(p)}>
-                  {p === "light" ? t("settings.theme_light") : p === "dark" ? t("settings.theme_dark") : t("settings.theme_auto")}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              value={theme}
+              onChange={setTheme}
+              ariaLabel={t("settings.appearance_aria")}
+              options={[
+                { value: "light", label: t("settings.theme_light") },
+                { value: "dark", label: t("settings.theme_dark") },
+                { value: "auto", label: t("settings.theme_auto") },
+              ]}
+            />
           </div>
         </div>
 
@@ -516,17 +522,16 @@ function AppearanceSection() {
             <span className="set-desc">{t("settings.language_help")}</span>
           </div>
           <div className="set-ctl">
-            <div className="seg" role="radiogroup" aria-label={t("settings.language_aria")}>
-              {(["system", "en", "zh"] as const).map((lng) => (
-                <button
-                  key={lng}
-                  className={lng === currentLang ? "active" : ""}
-                  onClick={() => changeLang(lng)}
-                >
-                  {lng === "zh" ? t("settings.language_zh") : lng === "en" ? t("settings.language_en") : t("settings.language_system")}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              value={currentLang}
+              onChange={changeLang}
+              ariaLabel={t("settings.language_aria")}
+              options={[
+                { value: "system", label: t("settings.language_system") },
+                { value: "en", label: t("settings.language_en") },
+                { value: "zh", label: t("settings.language_zh") },
+              ]}
+            />
           </div>
         </div>
       </div>
@@ -731,20 +736,17 @@ function TokenSavingsCard() {
       </div>
 
       <div className="mt-3 text-[13px] text-ink">{t("settings.pdf_fallback_label")}</div>
-      <div className="seg mt-2" role="radiogroup" aria-label={t("settings.pdf_fallback_aria")} data-testid="pdf-fallback">
-        <button
-          className={pdf.pdf_fallback === "text" ? "active" : ""}
-          onClick={() => save({ pdf_fallback: "text" })}
-        >
-          {t("settings.pdf_extract_text")}
-        </button>
-        <button
-          className={pdf.pdf_fallback === "images" ? "active" : ""}
-          onClick={() => save({ pdf_fallback: "images" })}
-        >
-          {t("settings.pdf_send_images")}
-        </button>
-      </div>
+      <Segmented
+        className="mt-2"
+        testId="pdf-fallback"
+        value={pdf.pdf_fallback}
+        onChange={(v) => save({ pdf_fallback: v })}
+        ariaLabel={t("settings.pdf_fallback_aria")}
+        options={[
+          { value: "text", label: t("settings.pdf_extract_text") },
+          { value: "images", label: t("settings.pdf_send_images") },
+        ]}
+      />
       <div className={FIELD_HELP}>
         {t("settings.pdf_fallback_help")}
       </div>
