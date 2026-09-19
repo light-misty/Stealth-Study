@@ -136,6 +136,7 @@
     "profile": {
       "create": "新建备考档案",
       "switch": "切换档案",
+      "manage": "档案操作",
       "archive": "归档",
       "title_label": "档案名称",
       "exam_date_label": "考试日期",

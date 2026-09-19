@@ -290,6 +290,7 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="cet" />);
     await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
 
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
     fireEvent.click(screen.getByTestId("campus-profile-archive-p1"));
     await waitFor(() => expect(apiMock.patchProfile).toHaveBeenCalledWith("p1", { status: "archived" }));
     await waitFor(() => expect(apiMock.listProfiles.mock.calls.length).toBeGreaterThan(1));
@@ -353,8 +354,9 @@ describe("CampusStationView", () => {
       new CampusApiError("PROFILE_READ_ONLY", "档案已结课，拒绝写入", false, 409),
     );
     render(<CampusStationView track="cet" />);
-    await waitFor(() => expect(screen.getByTestId("campus-profile-archive-p1")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("campus-profile-manage")).toBeTruthy());
 
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
     fireEvent.click(screen.getByTestId("campus-profile-archive-p1"));
 
     const dialog = await screen.findByTestId("campus-profile-conflict");
@@ -486,6 +488,14 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="cet" />);
     await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
 
+    fireEvent.click(
+      screen
+        .getAllByTestId("campus-profile-item")
+        .find((el) => el.getAttribute("data-profile-id") === "f1") ?? (() => {
+        throw new Error("finished pill not rendered");
+      })(),
+    );
+    fireEvent.click(await screen.findByTestId("campus-profile-manage"));
     fireEvent.click(screen.getByTestId("campus-profile-delete-f1"));
     await screen.findByTestId("campus-delete-dialog");
     expect(screen.getByTestId("campus-delete-count").getAttribute("data-total")).toBe("7");
@@ -507,8 +517,9 @@ describe("CampusStationView", () => {
     apiMock.listProfiles.mockResolvedValue({ items: [profile("p1"), twin] });
     apiMock.patchProfile.mockResolvedValue({ ...profile("p1"), title: "改好了" });
     render(<CampusStationView track="cet" />);
-    await waitFor(() => expect(screen.getByTestId("campus-profile-rename-p1")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("campus-profile-manage")).toBeTruthy());
 
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
     fireEvent.click(screen.getByTestId("campus-profile-rename-p1"));
     const input = screen.getByTestId("campus-profile-rename-input") as HTMLInputElement;
     expect(input.value).toBe("四级冲刺");

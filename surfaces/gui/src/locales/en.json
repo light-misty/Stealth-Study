@@ -137,6 +137,7 @@
     "profile": {
       "create": "New exam profile",
       "switch": "Switch profile",
+      "manage": "Profile actions",
       "archive": "Archive",
       "title_label": "Profile name",
       "exam_date_label": "Exam date",
