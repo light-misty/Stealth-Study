@@ -34,7 +34,7 @@ test("the account menu: Inbox + Connectors always listed; Settings carries the s
   await expect(menu.getByRole("button", { name: "Connectors", exact: true })).toBeVisible();
   await expect(menu.getByRole("button", { name: /Settings/ })).toContainText("⌘");
   // Automations left the menu (owner 2026-08-21) — the sidebar nav row carries it.
-  await expect(menu.getByRole("button", { name: "Automations", exact: true })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "Scheduled tasks", exact: true })).toHaveCount(0);
   await expect(menu.getByRole("button", { name: "Activity", exact: true })).toBeVisible();
 });
 

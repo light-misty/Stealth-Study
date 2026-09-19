@@ -55,7 +55,7 @@ test("Settings takes the whole surface: the main nav folds away and Back returns
 test("Settings: Back returns to the surface the page was opened from", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("nav-automations").click();
-  await expect(page.getByRole("heading", { name: "Automations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scheduled tasks" })).toBeVisible();
 
   await page.getByTestId("account-row").click();
   await page.getByRole("button", { name: "Settings", exact: true }).click();
@@ -63,7 +63,7 @@ test("Settings: Back returns to the surface the page was opened from", async ({ 
   await expect.poll(() => navRightEdge(page)).toBeLessThanOrEqual(1);
 
   await page.getByTestId("settings-back").click();
-  await expect(page.getByRole("heading", { name: "Automations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scheduled tasks" })).toBeVisible();
   await expect(page.locator(".app")).not.toHaveClass(/nav-collapsed/);
 });
 

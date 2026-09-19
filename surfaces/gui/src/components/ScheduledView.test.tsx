@@ -35,7 +35,7 @@ describe("ScheduledView empty state", () => {
     );
 
     expect(
-      screen.getByText("+ New automation", { selector: "strong" }),
+      screen.getByText("+ New scheduled task", { selector: "strong" }),
     ).toBeTruthy();
     expect(container.textContent).not.toContain("<strong>");
   });

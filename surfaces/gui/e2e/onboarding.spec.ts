@@ -139,7 +139,7 @@ test("tools page: sign-in morphs the page into the connector gallery; a card con
   await expect(page.getByTestId("ob-step-done")).toBeVisible();
   await page.getByTestId("ob-cta-automation").click();
   await expect(page.getByTestId("onboarding")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Automations" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Scheduled tasks" })).toBeVisible();
 });
 
 test("tools page skips cleanly; Start working lands in a session with the panel open", async ({
