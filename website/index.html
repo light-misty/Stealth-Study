@@ -266,17 +266,7 @@ html[data-theme="dark"] .app-window{filter:brightness(.8) saturate(.95)}
 .aw-send .ico{width:14px;height:14px}
 .aw-send.ready{background:var(--accent);border-color:var(--accent);color:#1b1207}
 
-.float-card{position:absolute;left:-26px;bottom:-74px;width:214px;padding:13px 14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh-3);animation:floaty 6.8s ease-in-out infinite}
 @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
-.fc-head{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--faint);letter-spacing:.02em;margin-bottom:9px}
-.fc-head .ico{width:13px;height:13px;color:var(--brand-deep)}
-.fc-score{display:flex;align-items:baseline;gap:5px;margin-bottom:3px}
-.fc-score b{font-family:var(--font-display);font-weight:800;font-size:31px;letter-spacing:-.03em;line-height:1}
-.fc-score span{font-family:var(--font-mono);font-size:11.5px;color:var(--faint)}
-.fc-score em{font-style:normal;margin-left:auto;font-size:11px;font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:5px;padding:2px 7px}
-.fc-scale{display:flex;gap:5px;margin-top:11px}
-.fc-scale i{flex:1;text-align:center;font-family:var(--font-mono);font-size:10.5px;color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:3px 0}
-.fc-scale i.on{background:var(--accent);border-color:var(--accent);color:#1b1207;font-weight:500}
 
 .sec{position:relative;padding-block:clamp(78px,10vh,140px);scroll-margin-top:calc(var(--nav-h) + 20px)}
 .sec-tint{background:var(--canvas);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -454,7 +444,6 @@ html[data-theme="dark"] .closing-glow{background:radial-gradient(46% 62% at 50% 
   .hero-sub{max-width:40em}
   .app-window{transform:none}
   .hero-visual:hover .app-window{transform:none}
-  .float-card{left:auto;right:-14px;bottom:-74px}
   .loop-inner{grid-template-columns:1fr;gap:26px}
   .loop-copy p{max-width:52ch}
 }
@@ -480,7 +469,6 @@ html[data-theme="dark"] .closing-glow{background:radial-gradient(46% 62% at 50% 
   .nav-actions{gap:8px}
   .nav-actions .btn-sm{height:36px;padding:0 15px;font-size:13px}
   .hero-title{letter-spacing:-.022em}
-  .float-card{position:static;width:100%;margin-top:14px;animation:none}
   .aw-side{display:none}
   .aw-main{padding:20px 16px 14px}
   .aw-body{min-height:0}
@@ -657,12 +645,6 @@ html[data-theme="dark"] .closing-glow{background:radial-gradient(46% 62% at 50% 
               </div>
             </div>
           </div>
-        </div>
-
-        <div class="float-card" aria-hidden="true">
-          <div class="fc-head"><svg class="ico"><use href="#i-audit"/></svg>作文批改 · 四级</div>
-          <div class="fc-score"><b>11</b><span>/ 14</span><em>第三档</em></div>
-          <div class="fc-scale"><i>14</i><i class="on">11</i><i>8</i><i>5</i><i>2</i></div>
         </div>
       </div>
     </div>
