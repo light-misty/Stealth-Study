@@ -140,4 +140,24 @@ describe("PersonaView", () => {
       expect(post!.body).toMatchObject({ enabled: false });
     });
   });
+
+  it("resets the delete confirmation when the persona switches", async () => {
+    const custom = { ...DETAIL, id: "custom", name: "Custom One", builtin: false };
+    const customTwo = { ...DETAIL, id: "custom2", name: "Custom Two", builtin: false };
+    stubFetch([
+      { match: "/v1/personas/custom2", method: "GET", json: customTwo },
+      { match: "/v1/personas/custom", method: "GET", json: custom },
+      { match: "/v1/connectors", method: "GET", json: CONNECTORS },
+    ]);
+    const { rerender } = render(<PersonaView personaId="custom" />);
+    await screen.findByText(/Custom One/);
+
+    fireEvent.click(screen.getByTestId("persona-delete"));
+    expect(screen.getByTestId("persona-delete-confirm")).toBeTruthy();
+
+    rerender(<PersonaView personaId="custom2" />);
+    await screen.findByText(/Custom Two/);
+    expect(screen.queryByTestId("persona-delete-confirm")).toBeNull();
+    expect(screen.getByTestId("persona-delete")).toBeTruthy();
+  });
 });
