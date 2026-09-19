@@ -302,12 +302,15 @@ def create_app(manager: SessionManager) -> FastAPI:
     def inbox(session_id: str = "", state: str = "") -> dict[str, Any]:
         from dataclasses import asdict
 
-        # The cross-session Inbox list shows only Unattended (inbox-visibility) items; a per-session
-        # query returns inline ones too, so the answer-in-context card sees parked attended prompts.
+        # The cross-session list shows every item awaiting a human — an attended session's
+        # inline ask_user prompt included. `visibility` only picks the PRIMARY answer surface
+        # (live composer card vs the Inbox queue); the sidebar's "N 项待你处理" counts these
+        # very items, so filtering any of them out here strands the user on an empty Inbox
+        # (owner-hit 2026-09-19). A per-session query returns the same shape for the
+        # answer-in-context card.
         items = manager.inbox.list(
             session_id=session_id or None,
             state=state or None,
-            visibility=None if session_id else VIS_INBOX,
         )
         # Enrich with the originating session's context so the Inbox is self-contained — the
         # "go to session" chip needs title/agent/workspace without depending on a (possibly stale)

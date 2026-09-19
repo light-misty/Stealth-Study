@@ -21,6 +21,11 @@ The logging-system branch widens it by one more module and one more `app.py` inc
 gains the request-context middleware plus the `POST /v1/logs/frontend` ingest endpoint
 (startup timestamp file naming + 50MB/daily rotation live in new file `ss/logging_setup.py`,
 which the names-status check above deliberately ignores as a pure addition).
+
+The inbox-fix branch widens it by one more `app.py` increment: the `/v1/inbox` endpoint
+drops its cross-session visibility filter, so an attended session's parked ask_user
+question lists in the Inbox exactly as the sidebar's attention count promises (6 added /
+3 removed lines).
 """
 
 from __future__ import annotations
@@ -112,8 +117,12 @@ BACKEND_PATCH = {
     "M\tss/interactions.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
-# campus 挂载与日志系统两条分支各自的 app.py 增量预算
-APP_PY_PATCHES = {"40\t2\tss/server/app.py", "34\t1\tss/server/app.py"}
+# campus 挂载、日志系统与 inbox 修复三条分支各自的 app.py 增量预算
+APP_PY_PATCHES = {
+    "40\t2\tss/server/app.py",
+    "34\t1\tss/server/app.py",
+    "6\t3\tss/server/app.py",
+}
 
 
 def test_no_other_backend_module_changed_against_the_base_revision() -> None:
