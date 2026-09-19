@@ -7,7 +7,7 @@
 //   4. the family icon  — the fallback when a manifest declares nothing usable.
 // So personas are visually distinct (Ops→wrench, Code→code, Cowork→diamond) instead of all ◆.
 
-import { Icon, type IconName } from "./Icon";
+import type { IconName } from "./Icon";
 
 const LEGACY: Record<string, IconName> = {
   cowork: "diamond",
@@ -35,28 +35,8 @@ const NAMED: ReadonlySet<string> = new Set<IconName>([
   "pencil",
 ]);
 
-export function isEmojiIcon(icon?: string): boolean {
-  return !!icon && /[^\x00-\x7F]/.test(icon);
-}
-
 export function personaGlyph(icon?: string, folderScoped?: boolean): IconName {
   if (icon && NAMED.has(icon)) return icon as IconName;
   if (icon && LEGACY[icon]) return LEGACY[icon];
   return folderScoped ? "code" : "sparkle";
-}
-
-/** Renders a persona's icon: an emoji as text, otherwise the resolved line glyph. */
-export function PersonaGlyph({
-  icon,
-  folderScoped,
-  size = 14,
-}: {
-  icon?: string;
-  folderScoped?: boolean;
-  size?: number;
-}) {
-  if (isEmojiIcon(icon)) {
-    return <span style={{ fontSize: size, lineHeight: 1 }}>{icon}</span>;
-  }
-  return <Icon name={personaGlyph(icon, folderScoped)} size={size} />;
 }

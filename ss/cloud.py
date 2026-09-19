@@ -32,6 +32,7 @@ from typing import Any, Optional
 import httpx
 
 from .config import Config
+from .errors import coded_error
 from .secrets import SecretStore
 
 CLOUD_AUTH_PROFILE = "cloud:auth"
@@ -162,7 +163,7 @@ def sync_connections(secrets: SecretStore, config: Config) -> dict[str, Any]:
     by design, so those need a one-click re-consent instead."""
     token = fresh_access_token(secrets, config)
     if not token:
-        return {"ok": False, "error": "not signed in"}
+        return coded_error("not signed in", "CLOUD_SIGNIN_REQUIRED", ok=False)
     try:
         resp = httpx.get(
             config.cloud_base_url.rstrip("/") + "/v1/connections",
@@ -170,7 +171,7 @@ def sync_connections(secrets: SecretStore, config: Config) -> dict[str, Any]:
             timeout=15,
         )
     except httpx.HTTPError:
-        return {"ok": False, "error": "cloud unreachable"}
+        return coded_error("cloud unreachable", "CLOUD_UNREACHABLE", ok=False)
     if resp.status_code != 200:
         return {"ok": False, "error": f"connections fetch failed ({resp.status_code})"}
 
@@ -357,10 +358,14 @@ def begin_managed_connect(
     page; "authorize" links a teammate to an existing installation."""
     provider = PROVIDER_FOR_CONNECTOR.get(connector)
     if provider is None:
-        return {"ok": False, "error": f"{connector} has no managed OAuth path"}
+        return coded_error(
+            f"{connector} has no managed OAuth path", "MANAGED_CONNECT_UNSUPPORTED", ok=False
+        )
     token = fresh_access_token(secrets, config)
     if not token:
-        return {"ok": False, "error": "not signed in", "signed_in": False}
+        return coded_error(
+            "not signed in", "CLOUD_SIGNIN_REQUIRED", ok=False, signed_in=False
+        )
 
     app_state = _secrets.token_urlsafe(16)
     # The broker form-POSTs the tokens back to THIS process's loopback. Use the
@@ -381,7 +386,9 @@ def begin_managed_connect(
             timeout=15,
         )
     except httpx.HTTPError as exc:
-        return {"ok": False, "error": f"cloud unreachable: {type(exc).__name__}"}
+        return coded_error(
+            f"cloud unreachable: {type(exc).__name__}", "CLOUD_UNREACHABLE", ok=False
+        )
     if resp.status_code != 200:
         return {"ok": False, "error": f"start failed ({resp.status_code})"}
     _pending_managed_states[app_state] = _now()
@@ -680,7 +687,11 @@ def gallery_detail(secrets: SecretStore, config: Config, slug: str) -> Optional[
             for r in m.recommends
         ]
     except Exception as exc:  # malformed manifest: surface, don't crash
-        return {"ok": False, "error": f"manifest failed local validation: {exc}"}
+        return coded_error(
+            f"manifest failed local validation: {exc}",
+            "PERSONA_MANIFEST_INVALID",
+            ok=False,
+        )
     return {
         "ok": True,
         "card": card,

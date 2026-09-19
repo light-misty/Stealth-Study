@@ -185,7 +185,7 @@ function InstallationGroup({
       <div className={GRP_H + " flex items-center gap-2"}>
         <span>
           {inst.account_login}{" "}
-          <span className="font-normal text-faint" title={`installation ${inst.installation_id}`}>
+          <span className="font-normal text-faint" title={t("github.installation_tooltip", { id: inst.installation_id })}>
             · {inst.repo_selection === "all" ? t("github.all_repos") : t("github.selected_repos")}
           </span>
         </span>

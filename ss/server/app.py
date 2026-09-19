@@ -158,6 +158,7 @@ from ..attachments import (
     build_user_content,
 )
 from ..engine import ApprovalOutcome
+from ..errors import coded_error, forwarded_error
 from ..inbox import VIS_INBOX, VIS_INLINE
 from ..logging_setup import request_id_var, user_id_var, write_frontend_logs
 from ..permissions import Mode
@@ -391,12 +392,15 @@ def create_app(manager: SessionManager) -> FastAPI:
             if raw.strip().startswith("#"):
                 # A bare #name can't be looked up locally — storing it literally would create a
                 # subscription that never matches real traffic (resolve_channel returns "").
-                return {
-                    "ok": False,
-                    "error": "Channel names can't be looked up — paste the channel ID "
+                return coded_error(
+                    "Channel names can't be looked up — paste the channel ID "
                     "(channel name ▸ About) or the channel's Copy-link URL.",
-                }
-            return {"ok": False, "error": "need a session_id and a channel"}
+                    "SUBSCRIBE_CHANNEL_LOOKUP",
+                    ok=False,
+                )
+            return coded_error(
+                "need a session_id and a channel", "SUBSCRIBE_FIELDS_REQUIRED", ok=False
+            )
         manager.subscriptions.subscribe(session_id, addr)
         return {"ok": True, "channel": addr}
 
@@ -422,7 +426,7 @@ def create_app(manager: SessionManager) -> FastAPI:
     def set_inbox_binding(body: dict) -> dict[str, Any]:
         name = str(body.get("name", "")).strip()
         if not name:
-            return {"ok": False, "error": "binding needs a `name`"}
+            return coded_error("binding needs a `name`", "BINDING_NAME_REQUIRED", ok=False)
         return manager.set_inbox_binding(
             name,
             channel=body.get("channel") or None,
@@ -511,7 +515,9 @@ def create_app(manager: SessionManager) -> FastAPI:
                 try:
                     data = base64.b64decode(str(body["zip_b64"]), validate=True)
                 except (ValueError, binascii.Error):
-                    return {"ok": False, "error": "Invalid archive encoding."}
+                    return coded_error(
+                        "Invalid archive encoding.", "PERSONA_ARCHIVE_ENCODING", ok=False
+                    )
                 summaries = reg.install_from_zip(
                     data, str(body.get("filename", ""))
                 )
@@ -530,28 +536,30 @@ def create_app(manager: SessionManager) -> FastAPI:
                 slug = str(body["gallery_slug"]).strip()
                 manifest = cloud.gallery_manifest(manager.secrets, load_config(), slug)
                 if manifest is None:
-                    return {
-                        "ok": False,
-                        "error": "gallery requires cloud sign-in (or the cloud is unreachable)",
-                    }
+                    return coded_error(
+                        "gallery requires cloud sign-in (or the cloud is unreachable)",
+                        "PERSONA_GALLERY_UNAVAILABLE",
+                        ok=False,
+                    )
                 markdown = manifest.get("manifest_markdown", "")
                 digest = "sha256:" + hashlib.sha256(markdown.encode()).hexdigest()
                 if (
                     manifest.get("manifest_hash")
                     and manifest["manifest_hash"] != digest
                 ):
-                    return {"ok": False, "error": "manifest hash mismatch"}
+                    return coded_error("manifest hash mismatch", "PERSONA_HASH_MISMATCH", ok=False)
                 with tempfile.TemporaryDirectory() as td:
                     (Path(td) / f"{slug}.md").write_text(markdown)
                     summaries = reg.install_from_dir(td)
                 cloud.gallery_install_event(manager.secrets, load_config(), slug)
             else:
-                return {
-                    "ok": False,
-                    "error": "provide a `dir`, `git_url`, `zip_b64`, or `gallery_slug`",
-                }
+                return coded_error(
+                    "provide a `dir`, `git_url`, `zip_b64`, or `gallery_slug`",
+                    "PERSONA_SOURCE_REQUIRED",
+                    ok=False,
+                )
         except Exception as e:  # surface manifest/clone errors to the caller
-            return {"ok": False, "error": str(e)}
+            return forwarded_error(e, ok=False)
         return {"ok": True, "consent": summaries, "personas": reg.list_all()}
 
     @app.post("/v1/personas/{persona_id}/export")
@@ -571,7 +579,9 @@ def create_app(manager: SessionManager) -> FastAPI:
 
         body = cloud.gallery_detail(manager.secrets, load_config(), slug)
         if body is None:
-            return {"ok": False, "error": "gallery requires cloud sign-in"}
+            return coded_error(
+                "gallery requires cloud sign-in", "CLOUD_SIGNIN_REQUIRED", ok=False
+            )
         return body
 
     @app.get("/v1/cloud/gallery")
@@ -584,8 +594,9 @@ def create_app(manager: SessionManager) -> FastAPI:
         body = cloud.gallery_list(manager.secrets, load_config())
         if body is None:
             return {
-                "ok": False,
-                "error": "gallery requires cloud sign-in",
+                **coded_error(
+                    "gallery requires cloud sign-in", "CLOUD_SIGNIN_REQUIRED", ok=False
+                ),
                 "personas": [],
             }
         return {"ok": True, "personas": body.get("personas", [])}
@@ -606,7 +617,7 @@ def create_app(manager: SessionManager) -> FastAPI:
             if body.get("default"):
                 reg.set_default(persona_id)
         except KeyError:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         return {"ok": True, "personas": reg.list_all(), "archived_sessions": archived}
 
     @app.delete("/v1/personas/{persona_id}")
@@ -616,9 +627,9 @@ def create_app(manager: SessionManager) -> FastAPI:
         try:
             manager.personas.uninstall(persona_id)
         except KeyError:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         except ValueError as e:
-            return {"ok": False, "error": str(e)}
+            return forwarded_error(e, ok=False)
         return {"ok": True, "personas": manager.personas.list_all()}
 
     @app.get("/v1/personas/{persona_id}")
@@ -626,7 +637,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         # §5 detail page: identity + capabilities + recommends(+connected) + default connections.
         detail = manager.persona_detail(persona_id)
         if detail is None:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         return detail
 
     @app.get("/v1/personas/{persona_id}/media/{name}")
@@ -656,7 +667,7 @@ def create_app(manager: SessionManager) -> FastAPI:
                 persona_id, bool((body or {}).get("enabled", True))
             )
         except KeyError:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         return {"ok": True, "personas": manager.personas.list_all()}
 
     @app.post("/v1/personas/{persona_id}/connections")
@@ -1355,7 +1366,9 @@ def create_app(manager: SessionManager) -> FastAPI:
 
         d = get_descriptor(name)
         if d is None or not d.mcp_url:
-            return {"ok": False, "error": f"{name} has no MCP connect path"}
+            return coded_error(
+                f"{name} has no MCP connect path", "MCP_CONNECT_PATH_MISSING", ok=False
+            )
         asyncio.create_task(manager.mcp_connect_connector(name))
         return {"ok": True, "started": True}
 
@@ -1674,10 +1687,11 @@ def create_app(manager: SessionManager) -> FastAPI:
         d = get_descriptor(name)
         if d is not None and d.managed_paused:
             # GUI shows the Coming-soon state; this guard covers stale GUIs/API callers.
-            return {
-                "ok": False,
-                "error": f"one-click connect for {d.title} is coming soon — connect manually for now",
-            }
+            return coded_error(
+                f"one-click connect for {d.title} is coming soon — connect manually for now",
+                "ONE_CLICK_COMING_SOON",
+                ok=False,
+            )
         access = str((body or {}).get("access") or "")
         flow = str((body or {}).get("flow") or "")  # github: "" install | "authorize"
         out = await asyncio.to_thread(

@@ -91,6 +91,7 @@ def test_persona_detail_endpoint(tmp_path, monkeypatch):
     assert client.get("/v1/personas/nope").json() == {
         "ok": False,
         "error": "unknown persona: nope",
+        "error_code": "PERSONA_UNKNOWN",
     }
 
 

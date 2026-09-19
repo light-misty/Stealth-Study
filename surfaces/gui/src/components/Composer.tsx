@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { getI18n, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import type { Attachment, SessionUsage } from "../types";
 import { isPdfFile, readFile } from "../attach";
 import { ProjectBindMenu } from "./ProjectBindMenu";
 import { getSettings, inspectPdf, sessionSkills, type SessionSkillRow } from "../api";
+import { apiErrorText } from "../errors";
 import { showVoice } from "../flags";
 import { formatTokens, totalTokens } from "../usage";
 import { Dropdown, type Option } from "./Dropdown";
@@ -53,12 +54,10 @@ const PERMISSION_OPTIONS: ModeOption[] = [
   },
 ];
 
-/** The picker's label for a mode value ("auto-approve" -> "Auto-approve"). Exported so the
- * transcript's mode markers read the same names the user just chose from. */
-export function modeLabel(value: string): string {
-  const option = PERMISSION_OPTIONS.find((o) => o.value === value);
-  return option ? getI18n().t(option.label) : value;
-}
+const SCOPE_KEYS: Record<string, string> = {
+  global: "composer.scope_global",
+  project: "composer.scope_project",
+};
 
 // No hardcoded model fallback: until the server supplies the list (a few seconds after a
 // cold app boot), the picker renders a disabled "Loading models…" chip. A baked-in list
@@ -359,7 +358,12 @@ export function Composer(props: Props) {
           continue;
         }
         if (info && !info.ok) {
-          showAttachNotice(t("composer.pdf_unreadable", { name: a.name, error: info.error || t("composer.pdf_could_not_read") }));
+          showAttachNotice(
+            t("composer.pdf_unreadable", {
+              name: a.name,
+              error: apiErrorText(info, t, t("composer.pdf_could_not_read")),
+            }),
+          );
           continue;
         }
       }
@@ -552,11 +556,11 @@ export function Composer(props: Props) {
         {/* "/" force-run popup — in-flow above the textarea; rows are the session's
             effective menu only (muted/disabled skills never appear). */}
         {slashQuery !== null && (
-          <div className="anim-fade-up px-2 pt-2" data-testid="skill-popup" role="listbox" aria-label="Skills">
+          <div className="anim-fade-up px-2 pt-2" data-testid="skill-popup" role="listbox" aria-label={t("composer.skills_aria")}>
             {slashSkills === null ? (
-              <div className="px-2 py-1.5 text-[12px] text-faint">Loading skills…</div>
+              <div className="px-2 py-1.5 text-[12px] text-faint">{t("composer.skills_loading")}</div>
             ) : slashMatches.length === 0 ? (
-              <div className="px-2 py-1.5 text-[12px] text-faint">No matching skills.</div>
+              <div className="px-2 py-1.5 text-[12px] text-faint">{t("composer.skills_no_match")}</div>
             ) : (
               slashMatches.map((s, i) => (
                 <button
@@ -573,7 +577,7 @@ export function Composer(props: Props) {
                   <span className="text-[13px] font-medium text-accent shrink-0">/{s.name}</span>
                   <span className="text-[12px] text-faint truncate flex-1">{s.description}</span>
                   <span className="text-[11px] px-1.5 py-0.5 rounded-full border border-line text-faint shrink-0">
-                    {s.scope}
+                    {SCOPE_KEYS[s.scope] ? t(SCOPE_KEYS[s.scope]) : s.scope}
                   </span>
                 </button>
               ))
@@ -817,6 +821,7 @@ function UsageChip({
   model: string;
   modelLabels?: Record<string, string>;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const total = totalTokens(usage);
   const pct = contextWindow
@@ -829,7 +834,7 @@ function UsageChip({
   // chip and popover speak context-window only. Flip this to restore the breakdown.
   const SHOW_SESSION_TOTALS = false;
   const labelFor = (id: string) =>
-    id === "unknown" ? "Unknown model" : modelLabels?.[id] || shortModel(id);
+    id === "unknown" ? t("composer.usage_unknown_model") : modelLabels?.[id] || shortModel(id);
   // One field per line, session-summed (owner ask 2026-07-28). Values are cumulative
   // across the whole session, never just the last turn; "Input" is the fresh
   // (uncached) share — the cached share sits in the cache rows at its own price.
@@ -846,11 +851,15 @@ function UsageChip({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Token usage"
+        aria-label={t("composer.usage_aria")}
         title={
           pct !== null
-            ? `Context window ${pct}% full — ${formatTokens(usage.context)} of ${formatTokens(contextWindow as number)}`
-            : `In context now: ${formatTokens(usage.context)} tokens`
+            ? t("composer.usage_full", {
+                pct,
+                used: formatTokens(usage.context),
+                total: formatTokens(contextWindow as number),
+              })
+            : t("composer.usage_in_context", { n: formatTokens(usage.context) })
         }
         data-testid="usage-chip"
       >
@@ -881,7 +890,7 @@ function UsageChip({
             {contextWindow ? (
               <div className="mb-2.5">
                 <div className="text-[11px] uppercase tracking-[0.06em] text-faint font-semibold mb-1">
-                  Context window
+                  {t("composer.usage_context_window")}
                 </div>
                 <div className="h-1.5 rounded-full bg-line overflow-hidden">
                   <div
@@ -890,20 +899,24 @@ function UsageChip({
                   />
                 </div>
                 <div className="mt-1 text-[12px] text-muted tabular-nums">
-                  {formatTokens(usage.context)} of {formatTokens(contextWindow)} · {pct}%
+                  {t("composer.usage_of_window", {
+                    used: formatTokens(usage.context),
+                    total: formatTokens(contextWindow),
+                    pct,
+                  })}
                 </div>
               </div>
             ) : usage.context > 0 ? (
               <div className="mb-2.5 text-[12px] text-muted tabular-nums">
-                In context now: {formatTokens(usage.context)} tokens
+                {t("composer.usage_in_context", { n: formatTokens(usage.context) })}
               </div>
             ) : null}
             {SHOW_SESSION_TOTALS && (<>
             <div className="text-[11px] uppercase tracking-[0.06em] text-faint font-semibold mb-1">
-              Session totals
+              {t("composer.usage_totals")}
             </div>
             <div className="flex flex-col gap-1.5">
-              {Object.entries(usage.byModel).map(([id, t]) => (
+              {Object.entries(usage.byModel).map(([id, u]) => (
                 <div key={id}>
                   <div className="text-[12px] text-ink font-medium truncate" title={id}>
                     {labelFor(id)}
@@ -913,29 +926,29 @@ function UsageChip({
                       read as components: uncached + cache reads + cache writes = total.
                       Without one (Ollama, compat vendors), plain "Input" says it all. */}
                   <div className="mt-0.5 flex flex-col gap-0.5">
-                    {t.cache_read + t.cache_write > 0 ? (
+                    {u.cache_read + u.cache_write > 0 ? (
                       <>
-                        {stat("Uncached input", t.input)}
-                        {stat("Cache reads", t.cache_read)}
-                        {stat("Cache writes", t.cache_write)}
-                        {stat("Total input", t.input + t.cache_read + t.cache_write)}
+                        {stat(t("composer.usage_uncached_input"), u.input)}
+                        {stat(t("composer.usage_cache_reads"), u.cache_read)}
+                        {stat(t("composer.usage_cache_writes"), u.cache_write)}
+                        {stat(t("composer.usage_total_input"), u.input + u.cache_read + u.cache_write)}
                       </>
                     ) : (
-                      stat("Input", t.input)
+                      stat(t("composer.usage_input"), u.input)
                     )}
-                    {stat("Output", t.output)}
+                    {stat(t("composer.usage_output"), u.output)}
                   </div>
                 </div>
               ))}
             </div>
             <div className="mt-2 pt-2 border-t border-line flex items-baseline justify-between text-[12px]">
-              <span className="text-faint">Total</span>
-              <span className="text-ink tabular-nums">{formatTokens(total)} tokens</span>
+              <span className="text-faint">{t("composer.usage_total")}</span>
+              <span className="text-ink tabular-nums">{t("composer.usage_total_value", { n: formatTokens(total) })}</span>
             </div>
             </>)}
             {model && !modelLabels?.[model] && contextWindow === undefined && (
               <div className="mt-1 text-[11px] text-faint leading-snug">
-                Context meter unavailable for custom models.
+                {t("composer.usage_no_meter")}
               </div>
             )}
           </div>

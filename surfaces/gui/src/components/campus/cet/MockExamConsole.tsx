@@ -12,7 +12,7 @@ import type {
   MockStage,
   MockSubmitResult,
 } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { Icon } from "../../Icon";
 
 // 三阶段计时模考：阶段条说「现在能写哪张卡」，计时器是这一屏最重要的数字，收卡锁定
@@ -196,7 +196,11 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
       <Icon name="warning" size={14} />
       <div className="alert-text">
         <span className="alert-title">{t("campus.common.error")}</span>
-        <span className="alert-desc">{campusErrorInfo(error).message}</span>
+        <span className="alert-desc">
+          {t(campusErrorKey(campusErrorInfo(error).code), {
+            defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+          })}
+        </span>
       </div>
     </div>
   ) : null;

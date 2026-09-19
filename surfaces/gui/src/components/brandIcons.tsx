@@ -133,10 +133,6 @@ const MARKS: Record<string, (p: { s: number }) => JSX.Element> = {
   telegram: Telegram,
 };
 
-export function hasBrandIcon(name: string): boolean {
-  return (ALIAS[name] || name) in MARKS;
-}
-
 /** A connector's brand mark; unrecognized connectors get the neutral plug glyph. */
 export function BrandIcon({ name, size = 15 }: { name: string; size?: number }) {
   const Mark = MARKS[ALIAS[name] || name];

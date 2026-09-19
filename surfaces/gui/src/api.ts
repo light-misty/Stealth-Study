@@ -1,4 +1,5 @@
 import type { GroupedQuestion, QuestionOption, SessionInfo, WsEvent } from "./types";
+import type { ErrorBearing } from "./errors";
 
 declare const __COWORKER_DEV_TOKEN__: string;
 
@@ -89,13 +90,15 @@ export async function pickFolderViaServer(): Promise<string | null> {
 export async function openWorkspace(
   path: string,
   create = false,
-): Promise<{
-  path: string;
-  ok: boolean;
-  error?: string;
-  git_branch?: string | null;
-  command_trust?: WorkspaceCommandTrust;
-}> {
+): Promise<
+  ErrorBearing & {
+    path: string;
+    ok: boolean;
+    error?: string;
+    git_branch?: string | null;
+    command_trust?: WorkspaceCommandTrust;
+  }
+> {
   const res = await fetch(`${httpBase()}/v1/workspaces/open`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -109,7 +112,7 @@ export async function openWorkspace(
 export async function createTempWorkspace(
   sessionId: string,
   git = true,
-): Promise<{ ok: boolean; path?: string; git?: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; path?: string; git?: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/workspaces/temp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -123,7 +126,7 @@ export async function createTempWorkspace(
 export async function saveSessionAsProject(
   sessionId: string,
   path: string,
-): Promise<{ ok: boolean; path?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; path?: string; error?: string }> {
   const res = await fetch(
     `${httpBase()}/v1/sessions/${encodeURIComponent(sessionId)}/save-as-project`,
     {
@@ -143,7 +146,7 @@ export async function getTrustedWorkspaces(): Promise<WorkspaceCommandTrust[]> {
 export async function setWorkspaceTrusted(
   path: string,
   trusted: boolean,
-): Promise<{ ok: boolean; error?: string } & WorkspaceCommandTrust> {
+): Promise<ErrorBearing & { ok: boolean; error?: string } & WorkspaceCommandTrust> {
   const res = await fetch(`${httpBase()}/v1/workspaces/trust`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -378,7 +381,7 @@ export interface ArtifactInfo {
   origin?: "artifacts" | "files";
 }
 
-export interface ArtifactContent {
+export interface ArtifactContent extends ErrorBearing {
   ok: boolean;
   error?: string;
   path: string;
@@ -433,7 +436,7 @@ export async function addRoot(
   sessionId: string,
   path: string,
   writable: boolean,
-): Promise<{ ok: boolean; error?: string; roots?: RootInfo[] }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; roots?: RootInfo[] }> {
   const res = await fetch(`${httpBase()}/v1/sessions/${encodeURIComponent(sessionId)}/roots`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -445,7 +448,7 @@ export async function addRoot(
 export async function removeRoot(
   sessionId: string,
   path: string,
-): Promise<{ ok: boolean; error?: string; roots?: RootInfo[] }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; roots?: RootInfo[] }> {
   const q = new URLSearchParams({ path });
   const res = await fetch(
     `${httpBase()}/v1/sessions/${encodeURIComponent(sessionId)}/roots?${q.toString()}`,
@@ -503,7 +506,9 @@ export async function deleteMcpServer(name: string) {
 
 export async function getMcpTools(
   name: string,
-): Promise<{ ok: boolean; error?: string; tools: { name: string; description: string }[] }> {
+): Promise<
+  ErrorBearing & { ok: boolean; error?: string; tools: { name: string; description: string }[] }
+> {
   const res = await fetch(`${httpBase()}/v1/mcp/${encodeURIComponent(name)}/tools`);
   return res.json();
 }
@@ -766,7 +771,7 @@ export async function cloudLogout(): Promise<{ ok: boolean }> {
 export async function connectManaged(
   name: string,
   options?: { access?: "read" | "write" },
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(
     `${httpBase()}/v1/connectors/${encodeURIComponent(name)}/connect-managed`,
     {
@@ -786,7 +791,9 @@ export async function connectManaged(
 /** One-click connect for an MCP-backed connector (monday, asana, jira): the sidecar
  * opens the vendor's sign-in in the browser (local OAuth, no cloud account needed);
  * poll getConnectors until the card flips to connected. */
-export async function connectMcpBacked(name: string): Promise<{ ok: boolean; error?: string }> {
+export async function connectMcpBacked(
+  name: string,
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(
     `${httpBase()}/v1/connectors/${encodeURIComponent(name)}/mcp-connect`,
     { method: "POST" },
@@ -811,7 +818,7 @@ export async function getConnectors(): Promise<Connector[]> {
 export async function connectConnector(
   name: string,
   fields: Record<string, string>,
-): Promise<{ ok: boolean; account?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; account?: string; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/connectors/${encodeURIComponent(name)}/connect`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -988,7 +995,7 @@ export async function setCompactionSettings(
 /** Local page/size probe for a PDF data URL — the composer's attach-time threshold check. */
 export async function inspectPdf(
   dataUrl: string,
-): Promise<{ ok: boolean; pages?: number; bytes?: number; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; pages?: number; bytes?: number; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/attachments/inspect-pdf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1050,7 +1057,7 @@ export async function setSessionsPeek(
 
 export async function setScratchBase(
   path: string,
-): Promise<{ ok: boolean; error?: string; scratch_base?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; scratch_base?: string }> {
   const res = await fetch(`${httpBase()}/v1/settings/scratch-base`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1157,7 +1164,7 @@ export async function getPersonasIndex(): Promise<{ personas: Persona[]; interna
 export async function updatePersona(
   id: string,
   body: { enabled?: boolean; surfaced?: boolean; default?: boolean },
-): Promise<{ ok: boolean; personas?: Persona[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; personas?: Persona[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1171,7 +1178,7 @@ export async function updatePersona(
 /** Uninstall a non-builtin persona (its snapshot + state). Local; works signed out. */
 export async function deletePersona(
   id: string,
-): Promise<{ ok: boolean; personas?: Persona[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; personas?: Persona[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
@@ -1209,7 +1216,7 @@ export async function getCloudGallery(): Promise<{
 // Solo page for one gallery coworker. `capabilities` is the desktop's own
 // consent summary derived from the manifest (same parser as install), so the
 // page shows exactly what installing would ask the user to approve.
-export interface GalleryDetail {
+export interface GalleryDetail extends ErrorBearing {
   ok: boolean;
   error?: string;
   card?: GalleryPersona & { pitch_markdown: string };
@@ -1234,7 +1241,7 @@ export async function getCloudGalleryDetail(slug: string): Promise<GalleryDetail
 export async function exportPersona(
   id: string,
   dir: string,
-): Promise<{ ok: boolean; path?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; path?: string; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}/export`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1245,7 +1252,14 @@ export async function exportPersona(
 
 export async function installPersona(
   body: { dir?: string; git_url?: string; gallery_slug?: string; zip_b64?: string; filename?: string },
-): Promise<{ ok: boolean; consent?: PersonaConsent[]; personas?: Persona[]; error?: string }> {
+): Promise<
+  ErrorBearing & {
+    ok: boolean;
+    consent?: PersonaConsent[];
+    personas?: Persona[];
+    error?: string;
+  }
+> {
   const res = await fetch(`${httpBase()}/v1/personas/install`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1328,7 +1342,7 @@ export async function setPersonaConnection(
 export async function setPersonaEnabled(
   id: string,
   enabled: boolean,
-): Promise<{ ok: boolean; personas?: Persona[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; personas?: Persona[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}/enable`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1415,7 +1429,7 @@ export interface SessionSkillRow {
   enabled: boolean; // false = muted for this session only
 }
 
-export interface SkillUploadPreview {
+export interface SkillUploadPreview extends ErrorBearing {
   ok: boolean;
   error?: string;
   token?: string;
@@ -1425,7 +1439,10 @@ export interface SkillUploadPreview {
   files?: string[];
 }
 
+type SkillOp = { ok: boolean } & ErrorBearing;
+
 const skillUrl = (path = "") => `${httpBase()}/v1/skills${path}`;
+
 const jsonPost = (body: unknown, method = "POST") => ({
   method,
   headers: { "Content-Type": "application/json" },
@@ -1444,7 +1461,7 @@ export async function createSkill(body: {
   instructions: string;
   scope?: "global" | "project";
   workspace?: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<SkillOp> {
   const res = await fetch(skillUrl(), jsonPost(body));
   return res.json();
 }
@@ -1452,12 +1469,12 @@ export async function createSkill(body: {
 export async function updateSkill(
   name: string,
   patch: { description?: string; instructions?: string; enabled?: boolean; workspace?: string },
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}`), jsonPost(patch, "PATCH"));
   return res.json();
 }
 
-export async function revealSkill(name: string): Promise<{ ok: boolean; error?: string }> {
+export async function revealSkill(name: string): Promise<SkillOp> {
   // §6 "Show folder": the backend opens the skill's folder in the OS file manager.
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}/reveal`), jsonPost({}));
   return res.json();
@@ -1466,7 +1483,7 @@ export async function revealSkill(name: string): Promise<{ ok: boolean; error?: 
 export async function deleteSkill(
   name: string,
   workspace?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const qs = workspace ? `?workspace=${encodeURIComponent(workspace)}` : "";
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}${qs}`), { method: "DELETE" });
   return res.json();
@@ -1476,7 +1493,7 @@ export async function moveSkill(
   name: string,
   scope: "global" | "project",
   workspace?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const res = await fetch(skillUrl(`/${encodeURIComponent(name)}/move`), jsonPost({ scope, workspace }));
   return res.json();
 }
@@ -1493,7 +1510,7 @@ export async function confirmSkillUpload(
   token: string,
   scope: "global" | "project" = "global",
   workspace?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<SkillOp> {
   const res = await fetch(skillUrl("/upload/confirm"), jsonPost({ token, scope, workspace }));
   return res.json();
 }
@@ -1617,7 +1634,7 @@ export async function setInboxBinding(
   name: string,
   channel: string | null,
   target: string,
-): Promise<{ ok: boolean; bindings?: InboxBinding[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; bindings?: InboxBinding[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/inbox/routing/binding`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1647,7 +1664,7 @@ export async function getRecentChannels(): Promise<RecentChannel[]> {
 export async function subscribeChannel(
   sessionId: string,
   channel: string,
-): Promise<{ ok: boolean; channel?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; channel?: string; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/subscriptions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1922,24 +1939,13 @@ export async function removeProvider(name: string): Promise<{ ok: boolean; error
 export async function verifyProvider(
   name: string,
   fields: Record<string, string>,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/providers/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, fields }),
   });
   return res.json();
-}
-
-/** Client-side provider guess from an API key's shape (mirrors the server's detect_provider). */
-export function detectProvider(apiKey: string): string | null {
-  const key = (apiKey || "").trim();
-  if (!key) return null;
-  if (key.startsWith("sk-ant-")) return "anthropic";
-  if (key.startsWith("sk-or-")) return "openrouter";
-  if (key.startsWith("AIza")) return "gemini";
-  if (key.startsWith("sk-") || key.startsWith("sk_")) return "openai";
-  return null;
 }
 
 // -- super-agent --------------------------------------------------------------
@@ -2065,7 +2071,7 @@ export async function createAutomation(payload: {
   // §25 standing grants (the creating surface rendered them; submit IS the consent).
   // Only target-bound write entries survive server-side validation.
   permissions?: { tool: string; target: string; access: "read" | "write" }[];
-}): Promise<{ ok: boolean; error?: string; task?: Automation }> {
+}): Promise<ErrorBearing & { ok: boolean; error?: string; task?: Automation }> {
   const res = await fetch(`${httpBase()}/v1/automations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2158,7 +2164,7 @@ export interface SlackChannelEntry {
 export async function getSlackDirectory(
   teamId: string,
   q = "",
-): Promise<{ ok: boolean; error?: string; members?: SlackMember[] }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; members?: SlackMember[] }> {
   const res = await fetch(
     `${httpBase()}/v1/connectors/slack/workspaces/${encodeURIComponent(teamId)}/directory?q=${encodeURIComponent(q)}`,
   );
@@ -2205,7 +2211,7 @@ export async function disallowUser(name: string, userId: string, teamId?: string
 export async function addSlackApprovalOwner(
   userId: string,
   displayName?: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/connectors/slack/approval-owners/add`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2219,7 +2225,7 @@ export async function addSlackApprovalOwner(
 
 export async function removeSlackApprovalOwner(
   userId: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/connectors/slack/approval-owners/remove`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2526,7 +2532,7 @@ export async function setProjectBinding(
   sessionId: string,
   kind: "memory" | "board",
   name: string | null,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const r = await fetch(`${httpBase()}/v1/sessions/${sessionId}/bindings`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -2539,7 +2545,7 @@ export async function nameCurrentProject(
   sessionId: string,
   kind: "memory" | "board",
   name: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const r = await fetch(`${httpBase()}/v1/sessions/${sessionId}/project-name`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

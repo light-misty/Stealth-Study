@@ -76,6 +76,74 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/e2e/campus.spec.ts",
     "surfaces/gui/e2e-live/campus.spec.ts",
     "surfaces/gui/playwright.live.config.ts",
+    # i18n-chinese-coverage 分支登记：全 GUI 的中文化清扫，不是 campus 侵入。
+    # 这批文件被改的原因一律是「原先硬编码英文/未接 i18n」或「零引用废弃代码清理」，
+    # 逐提交对应 fix(gui)/chore(gui) 记录；不改任何 campus 业务逻辑，也不新增共享文件。
+    # 三个 i18n 测试文件按 .test.ts(x) 规则自动豁免，故不在此列出。
+    "surfaces/gui/index.html",
+    "surfaces/gui/src/humanize.ts",
+    "surfaces/gui/src/i18n.ts",
+    "surfaces/gui/src/itemsFromMessages.ts",
+    "surfaces/gui/src/tauri.ts",
+    "surfaces/gui/src/useRoots.ts",
+    "surfaces/gui/src/connectors/ConnectorIcon.tsx",
+    "surfaces/gui/src/providers/ProviderSetup.tsx",
+    "surfaces/gui/src/components/BoardPanel.tsx",
+    "surfaces/gui/src/components/ConnectorMessageCard.tsx",
+    "surfaces/gui/src/components/InboxConfigure.tsx",
+    "surfaces/gui/src/components/Markdown.tsx",
+    "surfaces/gui/src/components/ModelChecklist.tsx",
+    "surfaces/gui/src/components/RightRail.tsx",
+    "surfaces/gui/src/components/ScheduledView.tsx",
+    "surfaces/gui/src/components/SubscriptionsChip.tsx",
+    "surfaces/gui/src/components/TeamChatView.tsx",
+    "surfaces/gui/src/components/Transcript.tsx",
+    "surfaces/gui/src/components/brandIcons.tsx",
+    "surfaces/gui/src/components/personaIcon.tsx",
+    "surfaces/gui/src/components/connectors/CalendarDetail.tsx",
+    "surfaces/gui/src/components/connectors/CloudSignIn.tsx",
+    "surfaces/gui/src/components/connectors/ConnectorsSection.tsx",
+    "surfaces/gui/src/components/connectors/CustomMcp.tsx",
+    "surfaces/gui/src/components/connectors/GithubDetail.tsx",
+    "surfaces/gui/src/components/connectors/HubSpotDetail.tsx",
+    "surfaces/gui/src/components/connectors/SlackDetail.tsx",
+    "surfaces/gui/src/components/connectors/SlackHowItWorks.tsx",
+    # 已删除的废弃组件：待办面板早被 RightRail 取代，全仓库零引用（删除同样要过本登记）。
+    "surfaces/gui/src/components/TodoPanel.tsx",
+    # 后端错误代号分类器与前端取键入口（中文化方案 C 的地基，两侧各一个新文件）。
+    "ss/errors.py",
+    "ss/server/manager.py",
+    "surfaces/gui/src/errors.ts",
+    # 技能子系统的校验异常改抛带代号的 CodedValueError（仍是 ValueError，消息逐字未变）。
+    "ss/skills/store.py",
+    # 错误显示点接线第一片：SkillsTab 的 fail() 改走 apiErrorText，原文降级为悬浮提示。
+    "surfaces/gui/src/components/SkillsTab.tsx",
+    # 工作区/文件夹域接线（同一片的第二组）：错误文案改由 error_code 查语言包，
+    # useRoots 额外把后端原文作为 errorDetail 透出给消费方挂悬浮。
+    "surfaces/gui/src/components/AccessSection.tsx",
+    "surfaces/gui/src/components/FolderGate.tsx",
+    "surfaces/gui/src/components/SendFolderDialog.tsx",
+    "surfaces/gui/src/components/SessionIntro.tsx",
+    "surfaces/gui/src/components/SessionSetupRow.tsx",
+    "surfaces/gui/src/components/WorkspaceTrustPrompt.tsx",
+    # 第二档 A（personas 域）：清单/导出异常带代号，安装/导出/删除/画廊四处界面取键。
+    "ss/personas/registry.py",
+    "ss/cloud.py",
+    "surfaces/gui/src/components/GalleryModal.tsx",
+    "surfaces/gui/src/components/PersonaView.tsx",
+    "surfaces/gui/src/components/PersonasTab.tsx",
+    # 第二档 B（定时任务与项目绑定域）：命名/校验异常带代号，两处界面取键。
+    "ss/projects.py",
+    "surfaces/gui/src/components/ProjectBindMenu.tsx",
+    # 第二档 C（Slack/Inbox/订阅域）：连接态与入参守卫消息带代号，6 处界面取键。
+    "ss/connectors/slack_directory.py",
+    # 第二档 D（连接器一键/手动连接与 PDF 检查）：自写守卫消息带代号，10 处界面取键。
+    "ss/connectors/setup.py",
+    "ss/pdf_support.py",
+    "surfaces/gui/src/components/ManageTabs.tsx",
+    "surfaces/gui/src/components/connectors/AddConnectionModal.tsx",
+    # 第三档（模型提供方校验）：自写校验消息带代号，ProviderSetup 取键。
+    "ss/providers/registry.py",
     # 备考台原型落地：三个台子的样式层与图标集落在 campus 目录之外，因为它们要能被
     # `main.tsx` 直接 import（`src/campus/` 下的文件按约定只放数据层与面板）。
     # `campus-station.css` / `campus-icons.tsx` 是新增文件，另外三处是既有文件的追加式改动。

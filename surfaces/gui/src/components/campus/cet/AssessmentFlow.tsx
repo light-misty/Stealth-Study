@@ -13,7 +13,7 @@ import type {
   AssessmentFinishResult,
   AssessmentQuestion,
 } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { Icon } from "../../Icon";
 
 // 定级测评在真实实现里是整卷一次铺开的长卷，所以卷面本身就是滚动区，卡头钉住
@@ -223,7 +223,11 @@ export function AssessmentFlow({
       <Icon name="warning" size={14} />
       <div className="alert-text">
         <span className="alert-title">{t("campus.common.error")}</span>
-        <span className="alert-desc">{campusErrorInfo(error).message}</span>
+        <span className="alert-desc">
+          {t(campusErrorKey(campusErrorInfo(error).code), {
+            defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+          })}
+        </span>
       </div>
       {campusErrorInfo(error).retryable ? (
         <button type="button" className="btn btn--ghost btn--sm" onClick={onRetry}>

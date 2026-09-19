@@ -21,6 +21,7 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+from ..errors import coded_error
 from .anthropic_provider import AnthropicProvider
 from .base import ProviderClient
 from .bedrock_provider import BedrockProvider
@@ -949,7 +950,9 @@ def verify_provider_key(
     if d.auth == "oauth":
         # OAuth providers verify from their stored tokens (needs the SecretStore),
         # which only the manager holds — see SessionManager.verify_provider.
-        return {"ok": False, "error": f"{d.title} verifies via its sign-in, not a key."}
+        return coded_error(
+            f"{d.title} verifies via its sign-in, not a key.", "PROVIDER_SIGNIN_ONLY", ok=False
+        )
     if name == "bedrock":
         return _verify_bedrock(fields or {}, timeout)
     if name == "vertex":
@@ -1010,8 +1013,8 @@ def verify_provider_key(
         return {"ok": True}
     if resp.status_code in (401, 403):
         if name == "ollama":
-            return {"ok": False, "error": "Server rejected the request."}
-        return {"ok": False, "error": "Invalid API key."}
+            return coded_error("Server rejected the request.", "PROVIDER_REJECTED", ok=False)
+        return coded_error("Invalid API key.", "PROVIDER_KEY_REJECTED", ok=False)
     if resp.status_code == 404 and name == "ollama":
         return {
             "ok": False,

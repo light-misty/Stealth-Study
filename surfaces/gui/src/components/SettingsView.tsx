@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getI18n, useTranslation } from "react-i18next";
+import { getI18n, Trans, useTranslation } from "react-i18next";
 import { getStoredLanguage, setLanguage as setI18nLanguage, type Lang } from "../i18n";
 import {
   getSettings,
@@ -18,6 +18,7 @@ import {
   type PdfSettings,
   type WorkspaceCommandTrust,
 } from "../api";
+import { apiErrorText } from "../errors";
 import {
   cancelDictationModelDownload,
   deleteDictationModel,
@@ -164,8 +165,8 @@ export function SettingsView({
           ) : tab === "context" ? (
             <section>
               <PanelHead
-                title="Context optimization"
-                sub="How sessions spend tokens — attachment handling and long-history compaction."
+                title={t("settings.tab.context")}
+                sub={t("settings.context_sub")}
               />
               <TokenSavingsCard />
               <CompactionCard />
@@ -787,6 +788,7 @@ function TokenSavingsCard() {
 // limit, so work continues instead of hitting a raw provider error. Two spec'd
 // overrides (trigger % + token cap) and the summarizer-model pin — nothing more.
 function CompactionCard() {
+  const { t } = useTranslation();
   const [cfg, setCfg] = useState<CompactionSettings | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [labels, setLabels] = useState<Record<string, string>>({});
@@ -820,16 +822,12 @@ function CompactionCard() {
   const modelLabel = (id: string) => labels[id]?.split(" · ")[0] || id;
   return (
     <div className={CARD + " p-4 mb-4"} data-testid="compaction-card">
-      <div className={FIELD_LABEL}>Context compaction</div>
-      <div className={FIELD_HELP}>
-        Long sessions are compacted automatically: older turns are summarized so the
-        coworker keeps working instead of running out of context. Your visible transcript
-        is never changed — a small marker shows where compaction happened.
-      </div>
+      <div className={FIELD_LABEL}>{t("settings.compaction_title")}</div>
+      <div className={FIELD_HELP}>{t("settings.compaction_desc")}</div>
 
       <div className="mt-3 flex items-center gap-5 flex-wrap">
         <label className="flex items-center gap-2.5">
-          <span className="text-[13px] text-ink">Compact at</span>
+          <span className="text-[13px] text-ink">{t("settings.compaction_at")}</span>
           <input
             type="number"
             min={10}
@@ -844,10 +842,10 @@ function CompactionCard() {
               })
             }
           />
-          <span className="text-[13px] text-muted">% of the context window</span>
+          <span className="text-[13px] text-muted">{t("settings.compaction_pct_unit")}</span>
         </label>
         <label className="flex items-center gap-2.5">
-          <span className="text-[13px] text-ink">or at</span>
+          <span className="text-[13px] text-ink">{t("settings.compaction_or_at")}</span>
           <input
             type="number"
             min={10_000}
@@ -865,23 +863,20 @@ function CompactionCard() {
               })
             }
           />
-          <span className="text-[13px] text-muted">tokens, whichever is smaller</span>
+          <span className="text-[13px] text-muted">{t("settings.compaction_tokens_cap")}</span>
         </label>
       </div>
-      <div className={FIELD_HELP}>
-        The cap makes very-large-context models compact early — quality and speed degrade
-        well before their nominal limit.
-      </div>
+      <div className={FIELD_HELP}>{t("settings.compaction_cap_help")}</div>
 
       <div className="mt-3 flex items-center gap-2.5">
-        <span className="text-[13px] text-ink">Summarizer model</span>
+        <span className="text-[13px] text-ink">{t("settings.compaction_model_label")}</span>
         <select
           value={cfg.compaction_model}
           data-testid="compaction-model"
           className="px-2 py-1.5 rounded-lg border border-line bg-paper text-[13px] text-ink outline-none focus:border-accent"
           onChange={(e) => save({ compaction_model: e.target.value })}
         >
-          <option value="">Session&rsquo;s own model (default)</option>
+          <option value="">{t("settings.compaction_model_default")}</option>
           {models.map((m) => (
             <option key={m} value={m}>
               {modelLabel(m)}
@@ -889,10 +884,7 @@ function CompactionCard() {
           ))}
         </select>
       </div>
-      <div className={FIELD_HELP}>
-        The summary is written by this model. The default follows whatever model the
-        session is using.
-      </div>
+      <div className={FIELD_HELP}>{t("settings.compaction_model_help")}</div>
     </div>
   );
 }
@@ -941,6 +933,7 @@ function ContextBarCard() {
 // user-global (a cloned repo can't turn either on). Shadow is nested under the main flag — it
 // only makes sense to measure the reviewer once you know what it is.
 function AutoApproveCard() {
+  const { t } = useTranslation();
   const [on, setOn] = useState<boolean | null>(null);
   const [shadow, setShadow] = useState(false);
 
@@ -965,7 +958,7 @@ function AutoApproveCard() {
   if (on === null) return null;
   return (
     <div className={CARD + " p-4 mb-4"} data-testid="auto-approve-card">
-      <div className={FIELD_LABEL}>Auto-approve (experimental)</div>
+      <div className={FIELD_LABEL}>{t("settings.auto_approve_title")}</div>
       <label className="flex items-start gap-3 py-2">
         <input
           type="checkbox"
@@ -975,12 +968,9 @@ function AutoApproveCard() {
           onChange={(e) => saveOn(e.target.checked)}
         />
         <span>
-          <span className="block text-[13px] text-ink">Enable Auto-approve mode</span>
+          <span className="block text-[13px] text-ink">{t("settings.auto_approve_enable")}</span>
           <span className="block text-[12px] text-muted">
-            Adds an <em>Auto-approve</em> option to the mode picker. In that mode, your session
-            model reviews each action that would normally need approval and clears the routine
-            ones; anything doubtful still asks you. It can never allow something the rules
-            block. One extra model call per check, billed to your usage.
+            <Trans i18nKey="settings.auto_approve_desc" components={{ em: <em /> }} />
           </span>
         </span>
       </label>
@@ -994,12 +984,10 @@ function AutoApproveCard() {
         />
         <span>
           <span className="block text-[13px] text-ink">
-            Shadow evaluation <span className="text-faint">(for measuring)</span>
+            <Trans i18nKey="settings.auto_approve_shadow" components={{ faint: <span className="text-faint" /> }} />
           </span>
           <span className="block text-[12px] text-muted">
-            On any mode, the reviewer records what it <em>would</em> have decided next to your
-            own choice — without changing anything. Lets you see how it would behave before
-            trusting it. Also costs one model call per approval.
+            <Trans i18nKey="settings.auto_approve_shadow_desc" components={{ em: <em /> }} />
           </span>
         </span>
       </label>
@@ -1072,7 +1060,7 @@ function FilesCard() {
       setScratchMsg(t("settings.files_saved"));
       refresh();
     } else {
-      setScratchMsg(res.error || t("settings.files_save_error"));
+      setScratchMsg(apiErrorText(res, t, t("settings.files_save_error")));
     }
   };
   const browseScratch = async () => {

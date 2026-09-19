@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getI18n, useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import type { ApprovalDecision, Item } from "../types";
 import { shortArgs } from "./ApprovalCard";
 import { humanizeAsk, humanizeTool, type HumanLine } from "../humanize";
@@ -67,8 +68,8 @@ function BubbleMeta({ text, ts, align }: { text: string; ts?: number; align: "le
           {copied ? t("transcript.copied") : <Icon name="copy" size={11} />}
         </button>
         {when && (
-          <span data-testid="bubble-ts" title={when.toLocaleString()}>
-            {when.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+          <span data-testid="bubble-ts" title={when.toLocaleString(intlLocale())}>
+            {when.toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" })}
           </span>
         )}
       </div>

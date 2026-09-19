@@ -3,6 +3,8 @@
 // sets `withGlobalTauri`) instead of the @tauri-apps npm packages, so the browser build needs
 // no Tauri dependencies.
 
+import { getI18n } from "react-i18next";
+
 export const isTauri = (): boolean =>
   typeof (globalThis as any).__TAURI__ !== "undefined";
 
@@ -46,7 +48,7 @@ const invoke = async <T>(cmd: string, args?: Record<string, unknown>): Promise<T
 
 const invokeStrict = async <T>(cmd: string, args?: Record<string, unknown>): Promise<T> => {
   const tauri = (globalThis as any).__TAURI__;
-  if (!tauri?.core?.invoke) throw new Error("This feature is available in the desktop app.");
+  if (!tauri?.core?.invoke) throw new Error(getI18n().t("common.desktop_only"));
   return (await tauri.core.invoke(cmd, args)) as T;
 };
 
@@ -124,6 +126,10 @@ export const clearPendingUpdate = () => invokeStrict<void>("clear_pending_update
  * then relaunch. Resolves only on failure paths (success restarts the process on macOS;
  * Windows hands off to the installer). */
 export const installUpdate = () => invokeStrict<void>("install_update");
+
+/** Relabel the native tray menu, which can't read the SPA's i18n resources. Inert in the browser. */
+export const setTrayLabels = (open: string, settings: string, quit: string) =>
+  invoke<void>("set_tray_labels", { open, settings, quit });
 
 /** Best-effort open a URL in the user's browser. Uses the Tauri opener plugin if present, else
  * `window.open`. The caller should also render the raw URL so it stays copyable if both no-op

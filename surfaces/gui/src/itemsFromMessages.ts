@@ -5,8 +5,13 @@
 // becomes a `connector` item (rendered as ConnectorMessageCard) instead of a plain user bubble. This
 // generalizes to any connector via the registry — no Slack special-casing here.
 
+import { getI18n } from "react-i18next";
+
 import type { ConversationMessage } from "./api";
 import type { Attachment, Item } from "./types";
+
+const t = (k: string, opts?: Record<string, unknown>) =>
+  getI18n().getFixedT(null, "translation")(k, opts) as string;
 
 export function itemsFromMessages(messages: ConversationMessage[]): Item[] {
   const items: Item[] = [];
@@ -92,12 +97,12 @@ export function itemsFromMessages(messages: ConversationMessage[]): Item[] {
       // the Transcript only offers the button when it's the transcript tail.
       items.push(
         m.kind === "interrupted"
-          ? { kind: "notice", tone: "warn", text: "Interrupted." }
+          ? { kind: "notice", tone: "warn", text: t("app.notice.interrupted") }
           : m.kind === "model_switch"
-            ? { kind: "notice", tone: "info", text: m.text || "Model switched" }
+            ? { kind: "notice", tone: "info", text: m.text || t("app.notice.model_switched") }
             : m.kind === "compacted"
               ? // The subtle "compacted here" divider (OPE-27) — the transcript itself is intact.
-                { kind: "notice", tone: "info", text: m.text || "Context compacted" }
+                { kind: "notice", tone: "info", text: m.text || t("app.notice.context_compacted") }
               : m.kind === "mcp_error"
                 ? // A configured MCP server failed to start for this session — informational,
                   // NOT retriable (retry re-runs the model turn, which can't fix a dead server).
@@ -111,13 +116,13 @@ export function itemsFromMessages(messages: ConversationMessage[]): Item[] {
                     { kind: "notice", tone: "info", text: m.text || "" }
                   : m.kind === "reviewer_paused"
                     ? // §8.4 breaker: auto-approve paused itself for the rest of the turn.
-                      { kind: "notice", tone: "info", text: m.text || "Auto-approve paused for the rest of this turn." }
+                      { kind: "notice", tone: "info", text: m.text || t("app.notice.auto_approve_paused") }
                     : m.kind === "mode_notice"
                       ? // The once-per-session Auto-Approve explainer, in place forever.
-                        { kind: "notice", tone: "info", title: (m as any).title || "Auto-approve is on.", text: m.text || "" }
+                        { kind: "notice", tone: "info", title: (m as any).title || t("app.notice.auto_approve_on"), text: m.text || "" }
                       : m.kind === "mode_switch"
                         ? { kind: "notice", tone: "info", text: m.text || "" }
-                  : { kind: "notice", tone: "warn", text: "Error: " + (m.text || "unknown"), retriable: true },
+                  : { kind: "notice", tone: "warn", text: t("app.notice.error") + (m.text || t("app.notice.unknown")), retriable: true },
       );
     }
     // system messages are omitted; tool-result messages are folded into the tool row above
@@ -130,13 +135,13 @@ function mcpNoticeItem(m: ConversationMessage): Item {
   const server =
     (m.server && String(m.server)) || (text.match(/MCP server [“"]([^”"]+)[”"]/) || [])[1];
   if (!server)
-    return { kind: "notice", tone: "warn", text: text || "An MCP server failed to start" };
+    return { kind: "notice", tone: "warn", text: text || t("app.notice.mcp_failed") };
   // The old format appended a plain-text Settings pointer — the button replaces it.
   const detail = text.replace(/\s*—\s*see Settings ▸ Connectors\s*$/u, "");
   return {
     kind: "notice",
     tone: "warn",
-    text: `MCP server “${server}” didn’t start — its tools are unavailable here`,
+    text: t("app.notice.mcp_not_started", { server }),
     server,
     detail: detail || undefined,
   };

@@ -19,6 +19,7 @@ import os
 import time
 from typing import Any, Optional
 
+from ..errors import coded_error, forwarded_error
 from ..secrets import SecretStore
 
 _TTL = 900.0  # 15 min — rosters drift slowly; a Refresh affordance can force it
@@ -114,7 +115,7 @@ def list_members(
     Bots, deleted users, and Slackbot are filtered — they can't need allowing."""
     token = _bot_token(secrets, team_id)
     if not token:
-        return {"ok": False, "error": "workspace not connected"}
+        return coded_error("workspace not connected", "WORKSPACE_NOT_CONNECTED", ok=False)
 
     def fetch() -> list[dict[str, Any]]:
         members = _get_pages(token, "users.list", {}, "members")
@@ -144,7 +145,7 @@ def list_members(
     try:
         rows = _cached(team_id, "members", fetch, refresh)
     except Exception as exc:
-        return {"ok": False, "error": str(exc)}
+        return forwarded_error(exc, ok=False)
     return {"ok": True, "members": _rank(rows, query, "name", limit)}
 
 
@@ -160,7 +161,7 @@ def list_channels(
     is a member. `is_member` lets the GUI hint "invite @OpenWorker" for the rest."""
     token = _bot_token(secrets, team_id)
     if not token:
-        return {"ok": False, "error": "workspace not connected"}
+        return coded_error("workspace not connected", "WORKSPACE_NOT_CONNECTED", ok=False)
 
     def fetch() -> list[dict[str, Any]]:
         chans = _get_pages(
@@ -184,7 +185,7 @@ def list_channels(
     try:
         rows = _cached(team_id, "channels", fetch, refresh)
     except Exception as exc:
-        return {"ok": False, "error": str(exc)}
+        return forwarded_error(exc, ok=False)
     return {"ok": True, "channels": _rank(rows, query, "name", limit)}
 
 

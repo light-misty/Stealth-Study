@@ -13,6 +13,7 @@ import {
   type SkillUploadPreview,
 } from "../api";
 import { Icon } from "./Icon";
+import { apiErrorDetail, apiErrorText, type ErrorBearing } from "../errors";
 
 // Settings ▸ Skills (SKILLS-SPEC §5/§6) — the management home: the LIST is the page; every
 // add-surface appears only when summoned from the single "Add skill" menu (the three doors:
@@ -81,6 +82,7 @@ export function SkillsTab({
   const [addOpen, setAddOpen] = useState(false);
   const [armedDelete, setArmedDelete] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
   // The state-change callout (SKILLS-SPEC §4.1 #2): name-first so the user knows WHICH
   // skill, and visually distinct so it can't be skimmed past (tester ask 2026-07-27).
   const [notice, setNotice] = useState<{ name: string; text: string; tone: "ok" | "warn" } | null>(
@@ -102,13 +104,15 @@ export function SkillsTab({
     refresh();
   }, []);
 
-  const fail = (res: { ok?: boolean; error?: string }) => {
+  const fail = (res: { ok?: boolean } & ErrorBearing) => {
     setNotice(null);
     if (res.ok === false) {
-      setError(res.error || t("skills.error_generic"));
+      setErrorDetail(apiErrorDetail(res));
+      setError(apiErrorText(res, t, t("skills.error_generic")));
       return true;
     }
     setError("");
+    setErrorDetail("");
     return false;
   };
 
@@ -239,7 +243,7 @@ export function SkillsTab({
       />
 
       {error ? (
-        <div className="text-[13px] text-red-500 mb-3" role="alert">
+        <div className="text-[13px] text-red-500 mb-3" role="alert" title={errorDetail}>
           {error}
         </div>
       ) : null}
@@ -367,7 +371,9 @@ export function SkillsTab({
                   <button
                     className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-md border border-line bg-paper text-muted hover:text-ink hover:border-lineStrong shrink-0"
                     title={t("skills.show_folder")}
-                    onClick={() => revealSkill(row.name)}
+                    onClick={() => {
+                      revealSkill(row.name).then(fail);
+                    }}
                   >
                     <Icon name="folder" size={11} /> {t("skills.file_count", { count: row.files })}
                   </button>

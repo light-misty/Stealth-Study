@@ -4,6 +4,7 @@ import { getRecentWorkspaces, openWorkspace, type RecentWorkspace } from "../api
 import { chooseFolder } from "../tauri";
 import { baseName } from "../paths";
 import { Icon } from "./Icon";
+import { apiErrorText } from "../errors";
 
 // UX-029: folder enforcement AT SEND, not at session start. A code-family coworker with no
 // folder picked gets this dialog when the user hits send; the message goes out the moment a
@@ -38,7 +39,7 @@ export function SendFolderDialog({ coworkerName, onPick, onTemp, onCancel }: Pro
     setError("");
     const res = await openWorkspace(path);
     if (res.ok) onPick(res.path, res.git_branch);
-    else setError(res.error || t("folder_gate.open_error"));
+    else setError(apiErrorText(res, t, t("folder_gate.open_error")));
   };
 
   const browse = async () => {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import {
   getConnectors,
   getDmRoute,
@@ -17,6 +18,7 @@ import {
   type Subscription,
   type UnroutedItem,
 } from "../api";
+import { apiErrorText } from "../errors";
 import type { SessionInfo } from "../types";
 import { ChannelPicker } from "./SubscriptionsChip";
 import { Icon } from "./Icon";
@@ -85,7 +87,7 @@ function InboxRoutingCard() {
     const [platform, id] = addr.includes(":") ? addr.split(":", 2) : ["slack", addr];
     const result = await setInboxBinding("default", platform, id);
     if (!result.ok) {
-      setError(result.error || tt("inbox.routing_update_failed"));
+      setError(apiErrorText(result, tt, tt("inbox.routing_update_failed")));
       return;
     }
     setError(null);
@@ -95,7 +97,7 @@ function InboxRoutingCard() {
   const clear = async () => {
     const result = await setInboxBinding("default", null, "");
     if (!result.ok) {
-      setError(result.error || tt("inbox.routing_clear_failed"));
+      setError(apiErrorText(result, tt, tt("inbox.routing_clear_failed")));
       return;
     }
     setError(null);
@@ -362,7 +364,7 @@ function UnroutedTable() {
           {(items ?? []).map((it, i) => (
             <tr className="border-t border-line" key={i}>
               <td className="px-4 py-2.5 text-muted whitespace-nowrap">
-                {new Date(it.ts * 1000).toLocaleString()}
+                {new Date(it.ts * 1000).toLocaleString(intlLocale())}
               </td>
               <td className="px-4 py-2.5" title={it.sender}>
                 {it.source}

@@ -7,6 +7,7 @@
 // `--brand-soft` used for the badge tint) are set inline from the prop rather than from CSS.
 
 import type { CSSProperties } from "react";
+import { getI18n } from "react-i18next";
 import { resolveConnector } from "./registry";
 
 export const NEUTRAL = "#6b7280"; // fallback gray, matches the descriptor default
@@ -51,8 +52,16 @@ export function isDarkMark(color: string): boolean {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.25;
 }
 
+const GENERIC_LABELS: Record<string, string> = {
+  Connector: "connector.generic",
+  Email: "connector.email",
+  Browser: "connector.browser",
+};
+
 function visualLabel(connector: ConnectorVisual, fallbackLabel: string, title?: string): string {
-  return title ?? connector.label ?? connector.title ?? fallbackLabel;
+  const raw = title ?? connector.label ?? connector.title ?? fallbackLabel;
+  const key = GENERIC_LABELS[raw];
+  return key ? (getI18n().t(key) as string) : raw;
 }
 
 /** Bare logo glyph, brand-tinted. */

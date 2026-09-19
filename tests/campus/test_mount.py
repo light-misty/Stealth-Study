@@ -107,18 +107,36 @@ BACKEND_PATCH = {
     "M\tss/automation/store.py",
     # logging-system 分支：sidecar 启动时初始化统一日志
     "M\tss/server/run.py",
+    # i18n-chinese-coverage 分支：错误响应附带稳定 error_code（文案仍为原英文，见 ss/errors.py）
+    "M\tss/server/manager.py",
+    "M\tss/skills/store.py",
     # skip-question-card 分支（OPE-153）：ask 工具的哨兵值与跳过结算、引擎对
     # 全跳过卡片的 denied 判定、Slack 镜像为问题附带 Skip 按钮
     "M\tss/tools/ask.py",
     "M\tss/engine.py",
     "M\tss/interactions.py",
+    # i18n-chinese-coverage 分支续：personas 域的清单/导出异常改抛带代号类型，云端画廊
+    # 与 install/export 端点随之附带 error_code（裸文本照旧保留）
+    "M\tss/personas/registry.py",
+    "M\tss/cloud.py",
+    # i18n-chinese-coverage 分支续：项目命名异常改抛带代号类型（定时任务与绑定域）
+    "M\tss/projects.py",
+    # i18n-chinese-coverage 分支续：Slack 成员目录的未分类异常改用 forwarded_error 透传原文
+    "M\tss/connectors/slack_directory.py",
+    # i18n-chinese-coverage 分支续：连接器与 PDF 检查的自写守卫消息带代号
+    "M\tss/connectors/setup.py",
+    "M\tss/pdf_support.py",
+    "M\tss/providers/registry.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
-# campus 挂载、日志系统与 inbox 修复三条分支各自的 app.py 增量预算
+# campus 挂载、日志系统、inbox 修复与错误代号四条分支各自的 app.py 增量预算
 APP_PY_PATCHES = {
     "40\t2\tss/server/app.py",
     "34\t1\tss/server/app.py",
     "6\t3\tss/server/app.py",
+    "27\t19\tss/server/app.py",
+    "36\t25\tss/server/app.py",
+    "44\t30\tss/server/app.py",
 }
 
 

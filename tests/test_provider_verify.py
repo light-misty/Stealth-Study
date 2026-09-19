@@ -76,6 +76,7 @@ def test_verify_bad_key_is_invalid(monkeypatch):
     assert verify_provider_key("openai", api_key="sk-bad") == {
         "ok": False,
         "error": "Invalid API key.",
+        "error_code": "PROVIDER_KEY_REJECTED",
     }
 
 

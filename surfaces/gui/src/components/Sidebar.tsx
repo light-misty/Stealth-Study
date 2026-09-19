@@ -32,10 +32,10 @@ import brandGlyph from "../../assets/icon.png";
 
 // Session surfaces shown as accordions, in display order. The surfaced personas drive this list
 // (so third-party / Ops personas appear); the hardcoded set is the fallback before personas load.
-const SURFACES: { key: string; label: string; icon: IconName; cls: string }[] = [
-  { key: "cowork", label: "Coworker", icon: "diamond", cls: "ico-cowork" },
-  { key: "chat", label: "Chat", icon: "chat", cls: "ico-chat" },
-  { key: "code", label: "Code", icon: "code", cls: "ico-code" },
+const SURFACES: { key: string; labelKey: string; icon: IconName; cls: string }[] = [
+  { key: "cowork", labelKey: "sidebar.group_persona", icon: "diamond", cls: "ico-cowork" },
+  { key: "chat", labelKey: "sidebar.surface_chat", icon: "chat", cls: "ico-chat" },
+  { key: "code", labelKey: "sidebar.surface_code", icon: "code", cls: "ico-code" },
 ];
 
 const surfaceFromPersona = (p: Persona) => ({
@@ -862,7 +862,7 @@ export function Sidebar(props: Props) {
           .map(surfaceFromPersona)
       : SURFACES.filter(
           (s) => s.key === "cowork" || props.surfaces[s.key as keyof SurfaceVisibility],
-        )
+        ).map((s) => ({ ...s, label: t(s.labelKey) }))
   ).filter((s) => personaVisible(s.key));
 
   const isCurrent = (key: string) => props.agent === key; // the active session's persona

@@ -11,6 +11,7 @@ import {
   type GalleryDetail,
   type GalleryPersona,
 } from "../api";
+import { apiErrorDetail, apiErrorText } from "../errors";
 import { BrandIcon } from "./brandIcons";
 import { Icon } from "./Icon";
 import { Markdown } from "./Markdown";
@@ -124,7 +125,7 @@ export function GalleryModal({
     const r = await installPersona({ gallery_slug: slug });
     setBusy(false);
     if (!r.ok) {
-      setMsg(r.error || t("gallery.install_failed"));
+      setMsg(apiErrorText(r, t, t("gallery.install_failed")));
       return;
     }
     setInstalled((s) => new Set(s).add(slug));
@@ -272,7 +273,9 @@ export function GalleryModal({
       {!detail ? (
         <div className="text-[13px] text-muted">{t("gallery.loading")}</div>
       ) : !detail.ok || !card ? (
-        <div className="text-[13px] text-danger">{detail.error || t("gallery.could_not_load")}</div>
+        <div className="text-[13px] text-danger" title={apiErrorDetail(detail)}>
+          {apiErrorText(detail, t, t("gallery.could_not_load"))}
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-start gap-4">

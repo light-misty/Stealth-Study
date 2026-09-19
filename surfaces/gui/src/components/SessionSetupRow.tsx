@@ -5,6 +5,7 @@ import { chooseFolder } from "../tauri";
 import { fullPersonaName } from "../personaScope";
 import { baseName } from "../paths";
 import { Icon } from "./Icon";
+import { apiErrorText } from "../errors";
 
 // UX-029: the session-setup row — per-SESSION choices (coworker + folder) in their own
 // quiet chip row above the composer, a different species from the per-MESSAGE controls
@@ -46,7 +47,7 @@ export function SessionSetupRow(props: Props) {
   const pickFolder = async (path: string) => {
     const res = await openWorkspace(path);
     if (!res.ok) {
-      setError(res.error || t("folder_gate.open_error"));
+      setError(apiErrorText(res, t, t("folder_gate.open_error")));
       return;
     }
     setOpenMenu(null);

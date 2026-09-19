@@ -332,7 +332,7 @@ function SceneMention({ meFirst, meInitial }: { meFirst: string; meInitial: stri
         <OwRail hot={tr("slack.hiw_summarize_room")} hotSub={tr("slack.hiw_via_slack_now")} glow />
         <div className="hiw-owmain">
           <div className="hiw-owtitle hiw-k" style={d("2.6s")}>
-            Summarize #launch-room <span className="hiw-via">via Slack</span>
+            {tr("slack.hiw_summarize_room")} <span className="hiw-via">{tr("slack.hiw_via_slack")}</span>
           </div>
           <div className="hiw-owchat">
             <div className="hiw-bub user hiw-k" style={d("2.8s")}>@StealthStudy {tr("slack.hiw_summarize")}</div>

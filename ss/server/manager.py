@@ -38,6 +38,7 @@ from ..unrouted import UnroutedStore
 from ..unattended import UnattendedRegistry
 from ..audit import AuditStore
 from ..config import load_config, workspace_allowed_commands
+from ..errors import coded_error, error_payload, forwarded_error
 from ..conversations import ConversationStore, title_from
 from ..engine import ApprovalOutcome, Approver, TurnEngine
 from ..roots import RootDir
@@ -368,18 +369,21 @@ class SessionManager:
     def open_workspace(self, path: str, *, create: bool = False) -> dict[str, Any]:
         resolved = Path(path).expanduser()
         if resolved.exists() and not resolved.is_dir():
-            return {"path": str(resolved), "ok": False, "error": "not a directory"}
+            return coded_error(
+                "not a directory", "NOT_A_DIRECTORY", ok=False, path=str(resolved)
+            )
         if not resolved.exists():
             if not create:
-                return {
-                    "path": str(resolved),
-                    "ok": False,
-                    "error": "folder does not exist",
-                }
+                return coded_error(
+                    "folder does not exist",
+                    "FOLDER_MISSING",
+                    ok=False,
+                    path=str(resolved),
+                )
             try:
                 resolved.mkdir(parents=True, exist_ok=True)
             except OSError as exc:
-                return {"path": str(resolved), "ok": False, "error": str(exc)}
+                return error_payload(exc, ok=False, path=str(resolved))
         resolved = resolved.resolve()
         self.session_store.touch_workspace(str(resolved))
         return {
@@ -423,10 +427,14 @@ class SessionManager:
         self, path: str | Path, *, trusted: bool
     ) -> dict[str, Any]:
         if not str(path).strip():
-            return {"ok": False, "error": "workspace path is required"}
+            return coded_error(
+                "workspace path is required", "PATH_REQUIRED", ok=False
+            )
         candidate = Path(path).expanduser()
         if trusted and not candidate.is_dir():
-            return {"ok": False, "error": "workspace is not a directory"}
+            return coded_error(
+                "workspace is not a directory", "NOT_A_DIRECTORY", ok=False
+            )
         canonical = self.workspace_trust.set_trusted(candidate, trusted)
         effective = load_config(
             canonical, workspace_trusted=trusted
@@ -509,7 +517,7 @@ class SessionManager:
         directory at SEND time (not connect) and, for code-family work, make git ready.
         Idempotent — re-sending against an existing dir is a no-op."""
         if not self._SESSION_ID_RE.match(session_id or "") or session_id in {".", ".."}:
-            return {"ok": False, "error": "invalid session id"}
+            return coded_error("invalid session id", "INVALID_SESSION_ID", ok=False)
         path = self._provision_scratch(session_id)
         if git and not (Path(path) / ".git").is_dir():
             try:
@@ -529,7 +537,7 @@ class SessionManager:
         location and rebind the session there. The cached engine is dropped so the next
         connect rebuilds against the new path — callers must reconnect after this."""
         if not dest or not dest.strip():
-            return {"ok": False, "error": "no destination folder"}
+            return coded_error("no destination folder", "DESTINATION_REQUIRED", ok=False)
         record = self.session_store.load(session_id)
         src = record.workspace if record and record.workspace else None
         if not src:
@@ -537,19 +545,29 @@ class SessionManager:
             executor = getattr(engine, "executor", None) if engine else None
             src = str(executor.cwd) if executor else None
         if not src or not self.is_temp_workspace(src) or not Path(src).is_dir():
-            return {"ok": False, "error": "this session is not in a temporary folder"}
+            return coded_error(
+                "this session is not in a temporary folder",
+                "NOT_A_TEMP_SESSION",
+                ok=False,
+            )
         if self.is_running(session_id):
-            return {"ok": False, "error": "wait for the current task to finish first"}
+            return coded_error(
+                "wait for the current task to finish first", "SESSION_BUSY", ok=False
+            )
         d = Path(dest).expanduser()
         if d.exists():
             if not d.is_dir() or any(d.iterdir()):
-                return {"ok": False, "error": "destination must be a new or empty folder"}
+                return coded_error(
+                    "destination must be a new or empty folder",
+                    "DESTINATION_NOT_EMPTY",
+                    ok=False,
+                )
             d.rmdir()  # shutil.move into an existing dir would nest src inside it
         try:
             d.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(src, str(d))
         except OSError as e:
-            return {"ok": False, "error": f"could not move the folder: {e}"}
+            return error_payload(e, f"could not move the folder: {e}", ok=False)
         new_path = str(d.resolve())
         if record:
             record.workspace = new_path
@@ -1490,7 +1508,7 @@ class SessionManager:
             finally:
                 self._mcp_authorizing.discard(name)
         self._mcp_authorizing.discard(name)  # begin_mcp_connect flagged a name we never matched
-        return {"ok": False, "error": f"unknown MCP server: {name}"}
+        return coded_error(f"unknown MCP server: {name}", "MCP_SERVER_UNKNOWN", ok=False)
 
     async def mcp_connect_connector(self, name: str) -> dict[str, Any]:
         """One-click connect for an MCP-BACKED connector (descriptor.mcp_url): seed
@@ -1501,7 +1519,9 @@ class SessionManager:
 
         d = get_descriptor(name)
         if d is None or not d.mcp_url:
-            return {"ok": False, "error": f"{name} has no MCP connect path"}
+            return coded_error(
+                f"{name} has no MCP connect path", "MCP_CONNECT_PATH_MISSING", ok=False
+            )
         put_global_server(
             name,
             {
@@ -1618,7 +1638,7 @@ class SessionManager:
                     stderr=subprocess.DEVNULL,
                 )
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, context="reveal", ok=False)
         return {"ok": True, "path": str(target)}
 
     # -- OPE-136 durable MCP trust (server detail page) --------------------------
@@ -1678,7 +1698,7 @@ class SessionManager:
                 try:
                     conn = await self.mcp.ensure(server)
                 except Exception as exc:
-                    return {"name": name, "ok": False, "error": str(exc), "tools": []}
+                    return error_payload(exc, name=name, ok=False, tools=[])
                 return {
                     "name": name,
                     "ok": True,
@@ -1687,7 +1707,9 @@ class SessionManager:
                         for t in conn.tools
                     ],
                 }
-        return {"name": name, "ok": False, "error": "unknown server", "tools": []}
+        return coded_error(
+            "unknown server", "MCP_SERVER_UNKNOWN", name=name, ok=False, tools=[]
+        )
 
     async def reload_mcp(self) -> dict[str, Any]:
         """Drop live MCP connections so new sessions reconnect with fresh config."""
@@ -2811,7 +2833,7 @@ class SessionManager:
 
     def _artifact_target(
         self, session_id: str, path: str, *, allow_dir: bool = False
-    ) -> tuple[Optional[Path], Optional[str]]:
+    ) -> tuple[Optional[Path], Optional[dict[str, Any]]]:
         """Resolve an artifact path under one of the session's roots — workspace first,
         then the scratch dir, then user-granted extra roots. Universal scratch means a
         gated session's artifacts live BESIDE its workspace, so single-root resolution
@@ -2832,7 +2854,7 @@ class SessionManager:
                 if rp not in candidates:
                     candidates.append(rp)
         if not candidates:
-            return None, "no workspace"
+            return None, coded_error("no workspace", "WORKSPACE_MISSING", ok=False)
         found_missing = False
         for root in candidates:
             target = (root / path).expanduser().resolve()
@@ -2846,18 +2868,20 @@ class SessionManager:
                 return target, None
             found_missing = True
         if found_missing:
-            return None, (
+            return None, coded_error(
                 "This isn't in the conversation's folder anymore — it may have been "
-                "moved or deleted."
+                "moved or deleted.",
+                "ARTIFACT_MISSING",
+                ok=False,
             )
-        return None, "path escapes workspace"
+        return None, coded_error("path escapes workspace", "PATH_ESCAPES_ROOT", ok=False)
 
     def read_artifact(self, session_id: str, path: str) -> dict[str, Any]:
         # Folders are readable too (a model sometimes links a whole package, e.g. a skill
         # build dir): return a listing the viewer can render instead of a dead end.
-        target, err = self._artifact_target(session_id, path, allow_dir=True)
+        target, failure = self._artifact_target(session_id, path, allow_dir=True)
         if target is None:
-            return {"ok": False, "error": err}
+            return failure
         if target.is_dir():
             entries: list[dict[str, Any]] = []
             try:
@@ -2865,7 +2889,7 @@ class SessionManager:
                     target.iterdir(), key=lambda c: (c.is_file(), c.name.lower())
                 )
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
+                return error_payload(exc, ok=False)
             for child in children[:500]:
                 try:
                     size = 0 if child.is_dir() else child.stat().st_size
@@ -2882,10 +2906,11 @@ class SessionManager:
             import base64
 
             if target.stat().st_size > self.MAX_BINARY_PREVIEW:
-                return {
-                    "ok": False,
-                    "error": "file too large to preview — use Reveal to open it",
-                }
+                return coded_error(
+                    "file too large to preview — use Reveal to open it",
+                    "ARTIFACT_TOO_LARGE",
+                    ok=False,
+                )
             mime = {
                 ".png": "image/png",
                 ".jpg": "image/jpeg",
@@ -2906,7 +2931,9 @@ class SessionManager:
         try:
             text = target.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            return {"ok": False, "error": "binary file cannot be previewed"}
+            return coded_error(
+                "binary file cannot be previewed", "ARTIFACT_BINARY", ok=False
+            )
         return {
             "ok": True,
             "path": path,
@@ -2926,9 +2953,9 @@ class SessionManager:
         import subprocess
         import sys
 
-        target, err = self._artifact_target(session_id, path, allow_dir=True)
+        target, failure = self._artifact_target(session_id, path, allow_dir=True)
         if target is None:
-            return {"ok": False, "error": err}
+            return failure
         # A folder "opens" as itself in the file manager, whatever the mode.
         is_dir = target.is_dir()
         try:
@@ -2955,7 +2982,7 @@ class SessionManager:
                     stderr=subprocess.DEVNULL,
                 )
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, context="reveal", ok=False)
         return {"ok": True}
 
     # -- web search -------------------------------------------------------------
@@ -2979,7 +3006,7 @@ class SessionManager:
         from ..web import provider_names
 
         if provider not in provider_names():
-            return {"ok": False, "error": f"unknown provider: {provider}"}
+            return coded_error(f"unknown provider: {provider}", "PROVIDER_UNKNOWN", ok=False)
         before = self.get_web_search()["provider"]
         profile: dict[str, Any] = {"provider": provider}
         if api_key:
@@ -3122,7 +3149,7 @@ class SessionManager:
         its cached client. Merges provided fields into any existing profile."""
         d = get_descriptor(name)
         if d is None:
-            return {"ok": False, "error": f"unknown provider: {name}"}
+            return coded_error(f"unknown provider: {name}", "PROVIDER_UNKNOWN", ok=False)
         fields = fields or {}
         profile = dict(self.secrets.get(f"provider:{name}") or {})
         for f in d.fields:
@@ -3167,7 +3194,7 @@ class SessionManager:
         as never configured. Curated models stay; they just gray out until a new key."""
         d = get_descriptor(name)
         if d is None:
-            return {"ok": False, "error": f"unknown provider: {name}"}
+            return coded_error(f"unknown provider: {name}", "PROVIDER_UNKNOWN", ok=False)
         self.secrets.delete(f"provider:{name}")
         self._refresh_provider(name)
         return {"ok": True, "provider": name}
@@ -3192,7 +3219,7 @@ class SessionManager:
             result = await codex_auth.sign_in(self.secrets)
         except Exception as exc:
             self._codex_error = str(exc)
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         finally:
             self._codex_authorizing = False
         self._refresh_provider("openai-codex")
@@ -3234,7 +3261,7 @@ class SessionManager:
 
         d = get_descriptor(name)
         if d is None:
-            return {"ok": False, "error": f"unknown provider: {name}"}
+            return coded_error(f"unknown provider: {name}", "PROVIDER_UNKNOWN", ok=False)
         if d.auth == "oauth":
             # No key form — verify from the stored token set (signed-out / expired / OK).
             from ..providers import codex_auth
@@ -3254,7 +3281,7 @@ class SessionManager:
             api_key = os.environ.get(d.env_key, "").strip()
         has_key_field = any(f.key == "api_key" for f in d.fields)
         if d.needs_key and has_key_field and not api_key:
-            return {"ok": False, "error": "Enter an API key to test."}
+            return coded_error("Enter an API key to test.", "API_KEY_REQUIRED", ok=False)
         if d.needs_key and not has_key_field:
             # Multi-field cloud providers (Bedrock): required fields must be present;
             # actual credentials may be ambient (~/.aws, env) and are checked by the call.
@@ -3378,7 +3405,7 @@ class SessionManager:
 
         model = (model or "").strip()
         if not model:
-            return {"ok": False, "error": "empty model"}
+            return coded_error("empty model", "MODEL_REQUIRED", ok=False)
         hidden = [m for m in self._prefs.get("hidden_models") or [] if m != model]
         if hidden:
             self._prefs["hidden_models"] = hidden
@@ -3676,7 +3703,7 @@ class SessionManager:
         built lazily on the next turn, so it picks the key up without a restart."""
         api_key = (api_key or "").strip()
         if not api_key:
-            return {"ok": False, "error": "empty api key"}
+            return coded_error("empty api key", "API_KEY_REQUIRED", ok=False)
         # Merge, don't replace: the profile may also hold a custom endpoint (base_url).
         profile = dict(self.secrets.get("provider:openai") or {})
         profile.update({"type": "api_key", "api_key": api_key})
@@ -3688,7 +3715,7 @@ class SessionManager:
         """Set + persist the default model for new sessions (the UI pre-selects it)."""
         model = (model or "").strip()
         if not model:
-            return {"ok": False, "error": "empty model"}
+            return coded_error("empty model", "MODEL_REQUIRED", ok=False)
         self.model = model
         self._prefs["default_model"] = model
         self._save_prefs()
@@ -3707,11 +3734,11 @@ class SessionManager:
         """
         path = (path or "").strip()
         if not path:
-            return {"ok": False, "error": "empty path"}
+            return coded_error("empty path", "PATH_REQUIRED", ok=False)
         try:
             Path(path).expanduser().mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         self._prefs["scratch_base"] = path
         self._save_prefs()
         return {"ok": True, **self.get_settings()}
@@ -3771,15 +3798,20 @@ class SessionManager:
         """
         user_id = str(user_id).strip()
         if not user_id:
-            return {"ok": False, "error": "user_id required"}
+            return coded_error("user_id required", "USER_ID_REQUIRED", ok=False)
         profile = self.secrets.get("slack:default")
         if not profile:
-            return {"ok": False, "error": "Slack is not connected in Manual mode."}
+            return coded_error(
+                "Slack is not connected in Manual mode.",
+                "SLACK_MANUAL_MODE_REQUIRED",
+                ok=False,
+            )
         if profile.get("mode") == "relay" or profile.get("managed"):
-            return {
-                "ok": False,
-                "error": "Relay approval ownership is set by the Slack installer.",
-            }
+            return coded_error(
+                "Relay approval ownership is set by the Slack installer.",
+                "SLACK_APPROVAL_OWNERS_INSTALLER_SET",
+                ok=False,
+            )
 
         owners = self.slack_approval_owner_ids()
         if add:
@@ -3787,13 +3819,12 @@ class SessionManager:
         else:
             owners.discard(user_id)
             if not owners and self._has_manual_slack_inbox_binding():
-                return {
-                    "ok": False,
-                    "error": (
-                        "Choose another approval owner before removing the last one "
-                        "while Slack Inbox routing is active."
-                    ),
-                }
+                return coded_error(
+                    "Choose another approval owner before removing the last one "
+                    "while Slack Inbox routing is active.",
+                    "APPROVAL_OWNER_LAST_ONE",
+                    ok=False,
+                )
         profile["approval_owner_ids"] = sorted(owners)
         if add:
             allowed = set(profile.get("allowed_users") or [])
@@ -3847,28 +3878,30 @@ class SessionManager:
         channel = str(channel or "").strip() or None
         target = str(target or "").strip()
         if channel and not target:
-            return {"ok": False, "error": "Choose a destination channel."}
+            return coded_error("Choose a destination channel.", "CHANNEL_REQUIRED", ok=False)
         if channel == "slack":
             settings = load_settings(self.secrets).get("slack")
             if settings is None or not settings.enabled:
-                return {"ok": False, "error": "Slack is not connected."}
+                return coded_error("Slack is not connected.", "SLACK_NOT_CONNECTED", ok=False)
             team_id, destination = slack_split(target)
             if not destination:
-                return {"ok": False, "error": "Choose a destination channel."}
+                return coded_error(
+                    "Choose a destination channel.", "CHANNEL_REQUIRED", ok=False
+                )
             key = f"slack:team:{team_id}" if team_id else "slack:default"
             if not self.secrets.get(key):
-                return {
-                    "ok": False,
-                    "error": "That Slack workspace is not connected.",
-                }
+                return coded_error(
+                    "That Slack workspace is not connected.",
+                    "SLACK_WORKSPACE_NOT_CONNECTED",
+                    ok=False,
+                )
             if not self.slack_approval_owner_ids(team_id):
-                return {
-                    "ok": False,
-                    "error": (
-                        "Choose at least one approval owner in Slack settings before "
-                        "routing Inbox requests there."
-                    ),
-                }
+                return coded_error(
+                    "Choose at least one approval owner in Slack settings before "
+                    "routing Inbox requests there.",
+                    "APPROVAL_OWNER_REQUIRED",
+                    ok=False,
+                )
         self.inbox_routing.set_binding(name, channel=channel, target=target)
         return {"ok": True, "bindings": self.inbox_routing.bindings()}
 
@@ -3881,17 +3914,18 @@ class SessionManager:
         without, the flat `<name>:default` list (manual single-workspace mode)."""
         user_id = str(user_id).strip()
         if not user_id:
-            return {"ok": False, "error": "user_id required"}
+            return coded_error("user_id required", "USER_ID_REQUIRED", ok=False)
         scope = "install" if name == "github" else "team"
         profile_key = f"{name}:{scope}:{team_id}" if team_id else f"{name}:default"
         profile = self.secrets.get(profile_key)
         if not profile:
-            return {
-                "ok": False,
-                "error": (
-                    "workspace not connected" if team_id else "connector not connected"
-                ),
-            }
+            if team_id:
+                return coded_error(
+                    "workspace not connected", "WORKSPACE_NOT_CONNECTED", ok=False
+                )
+            return coded_error(
+                "connector not connected", "CONNECTOR_NOT_CONNECTED", ok=False
+            )
         allowed = set(profile.get("allowed_users") or [])
         allowed.add(user_id) if add else allowed.discard(user_id)
         profile["allowed_users"] = sorted(allowed)
@@ -4002,7 +4036,7 @@ class SessionManager:
         if not installation_id or not self.secrets.get(
             github_installs.PREFIX + installation_id
         ):
-            return {"ok": False, "error": "installation not connected"}
+            return coded_error("installation not connected", "INSTALLATION_NOT_CONNECTED", ok=False)
         await asyncio.to_thread(
             lambda: cloud.github_disconnect_installation(
                 self.secrets, load_config(), installation_id
@@ -4165,11 +4199,11 @@ class SessionManager:
         """
         item = self.parked.pop(item_id)
         if item is None or item.platform != name:
-            return {"ok": False, "error": "unknown item"}
+            return coded_error("unknown item", "UNKNOWN_ITEM", ok=False)
         if action == "dismiss":
             return {"ok": True}
         if action not in ("allow", "allow_deliver"):
-            return {"ok": False, "error": f"unknown action: {action}"}
+            return coded_error(f"unknown action: {action}", "UNKNOWN_ACTION", ok=False)
         allowed = self._set_allowed(name, item.user_id, team_id=item.team_id, add=True)
         if not allowed.get("ok"):
             return allowed
@@ -5022,7 +5056,7 @@ class SessionManager:
     def mark_automation_seen(self, task_id: str) -> dict[str, Any]:
         task = self.task_store.get(task_id)
         if task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         task.seen_runs_at = time.time()
         self.task_store.save(task)
         return {"ok": True}
@@ -5030,7 +5064,7 @@ class SessionManager:
     def get_automation(self, task_id: str) -> dict[str, Any]:
         task = self.task_store.get(task_id)
         if task is None:
-            return {"error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND")
         return {
             "task": task.public(),
             "runs": [r.to_dict() for r in self.task_store.runs(task_id)],
@@ -5049,16 +5083,21 @@ class SessionManager:
         timezone = (payload.get("timezone") or "").strip() or "local"
 
         if not title:
-            return {"ok": False, "error": "title is required"}
+            return coded_error("title is required", "TITLE_REQUIRED", ok=False)
         if not instructions:
-            return {"ok": False, "error": "instructions are required"}
+            return coded_error(
+                "instructions are required", "INSTRUCTIONS_REQUIRED", ok=False
+            )
         if not cron and not fire_at:
-            return {
-                "ok": False,
-                "error": "provide a cron (recurring) or a fire_at ISO datetime (one-time)",
-            }
+            return coded_error(
+                "provide a cron (recurring) or a fire_at ISO datetime (one-time)",
+                "SCHEDULE_REQUIRED",
+                ok=False,
+            )
         if cron and not croniter.is_valid(cron):
-            return {"ok": False, "error": f"invalid cron expression: {cron}"}
+            return coded_error(
+                f"invalid cron expression: {cron}", "INVALID_CRON", ok=False
+            )
 
         schedule = Schedule(
             kind="once" if (fire_at and not cron) else "cron",
@@ -5089,7 +5128,7 @@ class SessionManager:
     ) -> dict[str, Any]:
         task = self.task_store.get(task_id)
         if task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         if "enabled" in changes:
             task.enabled = bool(changes["enabled"])
         if changes.get("instructions") is not None:
@@ -5100,7 +5139,7 @@ class SessionManager:
             from croniter import croniter
 
             if not croniter.is_valid(changes["cron"]):
-                return {"ok": False, "error": "invalid cron"}
+                return coded_error("invalid cron", "INVALID_CRON", ok=False)
             task.schedule.cron, task.schedule.kind = changes["cron"], "cron"
         if changes.get("revoke"):
             # Revocation from the task detail page ("Allowed without asking … · Revoke").
@@ -5124,7 +5163,7 @@ class SessionManager:
         automatic scheduler path stays headless (`_run_scheduled_task`)."""
         task = self.task_store.get(task_id)
         if task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         Path(task.workspace).mkdir(parents=True, exist_ok=True)
         run = TaskRun(
             task_id=task.id, trigger="manual"
@@ -5154,7 +5193,7 @@ class SessionManager:
         )
         task = self.task_store.get(task_id)
         if run is None or task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         if run.status == "running":
             record = self.session_store.load(run.session_id)
             run.result_text = _last_assistant_text(record.messages) if record else None
@@ -5479,7 +5518,9 @@ class SessionManager:
         persists it so a later resume still has it."""
         p = Path(path).expanduser()
         if not p.is_dir():
-            return {"ok": False, "error": f"not a directory: {path}"}
+            return coded_error(
+                f"not a directory: {path}", "NOT_A_DIRECTORY", ok=False, path=path
+            )
         resolved = p.resolve()
         engine = self._engines.get(session_id)
         if engine is not None and getattr(engine, "roots", None) is not None:
@@ -5566,10 +5607,11 @@ class SessionManager:
         engine = self._engines.get(session_id)
         if engine is not None and getattr(engine, "roots", None):
             if engine.roots and engine.roots[0].path == resolved:
-                return {
-                    "ok": False,
-                    "error": "cannot remove the primary scratch directory",
-                }
+                return coded_error(
+                    "cannot remove the primary scratch directory",
+                    "PRIMARY_FOLDER_PROTECTED",
+                    ok=False,
+                )
             engine.roots[:] = [r for r in engine.roots if r.path != resolved]
             self.session_store.set_extra_roots(
                 session_id, self._extra_roots_of(engine, session_id)
@@ -5581,10 +5623,11 @@ class SessionManager:
                 and current[0]["primary"]
                 and Path(current[0]["path"]).resolve() == resolved
             ):
-                return {
-                    "ok": False,
-                    "error": "cannot remove the primary scratch directory",
-                }
+                return coded_error(
+                    "cannot remove the primary scratch directory",
+                    "PRIMARY_FOLDER_PROTECTED",
+                    ok=False,
+                )
             session_scratch = (self.scratch_base() / session_id).expanduser().resolve()
             extra = [
                 r
@@ -5804,7 +5847,7 @@ class SessionManager:
         try:
             folder, _scope = self.skill_store.find(name, workspace or None)
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         try:
             if sys.platform == "darwin":
                 subprocess.Popen(
@@ -5823,7 +5866,7 @@ class SessionManager:
                     stderr=subprocess.DEVNULL,
                 )
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, context="reveal", ok=False)
         return {"ok": True}
 
     def persona_mcp_scope(self, persona_id: str) -> Optional[set[str]]:
@@ -5926,13 +5969,12 @@ class SessionManager:
         try:
             ws = Path(str(workspace)).expanduser().resolve()
             if ws.is_relative_to(self.scratch_base().resolve()):
-                return {
-                    "ok": False,
-                    "error": (
-                        "That folder is a temporary session space — skills saved there "
-                        "would be lost. Save it globally or pick a real project."
-                    ),
-                }
+                return coded_error(
+                    "That folder is a temporary session space — skills saved there "
+                    "would be lost. Save it globally or pick a real project.",
+                    "SKILL_WORKSPACE_SCRATCH",
+                    ok=False,
+                )
         except OSError:
             pass
         return None
@@ -5950,7 +5992,7 @@ class SessionManager:
                 workspace=body.get("workspace") or None,
             )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, "skill": created}
 
     def update_skill(self, name: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -5965,14 +6007,14 @@ class SessionManager:
                     workspace=body.get("workspace") or None,
                 )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True}
 
     def delete_skill(self, name: str, workspace: Optional[str] = None) -> dict[str, Any]:
         try:
             self.skill_store.delete(name, workspace or None)
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True}
 
     def move_skill(self, name: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -5989,14 +6031,14 @@ class SessionManager:
                 workspace=body.get("workspace") or None,
             )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, "skill": moved}
 
     def stage_skill_upload(self, data: bytes, filename: str = "") -> dict[str, Any]:
         try:
             preview = self.skill_store.stage_upload(data, filename)
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, **preview}
 
     def confirm_skill_upload(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -6010,7 +6052,7 @@ class SessionManager:
                 workspace=body.get("workspace") or None,
             )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, "skill": saved}
 
     def _memory_saved_notifier(self, session_id: str):
@@ -6077,11 +6119,15 @@ class SessionManager:
         effect at the next engine build — the running engine keeps the knowledge
         it started with (same doctrine as memory deletions)."""
         if kind not in ("memory", "board"):
-            return {"ok": False, "error": f"unknown kind {kind!r}"}
+            return coded_error(f"unknown kind {kind!r}", "BINDING_KIND_UNKNOWN", ok=False)
         if self.is_running(session_id):
-            return {"ok": False, "error": "wait for the current task to finish first"}
+            return coded_error(
+                "wait for the current task to finish first", "SESSION_BUSY", ok=False
+            )
         if name and self.session_store.names().resolve(kind, name) is None:
-            return {"ok": False, "error": f"no {kind} named {name!r}"}
+            return coded_error(
+                f"no {kind} named {name!r}", "BINDING_TARGET_MISSING", ok=False
+            )
         record = self.session_store.load(session_id)
         bindings = dict((record.bindings if record else {}) or {})
         if name:
@@ -6089,7 +6135,7 @@ class SessionManager:
         else:
             bindings.pop(kind, None)
         if record is None:
-            return {"ok": False, "error": "unknown session"}
+            return coded_error("unknown session", "SESSION_UNKNOWN", ok=False)
         self.session_store.set_bindings(session_id, bindings)
         # Rebind applies from the next engine build; drop the cached engine so the
         # next turn rebuilds with the new key (messages persist via the record).
@@ -6103,13 +6149,15 @@ class SessionManager:
         record = self.session_store.load(session_id)
         ws = (record.workspace if record else None) or self.default_workspace
         if not ws:
-            return {"ok": False, "error": "session has no workspace"}
+            return coded_error(
+                "session has no workspace", "WORKSPACE_MISSING", ok=False
+            )
         try:
             entry = self.session_store.names().name_current(
                 kind, name, project_key(ws)
             )
         except ValueError as e:
-            return {"ok": False, "error": str(e)}
+            return forwarded_error(e, ok=False)
         return {"ok": True, **entry}
 
     def list_memory(self) -> list[dict[str, Any]]:

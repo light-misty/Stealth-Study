@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getAttempt, listGradingHistory, submitGrading } from "../../../campus/api";
 import type { Attempt, GradeResult, GradingKind } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { CommonErrorsCard } from "./CommonErrorsCard";
 import { GradingResultCard } from "../GradingResultCard";
 import { Icon, type IconName } from "../../Icon";
@@ -151,7 +151,11 @@ export function GradingWorkshopBody({
             <Icon name="warning" size={14} />
             <div className="alert-text">
               <span className="alert-title">{t("campus.common.error")}</span>
-              <span className="alert-desc">{campusErrorInfo(submitError).message}</span>
+              <span className="alert-desc">
+                {t(campusErrorKey(campusErrorInfo(submitError).code), {
+                  defaultValue: campusErrorInfo(submitError).message || t("campus.common.error"),
+                })}
+              </span>
             </div>
             <button
               type="button"

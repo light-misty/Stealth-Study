@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listVocabToday, makeMnemonic, setVocabMastery } from "../../../campus/api";
 import type { MasteryLevel, VocabItem } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { Icon } from "../../Icon";
 
 const MASTERY_LEVELS: MasteryLevel[] = ["unknown", "fuzzy", "mastered"];
@@ -196,7 +196,11 @@ export function VocabPanel({ profileId }: { profileId: string }) {
         <Icon name="warning" size={14} />
         <div className="alert-text">
           <span className="alert-title">{t("campus.common.error")}</span>
-          <span className="alert-desc">{campusErrorInfo(error).message}</span>
+          <span className="alert-desc">
+            {t(campusErrorKey(campusErrorInfo(error).code), {
+              defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+            })}
+          </span>
         </div>
         <button
           type="button"

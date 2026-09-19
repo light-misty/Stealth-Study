@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { listQuestions, submitAttempt } from "../../../campus/api";
 import type { AttemptFeedback, QuestionBankItem } from "../../../campus/types";
-import { campusErrorInfo } from "../../../campus/utils";
+import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { Icon } from "../../Icon";
 
 // One question at a time, paper first: the stem and its options are the subject of this
@@ -106,7 +106,11 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
           <Icon name="warning" size={14} />
           <div className="alert-text">
             <span className="alert-title">{t("campus.common.error")}</span>
-            <span className="alert-desc">{campusErrorInfo(error).message}</span>
+            <span className="alert-desc">
+              {t(campusErrorKey(campusErrorInfo(error).code), {
+                defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+              })}
+            </span>
           </div>
           <button
             type="button"
@@ -263,7 +267,11 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
               <Icon name="warning" size={14} />
               <div className="alert-text">
                 <span className="alert-title">{t("campus.common.error")}</span>
-                <span className="alert-desc">{campusErrorInfo(submitError).message}</span>
+                <span className="alert-desc">
+                  {t(campusErrorKey(campusErrorInfo(submitError).code), {
+                    defaultValue: campusErrorInfo(submitError).message || t("campus.common.error"),
+                  })}
+                </span>
               </div>
               {campusErrorInfo(submitError).retryable ? (
                 <button

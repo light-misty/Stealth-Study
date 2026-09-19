@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..errors import coded_error
 from ..secrets import SecretStore
 from .catalog_copy import about_for, access_for
 from .descriptors import get_descriptor, list_descriptors
@@ -299,7 +300,7 @@ def update_connector_tools(
     secrets: SecretStore, name: str, enabled: dict[str, Any]
 ) -> dict[str, Any]:
     if get_descriptor(name) is None:
-        return {"ok": False, "error": "unknown connector"}
+        return coded_error("unknown connector", "CONNECTOR_UNAVAILABLE", ok=False)
     return patch_tool_settings(secrets, name, enabled)
 
 
@@ -313,16 +314,21 @@ def connect_connector(
 ) -> dict[str, Any]:
     d = get_descriptor(name)
     if d is None or not d.available:
-        return {"ok": False, "error": "unknown or unavailable connector"}
+        return coded_error(
+            "unknown or unavailable connector", "CONNECTOR_UNAVAILABLE", ok=False
+        )
     if d.experimental:
         if not experimental_enabled(secrets):
-            return {"ok": False, "error": "experimental connectors are disabled"}
+            return coded_error(
+                "experimental connectors are disabled", "EXPERIMENTAL_DISABLED", ok=False
+            )
         if not acknowledged:
-            return {
-                "ok": False,
-                "error": "risk acknowledgment required",
-                "risk_notice": d.risk_notice,
-            }
+            return coded_error(
+                "risk acknowledgment required",
+                "RISK_ACK_REQUIRED",
+                ok=False,
+                risk_notice=d.risk_notice,
+            )
 
     # Reconnect-safe: never let a re-submit clobber a stored secret. The GUI masks a connected
     # connector's secret fields (it shows the placeholder, e.g. `xoxb-…`), so a blank — or
@@ -341,7 +347,9 @@ def connect_connector(
     raw = {f.key: _resolved(f) for f in d.fields}
     missing = [f.label for f in d.fields if f.required and not raw.get(f.key)]
     if missing:
-        return {"ok": False, "error": "missing: " + ", ".join(missing)}
+        return coded_error(
+            "missing: " + ", ".join(missing), "CONNECTOR_FIELDS_REQUIRED", ok=False
+        )
 
     allowed = sorted(
         {u.strip() for u in raw.get("allowed_users", "").split(",") if u.strip()}
@@ -396,9 +404,13 @@ def managed_connect_connector(
     """
     d = get_descriptor(name)
     if d is None or not d.available:
-        return {"ok": False, "error": "unknown or unavailable connector"}
+        return coded_error(
+            "unknown or unavailable connector", "CONNECTOR_UNAVAILABLE", ok=False
+        )
     if not d.managed:
-        return {"ok": False, "error": f"{name} does not support managed connect"}
+        return coded_error(
+            f"{name} does not support managed connect", "MANAGED_CONNECT_UNSUPPORTED", ok=False
+        )
     if d.account_field:
         from . import accounts as _accounts
 

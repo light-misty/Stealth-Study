@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "./i18n";
 import {
   announceInboxUnlock,
   createTempWorkspace,
@@ -51,6 +52,7 @@ import type {
 } from "./types";
 import { fullPersonaName, isProjectScoped } from "./personaScope";
 import { baseName } from "./paths";
+import { apiErrorText } from "./errors";
 import { itemsFromMessages } from "./itemsFromMessages";
 import { addTurnUsage, emptyUsage, usageFromMessages } from "./usage";
 import { streamMode } from "./streamGate";
@@ -1320,7 +1322,7 @@ export function App() {
       setSendGate(null);
       setItems((p) => [
         ...p,
-        { kind: "notice", tone: "warn", text: res.error || t("app.temp_folder_failed") },
+        { kind: "notice", tone: "warn", text: apiErrorText(res, t, t("app.temp_folder_failed")) },
       ]);
       prefillComposer(gate.skill ? `/${gate.skill} ${gate.text}` : gate.text, gate.attachments);
       return;
@@ -1352,7 +1354,7 @@ export function App() {
     if (!res.ok || !res.path) {
       setItems((p) => [
         ...p,
-        { kind: "notice", tone: "warn", text: res.error || t("app.save_project_failed") },
+        { kind: "notice", tone: "warn", text: apiErrorText(res, t, t("app.save_project_failed")) },
       ]);
       return;
     }
@@ -1383,7 +1385,7 @@ export function App() {
         sessionId: d.session_id || "",
         workspace: d.workspace || "",
         agent: d.agent || "cowork",
-        time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        time: new Date().toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" }),
       });
       announceAutomationsChanged(); // the Scheduled band's badge is now stale
     });
@@ -2079,7 +2081,7 @@ export function App() {
                   {t("app.sleep.label")}
                   {activeInfo.sleeping_until
                     ? t("app.sleep.until", {
-                        time: new Date(activeInfo.sleeping_until).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+                        time: new Date(activeInfo.sleeping_until).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" }),
                       })
                     : ""}
                   {activeInfo.team?.role === "lead"

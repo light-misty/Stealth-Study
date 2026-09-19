@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { setWorkspaceTrusted, type WorkspaceCommandTrust } from "../api";
+import { apiErrorText } from "../errors";
 
 export function WorkspaceTrustPrompt({
   request,
@@ -19,7 +20,7 @@ export function WorkspaceTrustPrompt({
     const result = await setWorkspaceTrusted(request.workspace, true).catch(() => null);
     setSaving(false);
     if (!result?.ok) {
-      setError(result?.error || t("workspace_trust.save_failed"));
+      setError(apiErrorText(result, t, t("workspace_trust.save_failed")));
       return;
     }
     onClose();

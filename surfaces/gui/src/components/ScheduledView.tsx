@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import {
   createAutomation,
   deleteAutomation,
@@ -11,6 +12,7 @@ import {
   type Automation,
   type AutomationRun,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { Icon } from "./Icon";
 import { PanelHead } from "./IntegrationsView";
 import { AutomationQuickstart } from "./AutomationQuickstart";
@@ -31,7 +33,7 @@ function fromCron(cron?: string | null): { time: string; freq: string } {
 }
 
 const fmt = (t: number | null) =>
-  t ? new Date(t * 1000).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—";
+  t ? new Date(t * 1000).toLocaleString(intlLocale(), { dateStyle: "medium", timeStyle: "short" }) : "—";
 
 // Map a simple time-of-day + frequency selection to a 5-field cron string.
 function toCron(time: string, freq: string): string {
@@ -101,7 +103,7 @@ export function ScheduledView({ onOpenRun, onRunNow, initialOpenId }: Props) {
         setShowForm(false);
         setOpenId(res.task.id);
       } else if (res.error) {
-        alert(res.error);
+        alert(apiErrorText(res, t));
       }
     } finally {
       setBusy(null);

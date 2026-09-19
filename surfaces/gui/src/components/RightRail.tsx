@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { intlLocale } from "../i18n";
 import type { TFunction } from "i18next";
 // Emits the asset URL only; the worker itself loads lazily with the pdfjs chunk.
 import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -15,6 +16,7 @@ import {
   type JournalCase,
   type RootInfo,
 } from "../api";
+import { apiErrorDetail, apiErrorText } from "../errors";
 import type { SessionInfo, TodoItem } from "../types";
 import { AccessSection } from "./AccessSection";
 import { BoardSection } from "./BoardPanel";
@@ -705,7 +707,9 @@ function ArtifactViewer({
         {!content ? (
           <div className="rail-muted">{t("rail.loading")}</div>
         ) : content.error ? (
-          <div className="rail-error">{content.error}</div>
+          <div className="rail-error" title={apiErrorDetail(content)}>
+            {apiErrorText(content, t)}
+          </div>
         ) : content.kind === "html" ? (
           <iframe
             key={`${artifact.path}-${reloadKey}`}
@@ -940,5 +944,5 @@ function formatBytes(bytes: number): string {
 
 function formatTime(epochSeconds: number): string {
   if (!epochSeconds) return "";
-  return new Date(epochSeconds * 1000).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return new Date(epochSeconds * 1000).toLocaleTimeString(intlLocale(), { hour: "numeric", minute: "2-digit" });
 }
