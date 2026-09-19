@@ -132,21 +132,23 @@ export function SettingsView({
           )}
           <Icon name="gear" size={16} /> {t("nav.settings")}
         </div>
-        {tabs.map((tb) => {
-          const active = tab === tb.key;
-          return (
-            <button
-              key={tb.key}
-              className={
-                "w-full text-left px-2.5 py-2 rounded-lg text-[13px] flex items-center gap-2 " +
-                (active ? "bg-paper text-accent font-medium" : "text-muted hover:bg-paper hover:text-ink")
-              }
-              onClick={() => setTab(tb.key)}
-            >
-              <Icon name={tb.icon} size={15} /> {t(tb.labelKey)}
-            </button>
-          );
-        })}
+        <div className="flex flex-col gap-1.5">
+          {tabs.map((tb) => {
+            const active = tab === tb.key;
+            return (
+              <button
+                key={tb.key}
+                className={
+                  "w-full text-left px-2.5 py-2 rounded-lg text-[13px] flex items-center gap-2 " +
+                  (active ? "bg-paper text-accent font-medium" : "text-muted hover:bg-paper hover:text-ink")
+                }
+                onClick={() => setTab(tb.key)}
+              >
+                <Icon name={tb.icon} size={15} /> {t(tb.labelKey)}
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
       <div className="flex-1 min-w-0 overflow-y-auto hairline-scroll">
