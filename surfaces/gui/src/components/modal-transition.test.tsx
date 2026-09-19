@@ -59,6 +59,7 @@ describe("modal overlays carry entrance transitions", () => {
     const root = getByTestId("onboarding");
     expect(root.classList.contains("overlay-fade")).toBe(true);
     expect(root.firstElementChild?.classList.contains("card-pop")).toBe(true);
+    expect(getByTestId("ob-step-model").classList.contains("anim-fade-up")).toBe(true);
   });
 
   it("SearchModal fades its scrim and pops its panel", () => {

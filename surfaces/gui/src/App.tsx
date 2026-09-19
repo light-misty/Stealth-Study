@@ -1934,7 +1934,7 @@ export function App() {
                 it underneath the topbar; owner-reported CSS bug). */}
             {sessionId.startsWith("__run__") && (
               <div
-                className="flex items-center gap-2 px-4 py-2 mb-1 rounded-lg text-[13px] border border-line bg-accentSoft/40"
+                className="anim-fade-up flex items-center gap-2 px-4 py-2 mb-1 rounded-lg text-[13px] border border-line bg-accentSoft/40"
                 data-testid="run-banner"
               >
                 <Icon name="clock" size={14} className="text-accent shrink-0" />
@@ -1990,6 +1990,7 @@ export function App() {
               ) : (
                 <>
                   <Transcript
+                    key={sessionId}
                     items={items}
                     onApprove={approve}
                     running={running}

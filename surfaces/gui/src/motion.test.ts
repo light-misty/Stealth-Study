@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
+const campusCss = readFileSync(resolve(process.cwd(), "src/campus-station.css"), "utf8");
 
 describe("unified motion foundation", () => {
   it("defines shared motion tokens", () => {
@@ -53,5 +54,12 @@ describe("unified motion foundation", () => {
     expect(css).toMatch(/\.intro-head\s*\{[^}]*animation:/);
     expect(css).toMatch(/\.intro-lede\s*\{[^}]*animation:[^}]*animation-delay:/);
     expect(css).toMatch(/\.intro-tasks\s*\{[^}]*animation:[^}]*animation-delay:/);
+  });
+
+  it("animates transcript content, waiting state, nav reveal and campus tab strip", () => {
+    expect(css).toMatch(/\.transcript > \*\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.waiting-transcript\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.nav-reveal-btn\s*\{[^}]*animation:/);
+    expect(campusCss).toMatch(/\.campus-station \.st-tabs\s*\{[^}]*scroll-behavior:\s*smooth/);
   });
 });

@@ -123,7 +123,7 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
         {dots}
 
         {step === 0 && (
-          <section data-testid="ob-step-model" className="flex-1 min-h-0 flex flex-col">
+          <section data-testid="ob-step-model" className="anim-fade-up flex-1 min-h-0 flex flex-col">
             {/* Persistent header — stays put while the region below swaps (§39). */}
             <h1 className="text-[20px] font-semibold">{t("onboarding.welcome")}<span className="beta-tag">BETA</span></h1>
             <p className="text-[13px] text-muted mt-0.5 mb-4">
@@ -177,7 +177,7 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
              rows make the case and a pinned band asks for sign-in; after sign-in the band's
              slot keeps its place but flips to a green congrats, and every row grows a quiet
              Connect pill. The gated Google pair is ONE combined grayed row. */
-          <section data-testid="ob-step-tools" className="flex-1 min-h-0 flex flex-col">
+          <section data-testid="ob-step-tools" className="anim-fade-up flex-1 min-h-0 flex flex-col">
             <h1 className="text-[20px] font-semibold">{t("onboarding.connect_tools_title")}</h1>
             <p className="text-[13px] text-muted mt-0.5 mb-3">
               {t("onboarding.connect_tools_intro")}
@@ -321,7 +321,7 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
         )}
 
         {step === 2 && (
-          <section data-testid="ob-step-done" className="flex-1 min-h-0 flex flex-col overflow-y-auto">
+          <section data-testid="ob-step-done" className="anim-fade-up flex-1 min-h-0 flex flex-col overflow-y-auto">
             <div className="text-center">
               <div className="w-12 h-12 rounded-full bg-okSoft text-ok grid place-items-center mx-auto mb-3 text-[22px]">
                 ✓

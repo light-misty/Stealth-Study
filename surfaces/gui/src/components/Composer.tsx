@@ -552,7 +552,7 @@ export function Composer(props: Props) {
         {/* "/" force-run popup — in-flow above the textarea; rows are the session's
             effective menu only (muted/disabled skills never appear). */}
         {slashQuery !== null && (
-          <div className="px-2 pt-2" data-testid="skill-popup" role="listbox" aria-label="Skills">
+          <div className="anim-fade-up px-2 pt-2" data-testid="skill-popup" role="listbox" aria-label="Skills">
             {slashSkills === null ? (
               <div className="px-2 py-1.5 text-[12px] text-faint">Loading skills…</div>
             ) : slashMatches.length === 0 ? (
@@ -616,7 +616,7 @@ export function Composer(props: Props) {
                     setBindMenu(null);
                   }}
                 />
-                <div className="absolute z-40 bottom-full mb-1 left-0 min-w-[200px] rounded-xl border border-line bg-panel shadow-2xl py-1.5">
+                <div className="menu-pop-up absolute z-40 bottom-full mb-1 left-0 min-w-[200px] rounded-xl border border-line bg-panel shadow-2xl py-1.5">
                   {sessionRows && (
                     <div className="px-3 pt-1 pb-0.5 text-[10.5px] font-semibold tracking-wide uppercase text-faint">
                       {t("composer.attach_this_message")}
@@ -874,7 +874,7 @@ function UsageChip({
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div
-            className="absolute z-40 bottom-full mb-1 right-0 w-[280px] rounded-xl border border-line bg-panel shadow-2xl p-3"
+            className="menu-pop-up absolute z-40 bottom-full mb-1 right-0 w-[280px] rounded-xl border border-line bg-panel shadow-2xl p-3"
             role="menu"
             data-testid="usage-popover"
           >
@@ -1004,7 +1004,7 @@ function ModeMenu({
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div
-            className="absolute z-40 bottom-full mb-1 left-0 w-[260px] rounded-xl border border-line bg-panel shadow-2xl p-1.5"
+            className="menu-pop-up absolute z-40 bottom-full mb-1 left-0 w-[260px] rounded-xl border border-line bg-panel shadow-2xl p-1.5"
             role="menu"
             data-testid="mode-menu"
           >

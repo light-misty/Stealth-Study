@@ -84,6 +84,7 @@
   display: flex; align-items: flex-end; gap: 4px; flex: none;
   border-bottom: 1px solid var(--line);
   overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  scroll-behavior: smooth;
 }
 .campus-station .st-tabs::-webkit-scrollbar { display: none; }
 .campus-station .st-tab {

@@ -165,7 +165,7 @@ export function ScheduledView({ onOpenRun, onRunNow, initialOpenId }: Props) {
         <div className="flex flex-col gap-2.5">
           {tasks.map((task) => (
             <div
-              className={CARD + " sched-card px-4 py-3 cursor-pointer hover:border-lineStrong transition-colors"}
+              className={CARD + " anim-fade-up sched-card px-4 py-3 cursor-pointer hover:border-lineStrong transition-colors"}
               key={task.id}
               onClick={() => setOpenId(task.id)}
             >
@@ -478,7 +478,7 @@ function TaskDetail({
         {runs.length === 0 && <div className="dim">{tt("automations.no_runs")}</div>}
         {runs.map((r) => (
           <div
-            className="sched-run open"
+            className="anim-fade-up sched-run open"
             key={r.run_id}
             onClick={() =>
               r.session_id &&
