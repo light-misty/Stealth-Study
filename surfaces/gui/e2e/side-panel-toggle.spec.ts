@@ -54,6 +54,32 @@ test("the side-panel toggle opens and closes the rail on the new-session page", 
   expect(await dragCalls(page), "a topbar click asked the shell to drag the window").toBe(0);
 });
 
+test("the hide toggle lands exactly where the show toggle was", async ({ page }) => {
+  await installShell(page);
+  await openNewSessionPage(page);
+
+  const show = page.getByRole("button", { name: "Show side panel" });
+  const showBox = await show.boundingBox();
+  await show.click();
+  await expect(page.locator(".right-rail")).not.toHaveClass(/rail-off/);
+  await page.waitForTimeout(300); // let the topbar/rail slide settle before measuring
+
+  const hide = page.getByRole("button", { name: "Hide side panel" });
+  await expect(hide).toBeVisible();
+  const hideBox = await hide.boundingBox();
+  expect(Math.abs(hideBox!.x - showBox!.x)).toBeLessThanOrEqual(1);
+  expect(Math.abs(hideBox!.y - showBox!.y)).toBeLessThanOrEqual(1);
+
+  const rail = await page.locator(".right-rail").boundingBox();
+  expect(
+    Math.abs(rail!.x + rail!.width - (hideBox!.x + hideBox!.width) - 14),
+  ).toBeLessThanOrEqual(1);
+
+  await hide.click();
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
+  expect(await dragCalls(page)).toBe(0);
+});
+
 test("an empty stretch of the topbar still starts the window drag", async ({ page }) => {
   await installShell(page);
   await openNewSessionPage(page);

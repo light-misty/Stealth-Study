@@ -307,6 +307,10 @@ body {
   z-index: 6;
 }
 .main.rail-open .main-topbar { right: 332px; }
+.main.rail-open:not(:has(.right-rail.artifact-mode)) .topbar-panel-toggle {
+  transform: translateX(332px);
+}
+.topbar-panel-toggle { transition: transform var(--nav-slide) ease; }
 /* Centered title column (§22, amended: the ⋯ menu removed — the nav row's hover cluster owns
    pin/rename/archive/delete). Title + facts subtitle beneath.
    ABSOLUTE centering (owner catch 2026-07-13: a long mention-spawned title painted over the

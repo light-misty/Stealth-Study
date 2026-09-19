@@ -1911,7 +1911,7 @@ export function App() {
                 (the rail now carries Access, so code-family gets it too). */}
             {agent !== "chat" && (
               <button
-                className="topbar-icon-btn"
+                className="topbar-icon-btn topbar-panel-toggle"
                 onClick={() => setRailHiddenPersist(!railHidden)}
                 aria-label={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
                 title={railHidden ? t("topbar.show_side_panel") : t("topbar.hide_side_panel")}
