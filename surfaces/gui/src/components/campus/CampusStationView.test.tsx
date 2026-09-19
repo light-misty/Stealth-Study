@@ -355,7 +355,7 @@ describe("CampusStationView", () => {
     expect(screen.getByTestId("campus-station-loading")).toBeTruthy();
   });
 
-  it("lays the first-paint skeleton out as the full station shell", () => {
+  it("lays the first-paint skeleton out as the full station shell", async () => {
     apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
     apiMock.getAppState.mockReturnValue(new Promise(() => {}));
     render(<CampusStationView track="cet" />);
@@ -364,6 +364,8 @@ describe("CampusStationView", () => {
     expect(screen.getByText("CET-4/6")).toBeTruthy();
     expect(loading.querySelectorAll(".st-tab").length).toBe(9);
     expect(loading.querySelectorAll(".st-rail .card").length).toBe(3);
+    await waitFor(() => expect(loading.querySelectorAll(".st-rail .prog").length).toBe(4));
+    expect(loading.querySelectorAll(".st-rail .heat span").length).toBe(21);
   });
 
   it("opens the archived profiles from the station header and restores one", async () => {
