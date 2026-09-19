@@ -594,6 +594,8 @@
 .campus-station .kv { display: flex; flex-direction: column; gap: 7px; }
 .campus-station .kv-row { display: flex; align-items: baseline; gap: 10px; }
 .campus-station .kv-k { width: 72px; flex: none; font-size: 11px; line-height: 16px; color: var(--faint); }
+/* 删除代价表的标签是整词短语（英文下 "Documents and chunks"），72px 定宽会折成两行 */
+.campus-station .kv--wide .kv-k { width: 128px; }
 .campus-station .kv-v {
   flex: 1; min-width: 0; font-size: 12px; line-height: 18px; color: var(--ink); word-break: break-word;
 }

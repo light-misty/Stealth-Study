@@ -57,7 +57,7 @@ export function DeleteProfileDialog({ profile, busy, error, onConfirm, onClose }
       <div className="stack-gap">
         <p className="dlg-lead">{t("campus.delete.lead", { title: profile.title })}</p>
 
-        <div className="kv" data-testid="campus-delete-rows">
+        <div className="kv kv--wide" data-testid="campus-delete-rows">
           {rows.map((row) => (
             <div className="kv-row" key={row.key}>
               <span className="kv-k">{t(`campus.delete.group.${row.key}`)}</span>
