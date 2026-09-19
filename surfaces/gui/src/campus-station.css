@@ -166,7 +166,9 @@
 .campus-station .btn:focus-visible { outline: none; box-shadow: var(--focus); }
 .campus-station .btn:disabled { cursor: not-allowed; opacity: .45; }
 .campus-station .btn--primary { background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-seg); }
-.campus-station .btn--primary:hover:not(:disabled) { filter: brightness(1.04); }
+.campus-station .btn--primary:hover:not(:disabled) {
+  background: var(--accent); filter: brightness(1.04);
+}
 .campus-station .btn--ghost { color: var(--muted); box-shadow: var(--ring); }
 .campus-station .btn--ghost:hover:not(:disabled) { background: var(--paper); color: var(--ink); }
 .campus-station .btn--soft { background: var(--accent-soft); color: var(--accent-deep); }

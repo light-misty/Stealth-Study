@@ -8,7 +8,7 @@ interface Props {
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
-  icon?: IconName;
+  icon?: IconName | null;
   wide?: boolean;
 }
 
@@ -42,9 +42,11 @@ export function CampusDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="dlg-head">
-          <span className="ib ib--brand">
-            <Icon name={icon} size={16} />
-          </span>
+          {icon ? (
+            <span className="ib ib--brand">
+              <Icon name={icon} size={16} />
+            </span>
+          ) : null}
           <h3 className="dlg-title">{title}</h3>
           <button
             type="button"

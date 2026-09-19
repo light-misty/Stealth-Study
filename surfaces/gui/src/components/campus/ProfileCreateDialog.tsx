@@ -51,7 +51,7 @@ export function ProfileCreateDialog({
     <CampusDialog
       testId="campus-profile-create-dialog"
       title={t("campus.profile.create")}
-      icon="plus"
+      icon={null}
       onClose={onClose}
       footer={
         <>
