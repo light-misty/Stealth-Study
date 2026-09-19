@@ -103,6 +103,7 @@ def seeded_store(campus_db_path: Any) -> store.CampusStore:
 @pytest.fixture()
 def client(seeded_store: store.CampusStore, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("ss.campus.reminders.today", lambda: TODAY)
     app = FastAPI()
     app.include_router(routes.build_campus_router(object()))
     return TestClient(app)
@@ -153,7 +154,10 @@ def test_g4_reports_an_empty_body_for_a_profile_without_tasks(
         {"id": "profile-empty", "track_type": "kaoyan", "title": "空档案"},
     )
     body = _progress(client, "profile-empty")
-    assert body == {"by_track": {}, "streak_days": 0, "heatmap": []}
+    assert body["by_track"] == {}
+    assert body["streak_days"] == 0
+    assert body["heatmap"] == []
+    assert body["today"]["tasks"] == {"done": 0, "total": 0}
 
 
 def test_g4_never_leaks_another_profile(client: TestClient) -> None:
@@ -175,6 +179,7 @@ def test_g4_reads_a_finished_profile(
         },
     )
     monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("ss.campus.reminders.today", lambda: TODAY)
     app = FastAPI()
     app.include_router(routes.build_campus_router(object()))
     client = TestClient(app)
@@ -182,7 +187,11 @@ def test_g4_reads_a_finished_profile(
         f"{routes.CAMPUS_PREFIX}/progress", params={"profile_id": "profile-finished"}
     )
     assert response.status_code == 200
-    assert response.json() == {"by_track": {}, "streak_days": 0, "heatmap": []}
+    body = response.json()
+    assert body["by_track"] == {}
+    assert body["streak_days"] == 0
+    assert body["heatmap"] == []
+    assert body["today"]["minutes"] == {"done": 0, "plan": 60}
 
 
 def test_g4_requires_a_profile(client: TestClient) -> None:
@@ -197,3 +206,171 @@ def test_g4_refuses_a_forged_profile(client: TestClient) -> None:
     )
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "PROFILE_NOT_FOUND"
+
+
+# ---------------------------------------------------------------------------
+# G4 的 today 块：右栏「今日进度」四行的数据源
+# ---------------------------------------------------------------------------
+
+# 正午 UTC 在 ±12 时区里都落进同一个本地日，因此这些行在任何 CI 机器上都不受时区影响。
+NOON = "T12:00:00Z"
+TODAY_ISO = TODAY.isoformat()
+
+
+@pytest.fixture()
+def today_store(seeded_store: store.CampusStore) -> store.CampusStore:
+    seeded_store.update("exam_profile", ACTIVE_ID, {"daily_minutes": 90})
+    for row_id, status, due in (
+        ("rq-1", models.ReviewStatus.DONE.value, TODAY_ISO),
+        ("rq-2", models.ReviewStatus.PENDING.value, TODAY_ISO),
+        ("rq-3", models.ReviewStatus.DONE.value, YESTERDAY),
+    ):
+        seeded_store.insert(
+            "review_queue",
+            {
+                "id": row_id,
+                "profile_id": ACTIVE_ID,
+                "item_type": models.ReviewItemType.VOCAB.value,
+                "item_id": f"v-{row_id}",
+                "due_at": f"{due}{NOON}",
+                "status": status,
+            },
+        )
+    for row_id, graded, created in (
+        ("at-1", True, TODAY_ISO),
+        ("at-2", False, TODAY_ISO),
+        ("at-3", True, YESTERDAY),
+    ):
+        seeded_store.insert(
+            "attempt",
+            {
+                "id": row_id,
+                "profile_id": ACTIVE_ID,
+                "track_type": models.TrackType.KAOYAN.value,
+                "subject": "math",
+                "user_answer": "x",
+                "created_at": f"{created}{NOON}",
+                **({"grading_json": "{}"} if graded else {}),
+            },
+        )
+    for row_id, mastery, updated in (
+        ("v-1", models.MasteryLevel.MASTERED.value, TODAY_ISO),
+        ("v-2", models.MasteryLevel.FUZZY.value, TODAY_ISO),
+        ("v-3", models.MasteryLevel.UNKNOWN.value, TODAY_ISO),
+        ("v-4", models.MasteryLevel.MASTERED.value, YESTERDAY),
+    ):
+        seeded_store.insert(
+            "vocab_item",
+            {
+                "id": row_id,
+                "profile_id": ACTIVE_ID,
+                "word": f"word-{row_id}",
+                "mastery": mastery,
+                "updated_at": f"{updated}{NOON}",
+            },
+        )
+    for row_id, parse_status in (
+        ("doc-1", models.ParseStatus.READY.value),
+        ("doc-2", models.ParseStatus.PENDING.value),
+        ("doc-3", models.ParseStatus.FAILED.value),
+    ):
+        seeded_store.insert(
+            "source_doc",
+            {
+                "id": row_id,
+                "profile_id": ACTIVE_ID,
+                "title": row_id,
+                "file_path": f"library/{row_id}.pdf",
+                "imported_at": f"{TODAY_ISO}{NOON}",
+                "parse_status": parse_status,
+            },
+        )
+    for point_id in ("kp-1", "kp-2"):
+        seeded_store.insert(
+            "knowledge_point", {"id": point_id, "profile_id": ACTIVE_ID, "title": point_id}
+        )
+    seeded_store.insert(
+        "mastery",
+        {
+            "id": "ms-1",
+            "profile_id": ACTIVE_ID,
+            "point_id": "kp-1",
+            "level": models.MasteryLevel.MASTERED.value,
+        },
+    )
+    seeded_store.insert(
+        "review_queue",
+        {
+            "id": "rq-other",
+            "profile_id": OTHER_ID,
+            "item_type": models.ReviewItemType.VOCAB.value,
+            "item_id": "v-x",
+            "due_at": f"{TODAY_ISO}{NOON}",
+            "status": models.ReviewStatus.PENDING.value,
+        },
+    )
+    return seeded_store
+
+
+def _today(client: TestClient, profile_id: str = ACTIVE_ID) -> dict:
+    return _progress(client, profile_id)["today"]
+
+
+def test_g4_today_counts_finished_minutes_against_the_daily_plan(
+    seeded_store: store.CampusStore, client: TestClient
+) -> None:
+    seeded_store.update("exam_profile", ACTIVE_ID, {"daily_minutes": 90})
+    today = _today(client)
+    # 今日排期的 8 条任务里 5 条已完成，各按 est_minutes 默认 30 分钟计；时长偏好是档案的 90 分钟。
+    assert today["minutes"] == {"done": 150, "plan": 90}
+    assert today["tasks"] == {"done": 5, "total": 8}
+
+
+def test_g4_today_counts_the_review_queue_due_today(client: TestClient, today_store: store.CampusStore) -> None:
+    assert _today(client)["review"] == {"done": 1, "total": 2}
+
+
+def test_g4_today_counts_graded_attempts_today(client: TestClient, today_store: store.CampusStore) -> None:
+    assert _today(client)["grading"] == {"done": 1, "total": 2}
+
+
+def test_g4_today_counts_new_words_against_the_daily_cap(
+    client: TestClient, today_store: store.CampusStore
+) -> None:
+    assert _today(client)["vocab"] == {"done": 2, "quota": 30}
+
+
+def test_g4_today_counts_parsed_documents(client: TestClient, today_store: store.CampusStore) -> None:
+    assert _today(client)["docs"] == {"ready": 1, "total": 3}
+
+
+def test_g4_today_counts_mastered_knowledge_points(
+    client: TestClient, today_store: store.CampusStore
+) -> None:
+    assert _today(client)["knowledge"] == {"mastered": 1, "total": 2}
+
+
+def test_g4_today_never_counts_another_profile_s_rows(
+    client: TestClient, today_store: store.CampusStore
+) -> None:
+    body = _progress(client, OTHER_ID)["today"]
+    assert body["review"] == {"done": 0, "total": 1}
+    assert body["minutes"] == {"done": 30, "plan": 60}
+
+
+def test_g4_today_is_a_zero_shape_for_a_profile_without_anything(
+    seeded_store: store.CampusStore, client: TestClient
+) -> None:
+    seeded_store.insert(
+        "exam_profile", {"id": "profile-clean", "track_type": "cet", "title": "全新档案"}
+    )
+    assert _today(client, "profile-clean") == {
+        "date": TODAY_ISO,
+        "minutes": {"done": 0, "plan": 60},
+        "tasks": {"done": 0, "total": 0},
+        "review": {"done": 0, "total": 0},
+        "grading": {"done": 0, "total": 0},
+        "vocab": {"done": 0, "quota": 30},
+        "docs": {"ready": 0, "total": 0},
+        "knowledge": {"mastered": 0, "total": 0},
+    }

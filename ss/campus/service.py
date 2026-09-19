@@ -420,6 +420,25 @@ def _utcnow_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _local_day(value: Any) -> Optional[str]:
+    """The local calendar day of a stored UTC timestamp, or `None` when there is nothing to read.
+
+    The rail's 今日 rows answer "what has the student done today", and "today" is the day on the
+    wall clock they are looking at, while the columns are stamped UTC. Bucketing in Python (rather
+    than SQLite's `localtime`) keeps the rule in one place with the countdown's own `reminders.today()`.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment.astimezone().date().isoformat()
+
+
 TASK_TRANSITIONS: Mapping[str, frozenset[str]] = {
     models.PlanTaskStatus.TODO.value: frozenset(
         {models.PlanTaskStatus.DOING.value, models.PlanTaskStatus.SKIPPED.value}
@@ -3825,6 +3844,83 @@ class CampusService:
             "by_track": by_track,
             "streak_days": self._streak_days(completed),
             "heatmap": heatmap,
+            "today": self._today_overview(profile, tasks),
+        }
+
+    def _today_overview(
+        self, profile: models.ExamProfile, tasks: list[models.PlanTask]
+    ) -> dict[str, Any]:
+        """The rail's 今日进度 rows, counted on the day the student is living in (G4).
+
+        Every pair points back at the module that owns it, so the card never shows a number the
+        student cannot find again: minutes and tasks are the plan board's (`scheduled_date` is a
+        user-entered calendar date), review is today's slice of the interval queue, grading is
+        today's attempts, vocabulary is the words settled today against the daily new-word cap,
+        documents are the library's parse results and knowledge is the tree's mastery rows.
+        """
+        day = reminders.today().isoformat()
+        planned = [task for task in tasks if task.scheduled_date == day]
+        finished = [
+            task
+            for task in planned
+            if task.status == models.PlanTaskStatus.DONE.value
+        ]
+        due = [
+            row
+            for row in self._store.list_rows("review_queue", profile_id=profile.id)
+            if _local_day(row["due_at"]) == day
+        ]
+        attempts = [
+            row
+            for row in self._store.list_rows("attempt", profile_id=profile.id)
+            if _local_day(row["created_at"]) == day
+        ]
+        settled_words = [
+            row
+            for row in self._store.list_rows("vocab_item", profile_id=profile.id)
+            if _local_day(row["updated_at"]) == day
+            and row["mastery"] != models.MasteryLevel.UNKNOWN.value
+        ]
+        docs = self._store.list_rows("source_doc", profile_id=profile.id)
+        mastered = self._store.count(
+            "mastery",
+            '"profile_id" = ? AND "level" = ?',
+            (profile.id, models.MasteryLevel.MASTERED.value),
+        )
+        return {
+            "date": day,
+            "minutes": {
+                "done": sum(int(task.est_minutes or 0) for task in finished),
+                "plan": int(profile.daily_minutes or 0),
+            },
+            "tasks": {"done": len(finished), "total": len(planned)},
+            "review": {
+                "done": sum(
+                    1 for row in due if row["status"] == models.ReviewStatus.DONE.value
+                ),
+                "total": len(due),
+            },
+            "grading": {
+                "done": sum(
+                    1
+                    for row in attempts
+                    if row["grading_json"] or row["is_correct"] is not None
+                ),
+                "total": len(attempts),
+            },
+            "vocab": {"done": len(settled_words), "quota": NEW_WORD_LIMIT},
+            "docs": {
+                "ready": sum(
+                    1
+                    for row in docs
+                    if row["parse_status"] == models.ParseStatus.READY.value
+                ),
+                "total": len(docs),
+            },
+            "knowledge": {
+                "mastered": mastered,
+                "total": self._store.count("knowledge_point", '"profile_id" = ?', (profile.id,)),
+            },
         }
 
     # -- G5/G6: weekly reports ----------------------------------------------

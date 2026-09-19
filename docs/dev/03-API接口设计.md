@@ -178,7 +178,7 @@ app.include_router(build_campus_router(manager))
 | G1 | `GET /v1/campus/tasks` | query: `profile_id`, `date?`, `status?`, `track?` | `{items: PlanTask[]}` | — | KY-11/自建看板（ADR-11） |
 | G2 | `PATCH /v1/campus/tasks/{id}` | `{status?, scheduled_date?, priority?}` | PlanTask | `ILLEGAL_TRANSITION`（按 PRD §6.4 状态机校验） | KY-13/看板拖卡写回（campus 自建看板） |
 | G3 | `POST /v1/campus/plans/{plan_id}/reschedule` | `{new_exam_date?}` | `{rescheduled, preserved_done: n}` | — | KY-04/KY-13（todo 重排，done 不动） |
-| G4 | `GET /v1/campus/progress` | query: `profile_id` | `{by_track: {track: {done, total, rate}}, streak_days, heatmap: [{date, count}]}` | — | KY-11 |
+| G4 | `GET /v1/campus/progress` | query: `profile_id` | `{by_track: {track: {done, total, rate}}, streak_days, heatmap: [{date, count}], today: {date, minutes: {done, plan}, tasks/review/grading: {done, total}, vocab: {done, quota}, docs: {ready, total}, knowledge: {mastered, total}}}`（`today` 按本机当日聚合，供右栏「今日进度」四行取数） | — | KY-11 |
 | G5 | `POST /v1/campus/weekly-reports/generate` | `{profile_id}`（手动触发生成；cron 触发走 automation 模板） | WeeklyReport | `NO_TASK_DATA` | KY-12 |
 | G6 | `GET /v1/campus/weekly-reports` | query: `profile_id` | `{items: WeeklyReport[]}` | — | KY-12 |
 | G7 | `GET /v1/campus/school-profile` | query: `profile_id` | SchoolProfile | — | KY-14 |
