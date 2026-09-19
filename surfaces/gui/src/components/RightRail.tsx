@@ -234,10 +234,11 @@ export function RightRail({
     return () => window.removeEventListener(OPEN_ARTIFACT_EVENT, onOpen);
   }, [sessionId, artifacts]);
 
-  if (!active) return null;
-
   return (
-    <aside className={"right-rail" + (selected ? " artifact-mode" : "")}>
+    <aside
+      className={"right-rail" + (selected ? " artifact-mode" : "") + (active ? "" : " rail-off")}
+      aria-hidden={active ? undefined : true}
+    >
       {selected ? (
         <ArtifactViewer
           sessionId={sessionId}

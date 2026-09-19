@@ -281,6 +281,7 @@ body {
   background: color-mix(in srgb, var(--canvas) 72%, transparent);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  transition: right var(--nav-slide) ease;
   z-index: 6;
 }
 .main.rail-open .main-topbar { right: 332px; }
@@ -329,7 +330,7 @@ body {
   -webkit-app-region: no-drag;
 }
 .main-workspace { position: relative; display: flex; min-height: 0; flex: 1; overflow: hidden; }
-.main-chat { position: relative; display: flex; flex-direction: column; min-width: 0; flex: 1; padding-top: 48px; }
+.main-chat { position: relative; display: flex; flex-direction: column; min-width: 0; flex: 1; padding-top: 48px; transition: margin-right var(--nav-slide) ease; }
 .main.rail-open .main-chat { margin-right: 332px; }
 /* 40px top gutter: the transcript needs clear air under the edgeless glass topbar
    (owner call 2026-08-21 — bubbles sat nearly against the title). */
@@ -624,8 +625,11 @@ button.btn.danger { color: var(--accent); }
   border-left: 1px solid var(--line);
   padding: 18px 16px;
   backdrop-filter: blur(12px);
+  transform: translateX(0);
+  transition: transform var(--nav-slide) ease;
   z-index: 5;
 }
+.right-rail.rail-off { transform: translateX(100%); }
 /* An open artifact widens the rail into a reading panel (Codex-style) — the chat stays visible
    and usable beside it; Back returns to the normal-width Progress/Artifacts list. */
 .right-rail.artifact-mode {
