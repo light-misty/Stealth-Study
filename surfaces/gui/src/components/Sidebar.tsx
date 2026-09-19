@@ -1275,23 +1275,19 @@ export function Sidebar(props: Props) {
                   : t("sidebar.more")
             }
           >
-            <span
-              className={
-                "w-6 h-6 rounded-full grid place-items-center text-[11px] font-semibold shrink-0 " +
-                (cloud?.signed_in
-                  ? "bg-accentSoft text-accent"
-                  : "bg-panel text-faint border border-line")
-              }
-              aria-hidden
-            >
-              {cloud?.signed_in ? (
-                accountName.slice(0, 1).toUpperCase()
-              ) : showLogin() ? (
-                "?"
-              ) : (
-                <Icon name="moreHorizontal" size={14} />
-              )}
-            </span>
+            {(cloud?.signed_in || showLogin()) && (
+              <span
+                className={
+                  "w-6 h-6 rounded-full grid place-items-center text-[11px] font-semibold shrink-0 " +
+                  (cloud?.signed_in
+                    ? "bg-accentSoft text-accent"
+                    : "bg-panel text-faint border border-line")
+                }
+                aria-hidden
+              >
+                {cloud?.signed_in ? accountName.slice(0, 1).toUpperCase() : "?"}
+              </span>
+            )}
             <span className={"truncate " + (cloud?.signed_in ? "" : "text-muted")}>
               {cloud?.signed_in
                 ? accountName
