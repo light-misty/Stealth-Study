@@ -1023,6 +1023,17 @@ export async function mockApi(page: import("@playwright/test").Page) {
           send("turn_done");
           return;
         }
+        // Live ask_user (attended): the agent asks mid-turn and SUSPENDS on the
+        // answer — the composer head shows the question card until it is answered
+        // or the turn is stopped (interrupt → interrupted, never an answer).
+        if (/ask me something/i.test(msg.text)) {
+          send("question_requested", {
+            question: "Which color should the report use?",
+            options: ["Red", "Blue"],
+            allow_text: true,
+          });
+          return; // suspended on the answer
+        }
         // A deliberately SLOW multi-second stream (~40 ticks × 120ms) so specs can
         // interact mid-turn — the follow/pin scroll contract (FB-004) is untestable
         // against the instant echo below.
@@ -1158,6 +1169,11 @@ export async function mockApi(page: import("@playwright/test").Page) {
             text: "Skipped gitleaks. Coverage: history secret sweep done by hand instead.",
           });
         }
+        send("turn_done");
+      } else if (msg.type === "question_response") {
+        // The live ask_user answer resolves the suspended turn, mirroring the real
+        // engine: the answer lands as the tool result and the turn continues.
+        send("assistant_message", { text: `Noted: ${msg.answer}` });
         send("turn_done");
       } else if (msg.type === "interrupt") {
         // Stop mid-stream: like the real engine, end the turn with `interrupted` and
