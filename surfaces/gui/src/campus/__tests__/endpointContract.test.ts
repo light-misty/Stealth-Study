@@ -7,6 +7,7 @@ const DOC_ROWS: Record<string, { methods: string[]; path: string }> = {
   A3: { methods: ["GET"], path: "/v1/campus/profiles/{pid}" },
   A4: { methods: ["PATCH"], path: "/v1/campus/profiles/{pid}" },
   A5: { methods: ["DELETE"], path: "/v1/campus/profiles/{pid}" },
+  A11: { methods: ["GET"], path: "/v1/campus/profiles/{pid}/impact" },
   A6: { methods: ["GET"], path: "/v1/campus/app-state" },
   A7: { methods: ["PATCH"], path: "/v1/campus/app-state" },
   A8: { methods: ["GET"], path: "/v1/campus/capabilities" },
@@ -77,11 +78,11 @@ const DOC_ROWS: Record<string, { methods: string[]; path: string }> = {
 };
 
 describe("campus endpoint contract", () => {
-  it("covers the 03 doc endpoint table 72/72 with no extra rows", () => {
+  it("covers the 03 doc endpoint table 73/73 with no extra rows", () => {
     const manifestIds = [...new Set(CAMPUS_ENDPOINTS.map((row) => row.id))].sort();
     const docIds = Object.keys(DOC_ROWS).sort();
     expect(manifestIds).toEqual(docIds);
-    expect(manifestIds).toHaveLength(72);
+    expect(manifestIds).toHaveLength(73);
   });
 
   it("matches the documented method(s) and path for every endpoint row", () => {
@@ -105,6 +106,6 @@ describe("campus endpoint contract", () => {
     expect(new Set(pairs).size).toBe(pairs.length);
     const names = CAMPUS_ENDPOINTS.map((op) => (op.fn as { name: string }).name);
     expect(new Set(names).size).toBe(names.length);
-    expect(names).toHaveLength(74);
+    expect(names).toHaveLength(75);
   });
 });

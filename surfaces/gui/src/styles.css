@@ -91,6 +91,7 @@
   --warn-soft: #fef3c7;
   --danger: #b91c1c;
   --danger-soft: #f9e7e5;
+  --on-danger: #ffffff;       /* 红底文字（不可逆操作的确认按钮） */
   --teal-ink: #0f766e;        /* connector approval badges */
   --teal-line: #cfebea;
   --teal-soft: #edfafa;
@@ -168,6 +169,7 @@ html[data-theme="dark"] {
   --warn-soft: #36280f;
   --danger: #f07067;
   --danger-soft: #3d2422;
+  --on-danger: #241310;
   --teal-ink: #46c0b2;
   --teal-line: #1f4a45;
   --teal-soft: #11302d;

@@ -177,6 +177,15 @@
 .campus-station .btn--right:hover:not(:disabled) { background: var(--ok-soft); }
 .campus-station .btn--wrong { color: var(--danger); box-shadow: var(--ring); }
 .campus-station .btn--wrong:hover:not(:disabled) { background: var(--danger-soft); }
+/* 不可逆操作的两个层级：入口一律红色文字，确认按钮才给实心红底——
+   橙与红各自在一个模块里只允许出现一次，实心红就是那一次 */
+.campus-station .btn--danger-text { color: var(--danger); }
+.campus-station .btn--danger-text:hover:not(:disabled) {
+  color: var(--danger);
+  background: var(--danger-soft);
+}
+.campus-station .btn--danger { background: var(--danger); color: var(--on-danger); box-shadow: var(--shadow-seg); }
+.campus-station .btn--danger:hover:not(:disabled) { filter: brightness(1.06); }
 .campus-station .btn--sm { height: 26px; padding: 0 9px; font-size: 11.5px; border-radius: var(--r-8); gap: 5px; }
 
 .campus-station .icon-btn { width: 26px; height: 26px; border-radius: var(--r-8); }

@@ -31,10 +31,11 @@ interface Props {
   profiles: ExamProfile[];
   onRestore: (id: string) => void;
   onRename: (id: string) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
 }
 
-export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose }: Props) {
+export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onDelete, onClose }: Props) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ArchiveFilter>("all");
@@ -131,6 +132,7 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose 
               onBack={() => setDetailId(null)}
               onRename={() => onRename(detail.id)}
               onRestore={() => onRestore(detail.id)}
+              onDelete={onDelete ? () => onDelete(detail.id) : undefined}
             />
           ) : visible.length === 0 ? (
             <p className="dlg-note" data-testid="campus-archived-nomatch">
@@ -182,6 +184,16 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose 
                       >
                         {t("campus.archived.restore")}
                       </button>
+                      {onDelete ? (
+                        <button
+                          type="button"
+                          className="btn btn--text btn--sm btn--danger-text"
+                          onClick={() => onDelete(p.id)}
+                          data-testid={`campus-archived-delete-${p.id}`}
+                        >
+                          {t("campus.profile.delete")}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -205,11 +217,13 @@ function ProfileDetail({
   onBack,
   onRename,
   onRestore,
+  onDelete,
 }: {
   profile: ExamProfile;
   onBack: () => void;
   onRename: () => void;
   onRestore: () => void;
+  onDelete?: () => void;
 }) {
   const { t } = useTranslation();
   const rows: readonly [string, string][] = [
@@ -235,6 +249,7 @@ function ProfileDetail({
         ))}
       </div>
       <p className="dlg-note">{t("campus.archived.restore_hint")}</p>
+      {onDelete ? <p className="dlg-note">{t("campus.archived.delete_hint")}</p> : null}
       <div className="mod-foot">
         <button
           type="button"
@@ -253,6 +268,16 @@ function ProfileDetail({
         >
           {t("campus.profile.rename")}
         </button>
+        {onDelete ? (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm btn--danger-text"
+            onClick={onDelete}
+            data-testid="campus-archived-detail-delete"
+          >
+            {t("campus.profile.delete")}
+          </button>
+        ) : null}
         <button
           type="button"
           className="btn btn--primary btn--sm"

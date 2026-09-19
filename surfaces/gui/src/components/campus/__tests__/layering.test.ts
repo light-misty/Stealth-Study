@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import en from "../../../locales/en.json";
 import zh from "../../../locales/zh.json";
+import { PROFILE_IMPACT_KEYS } from "../../../campus/utils";
 
 // 08 §8 (T16-T19): the layering rule from 01 §4 is a grep gate — no component may branch
 // on the track, station differences belong in the config tables. The i18n half of 08 §6.2
@@ -140,6 +141,9 @@ describe("campus i18n key coverage", () => {
         "cert_grading",
         "cert_setup",
       ].map((tab) => `campus.station.tab.${tab}`),
+      // The delete-confirmation dialog labels the cascade groups at runtime from
+      // PROFILE_IMPACT_KEYS, so the whole vocabulary has to exist in both locales.
+      PROFILE_IMPACT_KEYS.map((key) => `campus.delete.group.${key}`),
     ];
     for (const family of families) {
       for (const key of family) {

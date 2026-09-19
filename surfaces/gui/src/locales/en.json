@@ -144,7 +144,8 @@
       "rename_save": "Save name",
       "action_rename_failed": "Profile not renamed",
       "restore_and_rename": "Rename and restore",
-      "restore_rename_hint": "“{{title}}” is taken by a profile on the desk. Give it another name and it comes back."
+      "restore_rename_hint": "“{{title}}” is taken by a profile on the desk. Give it another name and it comes back.",
+      "delete": "Delete permanently"
     },
     "archived": {
       "title": "Archived profiles",
@@ -164,7 +165,8 @@
       "restore": "Restore",
       "empty": "No archived profiles yet",
       "nomatch": "No archived profile matches these filters",
-      "restore_hint": "Restoring puts the profile back on the desk, name included: if that name is already taken, the dialog asks for a new one."
+      "restore_hint": "Restoring puts the profile back on the desk, name included: if that name is already taken, the dialog asks for a new one.",
+      "delete_hint": "Deleting removes the profile and every row it owns from this machine, with no way back; to put the name back on the desk, use Restore."
     },
     "settings": {
       "title": "Station settings",
@@ -546,6 +548,37 @@
       "export_not_found": "Export file not found",
       "no_task_data": "No task data to generate a weekly report",
       "schema_version_error": "Data version is newer than this app"
+    },
+    "delete": {
+      "title": "Delete profile permanently",
+      "lead": "{{title}} and everything it owns are removed from this machine.",
+      "confirm": "Delete permanently",
+      "irreversible": "This cannot be undone",
+      "archived_note": "The profile is already off the desk, so nothing you study changes; it cannot be recovered afterwards.",
+      "finished_note": "The profile has finished: read-only, but its data still sits on this machine and cannot be recovered afterwards.",
+      "unavailable": "The counts are unavailable right now. Confirming still removes every row the profile owns.",
+      "none": "This profile owns nothing else, so only the profile row goes.",
+      "total_one": "{{count}} record will be deleted",
+      "total_other": "{{count}} records will be deleted",
+      "total_unknown": "Record count unavailable",
+      "group": {
+        "library": "Documents and chunks",
+        "questions": "Question bank",
+        "vocab": "Word lists",
+        "knowledge": "Knowledge points and mastery",
+        "attempts": "Attempts and grading",
+        "mistakes": "Mistake book",
+        "review": "Review queue",
+        "plans": "Plans and tasks",
+        "exams": "Mock exams and assessments",
+        "reports": "Weekly reports",
+        "deadlines": "Registration deadlines",
+        "school": "School profile",
+        "other": "Other data",
+        "profile": "The profile itself",
+        "automations": "Scheduled reminders",
+        "exports": "Export files"
+      }
     }
   },
   "boot": {

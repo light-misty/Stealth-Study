@@ -143,7 +143,8 @@
       "rename_save": "保存名称",
       "action_rename_failed": "档案未改名",
       "restore_and_rename": "改名并恢复",
-      "restore_rename_hint": "「{{title}}」已被台面上的档案占用。换个名字即可把它恢复回来。"
+      "restore_rename_hint": "「{{title}}」已被台面上的档案占用。换个名字即可把它恢复回来。",
+      "delete": "完全删除"
     },
     "archived": {
       "title": "已归档档案",
@@ -163,7 +164,8 @@
       "restore": "恢复",
       "empty": "还没有已归档的档案",
       "nomatch": "没有符合条件的已归档档案",
-      "restore_hint": "恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。"
+      "restore_hint": "恢复即把档案放回台面，名字也要重新占住：若台面上已有同名档案，弹窗会让你先改个名字。",
+      "delete_hint": "完全删除会把该档案连同它的全部学习数据从本机移除，无法恢复；只是想把名字放回台面，用「恢复」。"
     },
     "settings": {
       "title": "备考台设置",
@@ -541,6 +543,37 @@
       "export_not_found": "导出文件不存在",
       "no_task_data": "暂无任务数据，无法生成周报",
       "schema_version_error": "数据版本高于当前应用版本"
+    },
+    "delete": {
+      "title": "完全删除档案",
+      "lead": "“{{title}}” 连同它名下的全部学习数据将从本机移除。",
+      "confirm": "永久删除",
+      "irreversible": "此操作不可撤销",
+      "archived_note": "档案已在归档箱里，不在备考台台面上；删除后无法找回。",
+      "finished_note": "档案已结课，只读不改写，但数据仍占着本机；删除后无法找回。",
+      "unavailable": "暂时读不到数据规模。确认删除仍会移除该档案名下的全部数据。",
+      "none": "该档案没有其它数据，只删档案本身。",
+      "total_one": "共 {{count}} 条记录将被删除",
+      "total_other": "共 {{count}} 条记录将被删除",
+      "total_unknown": "记录条数未知",
+      "group": {
+        "library": "资料与切片",
+        "questions": "题库",
+        "vocab": "词表",
+        "knowledge": "知识点与掌握度",
+        "attempts": "作答与批改记录",
+        "mistakes": "错题本",
+        "review": "复习队列",
+        "plans": "计划与任务",
+        "exams": "模考与测评",
+        "reports": "周报",
+        "deadlines": "考试报名节点",
+        "school": "院校资料",
+        "other": "其它数据",
+        "profile": "档案本身",
+        "automations": "定时提醒任务",
+        "exports": "导出文件"
+      }
     }
   },
   "boot": {

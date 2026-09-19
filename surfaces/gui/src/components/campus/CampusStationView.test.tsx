@@ -41,6 +41,8 @@ vi.mock("../../campus/api", async (importOriginal) => {
     advanceMockStage: vi.fn(),
     pauseMockExam: vi.fn(),
     submitMockExam: vi.fn(),
+    deleteProfile: vi.fn(),
+    getProfileImpact: vi.fn(),
   };
 });
 
@@ -332,6 +334,107 @@ describe("CampusStationView", () => {
     fireEvent.click(screen.getByTestId("campus-archived-restore-a1"));
     await waitFor(() => expect(apiMock.patchProfile).toHaveBeenCalledWith("a1", { status: "active" }));
     await waitFor(() => expect(apiMock.listProfiles.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  const boxedA1 = (): ExamProfile => ({
+    ...profile("a1"),
+    status: "archived",
+    archived_at: "2026-09-05T00:00:00Z",
+  });
+
+  /** A desk the delete can actually empty: A1 reads this array, A5 takes the row out of it. */
+  const deskOf = (...items: ExamProfile[]) => {
+    const desk = [...items];
+    apiMock.listProfiles.mockImplementation(async () => ({ items: [...desk] }));
+    apiMock.deleteProfile.mockImplementation(async (id: string) => {
+      const index = desk.findIndex((p) => p.id === id);
+      if (index < 0) throw new CampusApiError("PROFILE_NOT_FOUND", `档案不存在：${id}`, false, 404);
+      desk.splice(index, 1);
+      return {
+        deleted: true,
+        cascade: { exam_profile: 1 },
+        automation_tasks: 0,
+        export_files: 0,
+      };
+    });
+    return desk;
+  };
+
+  it("counts what the delete takes before it is confirmed", async () => {
+    deskOf(profile(), boxedA1());
+    apiMock.getProfileImpact.mockResolvedValue({
+      profile_id: "a1",
+      cascade: { exam_profile: 1, source_doc: 1, doc_chunk: 4, mistake_book: 2 },
+      automation_tasks: 1,
+      export_files: 0,
+    });
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-archived-entry"));
+    await screen.findByTestId("campus-archived-dialog");
+    fireEvent.click(screen.getByTestId("campus-archived-delete-a1"));
+
+    await screen.findByTestId("campus-delete-dialog");
+    expect(apiMock.getProfileImpact).toHaveBeenCalledWith("a1");
+    expect(screen.getByTestId("campus-delete-count").getAttribute("data-total")).toBe("9");
+    expect(apiMock.deleteProfile).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("campus-delete-confirm"));
+    await waitFor(() => expect(apiMock.deleteProfile).toHaveBeenCalledWith("a1"));
+    await waitFor(() => expect(screen.queryByTestId("campus-delete-dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByTestId("campus-archived-row-a1")).toBeNull());
+  });
+
+  it("keeps the confirmation on screen, with its cost still counted, when the delete is refused", async () => {
+    deskOf(profile(), boxedA1());
+    apiMock.getProfileImpact.mockResolvedValue({
+      profile_id: "a1",
+      cascade: { exam_profile: 1 },
+      automation_tasks: 0,
+      export_files: 0,
+    });
+    apiMock.deleteProfile.mockRejectedValue(
+      new CampusApiError("PROFILE_NOT_FOUND", "档案不存在：a1", false, 404),
+    );
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-archived-entry"));
+    await screen.findByTestId("campus-archived-dialog");
+    fireEvent.click(screen.getByTestId("campus-archived-delete-a1"));
+    await screen.findByTestId("campus-delete-dialog");
+
+    fireEvent.click(screen.getByTestId("campus-delete-confirm"));
+    await screen.findByTestId("campus-delete-error");
+    expect(screen.getByTestId("campus-delete-error").textContent).toContain("Profile not found");
+    expect(screen.getByTestId("campus-delete-dialog").textContent).toContain("四级冲刺");
+
+    fireEvent.click(screen.getByTestId("campus-delete-cancel"));
+    await waitFor(() => expect(screen.queryByTestId("campus-delete-dialog")).toBeNull());
+    expect(screen.getByTestId("campus-archived-row-a1")).toBeTruthy();
+  });
+
+  it("deletes a finished profile from the switcher, where it can do nothing else", async () => {
+    const done: ExamProfile = { ...profile("f1"), status: "finished" };
+    deskOf(profile(), done);
+    apiMock.getProfileImpact.mockResolvedValue({
+      profile_id: "f1",
+      cascade: { exam_profile: 1, attempt: 6 },
+      automation_tasks: 0,
+      export_files: 0,
+    });
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-delete-f1"));
+    await screen.findByTestId("campus-delete-dialog");
+    expect(screen.getByTestId("campus-delete-count").getAttribute("data-total")).toBe("7");
+    fireEvent.click(screen.getByTestId("campus-delete-confirm"));
+
+    await waitFor(() => expect(apiMock.deleteProfile).toHaveBeenCalledWith("f1"));
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-delete-f1")).toBeNull());
+    expect(screen.getByTestId("campus-profile-item")).toBeTruthy();
   });
 
   it("hides the archived entry while nothing is archived", async () => {

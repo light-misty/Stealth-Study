@@ -443,6 +443,24 @@ export async function mockApi(page: import("@playwright/test").Page) {
   };
   const campusNow = () => "2026-09-16T00:00:00Z";
   const campusProfile = (id: string) => campusProfiles.find((row) => row.id === id) ?? null;
+  /** 02 §7.3's cascade as this fixture can see it: one row per collection the desk holds,
+   *  empty tables dropped — the same shape A5 reports and A11 previews, so the two agree. */
+  const campusCascadeOf = (): Record<string, number> =>
+    Object.fromEntries(
+      Object.entries({
+        exam_profile: 1,
+        source_doc: campusDocs.length,
+        attempt: campusAttempts.length,
+        mistake_book: campusMistakes.length,
+        plan_task: campusTasks.length,
+        weekly_report: campusReports.length,
+        mock_exam: campusMocks.length,
+        knowledge_point: campusPoints.length,
+        cert_deadline: campusDeadlines.length,
+        assessment: campusAssessments.length,
+        vocab_item: campusVocab.length,
+      }).filter(([, count]) => count > 0),
+    );
   const campusTitleTaken = (title: string, exceptId?: string) =>
     campusProfiles.some(
       (row) => row.title === title && row.id !== exceptId && row.status !== "archived",
@@ -2430,11 +2448,23 @@ export async function mockApi(page: import("@playwright/test").Page) {
         Object.assign(row, patch, { updated_at: campusNow() });
         return json(row);
       }
+      const impactMatch = sub.match(/^\/profiles\/([^/]+)\/impact$/);
+      if (impactMatch && m === "GET") {
+        const target = decodeURIComponent(impactMatch[1]);
+        if (!campusProfile(target)) return json(campusNotFound("profile"), 404);
+        return json({
+          profile_id: target,
+          cascade: campusCascadeOf(),
+          automation_tasks: 0,
+          export_files: 0,
+        });
+      }
       if (pidMatch && m === "DELETE") {
         const i = campusProfiles.findIndex((row) => row.id === pidMatch[1]);
         if (i < 0) return json(campusNotFound("profile"), 404);
+        const cascade = campusCascadeOf();
         campusProfiles.splice(i, 1);
-        return json({ deleted: true, cascade: {} });
+        return json({ deleted: true, cascade, automation_tasks: 0, export_files: 0 });
       }
       if (sub === "/app-state" && m === "GET") {
         return json({ active_profile_id: campusActiveProfileId, settings: campusSettings });

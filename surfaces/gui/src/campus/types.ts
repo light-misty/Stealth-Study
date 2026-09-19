@@ -632,6 +632,22 @@ export interface AppStatePatch {
   settings?: CampusSettings;
 }
 
+/** A11: what deleting a profile costs — the rows of 02 §7.3's cascade, counted before they go. */
+export interface ProfileImpact {
+  profile_id: string;
+  cascade: Record<string, number>;
+  automation_tasks: number;
+  export_files: number;
+}
+
+/** A5: the same cost, counted from the rows that actually went. */
+export interface ProfileDeleteResult {
+  deleted: boolean;
+  cascade: Record<string, number>;
+  automation_tasks: number;
+  export_files: number;
+}
+
 export interface LibraryQAInput {
   profileId: string;
   question: string;

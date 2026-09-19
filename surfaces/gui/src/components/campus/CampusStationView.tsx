@@ -18,6 +18,7 @@ import { CampusProfileProvider, useCampusProfile } from "./CampusProfileContext"
 import { ProfileRenameDialog } from "./ProfileRenameDialog";
 import { ArchivedProfilesDialog } from "./ArchivedProfilesDialog";
 import { CampusDialog } from "./CampusDialog";
+import { DeleteProfileDialog } from "./DeleteProfileDialog";
 import { Icon } from "../Icon";
 import { CountdownBanner } from "./CountdownBanner";
 import { DeadlineBanner } from "./DeadlineBanner";
@@ -222,6 +223,7 @@ function StationBody({ track }: { track: CampusTrack }) {
     renameProfile,
     actionError,
     clearActionError,
+    deleteProfile,
     creating: creatingProfile,
   } = useCampusProfile();
   const { capabilities } = useCapabilities();
@@ -233,6 +235,9 @@ function StationBody({ track }: { track: CampusTrack }) {
   const [showCreateCard, setShowCreateCard] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<unknown>(null);
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const archivedCount = profiles.filter((p) => p.status === "archived").length;
@@ -244,6 +249,24 @@ function StationBody({ track }: { track: CampusTrack }) {
   const review = useDueReviews(activeProfile?.id ?? null);
 
   const renameTarget = renameId ? profiles.find((p) => p.id === renameId) ?? null : null;
+  const deleteTarget = deleteId ? profiles.find((p) => p.id === deleteId) ?? null : null;
+
+  // A failed delete keeps the confirmation on screen with its error: that dialog is the last
+  // place showing what the user agreed to destroy, so it must not be traded for a generic one.
+  const confirmDelete = async (id: string) => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const outcome = await deleteProfile(id);
+    setDeleting(false);
+    if (outcome.ok) setDeleteId(null);
+    else setDeleteError(outcome.error);
+  };
+
+  const askDelete = (id: string) => {
+    setDeleteError(null);
+    setDeleteId(id);
+  };
 
   const dialogs = (
     <>
@@ -252,7 +275,20 @@ function StationBody({ track }: { track: CampusTrack }) {
           profiles={profiles}
           onRestore={(id) => void setStatus(id, "active")}
           onRename={(id) => setRenameId(id)}
+          onDelete={askDelete}
           onClose={() => setShowArchived(false)}
+        />
+      ) : null}
+      {deleteTarget ? (
+        <DeleteProfileDialog
+          profile={deleteTarget}
+          busy={deleting}
+          error={deleteError}
+          onConfirm={(id) => void confirmDelete(id)}
+          onClose={() => {
+            setDeleteId(null);
+            setDeleteError(null);
+          }}
         />
       ) : null}
       {renameTarget ? (
@@ -392,6 +428,7 @@ function StationBody({ track }: { track: CampusTrack }) {
           onCreate={() => setShowCreateCard(true)}
           onArchive={(id) => void setStatus(id, "archived")}
           onRename={(id) => setRenameId(id)}
+          onDelete={askDelete}
           onShowArchived={() => setShowArchived(true)}
         />
       </header>

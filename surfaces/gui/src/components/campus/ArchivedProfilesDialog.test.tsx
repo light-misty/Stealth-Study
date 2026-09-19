@@ -177,4 +177,38 @@ describe("ArchivedProfilesDialog", () => {
     expect(onRestore).toHaveBeenCalledTimes(2);
     expect(onRestore).toHaveBeenLastCalledWith("a1");
   });
+
+  it("offers the permanent delete from the list and the detail view alike", () => {
+    const onDelete = vi.fn();
+    render(
+      <ArchivedProfilesDialog
+        profiles={[recent]}
+        onRestore={vi.fn()}
+        onRename={vi.fn()}
+        onDelete={onDelete}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-archived-delete-a1"));
+    expect(onDelete).toHaveBeenCalledWith("a1");
+
+    // The detail view replaces the list, so the row's label has to be read before the swap.
+    const entryLabel = screen.getByTestId("campus-archived-delete-a1").textContent;
+    fireEvent.click(screen.getByTestId("campus-archived-detail-a1"));
+    expect(screen.getByTestId("campus-archived-detail-delete").textContent).toBe(entryLabel);
+    fireEvent.click(screen.getByTestId("campus-archived-detail-delete"));
+    expect(onDelete).toHaveBeenCalledTimes(2);
+    expect(onDelete).toHaveBeenLastCalledWith("a1");
+  });
+
+  it("stays out of the delete business when the station cannot service one", () => {
+    render(
+      <ArchivedProfilesDialog profiles={[recent]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(screen.queryByTestId("campus-archived-delete-a1")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("campus-archived-detail-a1"));
+    expect(screen.queryByTestId("campus-archived-detail-delete")).toBeNull();
+  });
 });

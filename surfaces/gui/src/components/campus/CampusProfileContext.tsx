@@ -1,10 +1,15 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
-import { createProfile, patchProfile } from "../../campus/api";
+import {
+  createProfile,
+  deleteProfile as deleteProfileRequest,
+  patchProfile,
+} from "../../campus/api";
 import { useActiveProfile, useProfiles } from "../../campus/hooks";
 import type {
   CampusTrack,
   ExamProfile,
   ProfileCreateInput,
+  ProfileDeleteResult,
   ProfilePatch,
   ProfileStatus,
 } from "../../campus/types";
@@ -24,6 +29,11 @@ export interface ProfileActionError {
 
 export type ProfileRenameResult = { ok: true } | { ok: false; error: unknown };
 
+/** A delete is the one destructive action the dialog reads back, so it answers with the receipt. */
+export type ProfileDeleteOutcome =
+  | { ok: true; result: ProfileDeleteResult }
+  | { ok: false; error: unknown };
+
 export interface CampusProfileContextValue {
   profiles: ExamProfile[];
   activeProfile: ExamProfile | null;
@@ -39,6 +49,7 @@ export interface CampusProfileContextValue {
   createProfile: (input: ProfileCreateInput) => Promise<ExamProfile | null>;
   renameProfile: (id: string, title: string) => Promise<ProfileRenameResult>;
   setStatus: (id: string, status: ProfileStatus, title?: string) => Promise<void>;
+  deleteProfile: (id: string) => Promise<ProfileDeleteOutcome>;
 }
 
 const CampusProfileContext = createContext<CampusProfileContextValue | null>(null);
@@ -98,6 +109,22 @@ export function CampusProfileProvider({
     [reload],
   );
 
+  // The delete is the one action whose failure the caller has to show *in place* — the
+  // confirmation dialog is already the user's last chance, so it keeps the error and the
+  // retry rather than trading them for a generic one.
+  const deleteProfile = useCallback(
+    async (id: string): Promise<ProfileDeleteOutcome> => {
+      try {
+        const result = await deleteProfileRequest(id);
+        reload();
+        return { ok: true, result };
+      } catch (err) {
+        return { ok: false, error: err };
+      }
+    },
+    [reload],
+  );
+
   const setStatus = useCallback(
     async (id: string, status: ProfileStatus, title?: string) => {
       const patch: ProfilePatch = title === undefined ? { status } : { status, title };
@@ -136,6 +163,7 @@ export function CampusProfileProvider({
       setActive,
       createProfile: create,
       setStatus,
+      deleteProfile,
     }),
     [
       profiles,
@@ -153,6 +181,7 @@ export function CampusProfileProvider({
       setActive,
       create,
       setStatus,
+      deleteProfile,
     ],
   );
 

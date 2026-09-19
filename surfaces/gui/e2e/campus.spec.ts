@@ -330,3 +330,48 @@ test("campus: rename an on-desk profile and refuse a taken name", async ({ page 
   await expect(page.getByTestId("campus-profile-item").first()).toHaveText("改过的名字");
   await expect(page.getByTestId("campus-profile-item")).toHaveCount(2);
 });
+
+// E2E-12: the irreversible delete. The confirmation shows what A11 counted as going with the
+// profile, cancelling changes nothing, and a confirmed delete survives a reload — the profile is
+// gone from the desk, not merely hidden by the client.
+test("campus: delete an archived profile permanently with its cost counted first", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByTestId("nav-campus-kaoyan").click();
+  await createProfile(page, { title: "要删的档案" });
+
+  await openTab(page, "library");
+  await page.getByTestId("campus-library-import").setInputFiles({
+    name: "notes.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# 删除代价\n\n一份资料跟着档案一起走。"),
+  });
+  await expect(page.getByTestId("campus-library-row")).toBeVisible();
+
+  await page.locator('[data-testid^="campus-profile-archive-"]').first().click();
+  await expect(page.getByTestId("campus-station-empty")).toBeVisible();
+  await page.getByTestId("campus-profile-archived-entry").click();
+  await page.locator('[data-testid^="campus-archived-delete-"]').first().click();
+
+  const dialog = page.getByTestId("campus-delete-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("要删的档案");
+  await expect(page.getByTestId("campus-delete-count")).toHaveAttribute("data-total", "2");
+  await expect(page.getByTestId("campus-delete-row").first()).toHaveText("1");
+
+  await page.getByTestId("campus-delete-cancel").click();
+  await expect(page.getByTestId("campus-delete-dialog")).toHaveCount(0);
+  await expect(page.getByTestId("campus-archived-list")).toContainText("要删的档案");
+
+  await page.locator('[data-testid^="campus-archived-delete-"]').first().click();
+  await expect(page.getByTestId("campus-delete-confirm")).toBeEnabled();
+  await page.getByTestId("campus-delete-confirm").click();
+  await expect(page.getByTestId("campus-archived-empty")).toBeVisible();
+  await page.getByTestId("campus-archived-dialog-close").click();
+
+  await page.reload();
+  await page.getByTestId("nav-campus-kaoyan").click();
+  await expect(page.getByTestId("campus-station-empty")).toBeVisible();
+  await expect(page.getByTestId("campus-profile-archived-entry")).toHaveCount(0);
+});

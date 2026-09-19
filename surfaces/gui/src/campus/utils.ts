@@ -1,5 +1,11 @@
 import { CampusApiError } from "./api";
-import type { DegradeLevel, DeadlineTier, ExamProfile, ScoringState } from "./types";
+import type {
+  DegradeLevel,
+  DeadlineTier,
+  ExamProfile,
+  ProfileImpact,
+  ScoringState,
+} from "./types";
 
 // Shared display helpers for the campus station UI. Kept dependency-free and pure so
 // every panel can be tested without rendering or network access.
@@ -134,4 +140,69 @@ export function suggestProfileTitle(profiles: ExamProfile[], title: string, exce
     if (!profileTitleTaken(profiles, candidate, exceptId)) return candidate;
   }
   return "";
+}
+
+/**
+ * The A11 cascade told back in the words the station already uses for it (02 §7.3). Ordered:
+ * the desk's own modules first, then the profile row itself, then the two things that live
+ * outside campus.db. A table this list never heard of lands in `other` rather than vanishing —
+ * an irreversible delete must not under-report what it takes.
+ */
+export const PROFILE_IMPACT_GROUPS: readonly { key: string; tables: readonly string[] }[] = [
+  { key: "library", tables: ["source_doc", "doc_chunk"] },
+  { key: "questions", tables: ["question_bank_item"] },
+  { key: "vocab", tables: ["vocab_item"] },
+  { key: "knowledge", tables: ["knowledge_point", "mastery"] },
+  { key: "attempts", tables: ["attempt"] },
+  { key: "mistakes", tables: ["mistake_book"] },
+  { key: "review", tables: ["review_queue"] },
+  { key: "plans", tables: ["study_plan", "plan_task"] },
+  { key: "exams", tables: ["mock_exam", "assessment"] },
+  { key: "reports", tables: ["weekly_report"] },
+  { key: "deadlines", tables: ["cert_deadline"] },
+  { key: "school", tables: ["school_profile"] },
+];
+
+/** The group keys, in render order, including the three that are not campus tables. */
+export const PROFILE_IMPACT_KEYS: readonly string[] = [
+  ...PROFILE_IMPACT_GROUPS.map((group) => group.key),
+  "other",
+  "profile",
+  "automations",
+  "exports",
+];
+
+export interface ProfileImpactRow {
+  key: string;
+  count: number;
+}
+
+export function profileImpactRows(impact: ProfileImpact | null): ProfileImpactRow[] {
+  if (!impact) return [];
+  const rows: ProfileImpactRow[] = [];
+  const named = new Set<string>();
+  for (const group of PROFILE_IMPACT_GROUPS) {
+    const count = group.tables.reduce(
+      (sum, table) => sum + (impact.cascade[table] ?? 0),
+      0,
+    );
+    for (const table of group.tables) named.add(table);
+    if (count) rows.push({ key: group.key, count });
+  }
+  const other = Object.entries(impact.cascade).reduce(
+    (sum, [table, count]) =>
+      named.has(table) || table === "exam_profile" ? sum : sum + count,
+    0,
+  );
+  if (other) rows.push({ key: "other", count: other });
+  if (impact.cascade.exam_profile) rows.push({ key: "profile", count: impact.cascade.exam_profile });
+  if (impact.automation_tasks) rows.push({ key: "automations", count: impact.automation_tasks });
+  if (impact.export_files) rows.push({ key: "exports", count: impact.export_files });
+  return rows;
+}
+
+/** Everything the delete takes, the profile row included; `null` when the cost is unknown. */
+export function profileImpactTotal(impact: ProfileImpact | null): number | null {
+  if (!impact) return null;
+  return profileImpactRows(impact).reduce((sum, row) => sum + row.count, 0);
 }

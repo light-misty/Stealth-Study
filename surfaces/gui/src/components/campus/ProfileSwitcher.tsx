@@ -14,6 +14,7 @@ export function ProfileSwitcher({
   onCreate,
   onArchive,
   onRename,
+  onDelete,
   onShowArchived,
 }: {
   profiles: ExamProfile[];
@@ -22,6 +23,7 @@ export function ProfileSwitcher({
   onCreate: () => void;
   onArchive?: (id: string) => void;
   onRename?: (id: string) => void;
+  onDelete?: (id: string) => void;
   onShowArchived?: () => void;
 }) {
   const { t } = useTranslation();
@@ -38,49 +40,70 @@ export function ProfileSwitcher({
             {t("campus.profile.empty")}
           </span>
         ) : (
-          visible.map((p) => (
-            <div key={p.id} className={p.id === activeId ? "who-item is-on" : "who-item"}>
-              <button
-                type="button"
-                className="who-pill"
-                onClick={() => onSwitch(p.id)}
-                data-testid="campus-profile-item"
-                data-profile-id={p.id}
-                data-active={p.id === activeId ? "true" : "false"}
-                title={p.id === activeId ? t("campus.profile.active_badge") : p.title}
-                aria-pressed={p.id === activeId}
-              >
-                {p.id === activeId ? <span className="dot" /> : null}
-                {p.title}
-              </button>
-              <span className="who-tools">
-                {onRename ? (
-                  <button
-                    type="button"
-                    className="icon-btn"
-                    onClick={() => onRename(p.id)}
-                    data-testid={`campus-profile-rename-${p.id}`}
-                    title={t("campus.profile.rename")}
-                    aria-label={t("campus.profile.rename")}
-                  >
-                    <Icon name="pencil" size={13} />
-                  </button>
-                ) : null}
-                {onArchive ? (
-                  <button
-                    type="button"
-                    className="icon-btn icon-btn--danger"
-                    onClick={() => onArchive(p.id)}
-                    data-testid={`campus-profile-archive-${p.id}`}
-                    title={t("campus.profile.archive")}
-                    aria-label={t("campus.profile.archive")}
-                  >
-                    <Icon name="archive" size={13} />
-                  </button>
-                ) : null}
-              </span>
-            </div>
-          ))
+          visible.map((p) => {
+            // 结课档案拒绝一切改写（02 §7.2），改名与归档点了只会 409，所以它只剩删除这一个动作。
+            const finished = p.status === "finished";
+            return (
+              <div key={p.id} className={p.id === activeId ? "who-item is-on" : "who-item"}>
+                <button
+                  type="button"
+                  className="who-pill"
+                  onClick={() => onSwitch(p.id)}
+                  data-testid="campus-profile-item"
+                  data-profile-id={p.id}
+                  data-active={p.id === activeId ? "true" : "false"}
+                  title={p.id === activeId ? t("campus.profile.active_badge") : p.title}
+                  aria-pressed={p.id === activeId}
+                >
+                  {p.id === activeId ? <span className="dot" /> : null}
+                  {p.title}
+                </button>
+                <span className="who-tools">
+                  {finished
+                    ? onDelete ? (
+                        <button
+                          type="button"
+                          className="icon-btn icon-btn--danger"
+                          onClick={() => onDelete(p.id)}
+                          data-testid={`campus-profile-delete-${p.id}`}
+                          title={t("campus.profile.delete")}
+                          aria-label={t("campus.profile.delete")}
+                        >
+                          <Icon name="trash" size={13} />
+                        </button>
+                      ) : null
+                    : (
+                        <>
+                          {onRename ? (
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              onClick={() => onRename(p.id)}
+                              data-testid={`campus-profile-rename-${p.id}`}
+                              title={t("campus.profile.rename")}
+                              aria-label={t("campus.profile.rename")}
+                            >
+                              <Icon name="pencil" size={13} />
+                            </button>
+                          ) : null}
+                          {onArchive ? (
+                            <button
+                              type="button"
+                              className="icon-btn icon-btn--danger"
+                              onClick={() => onArchive(p.id)}
+                              data-testid={`campus-profile-archive-${p.id}`}
+                              title={t("campus.profile.archive")}
+                              aria-label={t("campus.profile.archive")}
+                            >
+                              <Icon name="archive" size={13} />
+                            </button>
+                          ) : null}
+                        </>
+                      )}
+                </span>
+              </div>
+            );
+          })
         )}
 
         <button

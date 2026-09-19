@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CampusApiError } from "../api";
-import type { ExamProfile } from "../types";
+import type { ExamProfile, ProfileImpact } from "../types";
 import {
   campusErrorInfo,
   campusErrorKey,
@@ -11,6 +11,8 @@ import {
   formatPercent,
   isCountdownHighlight,
   nextIntervalDays,
+  profileImpactRows,
+  profileImpactTotal,
   REVIEW_LADDER,
   profileTitleTaken,
   scoringStateOf,
@@ -181,5 +183,39 @@ describe("suggestProfileTitle", () => {
     expect(suggestProfileTitle([], "四级冲刺")).toBe("四级冲刺 (2)");
     expect(suggestProfileTitle(taken, "冲刺")).toBe("冲刺 (3)");
     expect(suggestProfileTitle(taken, "  ")).toBe("");
+  });
+});
+
+describe("profileImpactRows (what an irreversible delete costs)", () => {
+  const impact = (
+    cascade: Record<string, number>,
+    automation_tasks = 0,
+    export_files = 0,
+  ): ProfileImpact => ({ profile_id: "p1", cascade, automation_tasks, export_files });
+
+  it("groups the tables the user knows, drops the empty ones and keeps the profile last", () => {
+    expect(
+      profileImpactRows(impact({ source_doc: 2, doc_chunk: 7, mistake_book: 3, exam_profile: 1 }, 1, 4)),
+    ).toEqual([
+      { key: "library", count: 9 },
+      { key: "mistakes", count: 3 },
+      { key: "profile", count: 1 },
+      { key: "automations", count: 1 },
+      { key: "exports", count: 4 },
+    ]);
+  });
+
+  it("folds a table it has no label for into one other row", () => {
+    expect(profileImpactRows(impact({ quiz_archive: 5, mistake_book: 2 }))).toEqual([
+      { key: "mistakes", count: 2 },
+      { key: "other", count: 5 },
+    ]);
+  });
+
+  it("counts the whole cost, the profile row included", () => {
+    expect(
+      profileImpactTotal(impact({ source_doc: 2, mistake_book: 3, exam_profile: 1 }, 1, 4)),
+    ).toBe(11);
+    expect(profileImpactTotal(null)).toBe(null);
   });
 });
