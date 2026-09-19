@@ -269,8 +269,7 @@ export function ListeningDrill({ profileId }: { profileId: string }) {
                 <span className="alert-title">{t("campus.common.error")}</span>
                 <span className="alert-desc">
                   {t(campusErrorKey(campusErrorInfo(submitError).code), {
-                    defaultValue:
-                      campusErrorInfo(submitError).message || t("campus.common.error"),
+                    defaultValue: campusErrorInfo(submitError).message || t("campus.common.error"),
                   })}
                 </span>
               </div>
