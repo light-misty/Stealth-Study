@@ -167,7 +167,7 @@ export function ScheduledView({ onOpenRun, onRunNow, initialOpenId }: Props) {
         <div className="flex flex-col gap-2.5">
           {tasks.map((task) => (
             <div
-              className={CARD + " anim-fade-up sched-card px-4 py-3 cursor-pointer hover:border-lineStrong transition-colors"}
+              className={CARD + " anim-fade-up sched-card px-4 py-3 cursor-pointer hover:border-lineStronger transition-colors"}
               key={task.id}
               onClick={() => setOpenId(task.id)}
             >

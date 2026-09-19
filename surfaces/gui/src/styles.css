@@ -76,6 +76,7 @@
   --faint: #6f7680;          /* OPE-126 contrast fix — old #9aa1aa was ~2.5:1 on white */
   --line: #e8eaed;
   --line-strong: #d8dce1;
+  --line-stronger: #c2c9d1;
   /* 原型「Stealth Study」设计语言：全站唯一强调色 = 狐狸橙，结构/链接 = 书页蓝 */
   --accent: #ee8b4c;          /* 狐狸橙 · 品牌强调（原型 --accent） */
   --accent-deep: #c4682e;     /* 狐狸橙文字用深一档（原型 --accent-deep） */
@@ -158,6 +159,7 @@ html[data-theme="dark"] {
   --faint: #62686f;
   --line: #2a2d33;
   --line-strong: #3a3e46;
+  --line-stronger: #4a505b;
   --accent: #f59a5c;          /* 狐狸橙 · 夜读提亮（原型暗色 --accent） */
   --accent-deep: #f5a268;
   --accent-soft: #3a2a20;     /* 橙底 · 夜读 */
@@ -310,6 +312,15 @@ body {
   z-index: 6;
 }
 .main.rail-open .main-topbar { right: 332px; }
+/* The panel toggle is statically anchored to .main's top-right corner — the exact spot the
+   show button occupied in the topbar (48px bar, 30px button → top 9px; topbar's 14px right
+   padding). It never animates: opening the rail slides the panel under a motionless button,
+   which lands on the rail's top-right corner by construction. */
+.main-panel-toggle { position: absolute; top: 9px; right: 14px; z-index: 7; }
+.app.tauri-overlay .main-panel-toggle { top: 13.5px; }
+.main.rail-open:has(.right-rail.artifact-mode) .main-panel-toggle {
+  transform: translateX(calc(-1 * var(--artifact-rail-w)));
+}
 /* Centered title column (§22, amended: the ⋯ menu removed — the nav row's hover cluster owns
    pin/rename/archive/delete). Title + facts subtitle beneath.
    ABSOLUTE centering (owner catch 2026-07-13: a long mention-spawned title painted over the
@@ -337,7 +348,7 @@ body {
 .title-sub:hover { color: var(--muted); }
 /* Equal-flex side regions keep the subtitle centered; they double as window-drag surfaces. */
 .main-topbar-side { align-self: stretch; flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 6px; }
-.main-topbar-actions { justify-content: flex-end; }
+.main-topbar-actions { justify-content: flex-end; padding-right: 36px; }
 .topbar-icon-btn {
   width: 30px; height: 30px; display: grid; place-items: center;
   border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer;

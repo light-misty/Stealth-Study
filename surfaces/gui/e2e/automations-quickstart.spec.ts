@@ -16,7 +16,7 @@ async function openAutomations(page) {
 // the delete test in automations-manage.spec.ts).
 async function openQuickstart(page) {
   await openAutomations(page);
-  await page.getByRole("button", { name: "+ New automation" }).click();
+  await page.getByRole("button", { name: "+ New scheduled task" }).click();
   await expect(page.getByText("Start from a template")).toBeVisible();
 }
 

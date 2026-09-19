@@ -97,4 +97,33 @@ describe("locale contracts", () => {
       expect(rendered, key).not.toMatch(/{{\s*[\w.]+(?:\s*,[^}]*)?\s*}}/);
     }
   });
+
+  it("renames automation wording to scheduled tasks across locales", () => {
+    expect(flatZh["sidebar.automations"]).toBe("定时任务");
+    expect(flatZh["nav.automations"]).toBe("定时任务");
+    expect(flatZh["automations.title"]).toBe("定时任务");
+    expect(flatZh["automations.new_btn"]).toBe("+ 新建定时任务");
+    expect(flatZh["automations.create_btn"]).toBe("创建定时任务");
+    expect(flatZh["automations.back_to_automations"]).toBe("← 定时任务");
+    expect(flatZh["automations.delete_title"]).toBe("删除定时任务");
+    expect(flatZh["automations.new_automation"]).toBe("新建定时任务");
+    expect(flatZh["automations.empty_state"]).toContain("+ 新建定时任务");
+    expect(flatZh["automations.allowed_desc"]).toContain("此定时任务");
+    expect(flatZh["automations.consent_prefix"]).toContain("此定时任务");
+    expect(flatZh["automations.read_only_pref"]).toBe("此定时任务仅按计划");
+    expect(flatZh["automations.revoke_title"]).toBe("此定时任务将再次请求批准");
+    expect(flatEn["sidebar.automations"]).toBe("Scheduled tasks");
+    expect(flatEn["nav.automations"]).toBe("Scheduled tasks");
+    expect(flatEn["automations.title"]).toBe("Scheduled tasks");
+    expect(flatEn["automations.new_btn"]).toBe("+ New scheduled task");
+    expect(flatEn["automations.create_btn"]).toBe("Create scheduled task");
+    expect(flatEn["automations.back_to_automations"]).toBe("← Scheduled tasks");
+    expect(flatEn["automations.delete_title"]).toBe("Delete scheduled task");
+    expect(flatEn["automations.new_automation"]).toBe("New scheduled task");
+    expect(flatEn["automations.empty_state"]).toContain("+ New scheduled task");
+    expect(flatEn["automations.allowed_desc"]).toContain("this scheduled task");
+    expect(flatEn["automations.consent_prefix"]).toContain("this scheduled task");
+    expect(flatEn["automations.read_only_pref"]).toBe("This scheduled task only");
+    expect(flatEn["automations.revoke_title"]).toBe("This scheduled task will ask for approval again");
+  });
 });

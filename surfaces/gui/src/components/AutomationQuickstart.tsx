@@ -324,7 +324,7 @@ export function AutomationQuickstart({
               "h-full text-left rounded-xl2 border bg-panel p-4 flex flex-col gap-1.5 " +
               (pickedKey === tpl.key
                 ? "border-accent ring-2 ring-accentSoft"
-                : "border-line hover:border-lineStrong")
+                : "border-line hover:border-lineStronger")
             }
             onClick={() => pick(tpl)}
           >
