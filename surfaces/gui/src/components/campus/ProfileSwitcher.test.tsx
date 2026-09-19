@@ -65,8 +65,10 @@ describe("ProfileSwitcher", () => {
     fireEvent.click(itemById("p1"));
     expect(onSwitch).toHaveBeenCalledWith("p1");
 
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
     fireEvent.click(screen.getByTestId("campus-profile-archive-p1"));
     expect(onArchive).toHaveBeenCalledWith("p1");
+    expect(screen.queryByTestId("campus-profile-manage-menu")).toBeNull();
 
     fireEvent.click(screen.getByTestId("campus-profile-create"));
     expect(onCreate).toHaveBeenCalled();
@@ -85,30 +87,60 @@ describe("ProfileSwitcher", () => {
 
     expect(screen.queryByTestId("campus-profile-item")).toBeNull();
     expect(screen.getByTestId("campus-profile-empty")).toBeTruthy();
+    expect(screen.queryByTestId("campus-profile-manage")).toBeNull();
   });
 
-  it("hides the archive action when no handler is supplied", () => {
+  it("shows no manage entry when the active profile has no handlers", () => {
     render(
       <ProfileSwitcher profiles={[profile("p1")]} activeId="p1" onSwitch={vi.fn()} onCreate={vi.fn()} />,
     );
-    expect(screen.queryByTestId("campus-profile-archive-p1")).toBeNull();
+    expect(screen.queryByTestId("campus-profile-manage")).toBeNull();
   });
 
-  it("asks for a rename per on-desk profile", () => {
+  it("offers the active profile rename and archive in one manage menu", () => {
     const onRename = vi.fn();
+    const onArchive = vi.fn();
     render(
       <ProfileSwitcher
-        profiles={[profile("p1"), profile("p2", "archived")]}
-        activeId="p1"
+        profiles={[profile("p1"), profile("p2"), profile("p3", "archived")]}
+        activeId="p2"
         onSwitch={vi.fn()}
         onCreate={vi.fn()}
+        onArchive={onArchive}
         onRename={onRename}
       />,
     );
 
-    fireEvent.click(screen.getByTestId("campus-profile-rename-p1"));
-    expect(onRename).toHaveBeenCalledWith("p1");
-    expect(screen.queryByTestId("campus-profile-rename-p2")).toBeNull();
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
+    const menu = screen.getByTestId("campus-profile-manage-menu");
+    expect(menu.textContent).toContain("档案-p2");
+    fireEvent.click(screen.getByTestId("campus-profile-rename-p2"));
+    expect(onRename).toHaveBeenCalledWith("p2");
+    expect(screen.queryByTestId("campus-profile-manage-menu")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
+    fireEvent.click(screen.getByTestId("campus-profile-archive-p2"));
+    expect(onArchive).toHaveBeenCalledWith("p2");
+    expect(screen.queryByTestId("campus-profile-rename-p1")).toBeNull();
+    expect(screen.queryByTestId("campus-profile-archive-p1")).toBeNull();
+  });
+
+  it("closes the manage menu with Escape", () => {
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onArchive={vi.fn()}
+        onRename={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
+    expect(screen.getByTestId("campus-profile-manage-menu")).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByTestId("campus-profile-manage-menu")).toBeNull();
   });
 
   it("offers the archived profiles with their count", () => {
@@ -130,14 +162,14 @@ describe("ProfileSwitcher", () => {
     expect(onShowArchived).toHaveBeenCalled();
   });
 
-  it("offers a finished profile nothing but the delete, whose tools would only 409", () => {
+  it("offers a finished active profile nothing but the delete, whose tools would only 409", () => {
     const onDelete = vi.fn();
     const onArchive = vi.fn();
     const onRename = vi.fn();
     render(
       <ProfileSwitcher
         profiles={[profile("p1"), profile("p2", "finished")]}
-        activeId="p1"
+        activeId="p2"
         onSwitch={vi.fn()}
         onCreate={vi.fn()}
         onArchive={onArchive}
@@ -146,24 +178,23 @@ describe("ProfileSwitcher", () => {
       />,
     );
 
+    fireEvent.click(screen.getByTestId("campus-profile-manage"));
     fireEvent.click(screen.getByTestId("campus-profile-delete-p2"));
     expect(onDelete).toHaveBeenCalledWith("p2");
     expect(screen.queryByTestId("campus-profile-archive-p2")).toBeNull();
     expect(screen.queryByTestId("campus-profile-rename-p2")).toBeNull();
-    expect(screen.getByTestId("campus-profile-archive-p1")).toBeTruthy();
   });
 
   it("keeps the finished profile without a delete affordance when nothing can handle it", () => {
     render(
       <ProfileSwitcher
         profiles={[profile("p1"), profile("p2", "finished")]}
-        activeId="p1"
+        activeId="p2"
         onSwitch={vi.fn()}
         onCreate={vi.fn()}
-        onArchive={vi.fn()}
       />,
     );
-    expect(screen.queryByTestId("campus-profile-delete-p2")).toBeNull();
+    expect(screen.queryByTestId("campus-profile-manage")).toBeNull();
   });
 
   it("keeps the archived entry out of the header while the box is empty", () => {

@@ -35,6 +35,7 @@ import { EmptyModelGuide } from "./EmptyModelGuide";
 import { LibraryPanel } from "./LibraryPanel";
 import { MistakeBookPanel } from "./MistakeBookPanel";
 import { ProfileCreateCard } from "./ProfileCreateCard";
+import { ProfileCreateDialog } from "./ProfileCreateDialog";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { MajorQAView } from "./kaoyan/MajorQAView";
 import { PlanPanel } from "./kaoyan/PlanPanel";
@@ -238,10 +239,10 @@ function StationBody({ track }: { track: CampusTrack }) {
   } = useCampusProfile();
   const { capabilities } = useCapabilities();
   // Two different questions need two different flags: `creatingProfile` is "a create request is
-  // in flight" (the card must not take a second submit), while `showCreateCard` is only "the
-  // switcher's inline card is open". Driving both from one flag left the card's submit disabled
-  // the instant it was opened from the switcher — invisible from the empty state, where the card
-  // is always on screen and nothing ever sets the flag.
+  // in flight" (the form must not take a second submit), while `showCreateCard` is only "the
+  // switcher's create dialog is open". Driving both from one flag left the submit disabled
+  // the instant it was opened from the switcher — invisible from the empty state, where the
+  // card is always on screen and nothing ever sets the flag.
   const [showCreateCard, setShowCreateCard] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -285,6 +286,18 @@ function StationBody({ track }: { track: CampusTrack }) {
 
   const dialogs = (
     <>
+      {showCreateCard ? (
+        <ProfileCreateDialog
+          track={track}
+          busy={creatingProfile}
+          onCreate={(input) => {
+            void createProfile(input).then((created) => {
+              if (created) setShowCreateCard(false);
+            });
+          }}
+          onClose={() => setShowCreateCard(false)}
+        />
+      ) : null}
       {showArchived ? (
         <ArchivedProfilesDialog
           profiles={profiles}
@@ -449,19 +462,6 @@ function StationBody({ track }: { track: CampusTrack }) {
             <h1 className="st-title">{t(`campus.track.${track}.name`)}</h1>
             <p className="st-sub">{t(`campus.track.${track}.tagline`)}</p>
           </header>
-
-          {showCreateCard ? (
-            <ProfileCreateCard
-              track={track}
-              busy={creatingProfile}
-              onCreate={(input) => {
-                void createProfile(input).then((created) => {
-                  if (created) setShowCreateCard(false);
-                });
-              }}
-              onCancel={() => setShowCreateCard(false)}
-            />
-          ) : null}
 
           <EmptyModelGuide capabilities={capabilities} />
 

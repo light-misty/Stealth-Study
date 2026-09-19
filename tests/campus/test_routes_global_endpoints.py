@@ -259,10 +259,26 @@ def test_a2_refuses_two_profiles_of_the_same_active_title(client: TestClient) ->
     )
     refused = client.post(
         f"{routes.CAMPUS_PREFIX}/profiles",
-        json={"track_type": models.TrackType.KAOYAN.value, "title": "同名新建"},
+        json={"track_type": models.TrackType.CET.value, "title": "同名新建"},
     )
     assert refused.status_code == 409
     assert _detail(refused)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a2_allows_the_same_title_on_a_different_track(client: TestClient) -> None:
+    assert (
+        client.post(
+            f"{routes.CAMPUS_PREFIX}/profiles",
+            json={"track_type": models.TrackType.CET.value, "title": "同名新建"},
+        ).status_code
+        == 200
+    )
+    response = client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.KAOYAN.value, "title": "同名新建"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["track_type"] == models.TrackType.KAOYAN.value
 
 
 @pytest.mark.parametrize(
@@ -410,6 +426,20 @@ def test_a4_refuses_a_duplicate_title_on_rename(client: TestClient) -> None:
     assert _detail(response)["code"] == "DUPLICATE_TITLE"
 
 
+def test_a4_allows_a_rename_onto_another_track_s_title(client: TestClient) -> None:
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.KAOYAN.value, "title": "考研同名"},
+    )
+
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "考研同名"}
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["title"] == "考研同名"
+
+
 def test_a4_allows_rename_onto_a_title_only_an_archived_profile_holds(client: TestClient) -> None:
     response = client.patch(
         f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}", json={"title": "已归档"}
@@ -435,6 +465,19 @@ def test_a4_restore_refuses_a_title_an_on_desk_profile_holds(client: TestClient)
     body = client.get(f"{routes.CAMPUS_PREFIX}/profiles/{ACTIVE_ID}").json()
     assert body["status"] == models.ProfileStatus.ARCHIVED.value
     assert body["archived_at"] is not None
+
+
+def test_a4_restore_allows_a_title_another_track_holds(client: TestClient) -> None:
+    _set_status(client, ACTIVE_ID, models.ProfileStatus.ARCHIVED)
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.KAOYAN.value, "title": "六级 12 月"},
+    )
+
+    restored = _set_status(client, ACTIVE_ID, models.ProfileStatus.ACTIVE)
+
+    assert restored["status"] == models.ProfileStatus.ACTIVE.value
+    assert restored["title"] == "六级 12 月"
 
 
 def test_a4_restore_succeeds_once_the_rival_has_moved_off_the_name(client: TestClient) -> None:
@@ -489,11 +532,24 @@ def test_a4_renaming_an_archived_profile_keeps_it_archived_and_keeps_the_timesta
 
 
 def test_a4_an_archived_rename_still_refuses_a_name_the_desk_holds(client: TestClient) -> None:
+    client.post(
+        f"{routes.CAMPUS_PREFIX}/profiles",
+        json={"track_type": models.TrackType.CERT.value, "title": "台面证书"},
+    )
+
     response = client.patch(
-        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "六级 12 月"}
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "台面证书"}
     )
     assert response.status_code == 409
     assert _detail(response)["code"] == "DUPLICATE_TITLE"
+
+
+def test_a4_allows_an_archived_rename_onto_another_track_s_title(client: TestClient) -> None:
+    response = client.patch(
+        f"{routes.CAMPUS_PREFIX}/profiles/{ARCHIVED_ID}", json={"title": "六级 12 月"}
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["title"] == "六级 12 月"
 
 
 def test_a4_two_archived_profiles_can_share_a_name_while_in_the_box(client: TestClient) -> None:
