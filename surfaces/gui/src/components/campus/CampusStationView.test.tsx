@@ -135,16 +135,15 @@ describe("CampusStationView", () => {
     });
   });
 
-  it("keeps the switcher's create card submittable (opening it is not a request in flight)", async () => {
-    // Regression: one flag used to mean both "the inline card is open" and "a create is running",
-    // so opening the card from the switcher handed `busy` to its submit and the button was
-    // disabled before the user could ever click it. The empty-state path never showed it.
+  it("opens the switcher's create form as a modal dialog, submittable right away", async () => {
+    apiMock.createProfile.mockResolvedValue(profile("p9"));
     render(<CampusStationView track="cet" />);
     await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+    expect(screen.queryByTestId("campus-profile-create-dialog")).toBeNull();
     expect(screen.queryByTestId("campus-profile-create-card")).toBeNull();
 
     fireEvent.click(screen.getByTestId("campus-profile-create"));
-    await waitFor(() => expect(screen.getByTestId("campus-profile-create-card")).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId("campus-profile-create-dialog")).toBeTruthy());
     const submit = screen.getByTestId("campus-profile-create-submit") as HTMLButtonElement;
     expect(submit.disabled).toBe(false);
 
@@ -154,6 +153,35 @@ describe("CampusStationView", () => {
     fireEvent.click(submit);
     await waitFor(() => expect(apiMock.createProfile).toHaveBeenCalled());
     expect(apiMock.createProfile.mock.calls[0][0]).toMatchObject({ title: "第二个档案" });
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-create-dialog")).toBeNull());
+  });
+
+  it("closes the create dialog through cancel and Escape", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    await screen.findByTestId("campus-profile-create-dialog");
+    fireEvent.click(screen.getByTestId("campus-profile-create-cancel"));
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-create-dialog")).toBeNull());
+    expect(apiMock.createProfile).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    await screen.findByTestId("campus-profile-create-dialog");
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByTestId("campus-profile-create-dialog")).toBeNull());
+  });
+
+  it("refuses an empty title inside the create dialog without a request", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    await screen.findByTestId("campus-profile-create-dialog");
+    fireEvent.click(screen.getByTestId("campus-profile-create-submit"));
+
+    expect(screen.getByTestId("campus-profile-create-error")).toBeTruthy();
+    expect(apiMock.createProfile).not.toHaveBeenCalled();
   });
 
   it("guides the user when no model is configured", async () => {
