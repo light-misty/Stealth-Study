@@ -515,42 +515,17 @@ export function App() {
   // server may not answer for a second or two. Only fall back to the gate once it's truly up.
   const [booting, setBooting] = useState(true);
   const [onboarding, setOnboarding] = useState(false);
-  // True once we've resumed a prior conversation on boot (drives the splash wording).
-  const [resumedExisting, setResumedExisting] = useState(false);
   // Latched: keep the boot splash up until the restored session is actually CONNECTED (not just
   // until `booting` clears), so an early click can't land on a session that's still settling.
   const [uiReady, setUiReady] = useState(false);
 
-  // On boot with no seeded workspace, reopen the last thing the user had — most recent
-  // conversation (restores its folder + agent + transcript), else the most recent project
-  // folder. Only a true first run (nothing to resume) falls through to the folder gate.
+  // On boot, always open a FRESH session (owner ask: every launch lands on the new-session
+  // page, never the last conversation). We still load the session/project lists for the
+  // sidebar, and auto-adopt a recent folder for gated surfaces (Code) — Cowork starts orphan.
   const resumeLastOrGate = async () => {
-    let loadedSessions: SessionInfo[] = [];
     try {
-      loadedSessions = (await getSessions()).filter((s) => s.session_id && !s.session_id.startsWith("__"));
-      setSessions(loadedSessions);
-      const sess = loadedSessions;
-      const ts = (s: SessionInfo) => Date.parse(s.updated_at || "") || Number(s.updated_at) || 0;
-      const last = [...sess].sort((a, b) => ts(b) - ts(a))[0];
-      if (last) {
-        setResumedExisting(true);
-        if (last.agent) setAgent(last.agent);
-        if (last.workspace) {
-          setWorkspace(last.workspace);
-          setBranch(null);
-        }
-        try {
-          const messages = await getSessionMessages(last.session_id);
-          setItems(itemsFromMessages(messages));
-          setUsage(usageFromMessages(messages));
-        } catch {
-          setItems([]);
-          setUsage(emptyUsage());
-        }
-        setSessionId(last.session_id);
-        setShowGate(false);
-        return;
-      }
+      const loaded = await getSessions();
+      setSessions(loaded.filter((s) => s.session_id && !s.session_id.startsWith("__")));
     } catch {
       /* fall through */
     }
@@ -1646,7 +1621,7 @@ export function App() {
           <Icon name="logo" size={38} />
         </div>
         <div className="boot-text">
-          {resumedExisting ? t("boot.restoring") : t("boot.starting")}
+          {t("boot.starting")}
           <span className="beta-tag">BETA</span>
         </div>
       </div>
