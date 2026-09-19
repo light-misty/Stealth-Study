@@ -1190,6 +1190,16 @@ class SessionManager:
             await self._durable_resume(item)
         return ok
 
+    def close_pending_questions(self, session_id: str) -> int:
+        """Stop-interrupt cleanup: the paused turn can no longer be answered, so its still-pending
+        ask_user prompts close instead of lingering as answerable cards. Direct inbox.resolve —
+        NEVER resolve_inbox, whose durable-resume path would restart the turn the user just stopped."""
+        closed = 0
+        for item in self.inbox.pending(session_id):
+            if item.kind == "question" and self.inbox.resolve(item.id, "interrupted by user"):
+                closed += 1
+        return closed
+
     async def _durable_resume(self, item) -> None:
         if not getattr(item, "tool_call_id", None):
             return  # nothing to reconstruct (legacy item) — best-effort: leave it

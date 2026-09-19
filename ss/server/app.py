@@ -2717,6 +2717,7 @@ def create_app(manager: SessionManager) -> FastAPI:
                         engine.approve_action_once(name, arguments or {})
                 elif kind == "interrupt":
                     engine.request_interrupt()
+                    manager.close_pending_questions(session_id)
                 elif kind == "retry":
                     # Re-run after a provider error (engine guards on the error-notice
                     # tail, so a stray frame is a no-op that still ends with turn_done).
