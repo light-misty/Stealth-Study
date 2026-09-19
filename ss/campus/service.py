@@ -1478,9 +1478,9 @@ class CampusService:
         return [profile_payload(models.ExamProfile.from_row(row)) for row in rows]
 
     def create_profile(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        """Create a profile, refusing a title already in use (A2)."""
+        """Create a profile, refusing a title already in use on its track (A2)."""
         title = str(payload["title"]).strip()
-        self._assert_title_free(title)
+        self._assert_title_free(title, track_type=str(payload["track_type"]))
         daily_minutes = payload.get("daily_minutes")
         values: dict[str, Any] = {
             "track_type": payload["track_type"],
@@ -1521,7 +1521,9 @@ class CampusService:
             if name == "title":
                 value = str(value).strip()
                 if value != profile.title:
-                    self._assert_title_free(value, exclude=profile.id)
+                    self._assert_title_free(
+                        value, track_type=profile.track_type, exclude=profile.id
+                    )
             if name in JSON_PROFILE_FIELDS:
                 value = _encode(value or [])
             values[name] = value
@@ -1530,7 +1532,9 @@ class CampusService:
             entering_archive = str(status) == models.ProfileStatus.ARCHIVED.value
             if not entering_archive:
                 self._assert_title_free(
-                    str(values.get("title") or profile.title).strip(), exclude=profile.id
+                    str(values.get("title") or profile.title).strip(),
+                    track_type=profile.track_type,
+                    exclude=profile.id,
                 )
             values["archived_at"] = _utcnow() if entering_archive else None
         if not values:
@@ -4719,20 +4723,25 @@ class CampusService:
         else:
             self._store.delete_state(SETTINGS_KEY)
 
-    def _assert_title_free(self, title: str, *, exclude: Optional[str] = None) -> None:
-        """Refuse a title an on-desk profile already holds (A2/A4).
+    def _assert_title_free(
+        self, title: str, *, track_type: str, exclude: Optional[str] = None
+    ) -> None:
+        """Refuse a title an on-desk profile of the same track already holds (A2/A4).
 
-        An archived profile is in the box, not on the desk: it gave its name back, so it neither
-        blocks a create/rename nor is blocked by one, and two boxed profiles may share a name.
-        Coming out of the box re-enters that rule, so a restore whose name the desk has since
-        taken answers `DUPLICATE_TITLE` and the station offers a rename instead (02 §7.2).
+        Titles are unique per station, not globally: CET, kaoyan and cert each name their own
+        profiles, and two stations may use the same words. An archived profile is in the box,
+        not on the desk: it gave its name back, so it neither blocks a create/rename nor is
+        blocked by one, and two boxed profiles may share a name. Coming out of the box
+        re-enters that rule, so a restore whose name the same track's desk has since taken
+        answers `DUPLICATE_TITLE` and the station offers a rename instead (02 §7.2).
         """
         row = self._store.query_one(
-            'SELECT "id" FROM "exam_profile" WHERE "title" = ? AND "status" != ?',
-            (title, models.ProfileStatus.ARCHIVED.value),
+            'SELECT "id" FROM "exam_profile" '
+            'WHERE "title" = ? AND "track_type" = ? AND "status" != ?',
+            (title, track_type, models.ProfileStatus.ARCHIVED.value),
         )
         if row is not None and row["id"] != exclude:
-            raise CampusError("DUPLICATE_TITLE", f"同名档案已存在：{title}")
+            raise CampusError("DUPLICATE_TITLE", f"当前备考台下已存在同名档案：{title}")
 
     def _remove_library_dir(self, profile_id: str) -> None:
         """Drop `campus/library/<profile_id>/`, staying inside the state directory."""
