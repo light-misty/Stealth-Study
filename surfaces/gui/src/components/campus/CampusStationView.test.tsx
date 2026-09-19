@@ -355,6 +355,17 @@ describe("CampusStationView", () => {
     expect(screen.getByTestId("campus-station-loading")).toBeTruthy();
   });
 
+  it("lays the first-paint skeleton out as the full station shell", () => {
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    apiMock.getAppState.mockReturnValue(new Promise(() => {}));
+    render(<CampusStationView track="cet" />);
+    const loading = screen.getByTestId("campus-station-loading");
+    expect(loading.getAttribute("data-track")).toBe("cet");
+    expect(screen.getByText("CET-4/6")).toBeTruthy();
+    expect(loading.querySelectorAll(".st-tab").length).toBe(9);
+    expect(loading.querySelectorAll(".st-rail .card").length).toBe(3);
+  });
+
   it("opens the archived profiles from the station header and restores one", async () => {
     const boxed: ExamProfile = {
       ...profile("a1"),

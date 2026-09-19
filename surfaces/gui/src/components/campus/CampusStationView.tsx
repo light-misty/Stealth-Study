@@ -331,15 +331,60 @@ function StationBody({ track }: { track: CampusTrack }) {
 
   if (loading) {
     return (
-      <div className="campus-station" data-testid="campus-station-loading">
-        <div className="st-body">
+      <div className="campus-station" data-testid="campus-station-loading" data-track={track}>
+        <header className="st-top">
+          <span className="st-top-title">{t(`campus.nav.${track}`)}</span>
+          <span className="sk" style={{ width: 168, height: 34, marginLeft: "auto" }} />
+        </header>
+        <div className="st-body thin">
           <div className="st-col">
+            <header className="st-head">
+              <h1 className="st-title">{t(`campus.track.${track}.name`)}</h1>
+              <p className="st-sub">{t(`campus.track.${track}.tagline`)}</p>
+            </header>
+            <div className="st-tabs" aria-hidden="true">
+              {panels.map((panel, index) => (
+                <span key={panel.key} className={index === 0 ? "st-tab is-on" : "st-tab"}>
+                  {t(`campus.station.tab.${panel.tab}`)}
+                </span>
+              ))}
+            </div>
             <div className="mod">
               <div className="sk" style={{ width: 148 }} />
               <div className="sk" />
               <div className="sk" style={{ width: "62%" }} />
             </div>
           </div>
+          <aside className="st-rail thin">
+            <div className="card">
+              <div className="sk" style={{ width: "56%", height: 18 }} />
+              <div className="sk" style={{ width: "38%" }} />
+            </div>
+            <div className="card">
+              <div className="sec">
+                <div className="sk" style={{ width: 96 }} />
+                <span className="sk" style={{ width: 38, height: 18 }} />
+              </div>
+              {Array.from({ length: 4 }).map((_, row) => (
+                <div className="prog" key={row}>
+                  <span className="sk" style={{ width: 44 }} />
+                  <span className="bar" />
+                  <span className="sk" style={{ width: 34 }} />
+                </div>
+              ))}
+            </div>
+            <div className="card">
+              <div className="sec">
+                <div className="sk" style={{ width: 96 }} />
+              </div>
+              <div className="heat">
+                {Array.from({ length: 21 }).map((_, cell) => (
+                  <span className="sk" key={cell} style={{ width: 14, height: 14 }} />
+                ))}
+              </div>
+              <div className="sk" style={{ width: "70%" }} />
+            </div>
+          </aside>
         </div>
       </div>
     );
