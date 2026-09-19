@@ -99,6 +99,15 @@ describe("Sidebar bottom-left anchor (G-06)", () => {
     expect(screen.getByText("Settings")).toBeTruthy();
   });
 
+  it("keeps only the label in the plain More row with no leading three-dot icon", async () => {
+    stubFetch(stubRoutes);
+    render(<Sidebar {...baseProps} />);
+    await screen.findByText("hi there");
+
+    const row = screen.getByTestId("account-row");
+    expect(row.querySelectorAll("svg")).toHaveLength(1);
+  });
+
   it("falls back to the signed-out account row and sign-in item when the flag is on", async () => {
     localStorage.setItem("ocw.flag.login", "1");
     stubFetch(stubRoutes);
