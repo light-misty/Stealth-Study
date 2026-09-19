@@ -67,6 +67,40 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/e2e/campus.spec.ts",
     "surfaces/gui/e2e-live/campus.spec.ts",
     "surfaces/gui/playwright.live.config.ts",
+    # i18n-chinese-coverage 分支登记：全 GUI 的中文化清扫，不是 campus 侵入。
+    # 这批文件被改的原因一律是「原先硬编码英文/未接 i18n」或「零引用废弃代码清理」，
+    # 逐提交对应 fix(gui)/chore(gui) 记录；不改任何 campus 业务逻辑，也不新增共享文件。
+    # 三个 i18n 测试文件按 .test.ts(x) 规则自动豁免，故不在此列出。
+    "surfaces/gui/index.html",
+    "surfaces/gui/src/humanize.ts",
+    "surfaces/gui/src/i18n.ts",
+    "surfaces/gui/src/itemsFromMessages.ts",
+    "surfaces/gui/src/tauri.ts",
+    "surfaces/gui/src/useRoots.ts",
+    "surfaces/gui/src/connectors/ConnectorIcon.tsx",
+    "surfaces/gui/src/providers/ProviderSetup.tsx",
+    "surfaces/gui/src/components/BoardPanel.tsx",
+    "surfaces/gui/src/components/ConnectorMessageCard.tsx",
+    "surfaces/gui/src/components/InboxConfigure.tsx",
+    "surfaces/gui/src/components/Markdown.tsx",
+    "surfaces/gui/src/components/ModelChecklist.tsx",
+    "surfaces/gui/src/components/RightRail.tsx",
+    "surfaces/gui/src/components/ScheduledView.tsx",
+    "surfaces/gui/src/components/SubscriptionsChip.tsx",
+    "surfaces/gui/src/components/TeamChatView.tsx",
+    "surfaces/gui/src/components/Transcript.tsx",
+    "surfaces/gui/src/components/brandIcons.tsx",
+    "surfaces/gui/src/components/personaIcon.tsx",
+    "surfaces/gui/src/components/connectors/CalendarDetail.tsx",
+    "surfaces/gui/src/components/connectors/CloudSignIn.tsx",
+    "surfaces/gui/src/components/connectors/ConnectorsSection.tsx",
+    "surfaces/gui/src/components/connectors/CustomMcp.tsx",
+    "surfaces/gui/src/components/connectors/GithubDetail.tsx",
+    "surfaces/gui/src/components/connectors/HubSpotDetail.tsx",
+    "surfaces/gui/src/components/connectors/SlackDetail.tsx",
+    "surfaces/gui/src/components/connectors/SlackHowItWorks.tsx",
+    # 已删除的废弃组件：待办面板早被 RightRail 取代，全仓库零引用（删除同样要过本登记）。
+    "surfaces/gui/src/components/TodoPanel.tsx",
 }
 
 CAMPUS_OWNED_PREFIXES = (
