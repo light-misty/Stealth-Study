@@ -44,6 +44,15 @@ describe("apiErrorText", () => {
     await i18n.changeLanguage("zh");
   });
 
+  it("代号携带参数时把变量插进本地化句子", () => {
+    const res = {
+      error: "Unknown skill: weekly-report",
+      error_code: "SKILL_NOT_FOUND",
+      error_params: { name: "weekly-report" },
+    };
+    expect(apiErrorText(res, t)).toBe("找不到技能「weekly-report」。");
+  });
+
   it("detail 始终给出原始文本供悬浮与日志使用", () => {
     expect(apiErrorDetail({ error: "boom", error_code: "UNCLASSIFIED" })).toBe("boom");
     expect(apiErrorDetail({ error: "", error_code: "PERMISSION_DENIED" })).toBe("");

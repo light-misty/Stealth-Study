@@ -27,6 +27,7 @@ from typing import Any, Callable, Optional
 
 import aisuite as ai
 
+from ..errors import CodedValueError
 from ..secrets import state_dir
 from .base import Skill, _parse_skill
 
@@ -40,12 +41,17 @@ def validate_name(name: str) -> str:
     """Skill names become folder names — reject anything that could escape the scope dir."""
     name = (name or "").strip()
     if not name:
-        raise ValueError("Skill name is required.")
+        raise CodedValueError("SKILL_NAME_REQUIRED", "Skill name is required.")
     if len(name) > _MAX_NAME:
-        raise ValueError(f"Skill name too long (limit {_MAX_NAME} characters).")
+        raise CodedValueError(
+            "SKILL_NAME_TOO_LONG",
+            f"Skill name too long (limit {_MAX_NAME} characters).",
+            limit=_MAX_NAME,
+        )
     if ".." in name or "/" in name or "\\" in name or not _NAME_RE.match(name):
-        raise ValueError(
-            "Skill name may only contain letters, digits, dots, dashes, and underscores."
+        raise CodedValueError(
+            "SKILL_NAME_INVALID",
+            "Skill name may only contain letters, digits, dots, dashes, and underscores.",
         )
     return name
 
@@ -98,12 +104,21 @@ class SkillStore:
             return self.global_dir
         if scope == PROJECT_SCOPE:
             if not workspace:
-                raise ValueError("A workspace is required for a project-scoped skill.")
+                raise CodedValueError(
+                    "SKILL_WORKSPACE_REQUIRED",
+                    "A workspace is required for a project-scoped skill.",
+                )
             ws = Path(workspace).expanduser()
             if not ws.is_dir():
-                raise ValueError(f"Unknown workspace: {workspace}")
+                raise CodedValueError(
+                    "SKILL_WORKSPACE_UNKNOWN",
+                    f"Unknown workspace: {workspace}",
+                    workspace=workspace,
+                )
             return self.project_dir(ws)
-        raise ValueError(f"Unknown scope: {scope}")
+        raise CodedValueError(
+            "SKILL_SCOPE_UNKNOWN", f"Unknown scope: {scope}", scope=scope
+        )
 
     def _folder_of(self, base: Path, name: str) -> Path:
         """The skill's folder, guarded against escaping its scope dir (symlinked folders
@@ -113,9 +128,15 @@ class SkillStore:
             resolved = folder.resolve()
             base_resolved = base.resolve()
         except OSError:
-            raise ValueError(f"Unreadable skill folder: {name}")
+            raise CodedValueError(
+                "SKILL_FOLDER_UNREADABLE", f"Unreadable skill folder: {name}", name=name
+            )
         if base_resolved not in resolved.parents and resolved != base_resolved / name:
-            raise ValueError(f"Skill folder escapes its scope: {name}")
+            raise CodedValueError(
+                "SKILL_FOLDER_ESCAPES_SCOPE",
+                f"Skill folder escapes its scope: {name}",
+                name=name,
+            )
         return folder
 
     # -- queries ------------------------------------------------------------------
@@ -131,7 +152,7 @@ class SkillStore:
                 return self._folder_of(project, name), PROJECT_SCOPE
         if (self.global_dir / name / "SKILL.md").is_file():
             return self._folder_of(self.global_dir, name), GLOBAL_SCOPE
-        raise ValueError(f"Unknown skill: {name}")
+        raise CodedValueError("SKILL_NOT_FOUND", f"Unknown skill: {name}", name=name)
 
     def rows(self, workspace: Optional[str | Path] = None) -> list[dict[str, Any]]:
         """Enriched listing for the Settings screen: scope, source, enabled. Global first,
@@ -187,11 +208,17 @@ class SkillStore:
         name = validate_name(name)
         description = (description or "").strip()
         if not (instructions or "").strip():
-            raise ValueError("Skill instructions are required.")
+            raise CodedValueError(
+                "SKILL_INSTRUCTIONS_REQUIRED", "Skill instructions are required."
+            )
         base = self._base(scope, workspace)
         folder = self._folder_of(base, name)
         if (folder / "SKILL.md").is_file():
-            raise ValueError(f"A skill named '{name}' already exists in that scope.")
+            raise CodedValueError(
+                "SKILL_ALREADY_EXISTS",
+                f"A skill named '{name}' already exists in that scope.",
+                name=name,
+            )
         _write_skill_md(
             folder,
             name=name,
@@ -213,7 +240,9 @@ class SkillStore:
         folder, scope = self.find(name, workspace)
         current = _parse_skill(folder / "SKILL.md")
         if instructions is not None and not instructions.strip():
-            raise ValueError("Skill instructions are required.")
+            raise CodedValueError(
+                "SKILL_INSTRUCTIONS_REQUIRED", "Skill instructions are required."
+            )
         _write_skill_md(
             folder,
             name=current.name,
@@ -247,8 +276,10 @@ class SkillStore:
         target_base = self._base(to_scope, workspace)
         target = self._folder_of(target_base, name)
         if (target / "SKILL.md").is_file():
-            raise ValueError(
-                f"A skill named '{name}' already exists in the target scope."
+            raise CodedValueError(
+                "SKILL_ALREADY_EXISTS_TARGET",
+                f"A skill named '{name}' already exists in the target scope.",
+                name=name,
             )
         target_base.mkdir(parents=True, exist_ok=True)
         shutil.move(str(folder), str(target))
@@ -299,12 +330,17 @@ class SkillStore:
         for entry in names:
             p = Path(entry)
             if p.is_absolute() or ".." in p.parts or (p.parts and ":" in p.parts[0]):
-                raise ValueError("Archive contains unsafe paths.")
+                raise CodedValueError(
+                    "SKILL_ARCHIVE_UNSAFE", "Archive contains unsafe paths."
+                )
         # SKILL.md at the root, or inside exactly one top-level folder.
         md_entries = [n for n in names if Path(n).name == "SKILL.md"]
         roots = {Path(n).parts[0] if len(Path(n).parts) > 1 else "" for n in md_entries}
         if not md_entries or len(roots) != 1:
-            raise ValueError("Archive must contain exactly one skill (one SKILL.md).")
+            raise CodedValueError(
+                "SKILL_ARCHIVE_NOT_ONE",
+                "Archive must contain exactly one skill (one SKILL.md).",
+            )
         root = roots.pop()
         token = uuid.uuid4().hex
         staged = self._staging_dir / token
@@ -341,11 +377,14 @@ class SkillStore:
         """The bare-.md path: one SKILL.md, no resources. Frontmatter must carry the name
         (there is no folder to fall back to)."""
         if filename.lower().endswith((".zip", ".skill")):
-            raise ValueError("Not a valid .zip archive.")
+            raise CodedValueError("SKILL_ARCHIVE_INVALID", "Not a valid .zip archive.")
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError:
-            raise ValueError("Not a valid skill file — upload a .zip or a SKILL.md.")
+            raise CodedValueError(
+                "SKILL_FILE_TYPE_INVALID",
+                "Not a valid skill file — upload a .zip or a SKILL.md.",
+            )
         token = uuid.uuid4().hex
         staged = self._staging_dir / token
         staged.mkdir(parents=True, exist_ok=True)
@@ -353,8 +392,9 @@ class SkillStore:
         skill = _parse_skill(staged / "SKILL.md")
         if skill.name == token:  # no frontmatter name → parser fell back to the folder
             shutil.rmtree(staged, ignore_errors=True)
-            raise ValueError(
-                "The .md file needs YAML frontmatter with at least a skill name."
+            raise CodedValueError(
+                "SKILL_FRONTMATTER_MISSING",
+                "The .md file needs YAML frontmatter with at least a skill name.",
             )
         try:
             validate_name(skill.name)
@@ -378,13 +418,17 @@ class SkillStore:
     ) -> dict[str, Any]:
         staged = self._staging_dir / str(token)
         if not (staged / "SKILL.md").is_file():
-            raise ValueError("Unknown or expired upload.")
+            raise CodedValueError("SKILL_UPLOAD_UNKNOWN", "Unknown or expired upload.")
         skill = _parse_skill(staged / "SKILL.md")
         name = validate_name(skill.name)
         base = self._base(scope, workspace)
         folder = self._folder_of(base, name)
         if (folder / "SKILL.md").is_file():
-            raise ValueError(f"A skill named '{name}' already exists in that scope.")
+            raise CodedValueError(
+                "SKILL_ALREADY_EXISTS",
+                f"A skill named '{name}' already exists in that scope.",
+                name=name,
+            )
         base.mkdir(parents=True, exist_ok=True)
         shutil.move(str(staged), str(folder))
         # Stamp provenance so the Settings screen can distinguish uploaded from local.

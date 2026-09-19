@@ -38,7 +38,7 @@ from ..unrouted import UnroutedStore
 from ..unattended import UnattendedRegistry
 from ..audit import AuditStore
 from ..config import load_config, workspace_allowed_commands
-from ..errors import error_payload
+from ..errors import coded_error, error_payload
 from ..conversations import ConversationStore, title_from
 from ..engine import ApprovalOutcome, Approver, TurnEngine
 from ..roots import RootDir
@@ -5917,13 +5917,12 @@ class SessionManager:
         try:
             ws = Path(str(workspace)).expanduser().resolve()
             if ws.is_relative_to(self.scratch_base().resolve()):
-                return {
-                    "ok": False,
-                    "error": (
-                        "That folder is a temporary session space — skills saved there "
-                        "would be lost. Save it globally or pick a real project."
-                    ),
-                }
+                return coded_error(
+                    "That folder is a temporary session space — skills saved there "
+                    "would be lost. Save it globally or pick a real project.",
+                    "SKILL_WORKSPACE_SCRATCH",
+                    ok=False,
+                )
         except OSError:
             pass
         return None
@@ -5941,7 +5940,7 @@ class SessionManager:
                 workspace=body.get("workspace") or None,
             )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, "skill": created}
 
     def update_skill(self, name: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -5956,14 +5955,14 @@ class SessionManager:
                     workspace=body.get("workspace") or None,
                 )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True}
 
     def delete_skill(self, name: str, workspace: Optional[str] = None) -> dict[str, Any]:
         try:
             self.skill_store.delete(name, workspace or None)
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True}
 
     def move_skill(self, name: str, body: dict[str, Any]) -> dict[str, Any]:
@@ -5980,14 +5979,14 @@ class SessionManager:
                 workspace=body.get("workspace") or None,
             )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, "skill": moved}
 
     def stage_skill_upload(self, data: bytes, filename: str = "") -> dict[str, Any]:
         try:
             preview = self.skill_store.stage_upload(data, filename)
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, **preview}
 
     def confirm_skill_upload(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -6001,7 +6000,7 @@ class SessionManager:
                 workspace=body.get("workspace") or None,
             )
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         return {"ok": True, "skill": saved}
 
     def _memory_saved_notifier(self, session_id: str):

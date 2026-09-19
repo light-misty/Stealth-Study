@@ -40,6 +40,25 @@ CODES: frozenset[str] = frozenset(
         "PATH_TOO_LONG",
         "PERMISSION_DENIED",
         "RATE_LIMITED",
+        "SKILL_ALREADY_EXISTS",
+        "SKILL_ALREADY_EXISTS_TARGET",
+        "SKILL_ARCHIVE_INVALID",
+        "SKILL_ARCHIVE_NOT_ONE",
+        "SKILL_ARCHIVE_UNSAFE",
+        "SKILL_FILE_TYPE_INVALID",
+        "SKILL_FOLDER_ESCAPES_SCOPE",
+        "SKILL_FOLDER_UNREADABLE",
+        "SKILL_FRONTMATTER_MISSING",
+        "SKILL_INSTRUCTIONS_REQUIRED",
+        "SKILL_NAME_INVALID",
+        "SKILL_NAME_REQUIRED",
+        "SKILL_NAME_TOO_LONG",
+        "SKILL_NOT_FOUND",
+        "SKILL_SCOPE_UNKNOWN",
+        "SKILL_UPLOAD_UNKNOWN",
+        "SKILL_WORKSPACE_REQUIRED",
+        "SKILL_WORKSPACE_SCRATCH",
+        "SKILL_WORKSPACE_UNKNOWN",
         "TLS_VERIFICATION",
         UNCLASSIFIED,
     }
@@ -98,6 +117,30 @@ _TEXT_CODES: tuple[tuple[str, str], ...] = (
 )
 
 
+class CodedValueError(ValueError):
+    """A validation failure that already knows its code, so the GUI can localize it.
+
+    Subclasses ValueError on purpose: every existing `except ValueError` and
+    `pytest.raises(ValueError, match=...)` in the subsystems keeps working unchanged,
+    and the message text stays byte-identical for logs and for those assertions.
+    """
+
+    def __init__(self, code: str, message: str, **params: Any) -> None:
+        super().__init__(message)
+        self.error_code = code
+        self.error_params = params
+
+
+def _carried_code(exc: BaseException) -> Optional[str]:
+    value = getattr(exc, "error_code", None)
+    return value if isinstance(value, str) and value else None
+
+
+def _carried_params(exc: BaseException) -> Optional[dict[str, Any]]:
+    value = getattr(exc, "error_params", None)
+    return value if isinstance(value, dict) and value else None
+
+
 def _winerror(exc: BaseException) -> Optional[int]:
     value = getattr(exc, "winerror", None)
     return value if isinstance(value, int) else None
@@ -136,6 +179,9 @@ def error_code(exc: BaseException, context: Optional[str] = None) -> str:
     `spawn` = we tried to launch an executable; `reveal` = we tried to hand a path to the
     desktop's file manager, where a missing entry means the file manager is missing.
     """
+    carried = _carried_code(exc)
+    if carried:
+        return carried
     if context == "reveal":
         return "FILE_MANAGER_UNAVAILABLE"
     if context == "spawn" and isinstance(exc, FileNotFoundError):
@@ -202,6 +248,9 @@ def error_payload(
     """`{"error": <原文或改写>, "error_code": <代号>}` plus any caller fields."""
     payload: dict[str, Any] = {"error": str(exc) if message is None else message}
     payload["error_code"] = error_code(exc, context)
+    params = _carried_params(exc)
+    if params:
+        payload["error_params"] = params
     payload.update(extra)
     return payload
 

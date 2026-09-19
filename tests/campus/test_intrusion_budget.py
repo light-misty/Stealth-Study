@@ -105,6 +105,8 @@ REGISTERED_PATCH: set[str] = {
     "ss/errors.py",
     "ss/server/manager.py",
     "surfaces/gui/src/errors.ts",
+    # 技能子系统的校验异常改抛带代号的 CodedValueError（仍是 ValueError，消息逐字未变）。
+    "ss/skills/store.py",
 }
 
 CAMPUS_OWNED_PREFIXES = (

@@ -2,6 +2,7 @@
 export interface ErrorBearing {
   error?: string | null;
   error_code?: string | null;
+  error_params?: Record<string, unknown> | null;
 }
 
 export type Translate = (key: string, options?: Record<string, unknown>) => string;
@@ -28,5 +29,5 @@ export function apiErrorText(
   const code = normalizeCode(res?.error_code);
   const nothing = raw || fallback || t("error.unclassified");
   if (!code) return nothing;
-  return t(`error.${code}`, { defaultValue: nothing });
+  return t(`error.${code}`, { defaultValue: nothing, ...(res?.error_params ?? {}) });
 }
