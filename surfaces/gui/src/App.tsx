@@ -1963,12 +1963,13 @@ export function App() {
               {idle ? (
                 agent === "cowork" ? (
                   <SessionIntro
+                    key={sessionId}
                     sessionId={sessionId}
                     onOpenSessionSettings={openAccess}
                     onPrefill={prefillComposer}
                   />
                 ) : (
-                  <div className="hero">
+                  <div className="hero" key={sessionId}>
                     <h1 className="greeting">
                       <span className="mark">✦</span>
                       {agent === "chat" ? t("hero.chat_greeting") : t("hero.build_greeting")}

@@ -47,4 +47,11 @@ describe("unified motion foundation", () => {
     expect(css).toMatch(/\.intro\s*\{[^}]*animation:/);
     expect(css).toMatch(/\.right-rail\s*\{[^}]*transition:[^}]*width/);
   });
+
+  it("animates the new-session page entrance with staggered sections", () => {
+    expect(css).toMatch(/\.hero\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.intro-head\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.intro-lede\s*\{[^}]*animation:[^}]*animation-delay:/);
+    expect(css).toMatch(/\.intro-tasks\s*\{[^}]*animation:[^}]*animation-delay:/);
+  });
 });
