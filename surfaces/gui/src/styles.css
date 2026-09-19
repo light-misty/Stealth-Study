@@ -76,6 +76,7 @@
   --faint: #6f7680;          /* OPE-126 contrast fix — old #9aa1aa was ~2.5:1 on white */
   --line: #e8eaed;
   --line-strong: #d8dce1;
+  --line-stronger: #c2c9d1;
   /* 原型「Stealth Study」设计语言：全站唯一强调色 = 狐狸橙，结构/链接 = 书页蓝 */
   --accent: #ee8b4c;          /* 狐狸橙 · 品牌强调（原型 --accent） */
   --accent-deep: #c4682e;     /* 狐狸橙文字用深一档（原型 --accent-deep） */
@@ -155,6 +156,7 @@ html[data-theme="dark"] {
   --faint: #62686f;
   --line: #2a2d33;
   --line-strong: #3a3e46;
+  --line-stronger: #4a505b;
   --accent: #f59a5c;          /* 狐狸橙 · 夜读提亮（原型暗色 --accent） */
   --accent-deep: #f5a268;
   --accent-soft: #3a2a20;     /* 橙底 · 夜读 */

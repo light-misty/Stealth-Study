@@ -26,6 +26,7 @@ export default {
         faint: tok("--faint"),
         line: tok("--line"),
         lineStrong: tok("--line-strong"),
+        lineStronger: tok("--line-stronger"),
         accent: tok("--accent"),
         accentSoft: tok("--accent-soft"),
         accentDeep: tok("--accent-deep"),

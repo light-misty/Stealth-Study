@@ -33,6 +33,15 @@ afterEach(() => {
   localStorage.removeItem("ocw.flag.login");
 });
 
+describe("AutomationQuickstart template cards", () => {
+  it("deepen the hover border for contrast", async () => {
+    render(<AutomationQuickstart busy={false} onCreate={vi.fn()} />);
+    const card = await screen.findByTestId("qs-template-github");
+    expect(card.className.split(" ")).toContain("hover:border-lineStronger");
+    expect(card.className.split(" ")).not.toContain("hover:border-lineStrong");
+  });
+});
+
 describe("AutomationQuickstart cloud sign-in pane (G-06)", () => {
   it("never offers a sign-in pane while the flag is off", async () => {
     await pickGithubTemplate();
