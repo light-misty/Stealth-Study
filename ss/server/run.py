@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import secrets
+import socket
 import sys
 from pathlib import Path
 
@@ -14,6 +16,8 @@ from ..permissions import Mode
 from ..secrets import state_dir, write_private_text
 from .app import _WS_MAX_FRAME_BYTES, create_app
 from .manager import SessionManager
+
+logger = logging.getLogger(__name__)
 
 
 def _exit_when_orphaned() -> None:
@@ -137,6 +141,40 @@ def _ensure_api_token(port: int) -> Path | None:
     )
 
 
+def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
+    probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        probe.bind((host, port))
+        return False
+    except OSError:
+        return True
+    finally:
+        probe.close()
+
+
+def resolve_server_port(
+    requested: int,
+    explicit: bool,
+    host: str = "127.0.0.1",
+    max_attempts: int = 100,
+) -> int:
+    """Dev fallback: increment from the requested port to the first free one. A caller-passed
+    `--port` (the production sidecar always passes one) is returned untouched, so production
+    keeps a fixed port."""
+    if explicit:
+        return requested
+    for offset in range(max_attempts):
+        candidate = requested + offset
+        if not port_in_use(candidate, host):
+            if offset:
+                logger.info("using port %d", candidate)
+            return candidate
+        logger.info("port %d is in use, trying %d", candidate, candidate + 1)
+    raise RuntimeError(
+        f"no available port between {requested} and {requested + max_attempts - 1}"
+    )
+
+
 def main(argv=None) -> None:
     _ensure_ca_bundle()
     cfg = load_config()  # global config supplies defaults
@@ -149,17 +187,26 @@ def main(argv=None) -> None:
         choices=["discuss", "plan", "interactive", "auto", "bypass-approvals", "auto-approve"],
     )
     parser.add_argument("--host", default=cfg.host)
-    parser.add_argument("--port", type=int, default=cfg.port)
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=cfg.port,
+        help="fixed server port; omit it to auto-increment from the default while busy (dev)",
+    )
+    argv_list = list(sys.argv[1:] if argv is None else argv)
+    explicit_port = any(a == "--port" or a.startswith("--port=") for a in argv_list)
     args = parser.parse_args(argv)
+
+    # 初始化统一日志：以工作区（--cwd）为根，日志写入其下 log/ 文件夹
+    workspace_root = Path(args.cwd).expanduser().resolve() if args.cwd else Path.cwd()
+    setup_logging(workspace_root)
+    args.port = resolve_server_port(args.port, explicit_port, host=args.host)
 
     # Publish the ACTUAL bound port so loopback URLs (the managed-OAuth callback)
     # target this process, not config.port. The desktop shell runs the sidecar on
     # a random free port (to coexist with a hand-run server on 8765), so the
     # managed-connect redirect must follow the real port, not the 8765 default.
     os.environ["COWORKER_PORT"] = str(args.port)
-    # 初始化统一日志：以工作区（--cwd）为根，日志写入其下 log/ 文件夹
-    workspace_root = Path(args.cwd).expanduser().resolve() if args.cwd else Path.cwd()
-    setup_logging(workspace_root)
     generated_token_path = _ensure_api_token(args.port)
     try:
         import uvicorn

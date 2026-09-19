@@ -3,32 +3,60 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { findAvailablePort, findDevApi } from "./scripts/dev-port.mjs";
 
 // `base: "./"` makes built asset URLs relative, so the bundle loads from the `tauri://`
 // origin in the desktop shell (absolute `/assets` 404s there); a server-hosted build is
-// unaffected. Dev runs on a fixed port (1420) with strictPort so the Tauri webview always
-// loads the vite instance Tauri itself spawns (a drifting port would make the window load a
-// stale/other server). `tauri.conf.json` devUrl must match this.
-export default defineConfig(({ command }) => {
+// unaffected. Dev resolves the first free port from 1420 upward (or `SS_DEV_PORT`) and pins
+// it with strictPort; the Tauri dev wrapper keeps `tauri.conf.json` devUrl in sync.
+export default defineConfig(async ({ command }) => {
   let devToken = "";
+  let devPort = 1420;
+  let devApiPort = "";
   if (command === "serve") {
     const state =
       process.env.COWORKER_STATE_DIR ||
       (process.platform === "win32"
         ? path.join(process.env.APPDATA || os.homedir(), "coworker")
         : path.join(os.homedir(), ".config", "coworker"));
-    try {
-      devToken = fs.readFileSync(path.join(state, "sidecar-8765.token"), "utf8").trim();
-    } catch {
-      // The Tauri dev shell injects its in-memory token at runtime. Plain browser dev
-      // shows the normal startup retry until the standalone server/token file exists.
+    const envApiPort = Number(process.env.SS_API_PORT);
+    if (Number.isInteger(envApiPort) && envApiPort > 0) {
+      devApiPort = String(envApiPort);
+      try {
+        devToken = fs.readFileSync(path.join(state, `sidecar-${envApiPort}.token`), "utf8").trim();
+      } catch {
+        devToken = "";
+      }
+      console.log(`[dev-port] api server port: ${devApiPort} (SS_API_PORT)`);
+    } else {
+      const api = findDevApi(state);
+      if (api) {
+        devApiPort = String(api.port);
+        devToken = api.token;
+        console.log(`[dev-port] api server port: ${devApiPort} (sidecar token)`);
+      }
+    }
+    if (devApiPort) {
+      if (!process.env.VITE_COWORKER_HTTP)
+        process.env.VITE_COWORKER_HTTP = `http://127.0.0.1:${devApiPort}`;
+      if (!process.env.VITE_COWORKER_WS)
+        process.env.VITE_COWORKER_WS = `ws://127.0.0.1:${devApiPort}`;
+      if (!process.env.VITE_COWORKER_API_TOKEN && devToken)
+        process.env.VITE_COWORKER_API_TOKEN = devToken;
+    }
+    const envPort = Number(process.env.SS_DEV_PORT);
+    if (Number.isInteger(envPort) && envPort > 0) {
+      devPort = envPort;
+      console.log(`[dev-port] using port ${devPort} (SS_DEV_PORT)`);
+    } else {
+      devPort = await findAvailablePort({ startPort: 1420, logger: (m) => console.log(m) });
     }
   }
   return {
     base: "./",
     plugins: [react()],
     server: {
-      port: 1420,
+      port: devPort,
       strictPort: true,
       watch: {
         ignored: ["**/src-tauri/target/**"],
