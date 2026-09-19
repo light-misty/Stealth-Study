@@ -2189,6 +2189,7 @@
       "explored": "已派子 agent 探索 —— ",
       "used_skill": "已使用技能：",
       "asked_question": "已向你提问",
+      "asked_question_about": "已向你提问 —— ",
       "proposed_plan": "已提出方案",
       "requested_folder": "已申请文件夹访问权限 —— ",
       "used_tool": "已使用 {{name}}"

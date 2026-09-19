@@ -104,8 +104,12 @@ export function humanizeTool(name: string, args: any): HumanLine {
       // SKILLS-SPEC §4.1 #4 — the trust line: the transcript always shows the moment a
       // skill's instructions were picked up, model-invoked or forced via /skill.
       return { pre: th("tool.used_skill"), obj: String(a.name ?? "") };
-    case "ask_user":
-      return { pre: th("tool.asked_question") };
+    case "ask_user": {
+      const asked = String(a.question ?? a.questions?.[0]?.question ?? "").trim();
+      return asked
+        ? { pre: th("tool.asked_question_about"), obj: trunc(asked, 60) }
+        : { pre: th("tool.asked_question") };
+    }
     case "propose_plan":
       return { pre: th("tool.proposed_plan") };
     case "request_directory":

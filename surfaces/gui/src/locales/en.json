@@ -2229,6 +2229,7 @@
       "explored": "Sent a sub-agent to explore — ",
       "used_skill": "Used skill: ",
       "asked_question": "Asked you a question",
+      "asked_question_about": "Asked you a question — ",
       "proposed_plan": "Proposed a plan",
       "requested_folder": "Asked for folder access — ",
       "used_tool": "Used {{name}}"
