@@ -212,7 +212,7 @@ const TRACK_BANNERS: Record<
 
 export function CampusStationView({ track }: { track: CampusTrack }) {
   return (
-    <CampusProfileProvider track={track}>
+    <CampusProfileProvider key={track} track={track}>
       <StationBody track={track} />
     </CampusProfileProvider>
   );
@@ -329,22 +329,6 @@ function StationBody({ track }: { track: CampusTrack }) {
     </>
   );
 
-  if (loading) {
-    return (
-      <div className="campus-station" data-testid="campus-station-loading">
-        <div className="st-body">
-          <div className="st-col">
-            <div className="mod">
-              <div className="sk" style={{ width: 148 }} />
-              <div className="sk" />
-              <div className="sk" style={{ width: "62%" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="campus-station" data-testid="campus-station-error">
@@ -376,7 +360,7 @@ function StationBody({ track }: { track: CampusTrack }) {
     );
   }
 
-  if (!activeProfile) {
+  if (!loading && !activeProfile) {
     return (
       <div className="campus-station" data-testid="campus-station-empty" data-track={track}>
         <div className="st-body">
@@ -419,34 +403,44 @@ function StationBody({ track }: { track: CampusTrack }) {
     );
   }
 
-  const ctx: PanelContext = {
-    profileId: activeProfile.id,
-    selectedDocId,
-    onSelectDoc: setSelectedDocId,
-    reviewItems: review.items,
-    reviewLoading: review.loading,
-    onReviewResult: (reviewId, correct) => {
-      void review.submit(reviewId, correct);
-    },
-    onGotoTab: setActiveTab,
-    onDeadlinesChanged: deadlines.reload,
-  };
+  const ctx: PanelContext | null = activeProfile
+    ? {
+        profileId: activeProfile.id,
+        selectedDocId,
+        onSelectDoc: setSelectedDocId,
+        reviewItems: review.items,
+        reviewLoading: review.loading,
+        onReviewResult: (reviewId, correct) => {
+          void review.submit(reviewId, correct);
+        },
+        onGotoTab: setActiveTab,
+        onDeadlinesChanged: deadlines.reload,
+      }
+    : null;
   const badges: Record<string, number> = { review: review.items.length };
 
   return (
-    <div className="campus-station" data-testid="campus-station" data-track={track}>
+    <div
+      className="campus-station"
+      data-testid={loading ? "campus-station-loading" : "campus-station"}
+      data-track={track}
+    >
       <header className="st-top">
         <span className="st-top-title">{t(`campus.nav.${track}`)}</span>
-        <ProfileSwitcher
-          profiles={profiles}
-          activeId={activeProfile.id}
-          onSwitch={(id) => void setActive(id)}
-          onCreate={() => setShowCreateCard(true)}
-          onArchive={(id) => void setStatus(id, "archived")}
-          onRename={(id) => setRenameId(id)}
-          onDelete={askDelete}
-          onShowArchived={() => setShowArchived(true)}
-        />
+        {activeProfile ? (
+          <ProfileSwitcher
+            profiles={profiles}
+            activeId={activeProfile.id}
+            onSwitch={(id) => void setActive(id)}
+            onCreate={() => setShowCreateCard(true)}
+            onArchive={(id) => void setStatus(id, "archived")}
+            onRename={(id) => setRenameId(id)}
+            onDelete={askDelete}
+            onShowArchived={() => setShowArchived(true)}
+          />
+        ) : (
+          <span className="sk" style={{ width: 168, height: 34, marginLeft: "auto" }} />
+        )}
       </header>
 
       <div className="st-body thin">
@@ -479,20 +473,28 @@ function StationBody({ track }: { track: CampusTrack }) {
             onSelect={setActiveTab}
           />
 
-          {panels.map(({ key, render }) => (
-            <div
-              key={key}
-              className={key === selected ? "st-pane is-on" : "st-pane"}
-              role="tabpanel"
-              id={`cs-pane-${track}-${key}`}
-              aria-labelledby={`cs-tab-${track}-${key}`}
-              hidden={key !== selected}
-              data-pane={key}
-              data-testid={`campus-station-pane-${key}`}
-            >
-              {render(ctx)}
+          {ctx ? (
+            panels.map(({ key, render }) => (
+              <div
+                key={key}
+                className={key === selected ? "st-pane is-on" : "st-pane"}
+                role="tabpanel"
+                id={`cs-pane-${track}-${key}`}
+                aria-labelledby={`cs-tab-${track}-${key}`}
+                hidden={key !== selected}
+                data-pane={key}
+                data-testid={`campus-station-pane-${key}`}
+              >
+                {render(ctx)}
+              </div>
+            ))
+          ) : (
+            <div className="mod">
+              <div className="sk" style={{ width: 148 }} />
+              <div className="sk" />
+              <div className="sk" style={{ width: "62%" }} />
             </div>
-          ))}
+          )}
         </div>
 
         <StationRail
@@ -594,7 +596,7 @@ function StationTabs({ track, panels, badges, active, onSelect }: TabsProps) {
 
 interface RailProps {
   track: CampusTrack;
-  profile: ExamProfile;
+  profile: ExamProfile | null;
   deadlineViews: DeadlineView[];
   onGotoReview: () => void;
 }
@@ -670,7 +672,7 @@ function heatClass(count: number): string {
 function StationRail({ track, profile, deadlineViews, onGotoReview }: RailProps) {
   const { t } = useTranslation();
   const Banner = TRACK_BANNERS[track];
-  const { progress, loading } = usePlanProgress(profile.id);
+  const { progress } = usePlanProgress(profile?.id ?? null);
   const rows = RAIL_ROWS[track];
   const today = progress?.today ?? null;
   const minutes = today ? rows[0].pair(today) : EMPTY_PAIR;
@@ -680,11 +682,18 @@ function StationRail({ track, profile, deadlineViews, onGotoReview }: RailProps)
 
   return (
     <aside className="st-rail thin" data-testid="campus-station-rail">
-      <Banner
-        profile={profile}
-        planRate={progress ? planRateOf(progress) : null}
-        deadlineViews={deadlineViews}
-      />
+      {profile ? (
+        <Banner
+          profile={profile}
+          planRate={progress ? planRateOf(progress) : null}
+          deadlineViews={deadlineViews}
+        />
+      ) : (
+        <div className="card">
+          <div className="sk" style={{ width: "56%", height: 18 }} />
+          <div className="sk" style={{ width: "38%" }} />
+        </div>
+      )}
 
       <div className="card" data-testid="campus-station-progress">
         <div className="sec">
@@ -701,41 +710,34 @@ function StationRail({ track, profile, deadlineViews, onGotoReview }: RailProps)
             {rate}%
           </span>
         </div>
-        {loading && !progress ? (
-          <>
-            <div className="sk" />
-            <div className="sk" style={{ width: "70%" }} />
-          </>
-        ) : (
-          rows.map((row) => {
-            const pair = today ? row.pair(today) : EMPTY_PAIR;
-            return (
-              <div
-                className="prog"
-                key={row.key}
-                data-testid="campus-station-progress-row"
-                data-row={row.key}
-                data-done={pair.done}
-                data-total={pair.total}
-              >
-                <span className="prog-k">{t(row.labelKey)}</span>
-                <span className="bar">
-                  <i
-                    style={
-                      { "--w": `${Math.round(progressRatio(pair.done, pair.total) * 100)}%` } as Record<
-                        string,
-                        string
-                      >
-                    }
-                  />
-                </span>
-                <span className="prog-v">
-                  {pair.done}/{pair.total}
-                </span>
-              </div>
-            );
-          })
-        )}
+        {rows.map((row) => {
+          const pair = today ? row.pair(today) : EMPTY_PAIR;
+          return (
+            <div
+              className="prog"
+              key={row.key}
+              data-testid="campus-station-progress-row"
+              data-row={row.key}
+              data-done={pair.done}
+              data-total={pair.total}
+            >
+              <span className="prog-k">{t(row.labelKey)}</span>
+              <span className="bar">
+                <i
+                  style={
+                    { "--w": `${Math.round(progressRatio(pair.done, pair.total) * 100)}%` } as Record<
+                      string,
+                      string
+                    >
+                  }
+                />
+              </span>
+              <span className="prog-v">
+                {pair.done}/{pair.total}
+              </span>
+            </div>
+          );
+        })}
         <button
           type="button"
           className="btn btn--soft btn--sm btn-start"

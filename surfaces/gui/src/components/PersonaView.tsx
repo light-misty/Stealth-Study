@@ -60,6 +60,16 @@ export function PersonaView({
   const [showTools, setShowTools] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // The detail page is one instance reused across persona switches (App renders it at a fixed
+  // slot with only personaId changing); these three are per-persona page state and must not
+  // carry over — above all confirmDel, which would land the NEXT persona one click from deletion.
+  const [lastPersonaId, setLastPersonaId] = useState(personaId);
+  if (lastPersonaId !== personaId) {
+    setLastPersonaId(personaId);
+    setConfirmDel(false);
+    setShowTools(false);
+    setMsg(null);
+  }
 
   useEffect(() => {
     let live = true;

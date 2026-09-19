@@ -72,9 +72,38 @@ interface AsyncState<T> {
   reload: () => void;
 }
 
-function useAsync<T>(load: () => Promise<T>, deps: unknown[], initial: T): AsyncState<T> {
-  const [data, setData] = useState<T>(initial);
-  const [loading, setLoading] = useState(true);
+// 台与台之间切换会整体重挂载站点；没有这份缓存时每次 remount 都从空数据 + 加载态起步，
+// 整页骨架屏一闪。带 cacheKey 的 hook 命中缓存先渲染旧值，再在后台刷新，切换就是无闪的。
+const campusCache = new Map<string, unknown>();
+
+export function clearCampusCache(): void {
+  campusCache.clear();
+}
+
+const APP_STATE_KEY = "app-state";
+
+// 缓存键只在这里与 warmCampusStation 两侧出现，收口成函数防止两边拼写漂移。
+const profilesKey = (track?: CampusTrack) => `profiles:${track ?? "all"}`;
+const mistakesKey = (profileId: string | null, filterKey: string) =>
+  `mistakes:${profileId ?? "none"}:${filterKey}`;
+const dueReviewsKey = (profileId: string | null) => `due-reviews:${profileId ?? "none"}`;
+const planProgressKey = (profileId: string | null) => `plan-progress:${profileId ?? "none"}`;
+const deadlineViewsKey = (profileId: string | null) => `deadline-views:${profileId ?? "none"}`;
+
+function useAsync<T>(
+  load: () => Promise<T>,
+  deps: unknown[],
+  initial: T,
+  cacheKey?: string,
+): AsyncState<T> {
+  const [data, setDataState] = useState<T>(() =>
+    cacheKey !== undefined && campusCache.has(cacheKey)
+      ? (campusCache.get(cacheKey) as T)
+      : initial,
+  );
+  const [loading, setLoading] = useState(
+    !(cacheKey !== undefined && campusCache.has(cacheKey)),
+  );
   const [error, setError] = useState<unknown>(null);
   const [nonce, setNonce] = useState(0);
   const loadRef = useRef(load);
@@ -82,11 +111,17 @@ function useAsync<T>(load: () => Promise<T>, deps: unknown[], initial: T): Async
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    if (cacheKey !== undefined && campusCache.has(cacheKey)) {
+      setDataState(campusCache.get(cacheKey) as T);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     loadRef.current().then(
       (value) => {
         if (!alive) return;
-        setData(value);
+        if (cacheKey !== undefined) campusCache.set(cacheKey, value);
+        setDataState(value);
         setError(null);
         setLoading(false);
       },
@@ -102,8 +137,68 @@ function useAsync<T>(load: () => Promise<T>, deps: unknown[], initial: T): Async
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, nonce]);
 
+  const setData = useCallback(
+    (action: React.SetStateAction<T>) => {
+      setDataState((prev) => {
+        const next =
+          typeof action === "function" ? (action as (value: T) => T)(prev) : action;
+        if (cacheKey !== undefined) campusCache.set(cacheKey, next);
+        return next;
+      });
+    },
+    [cacheKey],
+  );
+
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   return { data, setData, setError, loading, error, retryable: campusErrorInfo(error).retryable, reload };
+}
+
+// 启动空闲时把三台的首屏数据预先写进缓存：首次进入某台前无从命中，不预热的话第一帧只有
+// 外壳、随后数据分批填充，看起来就是闪。预热后第一帧即完整内容，进台后台刷新无感更新。
+export async function warmCampusStation(): Promise<void> {
+  const tracks: CampusTrack[] = ["cet", "kaoyan", "cert"];
+  try {
+    const [state, capabilities] = await Promise.all([getAppState(), getCapabilities()]);
+    campusCache.set(APP_STATE_KEY, { active_profile_id: state?.active_profile_id ?? null });
+    campusCache.set("capabilities", capabilities);
+    const remembered = state?.active_profile_id ?? null;
+    const trackLists = await Promise.all(tracks.map((track) => listProfiles(track)));
+    await Promise.all(
+      trackLists.map(async (res, index) => {
+        const items = res?.items ?? [];
+        campusCache.set(profilesKey(tracks[index]), items);
+        const active =
+          items.find((p) => p.id === remembered && p.status !== "archived") ??
+          items.find((p) => p.status === "active") ??
+          null;
+        if (!active) return;
+        const requests: Promise<unknown>[] = [
+          listMistakes(active.id, {}).then((list) =>
+            campusCache.set(
+              mistakesKey(active.id, JSON.stringify({})),
+              { items: list?.items ?? [], total: list?.total ?? 0 },
+            ),
+          ),
+          listDueReviews(active.id).then((res2) =>
+            campusCache.set(dueReviewsKey(active.id), res2?.items ?? []),
+          ),
+          getProgress(active.id).then((report) =>
+            campusCache.set(planProgressKey(active.id), report),
+          ),
+        ];
+        if (tracks[index] === "cert") {
+          requests.push(
+            getReminders(active.id).then((res2) =>
+              campusCache.set(deadlineViewsKey(active.id), res2?.banner ?? []),
+            ),
+          );
+        }
+        await Promise.all(requests);
+      }),
+    );
+  } catch {
+    // 预热失败不致命：进台后 hooks 会照常拉取。
+  }
 }
 
 /** A1: every profile for the station (archived ones stay hidden by the switcher). */
@@ -112,6 +207,7 @@ export function useProfiles(track?: CampusTrack) {
     () => listProfiles(track).then((res) => res?.items ?? []),
     [track],
     [],
+    profilesKey(track),
   );
   return { profiles: data, loading, error, retryable, reload };
 }
@@ -128,8 +224,13 @@ export function useProfileImpact(profileId: string | null) {
 
 /** A6 + A7: the remembered active profile, with the write-back on switch. */
 export function useActiveProfile(profiles: ExamProfile[]) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cached = campusCache.get(APP_STATE_KEY) as
+    | { active_profile_id: string | null }
+    | undefined;
+  const [activeId, setActiveId] = useState<string | null>(
+    cached ? cached.active_profile_id : null,
+  );
+  const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -137,7 +238,9 @@ export function useActiveProfile(profiles: ExamProfile[]) {
     getAppState().then(
       (state) => {
         if (!alive) return;
-        setActiveId(state?.active_profile_id ?? null);
+        const remembered = state?.active_profile_id ?? null;
+        campusCache.set(APP_STATE_KEY, { active_profile_id: remembered });
+        setActiveId(remembered);
         setLoading(false);
       },
       (err) => {
@@ -160,6 +263,7 @@ export function useActiveProfile(profiles: ExamProfile[]) {
     setError(null);
     try {
       await patchAppState({ active_profile_id: id });
+      campusCache.set(APP_STATE_KEY, { active_profile_id: id });
       setActiveId(id);
     } catch (err) {
       setError(err);
@@ -177,6 +281,7 @@ export function useDueReviews(profileId: string | null) {
     () => (profileId ? listDueReviews(profileId).then((res) => res?.items ?? []) : Promise.resolve([])),
     [profileId],
     [],
+    dueReviewsKey(profileId),
   );
 
   const submit = useCallback(
@@ -217,6 +322,7 @@ export function useMistakes(profileId: string | null, filters: MistakeFilters = 
         : Promise.resolve({ items: [], total: 0 }),
     [profileId, filterKey],
     { items: [], total: 0 },
+    mistakesKey(profileId, filterKey),
   );
 
   const setAttribution = useCallback(
@@ -390,6 +496,7 @@ export function useCapabilities() {
     () => getCapabilities(),
     [],
     null,
+    "capabilities",
   );
   return { capabilities: data, loading, error, reload };
 }
@@ -400,6 +507,7 @@ export function useDeadlineViews(profileId: string | null) {
     () => (profileId ? getReminders(profileId).then((res) => res?.banner ?? []) : Promise.resolve([])),
     [profileId],
     [],
+    deadlineViewsKey(profileId),
   );
   return { views: data, loading, error, reload };
 }
@@ -566,6 +674,7 @@ export function usePlanProgress(profileId: string | null) {
     () => (profileId ? getProgress(profileId) : Promise.resolve(null)),
     [profileId],
     null,
+    planProgressKey(profileId),
   );
   return { progress: data, loading, error, retryable, reload };
 }

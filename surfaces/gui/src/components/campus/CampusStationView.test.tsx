@@ -48,6 +48,7 @@ vi.mock("../../campus/api", async (importOriginal) => {
 });
 
 import * as api from "../../campus/api";
+import { clearCampusCache, warmCampusStation } from "../../campus/hooks";
 import { localDay } from "../../campus/utils";
 import { CampusStationView } from "./CampusStationView";
 
@@ -74,6 +75,7 @@ const profile = (id = "p1", examDate: string | null = "2026-12-19"): ExamProfile
 
 describe("CampusStationView", () => {
   beforeEach(() => {
+    clearCampusCache();
     for (const fn of Object.values(apiMock)) if (typeof fn?.mockReset === "function") fn.mockReset();
     apiMock.listProfiles.mockResolvedValue({ items: [profile()] });
     apiMock.getAppState.mockResolvedValue({ active_profile_id: "p1", settings: {} });
@@ -154,6 +156,19 @@ describe("CampusStationView", () => {
     fireEvent.click(submit);
     await waitFor(() => expect(apiMock.createProfile).toHaveBeenCalled());
     expect(apiMock.createProfile.mock.calls[0][0]).toMatchObject({ title: "第二个档案" });
+  });
+
+  it("does not leak the switcher's create card into another track", async () => {
+    const { rerender } = render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    await waitFor(() => expect(screen.getByTestId("campus-profile-create-card")).toBeTruthy());
+
+    rerender(<CampusStationView track="kaoyan" />);
+    await waitFor(() =>
+      expect(screen.getByTestId("campus-station").getAttribute("data-track")).toBe("kaoyan"),
+    );
+    expect(screen.queryByTestId("campus-profile-create-card")).toBeNull();
   });
 
   it("guides the user when no model is configured", async () => {
@@ -338,6 +353,28 @@ describe("CampusStationView", () => {
     apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
     render(<CampusStationView track="cet" />);
     expect(screen.getByTestId("campus-station-loading")).toBeTruthy();
+  });
+
+  it("lays the first-paint skeleton out as the full station shell", async () => {
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    apiMock.getAppState.mockReturnValue(new Promise(() => {}));
+    render(<CampusStationView track="cet" />);
+    const loading = screen.getByTestId("campus-station-loading");
+    expect(loading.getAttribute("data-track")).toBe("cet");
+    expect(screen.getByText("CET-4/6")).toBeTruthy();
+    expect(loading.querySelectorAll(".st-tab").length).toBe(9);
+    expect(loading.querySelectorAll(".st-rail .card").length).toBe(3);
+    await waitFor(() => expect(loading.querySelectorAll(".st-rail .prog").length).toBe(4));
+    expect(loading.querySelectorAll(".st-rail .heat span").length).toBe(21);
+  });
+
+  it("paints the whole station on the first entry when the caches are warm", async () => {
+    await warmCampusStation();
+    render(<CampusStationView track="cet" />);
+    expect(screen.queryByTestId("campus-station-loading")).toBeNull();
+    expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy();
+    expect(screen.getByTestId("campus-mistake-panel")).toBeTruthy();
+    expect(screen.queryAllByTestId("campus-station-progress-row")).toHaveLength(4);
   });
 
   it("opens the archived profiles from the station header and restores one", async () => {
@@ -701,5 +738,19 @@ describe("CampusStationView", () => {
     ).toBe("Minutes");
     expect(screen.getByTestId("campus-station-progress-rate").textContent).toBe("0%");
     expect(screen.getAllByTestId("campus-station-heat-cell")).toHaveLength(21);
+  });
+
+  it("remounts from cache without flashing the loading skeleton", async () => {
+    render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
+    cleanup();
+
+    apiMock.listProfiles.mockReturnValue(new Promise(() => {}));
+    apiMock.getAppState.mockReturnValue(new Promise(() => {}));
+
+    render(<CampusStationView track="cet" />);
+    expect(screen.queryByTestId("campus-station-loading")).toBeNull();
+    expect(screen.getByTestId("campus-station")).toBeTruthy();
+    expect(screen.getByTestId("campus-station").getAttribute("data-track")).toBe("cet");
   });
 });
