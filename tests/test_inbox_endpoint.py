@@ -83,3 +83,23 @@ def test_resolving_from_inbox_drops_item_and_attention(tmp_path):
     ]
     assert client.get("/v1/inbox", params={"state": "pending"}).json()["items"] == []
     assert all(s["attention"] == 0 for s in manager.list_sessions())
+
+
+def test_concurrent_attended_questions_stay_per_session(tmp_path):
+    client, manager = _client(tmp_path)
+    manager.inbox.add_question("s-attended", "Which environment?", visibility=VIS_INLINE)
+    manager.inbox.add_question("s-unattended", "Which database?", visibility=VIS_INLINE)
+    listed = client.get("/v1/inbox", params={"state": "pending"}).json()["items"]
+    assert [i["title"] for i in listed] == ["Which environment?", "Which database?"]
+    mine = client.get(
+        "/v1/inbox", params={"session_id": "s-unattended", "state": "pending"}
+    ).json()["items"]
+    assert [i["title"] for i in mine] == ["Which database?"]
+
+
+def test_orphaned_inline_prompt_is_closed_by_the_cross_session_list(tmp_path):
+    client, manager = _client(tmp_path)
+    orphan = manager.inbox.add_question("s-gone", "Anyone there?", visibility=VIS_INLINE)
+    items = client.get("/v1/inbox", params={"state": "pending"}).json()["items"]
+    assert items == []
+    assert manager.inbox.get(orphan.id).state == "resolved"
