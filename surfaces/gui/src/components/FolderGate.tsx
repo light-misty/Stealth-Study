@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getRecentWorkspaces, openWorkspace, type RecentWorkspace } from "../api";
 import { chooseFolder } from "../tauri";
+import { apiErrorText } from "../errors";
 
 // The mandatory workspace picker for project-scoped personas. Deliberately no
 // "switch persona" escape hatch: if a persona needs a folder, the choice here is
@@ -27,7 +28,7 @@ export function FolderGate({ onChoose, onCancel, create }: Props) {
     setError("");
     const res = await openWorkspace(p.trim(), doCreate);
     if (res.ok) onChoose(res.path, res.git_branch);
-    else setError(res.error || t("folder_gate.open_error"));
+    else setError(apiErrorText(res, t, t("folder_gate.open_error")));
   };
 
   const browse = async () => {

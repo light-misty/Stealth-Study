@@ -13,6 +13,7 @@ import {
   signoutMcp,
   type McpServer,
 } from "../../api";
+import { apiErrorText } from "../../errors";
 import { relTime } from "../../providers/ProviderSetup";
 import { Icon } from "../Icon";
 import { Toggle } from "../Toggle";
@@ -452,7 +453,7 @@ export function McpToolReview({
     const res = await getMcpTools(server.name);
     setBusy(false);
     if (!res.ok) {
-      setErr(res.error || t("mcp.err_failed_connect"));
+      setErr(apiErrorText(res, t, t("mcp.err_failed_connect")));
       return;
     }
     setOffered(res.tools);

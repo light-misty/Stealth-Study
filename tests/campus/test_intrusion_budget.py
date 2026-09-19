@@ -118,6 +118,14 @@ REGISTERED_PATCH: set[str] = {
     "ss/skills/store.py",
     # 错误显示点接线第一片：SkillsTab 的 fail() 改走 apiErrorText，原文降级为悬浮提示。
     "surfaces/gui/src/components/SkillsTab.tsx",
+    # 工作区/文件夹域接线（同一片的第二组）：错误文案改由 error_code 查语言包，
+    # useRoots 额外把后端原文作为 errorDetail 透出给消费方挂悬浮。
+    "surfaces/gui/src/components/AccessSection.tsx",
+    "surfaces/gui/src/components/FolderGate.tsx",
+    "surfaces/gui/src/components/SendFolderDialog.tsx",
+    "surfaces/gui/src/components/SessionIntro.tsx",
+    "surfaces/gui/src/components/SessionSetupRow.tsx",
+    "surfaces/gui/src/components/WorkspaceTrustPrompt.tsx",
 }
 
 CAMPUS_OWNED_PREFIXES = (

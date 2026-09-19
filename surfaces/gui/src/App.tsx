@@ -52,6 +52,7 @@ import type {
 } from "./types";
 import { fullPersonaName, isProjectScoped } from "./personaScope";
 import { baseName } from "./paths";
+import { apiErrorText } from "./errors";
 import { itemsFromMessages } from "./itemsFromMessages";
 import { addTurnUsage, emptyUsage, usageFromMessages } from "./usage";
 import { streamMode } from "./streamGate";
@@ -1312,7 +1313,7 @@ export function App() {
       setSendGate(null);
       setItems((p) => [
         ...p,
-        { kind: "notice", tone: "warn", text: res.error || t("app.temp_folder_failed") },
+        { kind: "notice", tone: "warn", text: apiErrorText(res, t, t("app.temp_folder_failed")) },
       ]);
       prefillComposer(gate.skill ? `/${gate.skill} ${gate.text}` : gate.text, gate.attachments);
       return;
@@ -1344,7 +1345,7 @@ export function App() {
     if (!res.ok || !res.path) {
       setItems((p) => [
         ...p,
-        { kind: "notice", tone: "warn", text: res.error || t("app.save_project_failed") },
+        { kind: "notice", tone: "warn", text: apiErrorText(res, t, t("app.save_project_failed")) },
       ]);
       return;
     }

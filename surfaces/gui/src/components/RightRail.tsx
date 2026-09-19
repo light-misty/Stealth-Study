@@ -16,6 +16,7 @@ import {
   type JournalCase,
   type RootInfo,
 } from "../api";
+import { apiErrorDetail, apiErrorText } from "../errors";
 import type { SessionInfo, TodoItem } from "../types";
 import { AccessSection } from "./AccessSection";
 import { BoardSection } from "./BoardPanel";
@@ -706,7 +707,9 @@ function ArtifactViewer({
         {!content ? (
           <div className="rail-muted">{t("rail.loading")}</div>
         ) : content.error ? (
-          <div className="rail-error">{content.error}</div>
+          <div className="rail-error" title={apiErrorDetail(content)}>
+            {apiErrorText(content, t)}
+          </div>
         ) : content.kind === "html" ? (
           <iframe
             key={`${artifact.path}-${reloadKey}`}

@@ -73,7 +73,7 @@ export function AccessSection({
   const [open, setOpen] = useState(false);
   const [conns, setConns] = useState<SessionConnections | null>(null);
   const [byName, setByName] = useState<ConnectorMap>({});
-  const { roots, busy: rootsBusy, error: rootsError, addRoot, toggleAccess, removeRoot } =
+  const { roots, busy: rootsBusy, error: rootsError, errorDetail: rootsErrorDetail, addRoot, toggleAccess, removeRoot } =
     useRoots(sessionId, open ? 1 : 0);
   const rootEl = useRef<HTMLElement | null>(null);
   const { t } = useTranslation();
@@ -468,7 +468,7 @@ export function AccessSection({
                     + {t("access.give_folder")}
                   </button>
                 )}
-                {rootsError && <div className="roots-err">{rootsError}</div>}
+                {rootsError && <div className="roots-err" title={rootsErrorDetail}>{rootsError}</div>}
               </div>
             </div>
           )}

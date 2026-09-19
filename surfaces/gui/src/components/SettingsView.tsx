@@ -18,6 +18,7 @@ import {
   type PdfSettings,
   type WorkspaceCommandTrust,
 } from "../api";
+import { apiErrorText } from "../errors";
 import {
   cancelDictationModelDownload,
   deleteDictationModel,
@@ -1059,7 +1060,7 @@ function FilesCard() {
       setScratchMsg(t("settings.files_saved"));
       refresh();
     } else {
-      setScratchMsg(res.error || t("settings.files_save_error"));
+      setScratchMsg(apiErrorText(res, t, t("settings.files_save_error")));
     }
   };
   const browseScratch = async () => {

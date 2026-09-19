@@ -90,13 +90,15 @@ export async function pickFolderViaServer(): Promise<string | null> {
 export async function openWorkspace(
   path: string,
   create = false,
-): Promise<{
-  path: string;
-  ok: boolean;
-  error?: string;
-  git_branch?: string | null;
-  command_trust?: WorkspaceCommandTrust;
-}> {
+): Promise<
+  ErrorBearing & {
+    path: string;
+    ok: boolean;
+    error?: string;
+    git_branch?: string | null;
+    command_trust?: WorkspaceCommandTrust;
+  }
+> {
   const res = await fetch(`${httpBase()}/v1/workspaces/open`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -110,7 +112,7 @@ export async function openWorkspace(
 export async function createTempWorkspace(
   sessionId: string,
   git = true,
-): Promise<{ ok: boolean; path?: string; git?: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; path?: string; git?: boolean; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/workspaces/temp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -124,7 +126,7 @@ export async function createTempWorkspace(
 export async function saveSessionAsProject(
   sessionId: string,
   path: string,
-): Promise<{ ok: boolean; path?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; path?: string; error?: string }> {
   const res = await fetch(
     `${httpBase()}/v1/sessions/${encodeURIComponent(sessionId)}/save-as-project`,
     {
@@ -144,7 +146,7 @@ export async function getTrustedWorkspaces(): Promise<WorkspaceCommandTrust[]> {
 export async function setWorkspaceTrusted(
   path: string,
   trusted: boolean,
-): Promise<{ ok: boolean; error?: string } & WorkspaceCommandTrust> {
+): Promise<ErrorBearing & { ok: boolean; error?: string } & WorkspaceCommandTrust> {
   const res = await fetch(`${httpBase()}/v1/workspaces/trust`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -379,7 +381,7 @@ export interface ArtifactInfo {
   origin?: "artifacts" | "files";
 }
 
-export interface ArtifactContent {
+export interface ArtifactContent extends ErrorBearing {
   ok: boolean;
   error?: string;
   path: string;
@@ -434,7 +436,7 @@ export async function addRoot(
   sessionId: string,
   path: string,
   writable: boolean,
-): Promise<{ ok: boolean; error?: string; roots?: RootInfo[] }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; roots?: RootInfo[] }> {
   const res = await fetch(`${httpBase()}/v1/sessions/${encodeURIComponent(sessionId)}/roots`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -446,7 +448,7 @@ export async function addRoot(
 export async function removeRoot(
   sessionId: string,
   path: string,
-): Promise<{ ok: boolean; error?: string; roots?: RootInfo[] }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; roots?: RootInfo[] }> {
   const q = new URLSearchParams({ path });
   const res = await fetch(
     `${httpBase()}/v1/sessions/${encodeURIComponent(sessionId)}/roots?${q.toString()}`,
@@ -504,7 +506,9 @@ export async function deleteMcpServer(name: string) {
 
 export async function getMcpTools(
   name: string,
-): Promise<{ ok: boolean; error?: string; tools: { name: string; description: string }[] }> {
+): Promise<
+  ErrorBearing & { ok: boolean; error?: string; tools: { name: string; description: string }[] }
+> {
   const res = await fetch(`${httpBase()}/v1/mcp/${encodeURIComponent(name)}/tools`);
   return res.json();
 }
@@ -1051,7 +1055,7 @@ export async function setSessionsPeek(
 
 export async function setScratchBase(
   path: string,
-): Promise<{ ok: boolean; error?: string; scratch_base?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string; scratch_base?: string }> {
   const res = await fetch(`${httpBase()}/v1/settings/scratch-base`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

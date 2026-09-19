@@ -369,14 +369,17 @@ class SessionManager:
     def open_workspace(self, path: str, *, create: bool = False) -> dict[str, Any]:
         resolved = Path(path).expanduser()
         if resolved.exists() and not resolved.is_dir():
-            return {"path": str(resolved), "ok": False, "error": "not a directory"}
+            return coded_error(
+                "not a directory", "NOT_A_DIRECTORY", ok=False, path=str(resolved)
+            )
         if not resolved.exists():
             if not create:
-                return {
-                    "path": str(resolved),
-                    "ok": False,
-                    "error": "folder does not exist",
-                }
+                return coded_error(
+                    "folder does not exist",
+                    "FOLDER_MISSING",
+                    ok=False,
+                    path=str(resolved),
+                )
             try:
                 resolved.mkdir(parents=True, exist_ok=True)
             except OSError as exc:
@@ -424,10 +427,14 @@ class SessionManager:
         self, path: str | Path, *, trusted: bool
     ) -> dict[str, Any]:
         if not str(path).strip():
-            return {"ok": False, "error": "workspace path is required"}
+            return coded_error(
+                "workspace path is required", "PATH_REQUIRED", ok=False
+            )
         candidate = Path(path).expanduser()
         if trusted and not candidate.is_dir():
-            return {"ok": False, "error": "workspace is not a directory"}
+            return coded_error(
+                "workspace is not a directory", "NOT_A_DIRECTORY", ok=False
+            )
         canonical = self.workspace_trust.set_trusted(candidate, trusted)
         effective = load_config(
             canonical, workspace_trusted=trusted
@@ -510,7 +517,7 @@ class SessionManager:
         directory at SEND time (not connect) and, for code-family work, make git ready.
         Idempotent — re-sending against an existing dir is a no-op."""
         if not self._SESSION_ID_RE.match(session_id or "") or session_id in {".", ".."}:
-            return {"ok": False, "error": "invalid session id"}
+            return coded_error("invalid session id", "INVALID_SESSION_ID", ok=False)
         path = self._provision_scratch(session_id)
         if git and not (Path(path) / ".git").is_dir():
             try:
@@ -530,7 +537,7 @@ class SessionManager:
         location and rebind the session there. The cached engine is dropped so the next
         connect rebuilds against the new path — callers must reconnect after this."""
         if not dest or not dest.strip():
-            return {"ok": False, "error": "no destination folder"}
+            return coded_error("no destination folder", "DESTINATION_REQUIRED", ok=False)
         record = self.session_store.load(session_id)
         src = record.workspace if record and record.workspace else None
         if not src:
@@ -538,19 +545,29 @@ class SessionManager:
             executor = getattr(engine, "executor", None) if engine else None
             src = str(executor.cwd) if executor else None
         if not src or not self.is_temp_workspace(src) or not Path(src).is_dir():
-            return {"ok": False, "error": "this session is not in a temporary folder"}
+            return coded_error(
+                "this session is not in a temporary folder",
+                "NOT_A_TEMP_SESSION",
+                ok=False,
+            )
         if self.is_running(session_id):
-            return {"ok": False, "error": "wait for the current task to finish first"}
+            return coded_error(
+                "wait for the current task to finish first", "SESSION_BUSY", ok=False
+            )
         d = Path(dest).expanduser()
         if d.exists():
             if not d.is_dir() or any(d.iterdir()):
-                return {"ok": False, "error": "destination must be a new or empty folder"}
+                return coded_error(
+                    "destination must be a new or empty folder",
+                    "DESTINATION_NOT_EMPTY",
+                    ok=False,
+                )
             d.rmdir()  # shutil.move into an existing dir would nest src inside it
         try:
             d.parent.mkdir(parents=True, exist_ok=True)
             shutil.move(src, str(d))
         except OSError as e:
-            return {"ok": False, "error": f"could not move the folder: {e}"}
+            return error_payload(e, f"could not move the folder: {e}", ok=False)
         new_path = str(d.resolve())
         if record:
             record.workspace = new_path
@@ -1678,7 +1695,9 @@ class SessionManager:
                         for t in conn.tools
                     ],
                 }
-        return {"name": name, "ok": False, "error": "unknown server", "tools": []}
+        return coded_error(
+            "unknown server", "MCP_SERVER_UNKNOWN", name=name, ok=False, tools=[]
+        )
 
     async def reload_mcp(self) -> dict[str, Any]:
         """Drop live MCP connections so new sessions reconnect with fresh config."""
@@ -2802,7 +2821,7 @@ class SessionManager:
 
     def _artifact_target(
         self, session_id: str, path: str, *, allow_dir: bool = False
-    ) -> tuple[Optional[Path], Optional[str]]:
+    ) -> tuple[Optional[Path], Optional[dict[str, Any]]]:
         """Resolve an artifact path under one of the session's roots — workspace first,
         then the scratch dir, then user-granted extra roots. Universal scratch means a
         gated session's artifacts live BESIDE its workspace, so single-root resolution
@@ -2823,7 +2842,7 @@ class SessionManager:
                 if rp not in candidates:
                     candidates.append(rp)
         if not candidates:
-            return None, "no workspace"
+            return None, coded_error("no workspace", "WORKSPACE_MISSING", ok=False)
         found_missing = False
         for root in candidates:
             target = (root / path).expanduser().resolve()
@@ -2837,18 +2856,20 @@ class SessionManager:
                 return target, None
             found_missing = True
         if found_missing:
-            return None, (
+            return None, coded_error(
                 "This isn't in the conversation's folder anymore — it may have been "
-                "moved or deleted."
+                "moved or deleted.",
+                "ARTIFACT_MISSING",
+                ok=False,
             )
-        return None, "path escapes workspace"
+        return None, coded_error("path escapes workspace", "PATH_ESCAPES_ROOT", ok=False)
 
     def read_artifact(self, session_id: str, path: str) -> dict[str, Any]:
         # Folders are readable too (a model sometimes links a whole package, e.g. a skill
         # build dir): return a listing the viewer can render instead of a dead end.
-        target, err = self._artifact_target(session_id, path, allow_dir=True)
+        target, failure = self._artifact_target(session_id, path, allow_dir=True)
         if target is None:
-            return {"ok": False, "error": err}
+            return failure
         if target.is_dir():
             entries: list[dict[str, Any]] = []
             try:
@@ -2873,10 +2894,11 @@ class SessionManager:
             import base64
 
             if target.stat().st_size > self.MAX_BINARY_PREVIEW:
-                return {
-                    "ok": False,
-                    "error": "file too large to preview — use Reveal to open it",
-                }
+                return coded_error(
+                    "file too large to preview — use Reveal to open it",
+                    "ARTIFACT_TOO_LARGE",
+                    ok=False,
+                )
             mime = {
                 ".png": "image/png",
                 ".jpg": "image/jpeg",
@@ -2897,7 +2919,9 @@ class SessionManager:
         try:
             text = target.read_text(encoding="utf-8")
         except UnicodeDecodeError:
-            return {"ok": False, "error": "binary file cannot be previewed"}
+            return coded_error(
+                "binary file cannot be previewed", "ARTIFACT_BINARY", ok=False
+            )
         return {
             "ok": True,
             "path": path,
@@ -2917,9 +2941,9 @@ class SessionManager:
         import subprocess
         import sys
 
-        target, err = self._artifact_target(session_id, path, allow_dir=True)
+        target, failure = self._artifact_target(session_id, path, allow_dir=True)
         if target is None:
-            return {"ok": False, "error": err}
+            return failure
         # A folder "opens" as itself in the file manager, whatever the mode.
         is_dir = target.is_dir()
         try:
@@ -3698,7 +3722,7 @@ class SessionManager:
         """
         path = (path or "").strip()
         if not path:
-            return {"ok": False, "error": "empty path"}
+            return coded_error("empty path", "PATH_REQUIRED", ok=False)
         try:
             Path(path).expanduser().mkdir(parents=True, exist_ok=True)
         except OSError as exc:
@@ -5470,7 +5494,9 @@ class SessionManager:
         persists it so a later resume still has it."""
         p = Path(path).expanduser()
         if not p.is_dir():
-            return {"ok": False, "error": f"not a directory: {path}"}
+            return coded_error(
+                f"not a directory: {path}", "NOT_A_DIRECTORY", ok=False, path=path
+            )
         resolved = p.resolve()
         engine = self._engines.get(session_id)
         if engine is not None and getattr(engine, "roots", None) is not None:
@@ -5557,10 +5583,11 @@ class SessionManager:
         engine = self._engines.get(session_id)
         if engine is not None and getattr(engine, "roots", None):
             if engine.roots and engine.roots[0].path == resolved:
-                return {
-                    "ok": False,
-                    "error": "cannot remove the primary scratch directory",
-                }
+                return coded_error(
+                    "cannot remove the primary scratch directory",
+                    "PRIMARY_FOLDER_PROTECTED",
+                    ok=False,
+                )
             engine.roots[:] = [r for r in engine.roots if r.path != resolved]
             self.session_store.set_extra_roots(
                 session_id, self._extra_roots_of(engine, session_id)
@@ -5572,10 +5599,11 @@ class SessionManager:
                 and current[0]["primary"]
                 and Path(current[0]["path"]).resolve() == resolved
             ):
-                return {
-                    "ok": False,
-                    "error": "cannot remove the primary scratch directory",
-                }
+                return coded_error(
+                    "cannot remove the primary scratch directory",
+                    "PRIMARY_FOLDER_PROTECTED",
+                    ok=False,
+                )
             session_scratch = (self.scratch_base() / session_id).expanduser().resolve()
             extra = [
                 r

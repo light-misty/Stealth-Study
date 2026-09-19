@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { getI18n } from "react-i18next";
 import { addRoot, getRoots, removeRoot, type RootInfo } from "./api";
+import { apiErrorDetail, apiErrorText, type ErrorBearing, type Translate } from "./errors";
+
+const tr = ((key: string, opts?: Record<string, unknown>) =>
+  getI18n().t(key, opts)) as Translate;
 
 // Shared roots state for a session — used by the Session settings drawer's Working-directories
 // section, the settings row's folder glance, and the session start panel. Reads are live;
@@ -10,6 +14,7 @@ export function useRoots(sessionId: string, reloadKey?: number) {
   const [roots, setRoots] = useState<RootInfo[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [errorDetail, setErrorDetail] = useState("");
 
   const reload = useCallback(
     () => getRoots(sessionId).then(setRoots).catch(() => setRoots([])),
@@ -29,14 +34,16 @@ export function useRoots(sessionId: string, reloadKey?: number) {
     return () => window.removeEventListener("coworker:roots-changed", onChanged);
   }, [sessionId, reload]);
 
-  const apply = (res: { ok: boolean; error?: string; roots?: RootInfo[] }): boolean => {
+  const apply = (res: { ok: boolean; roots?: RootInfo[] } & ErrorBearing): boolean => {
     if (res.ok && res.roots) {
       setRoots(res.roots);
       setError("");
+      setErrorDetail("");
       window.dispatchEvent(new CustomEvent("coworker:roots-changed", { detail: sessionId }));
       return true;
     }
-    setError(res.error || getI18n().t("root.update_failed"));
+    setErrorDetail(apiErrorDetail(res));
+    setError(apiErrorText(res, tr, tr("root.update_failed")));
     reload();
     return false;
   };
@@ -73,5 +80,14 @@ export function useRoots(sessionId: string, reloadKey?: number) {
     [sessionId],
   );
 
-  return { roots, busy, error, reload, addRoot: add, toggleAccess, removeRoot: remove };
+  return {
+    roots,
+    busy,
+    error,
+    errorDetail,
+    reload,
+    addRoot: add,
+    toggleAccess,
+    removeRoot: remove,
+  };
 }

@@ -32,7 +32,7 @@ export function SessionIntro({
   onPrefill: (text: string, attachments?: Attachment[]) => void;
 }) {
   const { t } = useTranslation();
-  const { roots, busy, error, addRoot } = useRoots(sessionId);
+  const { roots, busy, error, errorDetail, addRoot } = useRoots(sessionId);
   const [live, setLive] = useState<Set<string>>(new Set());
   const [byName, setByName] = useState<ConnectorMap>({});
   const [addingFolder, setAddingFolder] = useState(false);
@@ -97,7 +97,7 @@ export function SessionIntro({
               }}
               onDismiss={() => setAddingFolder(false)}
             />
-            {error && <div className="roots-err">{error}</div>}
+            {error && <div className="roots-err" title={errorDetail}>{error}</div>}
           </div>
         )}
 
