@@ -959,6 +959,7 @@ export function App() {
           break;
         case "interrupted":
           flushPartialStream();
+          dropSessionInbox("question");
           setItems((p) => [
             ...dismissPendingQuestion(p),
             { kind: "notice", tone: "warn", text: t("app.notice.interrupted") },
@@ -1217,6 +1218,7 @@ export function App() {
     setComposerPrefill((p) => ({ text, attachments, nonce: (p?.nonce ?? 0) + 1 }));
   const interrupt = () => {
     setItems((p) => dismissPendingQuestion(p));
+    dropSessionInbox("question");
     sessionRef.current?.interrupt();
   };
   const retry = () => {

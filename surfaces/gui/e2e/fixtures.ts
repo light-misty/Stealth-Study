@@ -772,6 +772,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
     send("ready", sid === "resume-live-1" ? { running: true } : {});
     let pendingTool = "run_shell"; // which proposal the next approval decision resolves
     let epicTimer: ReturnType<typeof setInterval> | null = null; // the slow stream, stoppable via interrupt
+    let liveQuestionId: string | null = null; // the pending per-session Inbox mirror of a live ask_user
     let hadTurn = false; // a user_message landed — set_model is now a mid-session switch
     ws.onMessage((raw) => {
       const msg = JSON.parse(String(raw));
@@ -1025,12 +1026,40 @@ export async function mockApi(page: import("@playwright/test").Page) {
         }
         // Live ask_user (attended): the agent asks mid-turn and SUSPENDS on the
         // answer — the composer head shows the question card until it is answered
-        // or the turn is stopped (interrupt → interrupted, never an answer).
+        // or the turn is stopped (interrupt → interrupted, never an answer). Like the
+        // real server's add_question, the ask ALSO parks a pending per-session Inbox
+        // mirror; resolving or interrupting the turn closes it, or the answer-in-context
+        // poll keeps surfacing the card forever.
         if (/ask me something/i.test(msg.text)) {
+          const mirrorIdx = inbox.findIndex((x) => x.id === "inb-live-question");
+          if (mirrorIdx >= 0) inbox.splice(mirrorIdx, 1);
+          inbox.push({
+            id: "inb-live-question",
+            session_id: sid,
+            kind: "question",
+            title: "Which color should the report use?",
+            body: "",
+            options: ["Red", "Blue"],
+            allow_text: true,
+            multi: false,
+            header: "Report",
+            questions: [],
+            state: "pending",
+            resolution: null,
+            inbox: "default",
+            created_at: "2026-09-19 10:00:00",
+            resolved_at: null,
+            session_title: "Draft the launch note",
+            session_agent: "cowork",
+            session_workspace: "",
+            session_exists: true,
+          });
+          liveQuestionId = "inb-live-question";
           send("question_requested", {
             question: "Which color should the report use?",
             options: ["Red", "Blue"],
             allow_text: true,
+            header: "Report",
           });
           return; // suspended on the answer
         }
@@ -1173,6 +1202,12 @@ export async function mockApi(page: import("@playwright/test").Page) {
       } else if (msg.type === "question_response") {
         // The live ask_user answer resolves the suspended turn, mirroring the real
         // engine: the answer lands as the tool result and the turn continues.
+        const mirror = inbox.find((x) => x.id === liveQuestionId);
+        if (mirror) {
+          mirror.state = "resolved";
+          mirror.resolution = String(msg.answer ?? "");
+        }
+        liveQuestionId = null;
         send("assistant_message", { text: `Noted: ${msg.answer}` });
         send("turn_done");
       } else if (msg.type === "interrupt") {
@@ -1181,6 +1216,14 @@ export async function mockApi(page: import("@playwright/test").Page) {
         if (epicTimer) {
           clearInterval(epicTimer);
           epicTimer = null;
+        }
+        if (liveQuestionId) {
+          const mirror = inbox.find((x) => x.id === liveQuestionId);
+          if (mirror) {
+            mirror.state = "resolved";
+            mirror.resolution = "interrupted by user";
+          }
+          liveQuestionId = null;
         }
         send("interrupted", {});
         send("turn_done");

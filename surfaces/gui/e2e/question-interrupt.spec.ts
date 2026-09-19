@@ -54,6 +54,11 @@ test("stopping the turn while the agent asks hides the question card immediately
   await expect(page.getByText("Interrupted.").first()).toBeVisible({ timeout: 5_000 });
   await expect(page.getByText(QUESTION)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Red", exact: true })).toHaveCount(0);
+
+  // The parked Inbox mirror (the answer-in-context poll) must not resurrect the card.
+  await page.waitForTimeout(5_000);
+  await expect(page.getByText(QUESTION)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Red", exact: true })).toHaveCount(0);
 });
 
 test("the conversation continues with full context after the pause", async ({ page }) => {
