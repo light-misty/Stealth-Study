@@ -1162,7 +1162,7 @@ export async function getPersonasIndex(): Promise<{ personas: Persona[]; interna
 export async function updatePersona(
   id: string,
   body: { enabled?: boolean; surfaced?: boolean; default?: boolean },
-): Promise<{ ok: boolean; personas?: Persona[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; personas?: Persona[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1176,7 +1176,7 @@ export async function updatePersona(
 /** Uninstall a non-builtin persona (its snapshot + state). Local; works signed out. */
 export async function deletePersona(
   id: string,
-): Promise<{ ok: boolean; personas?: Persona[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; personas?: Persona[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
@@ -1214,7 +1214,7 @@ export async function getCloudGallery(): Promise<{
 // Solo page for one gallery coworker. `capabilities` is the desktop's own
 // consent summary derived from the manifest (same parser as install), so the
 // page shows exactly what installing would ask the user to approve.
-export interface GalleryDetail {
+export interface GalleryDetail extends ErrorBearing {
   ok: boolean;
   error?: string;
   card?: GalleryPersona & { pitch_markdown: string };
@@ -1239,7 +1239,7 @@ export async function getCloudGalleryDetail(slug: string): Promise<GalleryDetail
 export async function exportPersona(
   id: string,
   dir: string,
-): Promise<{ ok: boolean; path?: string; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; path?: string; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}/export`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1250,7 +1250,14 @@ export async function exportPersona(
 
 export async function installPersona(
   body: { dir?: string; git_url?: string; gallery_slug?: string; zip_b64?: string; filename?: string },
-): Promise<{ ok: boolean; consent?: PersonaConsent[]; personas?: Persona[]; error?: string }> {
+): Promise<
+  ErrorBearing & {
+    ok: boolean;
+    consent?: PersonaConsent[];
+    personas?: Persona[];
+    error?: string;
+  }
+> {
   const res = await fetch(`${httpBase()}/v1/personas/install`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -1333,7 +1340,7 @@ export async function setPersonaConnection(
 export async function setPersonaEnabled(
   id: string,
   enabled: boolean,
-): Promise<{ ok: boolean; personas?: Persona[]; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; personas?: Persona[]; error?: string }> {
   const res = await fetch(`${httpBase()}/v1/personas/${encodeURIComponent(id)}/enable`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

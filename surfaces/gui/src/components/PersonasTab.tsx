@@ -8,6 +8,7 @@ import {
   type Persona,
   type PersonaConsent,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { chooseFolder } from "../tauri";
 import type { SessionInfo } from "../types";
 import { Icon } from "./Icon";
@@ -93,7 +94,7 @@ export function PersonasTab({ onOpenPersona }: { onOpenPersona?: (id: string) =>
   const finishInstall = (r: Awaited<ReturnType<typeof installPersona>>) => {
     setBusy(false);
     if (!r.ok) {
-      setMsg(r.error || t("personas.install_failed"));
+      setMsg(apiErrorText(r, t, t("personas.install_failed")));
       return;
     }
     setConsent(r.consent || []);
@@ -131,7 +132,7 @@ export function PersonasTab({ onOpenPersona }: { onOpenPersona?: (id: string) =>
     const r = await installPersona({ git_url: src.trim() });
     setBusy(false);
     if (!r.ok) {
-      setMsg(r.error || t("personas.install_failed"));
+      setMsg(apiErrorText(r, t, t("personas.install_failed")));
       return;
     }
     setConsent(r.consent || []);

@@ -23,6 +23,7 @@ CODES: frozenset[str] = frozenset(
         "ARTIFACT_MISSING",
         "ARTIFACT_TOO_LARGE",
         "AUTH_FAILED",
+        "CLOUD_SIGNIN_REQUIRED",
         "CONFLICT",
         "DESTINATION_NOT_EMPTY",
         "DESTINATION_REQUIRED",
@@ -51,6 +52,19 @@ CODES: frozenset[str] = frozenset(
         "PATH_REQUIRED",
         "PATH_TOO_LONG",
         "PERMISSION_DENIED",
+        "PERSONA_ARCHIVE_ENCODING",
+        "PERSONA_ARCHIVE_INVALID",
+        "PERSONA_ARCHIVE_UNSAFE",
+        "PERSONA_BUILTIN_PROTECTED",
+        "PERSONA_BUNDLE_MISSING",
+        "PERSONA_GALLERY_UNAVAILABLE",
+        "PERSONA_HASH_MISMATCH",
+        "PERSONA_MANIFEST_INVALID",
+        "PERSONA_MANIFEST_MISSING",
+        "PERSONA_MANIFESTS_MISSING",
+        "PERSONA_NO_BUNDLE",
+        "PERSONA_SOURCE_REQUIRED",
+        "PERSONA_UNKNOWN",
         "PRIMARY_FOLDER_PROTECTED",
         "RATE_LIMITED",
         "SESSION_BUSY",
@@ -268,6 +282,23 @@ def error_payload(
         payload["error_params"] = params
     payload.update(extra)
     return payload
+
+
+def forwarded_error(
+    exc: BaseException, message: Optional[str] = None, **extra: Any
+) -> dict[str, Any]:
+    """Forward an exception raised somewhere else, and only claim a code when one applies.
+
+    A catch-all that always classifies would print "Something went wrong" over a
+    third-party sentence the user actually needs (`fatal: repository not found`), so an
+    unclassified exception keeps its own text and simply carries no code — the GUI then
+    shows the raw, which is the honest answer.
+    """
+    if error_code(exc) == UNCLASSIFIED:
+        payload: dict[str, Any] = {"error": str(exc) if message is None else message}
+        payload.update(extra)
+        return payload
+    return error_payload(exc, message, **extra)
 
 
 def coded_error(message: str, code: str, **extra: Any) -> dict[str, Any]:

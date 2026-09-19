@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from ..agents.base import Agent
+from ..errors import CodedValueError, coded_error, error_payload
 from ..agents.code import CODE_CAPABILITIES, code_agent
 from ..agents.cowork import COWORK_CAPABILITIES, cowork_agent
 from .manifest import PersonaManifest, load_manifest_file
@@ -378,7 +379,10 @@ class PersonaRegistry:
         if entry is None:
             raise KeyError(persona_id)
         if entry.builtin:
-            raise ValueError(f"{persona_id} is built-in and cannot be deleted")
+            raise CodedValueError(
+                "PERSONA_BUILTIN_PROTECTED",
+                f"{persona_id} is built-in and cannot be deleted",
+            )
         del self._entries[persona_id]
         self._enabled.pop(persona_id, None)
         self._surfaced.pop(persona_id, None)
@@ -403,10 +407,12 @@ class PersonaRegistry:
 
         d = Path(directory)
         if not d.is_dir():
-            raise FileNotFoundError(f"not a directory: {d}")
+            raise CodedValueError("NOT_A_DIRECTORY", f"not a directory: {d}")
         mds = sorted(d.glob("*.md"))
         if not mds:
-            raise FileNotFoundError(f"no persona manifests (*.md) in {d}")
+            raise CodedValueError(
+                "PERSONA_MANIFESTS_MISSING", f"no persona manifests (*.md) in {d}"
+            )
 
         summaries: list[dict] = []
         for md in mds:
@@ -462,13 +468,21 @@ class PersonaRegistry:
 
         entry = self._entries.get(persona_id)
         if entry is None or entry.manifest is None or not entry.manifest.source:
-            return {"ok": False, "error": "this coworker has no shareable bundle"}
+            return coded_error(
+                "this coworker has no shareable bundle", "PERSONA_NO_BUNDLE", ok=False
+            )
         src_md = Path(entry.manifest.source)
         if not src_md.is_file():
-            return {"ok": False, "error": "the coworker's bundle files are missing"}
+            return coded_error(
+                "the coworker's bundle files are missing",
+                "PERSONA_BUNDLE_MISSING",
+                ok=False,
+            )
         dest = Path(dest_dir).expanduser()
         if not dest.is_dir():
-            return {"ok": False, "error": "destination folder does not exist"}
+            return coded_error(
+                "destination folder does not exist", "FOLDER_MISSING", ok=False
+            )
         version = entry.manifest.version
         zip_name = f"{persona_id}-coworker{('-v' + version) if version else ''}.zip"
         zip_path = dest / zip_name
@@ -481,7 +495,7 @@ class PersonaRegistry:
                         if p.is_file():
                             zf.write(p, str(Path("skills") / p.relative_to(skills_dir)))
         except OSError as e:
-            return {"ok": False, "error": f"could not write the archive: {e}"}
+            return error_payload(e, f"could not write the archive: {e}", ok=False)
         return {"ok": True, "path": str(zip_path)}
 
     def install_from_zip(self, data: bytes, filename: str = "") -> list[dict]:
@@ -500,18 +514,23 @@ class PersonaRegistry:
                         name = info.filename
                         target = (root / name).resolve()
                         if not str(target).startswith(str(root.resolve())):
-                            raise FileNotFoundError(f"unsafe path in archive: {name}")
+                            raise CodedValueError(
+                                "PERSONA_ARCHIVE_UNSAFE", f"unsafe path in archive: {name}"
+                            )
                     zf.extractall(root)
             except zipfile.BadZipFile as e:
-                raise FileNotFoundError(f"not a valid bundle archive: {e}") from e
+                raise CodedValueError(
+                    "PERSONA_ARCHIVE_INVALID", f"not a valid bundle archive: {e}"
+                ) from e
             # Accept both layouts: files at the root, or a single wrapping folder
             # (how macOS zips a directory).
             candidates = [root, *[p for p in root.iterdir() if p.is_dir()]]
             for d in candidates:
                 if list(d.glob("*.md")) or (d / "manifest.md").is_file():
                     return self.install_from_dir(d)
-            raise FileNotFoundError(
-                f"no persona manifest found in {filename or 'the archive'}"
+            raise CodedValueError(
+                "PERSONA_MANIFEST_MISSING",
+                f"no persona manifest found in {filename or 'the archive'}",
             )
 
     def _snapshot(self, md: Path, persona_id: str) -> Optional[Path]:

@@ -158,6 +158,7 @@ from ..attachments import (
     build_user_content,
 )
 from ..engine import ApprovalOutcome
+from ..errors import coded_error, forwarded_error
 from ..inbox import VIS_INBOX, VIS_INLINE
 from ..logging_setup import request_id_var, user_id_var, write_frontend_logs
 from ..permissions import Mode
@@ -511,7 +512,9 @@ def create_app(manager: SessionManager) -> FastAPI:
                 try:
                     data = base64.b64decode(str(body["zip_b64"]), validate=True)
                 except (ValueError, binascii.Error):
-                    return {"ok": False, "error": "Invalid archive encoding."}
+                    return coded_error(
+                        "Invalid archive encoding.", "PERSONA_ARCHIVE_ENCODING", ok=False
+                    )
                 summaries = reg.install_from_zip(
                     data, str(body.get("filename", ""))
                 )
@@ -530,28 +533,30 @@ def create_app(manager: SessionManager) -> FastAPI:
                 slug = str(body["gallery_slug"]).strip()
                 manifest = cloud.gallery_manifest(manager.secrets, load_config(), slug)
                 if manifest is None:
-                    return {
-                        "ok": False,
-                        "error": "gallery requires cloud sign-in (or the cloud is unreachable)",
-                    }
+                    return coded_error(
+                        "gallery requires cloud sign-in (or the cloud is unreachable)",
+                        "PERSONA_GALLERY_UNAVAILABLE",
+                        ok=False,
+                    )
                 markdown = manifest.get("manifest_markdown", "")
                 digest = "sha256:" + hashlib.sha256(markdown.encode()).hexdigest()
                 if (
                     manifest.get("manifest_hash")
                     and manifest["manifest_hash"] != digest
                 ):
-                    return {"ok": False, "error": "manifest hash mismatch"}
+                    return coded_error("manifest hash mismatch", "PERSONA_HASH_MISMATCH", ok=False)
                 with tempfile.TemporaryDirectory() as td:
                     (Path(td) / f"{slug}.md").write_text(markdown)
                     summaries = reg.install_from_dir(td)
                 cloud.gallery_install_event(manager.secrets, load_config(), slug)
             else:
-                return {
-                    "ok": False,
-                    "error": "provide a `dir`, `git_url`, `zip_b64`, or `gallery_slug`",
-                }
+                return coded_error(
+                    "provide a `dir`, `git_url`, `zip_b64`, or `gallery_slug`",
+                    "PERSONA_SOURCE_REQUIRED",
+                    ok=False,
+                )
         except Exception as e:  # surface manifest/clone errors to the caller
-            return {"ok": False, "error": str(e)}
+            return forwarded_error(e, ok=False)
         return {"ok": True, "consent": summaries, "personas": reg.list_all()}
 
     @app.post("/v1/personas/{persona_id}/export")
@@ -571,7 +576,9 @@ def create_app(manager: SessionManager) -> FastAPI:
 
         body = cloud.gallery_detail(manager.secrets, load_config(), slug)
         if body is None:
-            return {"ok": False, "error": "gallery requires cloud sign-in"}
+            return coded_error(
+                "gallery requires cloud sign-in", "CLOUD_SIGNIN_REQUIRED", ok=False
+            )
         return body
 
     @app.get("/v1/cloud/gallery")
@@ -584,8 +591,9 @@ def create_app(manager: SessionManager) -> FastAPI:
         body = cloud.gallery_list(manager.secrets, load_config())
         if body is None:
             return {
-                "ok": False,
-                "error": "gallery requires cloud sign-in",
+                **coded_error(
+                    "gallery requires cloud sign-in", "CLOUD_SIGNIN_REQUIRED", ok=False
+                ),
                 "personas": [],
             }
         return {"ok": True, "personas": body.get("personas", [])}
@@ -606,7 +614,7 @@ def create_app(manager: SessionManager) -> FastAPI:
             if body.get("default"):
                 reg.set_default(persona_id)
         except KeyError:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         return {"ok": True, "personas": reg.list_all(), "archived_sessions": archived}
 
     @app.delete("/v1/personas/{persona_id}")
@@ -616,9 +624,9 @@ def create_app(manager: SessionManager) -> FastAPI:
         try:
             manager.personas.uninstall(persona_id)
         except KeyError:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         except ValueError as e:
-            return {"ok": False, "error": str(e)}
+            return forwarded_error(e, ok=False)
         return {"ok": True, "personas": manager.personas.list_all()}
 
     @app.get("/v1/personas/{persona_id}")
@@ -626,7 +634,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         # §5 detail page: identity + capabilities + recommends(+connected) + default connections.
         detail = manager.persona_detail(persona_id)
         if detail is None:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         return detail
 
     @app.get("/v1/personas/{persona_id}/media/{name}")
@@ -656,7 +664,7 @@ def create_app(manager: SessionManager) -> FastAPI:
                 persona_id, bool((body or {}).get("enabled", True))
             )
         except KeyError:
-            return {"ok": False, "error": f"unknown persona: {persona_id}"}
+            return coded_error(f"unknown persona: {persona_id}", "PERSONA_UNKNOWN", ok=False)
         return {"ok": True, "personas": manager.personas.list_all()}
 
     @app.post("/v1/personas/{persona_id}/connections")

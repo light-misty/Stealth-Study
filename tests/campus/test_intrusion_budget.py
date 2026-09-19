@@ -126,6 +126,12 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/components/SessionIntro.tsx",
     "surfaces/gui/src/components/SessionSetupRow.tsx",
     "surfaces/gui/src/components/WorkspaceTrustPrompt.tsx",
+    # 第二档 A（personas 域）：清单/导出异常带代号，安装/导出/删除/画廊四处界面取键。
+    "ss/personas/registry.py",
+    "ss/cloud.py",
+    "surfaces/gui/src/components/GalleryModal.tsx",
+    "surfaces/gui/src/components/PersonaView.tsx",
+    "surfaces/gui/src/components/PersonasTab.tsx",
 }
 
 CAMPUS_OWNED_PREFIXES = (

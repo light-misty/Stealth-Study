@@ -22,6 +22,7 @@ import {
   updatePersona,
   type PersonaDetail,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { chooseFolder } from "../tauri";
 import { ConnectorBadge } from "../connectors/ConnectorIcon";
 import { fullPersonaName } from "../personaScope";
@@ -111,7 +112,11 @@ export function PersonaView({
     const dir = await chooseFolder();
     if (!dir) return;
     const r = await exportPersona(personaId, dir);
-    setMsg(r.ok ? t("persona.exported_to", { path: r.path }) : r.error || t("persona.export_failed"));
+    setMsg(
+      r.ok
+        ? t("persona.exported_to", { path: r.path })
+        : apiErrorText(r, t, t("persona.export_failed")),
+    );
   };
 
   const header = (
@@ -398,7 +403,7 @@ export function PersonaView({
                     onClick={async () => {
                       const r = await deletePersona(personaId);
                       if (r.ok) onBack?.();
-                      else setMsg(r.error || t("persona.delete_failed"));
+                      else setMsg(apiErrorText(r, t, t("persona.delete_failed")));
                     }}
                   >
                     {t("persona.delete")}

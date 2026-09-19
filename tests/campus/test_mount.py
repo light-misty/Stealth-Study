@@ -115,13 +115,18 @@ BACKEND_PATCH = {
     "M\tss/tools/ask.py",
     "M\tss/engine.py",
     "M\tss/interactions.py",
+    # i18n-chinese-coverage 分支续：personas 域的清单/导出异常改抛带代号类型，云端画廊
+    # 与 install/export 端点随之附带 error_code（裸文本照旧保留）
+    "M\tss/personas/registry.py",
+    "M\tss/cloud.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
-# campus 挂载、日志系统与 inbox 修复三条分支各自的 app.py 增量预算
+# campus 挂载、日志系统、inbox 修复与错误代号四条分支各自的 app.py 增量预算
 APP_PY_PATCHES = {
     "40\t2\tss/server/app.py",
     "34\t1\tss/server/app.py",
     "6\t3\tss/server/app.py",
+    "27\t19\tss/server/app.py",
 }
 
 

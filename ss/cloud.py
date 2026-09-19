@@ -32,6 +32,7 @@ from typing import Any, Optional
 import httpx
 
 from .config import Config
+from .errors import coded_error
 from .secrets import SecretStore
 
 CLOUD_AUTH_PROFILE = "cloud:auth"
@@ -680,7 +681,11 @@ def gallery_detail(secrets: SecretStore, config: Config, slug: str) -> Optional[
             for r in m.recommends
         ]
     except Exception as exc:  # malformed manifest: surface, don't crash
-        return {"ok": False, "error": f"manifest failed local validation: {exc}"}
+        return coded_error(
+            f"manifest failed local validation: {exc}",
+            "PERSONA_MANIFEST_INVALID",
+            ok=False,
+        )
     return {
         "ok": True,
         "card": card,
