@@ -84,12 +84,13 @@ app.include_router(build_campus_router(manager))
 | A2 | `POST /v1/campus/profiles` | `{track_type, title, exam_date?, target_score?, subjects?, cert_type?, level?, daily_minutes?}` | ExamProfile | `DUPLICATE_TITLE` | G-03 |
 | A3 | `GET /v1/campus/profiles/{pid}` | — | ExamProfile | `PROFILE_NOT_FOUND` | G-03 |
 | A4 | `PATCH /v1/campus/profiles/{pid}` | 任意可变字段（`exam_date/target_score/status/...`） | ExamProfile | `PROFILE_NOT_FOUND`, `PROFILE_READ_ONLY`（finished） | G-03/KY-04 |
-| A5 | `DELETE /v1/campus/profiles/{pid}` | — | `{deleted: true, cascade: {表: 行数}}` | `PROFILE_NOT_FOUND` | G-03（级联见 02 §7.3） |
+| A5 | `DELETE /v1/campus/profiles/{pid}` | — | `{deleted: true, cascade: {表: 行数}, automation_tasks, export_files}` | `PROFILE_NOT_FOUND` | G-03（级联见 02 §7.3；`finished` 也可删，见 02 §7.2） |
 | A6 | `GET /v1/campus/app-state` | — | `{active_profile_id?, settings}` | — | G-03/G-09 |
 | A7 | `PATCH /v1/campus/app-state` | `{active_profile_id?}`, `{settings?}`（每日时长/推送时间/间隔强度/三类任务模型） | 同 A6 | `PROFILE_NOT_FOUND` | G-09 |
 | A8 | `GET /v1/campus/capabilities` | — | `{current_model, tasks: [{task, recommended, minimum, supported: bool, reason}]}`（静态推荐清单判定，ADR-06） | — | G-03 自检卡/§7.1 |
 | A9 | `GET /v1/campus/privacy` | — | `{data_dir, library_dir, db_size_bytes, model_endpoints[]}` | — | G-03 隐私面板 |
 | A10 | `DELETE /v1/campus/privacy/data` | — | `{cleared: true, freed_bytes}` | — | G-03 一键清除本地数据 |
+| A11 | `GET /v1/campus/profiles/{pid}/impact` | — | `{profile_id, cascade: {表: 行数}, automation_tasks, export_files}`（A5 的删除代价预览，只读、不改任何东西） | `PROFILE_NOT_FOUND` | G-03 不可逆删除的确认弹窗 |
 
 ### 4.2 资料库与按页问答（G-07/G-10/G-11、KY-09/KY-10）
 
@@ -210,7 +211,7 @@ app.include_router(build_campus_router(manager))
 | I5 | `GET /v1/campus/exports/{filename}` | — | 文件流（`Content-Disposition` 附件下载） | `EXPORT_NOT_FOUND` | INF-02 |
 | I6 | `POST /v1/campus/exports/wipe` | `{restore_filename?}`（缺省为纯清除；给出时清库后按 02 §7.4 恢复该 json 导出包，07 §2 INF-03"I6 为 I4 的逆过程"） | `{wiped: true}`（恢复时另含 `restored`/`schema_migration`） | `EXPORT_NOT_FOUND`、`PARSE_ERROR`、`SCHEMA_VERSION_ERROR` | PRD §7.3/INF-03 |
 
-**端点合计**：A10 + B7 + C4 + D7 + E5 + F14 + G9 + H10 + I6 = **72 个**。
+**端点合计**：A11 + B7 + C4 + D7 + E5 + F14 + G9 + H10 + I6 = **73 个**。
 
 ---
 
@@ -219,7 +220,7 @@ app.include_router(build_campus_router(manager))
 | 需求组 | 覆盖端点 | 说明 |
 |---|---|---|
 | G-01 品牌 | 无独立端点 | 纯前端 + 配置覆盖（04 文档） |
-| G-02/03 | A1–A6 | 导航与档案 |
+| G-02/03 | A1–A6、A11 | 导航与档案 |
 | G-04 隐私 | A8–A10 | 自检卡 + 一键清除本地数据 |
 | G-05/06/07（减法） | 无后端端点 | 纯前端 flags 短路（04 文档 §4）；后端语音/登录接口保持原样不调用 |
 | G-08 i18n | 无端点 | 静态资源 |
@@ -257,7 +258,7 @@ app.include_router(build_campus_router(manager))
 |---|---|---|---|
 | `PROFILE_REQUIRED` | 400 | 否 | 缺 `profile_id` 公共参数 |
 | `PROFILE_NOT_FOUND` | 404 | 否 | |
-| `PROFILE_READ_ONLY` | 409 | 否 | `finished` 档案拒绝写（02 §7.2） |
+| `PROFILE_READ_ONLY` | 409 | 否 | `finished` 档案拒绝写（02 §7.2；A5 删除是唯一的例外） |
 | `DUPLICATE_TITLE` / `DUPLICATE_NODE` | 409 | 否 | 档案重名（只与未归档档案比较，02 §7.2）/ 节点类型重复 |
 | `EXAM_DATE_REQUIRED` | 400 | 否 | 生成计划前未设置考试日期（PRD §5.1 异常分支） |
 | `FILE_TOO_LARGE` / `UNSUPPORTED_TYPE` / `DISK_FULL` | 413/415/507 | 否 | 导入校验（磁盘检查在导入前，PRD §7.6） |

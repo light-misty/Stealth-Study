@@ -219,3 +219,15 @@ def _marker_index(mgr: Any) -> dict[str, str]:
         if isinstance(marker, str) and marker.startswith(f"{MARKER_PREFIX}:"):
             index[marker] = task.id
     return index
+
+
+def owns_marker(marker: Any, profile_id: str) -> bool:
+    """Whether an automation task's `origin_session_id` names this profile.
+
+    Deleting a profile has to find its template tasks through the marker alone — nothing on the
+    campus side records their ids — so the marker grammar stays here with the code that writes it.
+    """
+    if not isinstance(marker, str) or not marker.startswith(f"{MARKER_PREFIX}:"):
+        return False
+    parts = marker.split(":")
+    return len(parts) >= 3 and parts[2] == profile_id

@@ -965,10 +965,22 @@ def build_campus_router(manager: Any) -> APIRouter:
 
     @router.delete("/profiles/{pid}")
     def campus_delete_profile(
-        profile: models.ExamProfile = Depends(guard.get_writable_profile),
+        profile: models.ExamProfile = Depends(guard.get_profile),
     ) -> dict[str, Any]:
-        """A5 — delete the profile with its whole subtree (02 §7.3)."""
+        """A5 — delete the profile with its whole subtree (02 §7.3).
+
+        `get_profile` rather than `get_writable_profile`: 03 §4.1 gives A5 no
+        `PROFILE_READ_ONLY`, because 结课 freezes what a profile may still be *changed* into
+        (02 §7.2) and deleting it is not that. This is the one write a finished profile accepts.
+        """
         return _call(campus_service.delete_profile, profile)
+
+    @router.get("/profiles/{pid}/impact")
+    def campus_profile_impact(
+        profile: models.ExamProfile = Depends(guard.get_profile),
+    ) -> dict[str, Any]:
+        """A11 — what A5 would remove, counted before anything is deleted (02 §7.3)."""
+        return _call(campus_service.profile_impact, profile)
 
     @router.get("/app-state")
     def campus_get_app_state() -> dict[str, Any]:

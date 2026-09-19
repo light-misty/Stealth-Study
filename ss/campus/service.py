@@ -29,7 +29,7 @@ import shutil
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Sequence
 
 from ..automation.models import Schedule, ScheduledTask
 from ..memory import Scope
@@ -902,6 +902,22 @@ def _provider_of(model: str) -> str:
     return prefix if _rest else "openai"
 
 
+def _remove_files(paths: Sequence[Path]) -> int:
+    """Remove the given files, reporting how many actually went.
+
+    A file the OS will not release (an export still open in another program on Windows) leaves it
+    behind rather than failing a delete whose database half is already committed.
+    """
+    removed = 0
+    for path in paths:
+        try:
+            path.unlink()
+        except OSError:
+            continue
+        removed += 1
+    return removed
+
+
 def _remove_tree(root: Path, target: Path) -> int:
     """Remove the `target` tree when it really sits below `root`, returning the bytes freed.
 
@@ -1504,12 +1520,16 @@ class CampusService:
         return self.get_profile(profile.id)
 
     def delete_profile(self, profile: models.ExamProfile) -> dict[str, Any]:
-        """Delete a profile with its whole subtree, reporting the rows removed (A5, 02 §7.3).
+        """Delete a profile with its whole subtree, reporting everything removed (A5, 02 §7.3).
 
         The cascade runs in one transaction in leaf-first order, so an interrupted delete never
-        leaves orphan rows; the library directory goes afterwards, because the database is the
-        authority and a re-import can rebuild the files (02 §7.3).
+        leaves orphan rows; the library directory, the automation tasks and the export files go
+        afterwards, because the database is the authority and a re-import can rebuild the files
+        (02 §7.3). The task ids are collected before the transaction, because the reminders of a
+        profile are recorded on its `cert_deadline` rows, which this very call deletes.
         """
+        task_ids = self._profile_task_ids(profile.id)
+        exports = self._export_files(profile)
         cascade: dict[str, int] = {}
         with self._store.transaction():
             for table in CASCADE_TABLES:
@@ -1518,7 +1538,80 @@ class CampusService:
         if self._store.get_state(ACTIVE_PROFILE_KEY) == profile.id:
             self._store.delete_state(ACTIVE_PROFILE_KEY)
         self._remove_library_dir(profile.id)
-        return {"deleted": True, "cascade": {table: rows for table, rows in cascade.items() if rows}}
+        return {
+            "deleted": True,
+            "cascade": {table: rows for table, rows in cascade.items() if rows},
+            "automation_tasks": self._delete_automations(task_ids),
+            "export_files": _remove_files(exports),
+        }
+
+    def profile_impact(self, profile: models.ExamProfile) -> dict[str, Any]:
+        """What deleting this profile would take with it, counted while it is still there (A11).
+
+        The same three numbers `delete_profile` reports, so the confirmation dialog can state a
+        cost it never has to walk back: an empty profile reads as `{exam_profile: 1}, 0, 0`.
+        """
+        counts: dict[str, int] = {}
+        for table in CASCADE_TABLES:
+            rows = self._store.count(table, "profile_id = ?", (profile.id,))
+            if rows:
+                counts[table] = rows
+        counts["exam_profile"] = 1
+        return {
+            "profile_id": profile.id,
+            "cascade": counts,
+            "automation_tasks": len(self._profile_task_ids(profile.id)),
+            "export_files": len(self._export_files(profile)),
+        }
+
+    def _profile_task_ids(self, profile_id: str) -> list[str]:
+        """The automation tasks a profile owns, in the kernel's store rather than in campus.db.
+
+        Two sources, because two creators: `create_deadline_reminders` records its task ids on the
+        deadline row, while an installed template task is only ever findable through the
+        `campus-tpl:<tpl>:<profile>` marker it was created with (G-18).
+        """
+        ids: set[str] = set()
+        rows = self._store.list_rows("cert_deadline", where="profile_id = ?", params=(profile_id,))
+        for row in rows:
+            ids.update(str(task_id) for task_id in _decode(row["automation_ids"], []))
+        if self._automation_store is not None:
+            for task in self._automation_store.list():
+                if automation_templates.owns_marker(
+                    getattr(task, "origin_session_id", None), profile_id
+                ):
+                    ids.add(str(task.id))
+        return sorted(ids)
+
+    def _delete_automations(self, task_ids: list[str]) -> int:
+        """Remove the profile's tasks from the kernel store, reporting how many went."""
+        if self._automation_store is None:
+            return 0
+        return sum(1 for task_id in task_ids if self._automation_store.delete(task_id))
+
+    def _export_files(self, profile: models.ExamProfile) -> list[Path]:
+        """The export files this profile wrote (I4), minus the ones its name cannot claim.
+
+        An export name carries only the first eight characters of the profile id, so while another
+        profile with the same eight characters is still on disk the match is ambiguous and every
+        candidate file is left alone.
+        """
+        directory = self.exports_dir()
+        if not directory.is_dir():
+            return []
+        stem = profile.id[:8]
+        rows = self._store.list_rows("exam_profile")
+        if any(row["id"] != profile.id and str(row["id"])[:8] == stem for row in rows):
+            return []
+        token = f"-{stem}-"
+        return [
+            path
+            for path in sorted(directory.iterdir())
+            if path.is_file()
+            and path.name.startswith("campus-")
+            and token in path.name
+            and path.suffix.lstrip(".") in EXPORT_FORMATS
+        ]
 
     # -- A6-A7: app state and campus preferences ---------------------------
 
