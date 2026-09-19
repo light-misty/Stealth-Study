@@ -484,6 +484,7 @@
   overflow-x: auto; scrollbar-width: none;
 }
 .campus-station .who-list::-webkit-scrollbar { display: none; }
+.campus-station .who-list .btn--ghost { margin-left: auto; }
 .campus-station .who-item { position: relative; display: flex; align-items: center; flex: none; }
 .campus-station .who-pill {
   display: inline-flex; align-items: center; gap: 5px;
