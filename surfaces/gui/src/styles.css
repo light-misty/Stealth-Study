@@ -2124,6 +2124,7 @@ html[data-platform="linux"] ::-webkit-scrollbar-thumb:hover { background-color: 
 }
 
 /* ---------- unified motion ---------- */
+.app:not(.boot-splash) { animation: ss-fade-in var(--motion-dur) var(--motion-ease) both; }
 @keyframes ss-fade-in {
   from { opacity: 0; }
 }

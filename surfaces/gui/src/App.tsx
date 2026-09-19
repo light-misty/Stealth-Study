@@ -1821,7 +1821,7 @@ export function App() {
       ) : surface === "cert" ? (
         <CampusStationView track="cert" />
       ) : (
-      <div className={"main" + (surface === "session" && agent !== "chat" && !railHidden ? " rail-open" : "")}>
+      <div className={"surface-view main" + (surface === "session" && agent !== "chat" && !railHidden ? " rail-open" : "")}>
         <div className="main-topbar">
           {/* Left: the contextual cluster — [sidebar] [+ new session] [search] — rendered ONLY
               while the sidebar is collapsed (§22; the expanded sidebar already owns those

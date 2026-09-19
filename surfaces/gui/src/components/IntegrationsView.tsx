@@ -12,7 +12,7 @@ export function IntegrationsView() {
   const { t: tt } = useTranslation();
 
   return (
-    <main className="flex-1 min-w-0 flex bg-paper">
+    <main className="surface-view flex-1 min-w-0 flex bg-paper">
       <div className="flex-1 min-w-0 overflow-y-auto hairline-scroll">
         <div className="max-w-4xl mx-auto px-7 py-6">
           <section>

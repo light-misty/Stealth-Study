@@ -25,6 +25,7 @@
   overflow: hidden;
   font-family: var(--sans);
   color: var(--ink);
+  animation: ss-fade-in var(--motion-dur) var(--motion-ease) both;
 }
 .campus-station .st-top {
   height: 48px; flex: none;
