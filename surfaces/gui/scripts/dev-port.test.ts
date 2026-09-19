@@ -1,6 +1,10 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import net from "node:net";
-import { findAvailablePort, isPortAvailable } from "./dev-port.mjs";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { findAvailablePort, findDevApi, isPortAvailable } from "./dev-port.mjs";
 
 type AnyServer = net.Server;
 
@@ -72,6 +76,41 @@ describe("isPortAvailable", () => {
     } finally {
       await closeServer(server);
     }
+  });
+});
+
+describe("findDevApi", () => {
+  function makeTempStateDir(): string {
+    return fs.mkdtempSync(path.join(os.tmpdir(), "dev-api-test-"));
+  }
+
+  it("returns the port and token of the newest sidecar token file", () => {
+    const dir = makeTempStateDir();
+    try {
+      fs.writeFileSync(path.join(dir, "sidecar-8765.token"), "old-token\n");
+      fs.writeFileSync(path.join(dir, "sidecar-8766.token"), "new-token\n");
+      fs.utimesSync(
+        path.join(dir, "sidecar-8765.token"),
+        new Date(),
+        new Date(Date.now() - 60_000),
+      );
+      expect(findDevApi(dir)).toEqual({ port: 8766, token: "new-token" });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns null when the state dir has no token file", () => {
+    const dir = makeTempStateDir();
+    try {
+      expect(findDevApi(dir)).toBeNull();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns null when the state dir does not exist", () => {
+    expect(findDevApi(path.join(os.tmpdir(), "dev-api-missing-dir-xyz"))).toBeNull();
   });
 });
 

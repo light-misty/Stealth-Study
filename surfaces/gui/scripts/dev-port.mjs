@@ -1,4 +1,6 @@
 import net from "node:net";
+import fs from "node:fs";
+import path from "node:path";
 
 const DEFAULT_START_PORT = 1420;
 const PROBE_HOSTS = ["127.0.0.1", "::1"];
@@ -45,4 +47,33 @@ export async function findAvailablePort(options = {}) {
   throw new Error(
     `[dev-port] no available port between ${startPort} and ${startPort + maxAttempts - 1}`,
   );
+}
+
+const SIDECAR_TOKEN_PATTERN = /^sidecar-(\d+)\.token$/;
+
+export function findDevApi(stateDir) {
+  let names = [];
+  try {
+    names = fs.readdirSync(stateDir).filter((name) => SIDECAR_TOKEN_PATTERN.test(name));
+  } catch {
+    return null;
+  }
+  let newest = null;
+  for (const name of names) {
+    try {
+      const mtimeMs = fs.statSync(path.join(stateDir, name)).mtimeMs;
+      if (!newest || mtimeMs > newest.mtimeMs) newest = { name, mtimeMs };
+    } catch {
+      continue;
+    }
+  }
+  if (!newest) return null;
+  const port = Number(newest.name.match(SIDECAR_TOKEN_PATTERN)[1]);
+  let token = "";
+  try {
+    token = fs.readFileSync(path.join(stateDir, newest.name), "utf8").trim();
+  } catch {
+    token = "";
+  }
+  return { port, token };
 }
