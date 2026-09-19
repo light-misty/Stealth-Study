@@ -158,6 +158,19 @@ describe("CampusStationView", () => {
     expect(apiMock.createProfile.mock.calls[0][0]).toMatchObject({ title: "第二个档案" });
   });
 
+  it("does not leak the switcher's create card into another track", async () => {
+    const { rerender } = render(<CampusStationView track="cet" />);
+    await waitFor(() => expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy());
+    fireEvent.click(screen.getByTestId("campus-profile-create"));
+    await waitFor(() => expect(screen.getByTestId("campus-profile-create-card")).toBeTruthy());
+
+    rerender(<CampusStationView track="kaoyan" />);
+    await waitFor(() =>
+      expect(screen.getByTestId("campus-station").getAttribute("data-track")).toBe("kaoyan"),
+    );
+    expect(screen.queryByTestId("campus-profile-create-card")).toBeNull();
+  });
+
   it("guides the user when no model is configured", async () => {
     apiMock.getCapabilities.mockResolvedValue({
       current_model: null,

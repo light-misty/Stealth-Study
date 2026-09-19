@@ -212,7 +212,7 @@ const TRACK_BANNERS: Record<
 
 export function CampusStationView({ track }: { track: CampusTrack }) {
   return (
-    <CampusProfileProvider track={track}>
+    <CampusProfileProvider key={track} track={track}>
       <StationBody track={track} />
     </CampusProfileProvider>
   );
