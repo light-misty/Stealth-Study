@@ -66,6 +66,7 @@ REGISTERED_PATCH: set[str] = {
     "ss/interactions.py",
     "surfaces/gui/src/components/InboxItemCard.tsx",
     "surfaces/gui/e2e/ask-skip.spec.ts",
+    "docs/skip-question-test-report.md",
     # The campus e2e harness: `fixtures.ts` is shared test infrastructure every spec routes
     # through (the same category as `app.py`), and `campus.spec.ts` is the campus smoke itself.
     # Listed by file — not by directory — so the other 60 specs stay outside the budget. The live
