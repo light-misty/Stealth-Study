@@ -45,15 +45,15 @@ describe("unified motion foundation", () => {
 
   it("animates in-place view swaps and the rail width change", () => {
     expect(css).toMatch(/\.chat-view\s*\{[^}]*animation:/);
-    expect(css).toMatch(/\.intro\s*\{[^}]*animation:/);
     expect(css).toMatch(/\.right-rail\s*\{[^}]*transition:[^}]*width/);
   });
 
-  it("animates the new-session page entrance with staggered sections", () => {
-    expect(css).toMatch(/\.hero\s*\{[^}]*animation:/);
-    expect(css).toMatch(/\.intro-head\s*\{[^}]*animation:/);
-    expect(css).toMatch(/\.intro-lede\s*\{[^}]*animation:[^}]*animation-delay:/);
-    expect(css).toMatch(/\.intro-tasks\s*\{[^}]*animation:[^}]*animation-delay:/);
+  it("keeps the new-session page free of entrance animations", () => {
+    expect(css).not.toMatch(/\.intro\s*\{[^}]*animation:/);
+    expect(css).not.toMatch(/\.hero\s*\{[^}]*animation:/);
+    expect(css).not.toMatch(/\.intro-head\s*\{[^}]*animation:/);
+    expect(css).not.toMatch(/\.intro-lede\s*\{[^}]*animation:/);
+    expect(css).not.toMatch(/\.intro-tasks\s*\{[^}]*animation:/);
   });
 
   it("animates transcript content, waiting state, nav reveal and campus tab strip", () => {

@@ -2154,11 +2154,6 @@ html[data-platform="linux"] ::-webkit-scrollbar-thumb:hover { background-color: 
 .board-overlay { animation: ss-fade-in var(--motion-fast) var(--motion-ease) both; }
 .board-overlay-panel { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
 .chat-view { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
-.intro { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
-.hero { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
-.intro-head { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
-.intro-lede { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; animation-delay: 40ms; }
-.intro-tasks { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; animation-delay: 90ms; }
 .transcript > * { animation: ss-fade-up var(--motion-dur) var(--motion-ease) both; }
 .waiting-transcript { animation: ss-fade-in var(--motion-dur) var(--motion-ease) both; }
 .nav-reveal-btn { animation: ss-fade-in var(--motion-fast) var(--motion-ease) both; }
