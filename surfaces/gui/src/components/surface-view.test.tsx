@@ -33,6 +33,8 @@ vi.mock("../api", () => ({
   getPersonaMediaUrl: vi.fn(),
   getPersonas: vi.fn().mockResolvedValue([]),
   getRecentChannels: vi.fn().mockResolvedValue([]),
+  getSettings: vi.fn().mockResolvedValue({}),
+  getTrustedWorkspaces: vi.fn().mockResolvedValue([]),
   getUnrouted: vi.fn().mockResolvedValue([]),
   markAutomationSeen: vi.fn(),
   resolveInboxItem: vi.fn(),
@@ -46,6 +48,11 @@ vi.mock("../api", () => ({
 
 vi.mock("../tauri", () => ({
   chooseFolder: vi.fn(),
+  checkForUpdate: vi.fn().mockResolvedValue(null),
+  isTauri: () => false,
+  getAutostart: vi.fn().mockResolvedValue(false),
+  getKeepAwake: vi.fn().mockResolvedValue(false),
+  getDictationStatus: vi.fn().mockResolvedValue({}),
 }));
 
 vi.mock("../connectors/ConnectorIcon", () => ({
@@ -78,6 +85,7 @@ import { InboxView } from "./InboxView";
 import { IntegrationsView } from "./IntegrationsView";
 import { PersonaView } from "./PersonaView";
 import { ScheduledView } from "./ScheduledView";
+import { SettingsView } from "./SettingsView";
 
 const mainOf = (container: HTMLElement) => container.querySelector("main");
 
@@ -111,5 +119,10 @@ describe("top-level surface roots carry the unified entrance transition", () => 
       <PersonaView personaId="ops" onBack={vi.fn()} onOpenIntegrations={vi.fn()} />,
     );
     expect(mainOf(container)?.classList.contains("surface-view")).toBe(true);
+  });
+
+  it("SettingsView fades its pane on tab remount", () => {
+    const { container } = render(<SettingsView />);
+    expect(container.querySelector(".anim-fade-up")).not.toBeNull();
   });
 });

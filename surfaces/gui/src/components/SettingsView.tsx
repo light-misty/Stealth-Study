@@ -150,7 +150,7 @@ export function SettingsView({
       </nav>
 
       <div className="flex-1 min-w-0 overflow-y-auto hairline-scroll">
-        <div className="max-w-3xl mx-auto px-7 py-6">
+        <div className="anim-fade-up max-w-3xl mx-auto px-7 py-6">
           {tab === "appearance" ? (
             <AppearanceSection />
           ) : tab === "models" ? (

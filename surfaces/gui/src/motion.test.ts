@@ -41,4 +41,10 @@ describe("unified motion foundation", () => {
     expect(css).toContain("@keyframes ss-pop-centered");
     expect(css).toContain(".modal-pop");
   });
+
+  it("animates in-place view swaps and the rail width change", () => {
+    expect(css).toMatch(/\.chat-view\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.intro\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.right-rail\s*\{[^}]*transition:[^}]*width/);
+  });
 });
