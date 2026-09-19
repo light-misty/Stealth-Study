@@ -2,6 +2,7 @@ node_modules/
 dist/
 *.local
 .DS_Store
+src-tauri/tauri.dev.conf.json
 
 # Playwright
 /test-results/
