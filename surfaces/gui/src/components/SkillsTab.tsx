@@ -371,7 +371,9 @@ export function SkillsTab({
                   <button
                     className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-md border border-line bg-paper text-muted hover:text-ink hover:border-lineStrong shrink-0"
                     title={t("skills.show_folder")}
-                    onClick={() => revealSkill(row.name)}
+                    onClick={() => {
+                      revealSkill(row.name).then(fail);
+                    }}
                   >
                     <Icon name="folder" size={11} /> {t("skills.file_count", { count: row.files })}
                   </button>

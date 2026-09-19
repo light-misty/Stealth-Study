@@ -467,7 +467,7 @@
     "encoding": "That file isn't valid text in an encoding we can read.",
     "executable_not_found": "The background service executable wasn't found — reinstall the app.",
     "file_locked": "Another program is using this file — close it and try again.",
-    "file_manager_unavailable": "Couldn't open your file manager — navigate to the path shown instead.",
+    "file_manager_unavailable": "Couldn't open your file manager — navigate to the folder manually instead.",
     "http_client_error": "The request was rejected — check the details and try again.",
     "http_not_found": "That resource no longer exists — it may have been deleted.",
     "http_server_error": "The service failed on its side — try again in a moment.",

@@ -285,6 +285,28 @@ describe("SkillsTab", () => {
     expect(alert.textContent).toBe("Unknown skill: weekly-report");
     expect(alert.getAttribute("title")).toBe("raw text only the log should own");
   });
+
+  it("reports a failed Show folder instead of swallowing it", async () => {
+    stubFetch([
+      { match: "/v1/skills", method: "GET", json: { skills: [{ ...ROW, files: 3 }] } },
+      {
+        match: "/reveal",
+        method: "POST",
+        json: {
+          ok: false,
+          error: "raw reveal failure",
+          error_code: "FILE_MANAGER_UNAVAILABLE",
+        },
+      },
+    ]);
+    render(<SkillsTab />);
+    fireEvent.click(await screen.findByTitle("Show folder"));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe(
+      "Couldn't open your file manager — navigate to the folder manually instead.",
+    );
+    expect(alert.getAttribute("title")).toBe("raw reveal failure");
+  });
 });
 
 describe("SkillsTab — rich-skill disclosure (§6)", () => {
