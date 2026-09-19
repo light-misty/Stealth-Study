@@ -15,18 +15,20 @@ async function clearRailPref(page: import("@playwright/test").Page) {
 
 test("rail is hidden by default; the toggle persists across restarts", async ({ page }) => {
   await clearRailPref(page);
-  await expect(page.getByTestId("rail-toggle-artifacts")).toHaveCount(0);
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
 
   // Show it — the choice must survive a reload ("restart").
   await page.getByRole("button", { name: "Show side panel" }).click();
+  await expect(page.locator(".right-rail")).not.toHaveClass(/rail-off/);
   await expect(page.getByTestId("rail-toggle-artifacts")).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("rail-toggle-artifacts")).toBeVisible();
 
   // Hide it — that persists too.
   await page.getByRole("button", { name: "Hide side panel" }).click();
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
   await page.reload();
-  await expect(page.getByTestId("rail-toggle-artifacts")).toHaveCount(0);
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
 });
 
 test("an artifact chip force-shows the rail without overwriting the hidden preference", async ({ page }) => {
@@ -41,5 +43,5 @@ test("an artifact chip force-shows the rail without overwriting the hidden prefe
 
   // The stored preference is untouched: a reload starts hidden again.
   await page.reload();
-  await expect(page.getByTestId("rail-toggle-artifacts")).toHaveCount(0);
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
 });

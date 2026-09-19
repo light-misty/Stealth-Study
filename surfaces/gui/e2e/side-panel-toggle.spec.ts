@@ -38,18 +38,18 @@ test("the side-panel toggle opens and closes the rail on the new-session page", 
   await installShell(page);
   await openNewSessionPage(page);
 
-  await expect(page.locator(".right-rail")).toHaveCount(0);
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
   await page.getByRole("button", { name: "Show side panel" }).click();
-  await expect(page.locator(".right-rail")).toBeVisible();
+  await expect(page.locator(".right-rail")).not.toHaveClass(/rail-off/);
   await expect(page.locator(".right-rail .rail-section-toggle").first()).toBeVisible();
   await expect(page.locator(".main")).toHaveClass(/rail-open/);
 
   await page.getByRole("button", { name: "Hide side panel" }).click();
-  await expect(page.locator(".right-rail")).toHaveCount(0);
+  await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
   await expect(page.locator(".main")).not.toHaveClass(/rail-open/);
 
   await page.getByRole("button", { name: "Show side panel" }).click();
-  await expect(page.locator(".right-rail")).toBeVisible();
+  await expect(page.locator(".right-rail")).not.toHaveClass(/rail-off/);
 
   expect(await dragCalls(page), "a topbar click asked the shell to drag the window").toBe(0);
 });
@@ -121,14 +121,16 @@ for (const size of [
 
     await page.getByRole("button", { name: "Show side panel" }).click();
     const rail = page.locator(".right-rail");
-    await expect(rail).toBeVisible();
-    const railBox = await rail.boundingBox();
+    await expect(rail).not.toHaveClass(/rail-off/);
+    await expect(async () => {
+      const railBox = await rail.boundingBox();
+      expect(railBox.width).toBeGreaterThan(0);
+      expect(railBox.x + railBox.width).toBeLessThanOrEqual(size.width + 1);
+    }).toPass();
     const topbar = await page.locator(".main-topbar").boundingBox();
-    expect(railBox.width).toBeGreaterThan(0);
-    expect(railBox.x + railBox.width).toBeLessThanOrEqual(size.width + 1);
     // The toggle stays reachable beside the rail (the topbar stops where the rail begins).
     await page.getByRole("button", { name: "Hide side panel" }).click();
-    await expect(page.locator(".right-rail")).toHaveCount(0);
+    await expect(page.locator(".right-rail")).toHaveClass(/rail-off/);
     await page.getByRole("button", { name: "Show side panel" }).click();
     await expect(page.locator(".main-topbar")).toBeVisible();
     expect(topbar.width).toBeLessThan(size.width);

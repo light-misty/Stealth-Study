@@ -54,6 +54,7 @@ import { baseName } from "./paths";
 import { itemsFromMessages } from "./itemsFromMessages";
 import { addTurnUsage, emptyUsage, usageFromMessages } from "./usage";
 import { streamMode } from "./streamGate";
+import { dismissPendingQuestion, pendingQuestionOf } from "./pendingQuestion";
 import { InboxItemCard, approvalItemFromParked } from "./components/InboxItemCard";
 import { chooseFolder, isTauri, platformOS, startWindowDrag } from "./tauri";
 import { shouldBeginWindowDrag } from "./desktopChrome";
@@ -870,7 +871,8 @@ export function App() {
           ]);
           break;
         case "question_requested":
-          // ask_user in an attended session — answered inline (not routed to the Inbox).
+          // ask_user in an attended session — answered inline by default; the parked item
+          // also lists in the Inbox so the queue matches the attention count.
           setItems((p) => [
             ...p,
             {
@@ -958,7 +960,11 @@ export function App() {
           break;
         case "interrupted":
           flushPartialStream();
-          setItems((p) => [...p, { kind: "notice", tone: "warn", text: t("app.notice.interrupted") }]);
+          dropSessionInbox("question");
+          setItems((p) => [
+            ...dismissPendingQuestion(p),
+            { kind: "notice", tone: "warn", text: t("app.notice.interrupted") },
+          ]);
           break;
         case "error":
           flushPartialStream();
@@ -1211,7 +1217,11 @@ export function App() {
   };
   const prefillComposer = (text: string, attachments?: Attachment[]) =>
     setComposerPrefill((p) => ({ text, attachments, nonce: (p?.nonce ?? 0) + 1 }));
-  const interrupt = () => sessionRef.current?.interrupt();
+  const interrupt = () => {
+    setItems((p) => dismissPendingQuestion(p));
+    dropSessionInbox("question");
+    sessionRef.current?.interrupt();
+  };
   const retry = () => {
     // Optimistic running: turn_start confirms; a rejected retry still ends in turn_done.
     setRunning(true);
@@ -1579,7 +1589,7 @@ export function App() {
   const pendingPlan = [...items].reverse().find((i) => i.kind === "planreq" && !i.resolved);
   const pendingTeam = [...items].reverse().find((i) => i.kind === "teamreq" && !i.resolved);
   const pendingItemsReq = [...items].reverse().find((i) => i.kind === "itemsreq" && !i.resolved);
-  const pendingQuestion = [...items].reverse().find((i) => i.kind === "question" && !i.resolved);
+  const pendingQuestion = pendingQuestionOf(items);
   // Facts subtitle (§22): the session's FIXED facts, not controls — model (+ the
   // workspace folder for project-scoped sessions). Renders only once the session has history;
   // until then the model is still choosable in the composer, so there's no locked fact to state.
