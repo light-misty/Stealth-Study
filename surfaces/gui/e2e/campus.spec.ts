@@ -375,3 +375,32 @@ test("campus: delete an archived profile permanently with its cost counted first
   await expect(page.getByTestId("campus-station-empty")).toBeVisible();
   await expect(page.getByTestId("campus-profile-archived-entry")).toHaveCount(0);
 });
+
+// E2E-13: the rail belongs to the desk, it is not a reward for having data. A profile that has
+// done nothing yet still gets the countdown, the four 今日进度 rows and the 21-day streak strip,
+// so the middle column keeps the width the design gives it.
+test("campus: every station keeps its three rail cards on a profile with no history", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByTestId("nav-campus-cet").click();
+  await createProfile(page, { title: "什么还没做" });
+
+  const rail = page.getByTestId("campus-station-rail");
+  await expect(rail).toBeVisible();
+  await expect(page.getByTestId("campus-countdown-banner")).toBeVisible();
+  await expect(page.getByTestId("campus-countdown-banner")).toContainText("--");
+  await expect(page.getByTestId("campus-station-progress")).toBeVisible();
+  await expect(page.getByTestId("campus-station-progress-row")).toHaveCount(4);
+  await expect(page.getByTestId("campus-station-streak")).toBeVisible();
+  await expect(page.getByTestId("campus-station-heat-cell")).toHaveCount(21);
+  const box = await rail.boundingBox();
+  expect(box, "the rail collapsed to nothing").not.toBeNull();
+  expect(box!.width).toBeGreaterThan(200);
+
+  await page.getByTestId("nav-campus-cert").click();
+  await createProfile(page, { title: "教资面试" });
+  await expect(page.getByTestId("campus-deadline-banner")).toBeVisible();
+  await expect(page.getByTestId("campus-deadline-banner")).toHaveAttribute("data-empty", "true");
+  await expect(page.getByTestId("campus-station-progress-row")).toHaveCount(4);
+});

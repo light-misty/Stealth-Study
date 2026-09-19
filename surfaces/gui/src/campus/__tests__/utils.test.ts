@@ -4,15 +4,19 @@ import type { ExamProfile, ProfileImpact } from "../types";
 import {
   campusErrorInfo,
   campusErrorKey,
+  checkInSummary,
   COUNTDOWN_HIGHLIGHT_DAYS,
   daysUntil,
   deadlineTier,
   degradeNoticeKey,
   formatPercent,
+  heatWindow,
   isCountdownHighlight,
+  localDay,
   nextIntervalDays,
   profileImpactRows,
   profileImpactTotal,
+  progressRatio,
   REVIEW_LADDER,
   profileTitleTaken,
   scoringStateOf,
@@ -183,6 +187,58 @@ describe("suggestProfileTitle", () => {
     expect(suggestProfileTitle([], "四级冲刺")).toBe("四级冲刺 (2)");
     expect(suggestProfileTitle(taken, "冲刺")).toBe("冲刺 (3)");
     expect(suggestProfileTitle(taken, "  ")).toBe("");
+  });
+});
+
+describe("rail maths (progressRatio / heatWindow / checkInSummary)", () => {
+  const at = (day: string) => new Date(`${day}T12:00:00`);
+
+  it("clamps a ratio into the bar's own track", () => {
+    expect(progressRatio(42, 90)).toBeCloseTo(0.4667, 3);
+    expect(progressRatio(150, 90)).toBe(1);
+    expect(progressRatio(0, 0)).toBe(0);
+    expect(progressRatio(-5, 10)).toBe(0);
+  });
+
+  it("writes the local calendar day without sliding across UTC", () => {
+    expect(localDay(new Date(2026, 8, 19))).toBe("2026-09-19");
+    expect(localDay(new Date(2026, 0, 5))).toBe("2026-01-05");
+  });
+
+  it("pads a 21-day window ending today, gaps included", () => {
+    const cells = heatWindow([{ date: "2026-09-19", count: 3 }], 21, at("2026-09-19"));
+    expect(cells).toHaveLength(21);
+    expect(cells[0].date).toBe("2026-08-30");
+    expect(cells[0].count).toBe(0);
+    expect(cells[20]).toEqual({ date: "2026-09-19", count: 3 });
+  });
+
+  it("drops a completion outside the window instead of widening it", () => {
+    const cells = heatWindow([{ date: "2026-01-01", count: 9 }], 21, at("2026-09-19"));
+    expect(cells.every((cell) => cell.count === 0)).toBe(true);
+  });
+
+  it("counts this Monday-first week and calendar month separately", () => {
+    // 2026-09-17 is a Thursday: the week runs Mon 14 to Sun 20, September has 30 days.
+    const summary = checkInSummary(
+      [
+        { date: "2026-09-14", count: 1 },
+        { date: "2026-09-16", count: 2 },
+        { date: "2026-09-20", count: 1 },
+        { date: "2026-08-31", count: 4 },
+      ],
+      at("2026-09-17"),
+    );
+    expect(summary).toEqual({ weekDone: 3, weekTotal: 7, monthDone: 3, monthTotal: 30 });
+  });
+
+  it("reads a streak of nothing as nothing", () => {
+    expect(checkInSummary([], at("2026-09-17"))).toEqual({
+      weekDone: 0,
+      weekTotal: 7,
+      monthDone: 0,
+      monthTotal: 30,
+    });
   });
 });
 

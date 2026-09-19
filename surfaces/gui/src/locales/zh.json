@@ -40,10 +40,10 @@
         "cert_grading": "主观题",
         "cert_setup": "节点"
       },
-      "progress_title": "学习进度",
-      "progress_desc": "计划任务的完成情况",
+      "progress_title": "今日进度",
+      "progress_desc": "按每日 {{minutes}} 分钟安排",
       "streak_title": "连续打卡",
-      "streak_desc": "有打卡记录的日期",
+      "streak_desc": "近 21 天",
       "streak_days_one": "{{count}} 天",
       "streak_days_other": "{{count}} 天",
       "goto_review": "去做今日复习",
@@ -56,7 +56,20 @@
       "dl_days_one": "{{count}} 天",
       "dl_days_other": "{{count}} 天",
       "dl_today": "今天",
-      "dl_overdue": "已过"
+      "dl_overdue": "已过",
+      "streak_window": "本周 {{weekDone}} / {{weekTotal}} 天 · 本月 {{monthDone}} / {{monthTotal}} 天",
+      "row_minutes": "时长",
+      "row_vocab": "词汇",
+      "row_tasks": "任务",
+      "row_review": "复习",
+      "row_grading": "批改",
+      "row_docs": "资料",
+      "row_knowledge": "知识点",
+      "countdown_no_date": "考试日期 未设置",
+      "hero_nothing_yet": "今天还没有完成记录",
+      "hero_set_exam_date": "在档案里设置考试日期即可开始倒计时",
+      "dl_nearest": "最近节点：{{node}} · {{date}}",
+      "dl_none": "尚未登记考试节点"
     },
     "common": {
       "mastery": {

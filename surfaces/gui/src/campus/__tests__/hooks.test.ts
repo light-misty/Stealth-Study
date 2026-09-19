@@ -448,6 +448,16 @@ const progressReport = (): ProgressReport => ({
   },
   streak_days: 3,
   heatmap: [{ date: "2026-09-10", count: 2 }],
+  today: {
+    date: "2026-09-15",
+    minutes: { done: 42, plan: 90 },
+    tasks: { done: 2, total: 8 },
+    review: { done: 1, total: 4 },
+    grading: { done: 0, total: 1 },
+    vocab: { done: 3, quota: 30 },
+    docs: { ready: 2, total: 3 },
+    knowledge: { mastered: 5, total: 12 },
+  },
 });
 
 describe("usePlanTasks", () => {

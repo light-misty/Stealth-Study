@@ -20,6 +20,7 @@ vi.mock("../../campus/api", async (importOriginal) => {
     getKnowledgeTree: vi.fn(),
     getMasteryCoverage: vi.fn(),
     listDeadlines: vi.fn(),
+    createDeadline: vi.fn(),
     listTasks: vi.fn(),
     getProgress: vi.fn(),
     listWeeklyReports: vi.fn(),
@@ -47,6 +48,7 @@ vi.mock("../../campus/api", async (importOriginal) => {
 });
 
 import * as api from "../../campus/api";
+import { localDay } from "../../campus/utils";
 import { CampusStationView } from "./CampusStationView";
 
 const apiMock = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -186,6 +188,35 @@ describe("CampusStationView", () => {
     render(<CampusStationView track="cert" />);
     await waitFor(() => expect(screen.getByTestId("campus-deadline-banner")).toBeTruthy());
     expect(screen.getByTestId("campus-deadline-reference")).toBeTruthy();
+  });
+
+  it("moves the rail's countdown the moment a milestone is added", async () => {
+    const node = {
+      id: "d1",
+      node_type: "registration_close",
+      date: "2026-10-05",
+      days_left: 16,
+      is_reference: false,
+    };
+    apiMock.getReminders.mockResolvedValue({ banner: [], expired: [] });
+    apiMock.listDeadlines.mockResolvedValue({ items: [] });
+    apiMock.createDeadline.mockResolvedValue(node);
+    render(<CampusStationView track="cert" />);
+    await waitFor(() => expect(screen.getByTestId("campus-deadline-banner")).toBeTruthy());
+    expect(screen.getByTestId("campus-deadline-banner").getAttribute("data-empty")).toBe("true");
+
+    apiMock.getReminders.mockResolvedValue({ banner: [node], expired: [] });
+    fireEvent.click(screen.getByTestId("campus-station-tab-cert_setup"));
+    fireEvent.change(screen.getByTestId("campus-cert-setup-date"), {
+      target: { value: "2026-10-05" },
+    });
+    fireEvent.click(screen.getByTestId("campus-cert-setup-create"));
+
+    await waitFor(() => expect(apiMock.createDeadline).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByTestId("campus-deadline-banner").getAttribute("data-empty")).toBe("false"),
+    );
+    expect(screen.getByTestId("campus-deadline-banner").textContent).toContain("16");
   });
 
   it("mounts the shared panels on every track and the kaoyan panels only where configured", async () => {
@@ -611,26 +642,64 @@ describe("CampusStationView", () => {
     expect(screen.getByTestId("campus-station-pane-mistake").hasAttribute("hidden")).toBe(true);
   });
 
-  it("fills the rail from the progress report, and hides cards the report has no data for", async () => {
+  it("fills the rail's four rows from today's report, in the desk's own order", async () => {
     apiMock.getProgress.mockResolvedValue({
       by_track: { politics: { done: 3, total: 8, rate: 0.375 } },
       streak_days: 5,
-      heatmap: [{ date: "2026-09-17", count: 4 }],
+      heatmap: [{ date: localDay(new Date()), count: 4 }],
+      today: {
+        date: "2026-09-19",
+        minutes: { done: 42, plan: 90 },
+        tasks: { done: 2, total: 8 },
+        review: { done: 1, total: 4 },
+        grading: { done: 0, total: 1 },
+        vocab: { done: 12, quota: 20 },
+        docs: { ready: 4, total: 5 },
+        knowledge: { mastered: 6, total: 10 },
+      },
     });
     render(<CampusStationView track="cet" />);
 
     await waitFor(() => expect(screen.getByTestId("campus-station-progress")).toBeTruthy());
-    expect(screen.getByTestId("campus-station-progress-rate").textContent).toBe("38%");
-    expect(screen.getByTestId("campus-station-progress-row").textContent).toContain("3/8");
+    // 卡头的百分比就是首行时长的比例，与设计稿一致。
+    expect(screen.getByTestId("campus-station-progress-rate").textContent).toBe("47%");
+    expect(
+      screen
+        .getAllByTestId("campus-station-progress-row")
+        .map((row) => [row.getAttribute("data-row"), row.querySelector(".prog-v")?.textContent]),
+    ).toEqual([
+      ["minutes", "42/90"],
+      ["vocab", "12/20"],
+      ["review", "1/4"],
+      ["grading", "0/1"],
+    ]);
+    expect(screen.getByTestId("campus-station-goto-review")).toBeTruthy();
     expect(screen.getByTestId("campus-station-streak").textContent).toContain("5");
-    expect(screen.getByTestId("campus-station-heat-cell").getAttribute("class")).toContain("hc--3");
+    const cells = screen.getAllByTestId("campus-station-heat-cell");
+    expect(cells).toHaveLength(21);
+    // 窗口从今天往回数，所以今天那一格落在最后。
+    expect(cells[cells.length - 1].getAttribute("class")).toContain("hc--3");
+    expect(cells[0].getAttribute("class")).toBe("hc");
+    expect(screen.getByTestId("campus-station-checkin").textContent).toContain("1");
   });
 
-  it("leaves the progress and streak cards out when the report is empty", async () => {
+  it("keeps all three rail cards on the desk when the report is empty", async () => {
+    apiMock.getProgress.mockResolvedValue({ by_track: {}, streak_days: 0, heatmap: [] });
     render(<CampusStationView track="cet" />);
     await waitFor(() => expect(screen.getByTestId("campus-station")).toBeTruthy());
-    expect(screen.queryByTestId("campus-station-progress")).toBeNull();
-    expect(screen.queryByTestId("campus-station-streak")).toBeNull();
-    expect(screen.getByTestId("campus-station-rail")).toBeTruthy();
+
+    expect(screen.getByTestId("campus-countdown-banner")).toBeTruthy();
+    expect(screen.getByTestId("campus-station-progress")).toBeTruthy();
+    expect(screen.getByTestId("campus-station-streak")).toBeTruthy();
+    expect(
+      screen
+        .getAllByTestId("campus-station-progress-row")
+        .map((row) => row.querySelector(".prog-v")?.textContent),
+    ).toEqual(["0/0", "0/0", "0/0", "0/0"]);
+    expect(
+      screen.getAllByTestId("campus-station-progress-row")[0].querySelector(".prog-k")?.textContent,
+    ).toBe("Minutes");
+    expect(screen.getByTestId("campus-station-progress-rate").textContent).toBe("0%");
+    expect(screen.getAllByTestId("campus-station-heat-cell")).toHaveLength(21);
   });
 });

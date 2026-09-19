@@ -8,7 +8,13 @@ import { Icon } from "../../Icon";
 // 考试节点是一条与学习无关、但会决定节奏的外部时间线，所以它走事务侧的临期语义
 // （warn / danger），与知识点的掌握度绿黄红不互相借用。
 
-export function CertExamSetup({ profileId }: { profileId: string }) {
+export function CertExamSetup({
+  profileId,
+  onDeadlinesChanged,
+}: {
+  profileId: string;
+  onDeadlinesChanged?: () => void;
+}) {
   const { t } = useTranslation();
   const { items, loading, error, retryable, reload, createNode, createReminders } =
     useCertDeadlines(profileId);
@@ -24,13 +30,13 @@ export function CertExamSetup({ profileId }: { profileId: string }) {
       return;
     }
     setFormError(null);
-    await createNode({ profileId, nodeType, date });
+    if (await createNode({ profileId, nodeType, date })) onDeadlinesChanged?.();
   };
 
   const remind = async (deadlineId: string) => {
     if (remindBusy) return;
     setRemindBusy(deadlineId);
-    await createReminders(deadlineId);
+    if (await createReminders(deadlineId)) onDeadlinesChanged?.();
     setRemindBusy(null);
   };
 

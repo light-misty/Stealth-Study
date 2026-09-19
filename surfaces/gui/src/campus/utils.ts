@@ -206,3 +206,56 @@ export function profileImpactTotal(impact: ProfileImpact | null): number | null 
   if (!impact) return null;
   return profileImpactRows(impact).reduce((sum, row) => sum + row.count, 0);
 }
+
+/** The rail's heat strip is a fixed 21-day window, so the caption can say 近 21 天 truthfully. */
+export const HEAT_WINDOW_DAYS = 21;
+
+/** `YYYY-MM-DD` in the viewer's own calendar — `toISOString` would slide across a UTC boundary. */
+export function localDay(date: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** A row's fill ratio, clamped: an over-plan day must not paint a bar past its own track. */
+export function progressRatio(done: number, total: number): number {
+  if (!total) return 0;
+  return Math.max(0, Math.min(1, done / total));
+}
+
+/** The window as `days` cells, oldest first, ending on the local today, gaps filled with zero. */
+export function heatWindow(
+  heatmap: readonly { date: string; count: number }[],
+  days: number = HEAT_WINDOW_DAYS,
+  now: Date = new Date(),
+): { date: string; count: number }[] {
+  const counts = new Map(heatmap.map((cell) => [cell.date, cell.count]));
+  const cells: { date: string; count: number }[] = [];
+  for (let back = days - 1; back >= 0; back -= 1) {
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+    const date = localDay(day);
+    cells.push({ date, count: counts.get(date) ?? 0 });
+  }
+  return cells;
+}
+
+/** How much of this week (Monday first) and this calendar month already has a check-in. */
+export function checkInSummary(
+  heatmap: readonly { date: string; count: number }[],
+  now: Date = new Date(),
+): { weekDone: number; weekTotal: number; monthDone: number; monthTotal: number } {
+  const days = new Set(heatmap.filter((cell) => cell.count > 0).map((cell) => cell.date));
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  let weekDone = 0;
+  for (let step = 0; step < 7; step += 1) {
+    const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + step);
+    if (days.has(localDay(day))) weekDone += 1;
+  }
+  const monthTotal = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  let monthDone = 0;
+  for (let step = 1; step <= monthTotal; step += 1) {
+    const day = new Date(now.getFullYear(), now.getMonth(), step);
+    if (days.has(localDay(day))) monthDone += 1;
+  }
+  return { weekDone, weekTotal: 7, monthDone, monthTotal };
+}

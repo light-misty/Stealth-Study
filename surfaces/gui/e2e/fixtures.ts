@@ -442,6 +442,14 @@ export async function mockApi(page: import("@playwright/test").Page) {
     return campusCounter[kind];
   };
   const campusNow = () => "2026-09-16T00:00:00Z";
+  /** Whole days from the machine's local today to a `YYYY-MM-DD` milestone (negative once past). */
+  const campusDaysLeft = (day: string): number => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const [year, month, date] = String(day).split("-").map(Number);
+    const target = new Date(year, (month || 1) - 1, date || 1).getTime();
+    return Math.round((target - start) / 86_400_000);
+  };
   const campusProfile = (id: string) => campusProfiles.find((row) => row.id === id) ?? null;
   /** 02 §7.3's cascade as this fixture can see it: one row per collection the desk holds,
    *  empty tables dropped — the same shape A5 reports and A11 previews, so the two agree. */
@@ -2400,7 +2408,19 @@ export async function mockApi(page: import("@playwright/test").Page) {
       }
 
       // -- A 组：全局与设置 ------------------------------------------------
-      if (sub === "/profiles" && m === "GET") return json({ items: campusProfiles });
+      if (sub === "/profiles" && m === "GET") {
+        // A1 filters by track and status on the server; without this the cert desk would
+        // happily show the CET profile it was never given.
+        const asked = new URL(req.url()).searchParams;
+        const track = asked.get("track");
+        const status = asked.get("status");
+        return json({
+          items: campusProfiles.filter(
+            (row) =>
+              (!track || row.track_type === track) && (!status || row.status === status),
+          ),
+        });
+      }
       if (sub === "/profiles" && m === "POST") {
         const b = req.postDataJSON() || {};
         const title = b.title || "新建档案";
@@ -2735,13 +2755,39 @@ export async function mockApi(page: import("@playwright/test").Page) {
       }
       if (sub === "/progress" && m === "GET") {
         // The board renders one ring per entry here — an empty `by_track` means no rings at all.
+        // `today` mirrors what the real G4 derives from the plan board, so the rail's four rows
+        // read off the same fixture state the rest of the desk does instead of a made-up number.
+        const stamp = new Date();
+        const pad = (part: number) => String(part).padStart(2, "0");
+        const localToday = `${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}`;
+        const todays = campusTasks.filter((task) => task.scheduled_date === localToday);
+        const finished = todays.filter((task) => task.status === "done");
         return json({
           by_track: {
             overall: { done: 1, total: 3, rate: 0.33 },
             english: { done: 0, total: 1, rate: 0 },
           },
           streak_days: 2,
-          heatmap: [{ date: "2026-09-16", count: 1 }],
+          heatmap: [{ date: localToday, count: 1 }],
+          today: {
+            date: localToday,
+            minutes: {
+              done: finished.reduce((sum, task) => sum + (task.est_minutes ?? 0), 0),
+              plan: campusSettings.daily_minutes,
+            },
+            tasks: { done: finished.length, total: todays.length },
+            review: { done: 0, total: 0 },
+            grading: { done: 0, total: campusAttempts.length },
+            vocab: {
+              done: campusVocab.filter((word) => word.mastery !== "unknown").length,
+              quota: 30,
+            },
+            docs: {
+              ready: campusDocs.filter((doc) => doc.parse_status === "ready").length,
+              total: campusDocs.length,
+            },
+            knowledge: { mastered: 0, total: campusPoints.length },
+          },
         });
       }
       if (sub === "/weekly-reports" && m === "GET") return json({ items: campusReports });
@@ -2859,7 +2905,10 @@ export async function mockApi(page: import("@playwright/test").Page) {
           weak_top5: [{ point_id: "kp-1", title: "第一节 听力", level: "unknown" }],
         });
       }
-      if (sub === "/deadlines" && m === "GET") return json({ items: campusDeadlines });
+      if (sub === "/deadlines" && m === "GET")
+        return json({
+          items: campusDeadlines.map((row) => ({ ...row, days_left: campusDaysLeft(row.date) })),
+        });
       if (sub === "/deadlines" && m === "POST") {
         const b = req.postDataJSON() || {};
         const deadline = {
@@ -2871,7 +2920,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
           automation_ids: [],
           created_at: campusNow(),
           updated_at: campusNow(),
-          days_left: 180,
+          days_left: campusDaysLeft(b.date || "2027-03-14"),
         };
         campusDeadlines.push(deadline);
         return json(deadline);
@@ -2879,7 +2928,22 @@ export async function mockApi(page: import("@playwright/test").Page) {
       if (sub.match(/^\/deadlines\/[^/]+\/reminders$/) && m === "POST") {
         return json({ automation_ids: ["auto-1", "auto-2", "auto-3"] });
       }
-      if (sub === "/reminders" && m === "GET") return json({ banner: [], expired: [] });
+      if (sub === "/reminders" && m === "GET") {
+        // H10 splits the timeline into the banner (still ahead) and the expired tail; the
+        // client re-derives a missing tier from days_left, exactly as it does against the
+        // real snapshot.
+        const views = campusDeadlines.map((row) => ({
+          id: row.id,
+          node_type: row.node_type,
+          date: row.date,
+          days_left: campusDaysLeft(row.date),
+          is_reference: Boolean(row.is_reference),
+        }));
+        return json({
+          banner: views.filter((row) => row.days_left >= 0),
+          expired: views.filter((row) => row.days_left < 0),
+        });
+      }
       if (sub === "/automation-templates" && m === "GET") {
         return json({
           items: [{ id: "daily-review", title: "每日复习推送", cron_desc: "每天 20:00", kind: "cron" }],

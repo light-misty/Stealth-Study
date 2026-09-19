@@ -7,11 +7,20 @@ import {
   useDueReviews,
   usePlanProgress,
 } from "../../campus/hooks";
-import type { CampusTrack, ExamProfile } from "../../campus/types";
+import type {
+  CampusTrack,
+  DeadlineView,
+  ExamProfile,
+  ProgressReport,
+  TodayProgress,
+} from "../../campus/types";
 import {
   campusErrorInfo,
   campusErrorKey,
+  checkInSummary,
+  heatWindow,
   profileTitleTaken,
+  progressRatio,
   suggestProfileTitle,
 } from "../../campus/utils";
 import { CampusProfileProvider, useCampusProfile } from "./CampusProfileContext";
@@ -29,7 +38,6 @@ import { ProfileCreateCard } from "./ProfileCreateCard";
 import { ProfileSwitcher } from "./ProfileSwitcher";
 import { MajorQAView } from "./kaoyan/MajorQAView";
 import { PlanPanel } from "./kaoyan/PlanPanel";
-import { TRACK_LABEL_KEYS } from "./kaoyan/PlanBoard";
 import { SubjectTutorChat } from "./kaoyan/SubjectTutorChat";
 import { WeeklyReportView } from "./kaoyan/WeeklyReportView";
 import { ReviewQueuePanel } from "./ReviewQueuePanel";
@@ -59,6 +67,7 @@ interface PanelContext {
   reviewLoading: boolean;
   onReviewResult: (reviewId: string, correct: boolean) => void;
   onGotoTab: (key: string) => void;
+  onDeadlinesChanged: () => void;
 }
 
 interface PanelSpec {
@@ -126,7 +135,9 @@ const CERT_PANELS: readonly PanelSpec[] = [
   {
     key: "cert_setup",
     tab: "cert_setup",
-    render: ({ profileId }) => <CertExamSetup profileId={profileId} />,
+    render: ({ profileId, onDeadlinesChanged }) => (
+      <CertExamSetup profileId={profileId} onDeadlinesChanged={onDeadlinesChanged} />
+    ),
   },
 ];
 
@@ -174,7 +185,11 @@ const TRACK_PANELS: Record<CampusTrack, readonly PanelSpec[]> = {
 
 const TRACK_BANNERS: Record<
   CampusTrack,
-  (args: { profile: ExamProfile; planRate: number | null }) => ReactElement | null
+  (args: {
+    profile: ExamProfile;
+    planRate: number | null;
+    deadlineViews: DeadlineView[];
+  }) => ReactElement
 > = {
   cet: ({ profile, planRate }) => (
     <CountdownBanner
@@ -192,13 +207,8 @@ const TRACK_BANNERS: Record<
       planRate={planRate}
     />
   ),
-  cert: ({ profile }) => <CertDeadlineBanner profileId={profile.id} />,
+  cert: ({ deadlineViews }) => <DeadlineBanner views={deadlineViews} />,
 };
-
-function CertDeadlineBanner({ profileId }: { profileId: string }) {
-  const { views } = useDeadlineViews(profileId);
-  return <DeadlineBanner views={views} />;
-}
 
 export function CampusStationView({ track }: { track: CampusTrack }) {
   return (
@@ -247,6 +257,11 @@ function StationBody({ track }: { track: CampusTrack }) {
   const selected = panels.some((p) => p.key === activeTab) ? (activeTab as string) : panels[0].key;
   // Owned here rather than by the queue panel so the tab badge and the list agree.
   const review = useDueReviews(activeProfile?.id ?? null);
+  // Same reason for the certificate milestones: the rail's countdown and the 节点 panel read
+  // the same snapshot, and adding a node has to move the number in the rail immediately.
+  const deadlines = useDeadlineViews(
+    RAIL_DEADLINES[track] && activeProfile ? activeProfile.id : null,
+  );
 
   const renameTarget = renameId ? profiles.find((p) => p.id === renameId) ?? null : null;
   const deleteTarget = deleteId ? profiles.find((p) => p.id === deleteId) ?? null : null;
@@ -414,6 +429,7 @@ function StationBody({ track }: { track: CampusTrack }) {
       void review.submit(reviewId, correct);
     },
     onGotoTab: setActiveTab,
+    onDeadlinesChanged: deadlines.reload,
   };
   const badges: Record<string, number> = { review: review.items.length };
 
@@ -482,7 +498,7 @@ function StationBody({ track }: { track: CampusTrack }) {
         <StationRail
           track={track}
           profile={activeProfile}
-          dueCount={review.items.length}
+          deadlineViews={deadlines.views}
           onGotoReview={() => setActiveTab("review")}
         />
       </div>
@@ -579,27 +595,147 @@ function StationTabs({ track, panels, badges, active, onSelect }: TabsProps) {
 interface RailProps {
   track: CampusTrack;
   profile: ExamProfile;
-  dueCount: number;
+  deadlineViews: DeadlineView[];
   onGotoReview: () => void;
 }
 
-// 右栏只放跨模块都成立的常驻状态：倒计时 / 截止、学习进度、连续打卡。
-// 每张卡都以真实数据为条件，没有数据就不占位（不画一个空壳指标）。
-function StationRail({ track, profile, dueCount, onGotoReview }: RailProps) {
+interface RailRow {
+  key: string;
+  labelKey: string;
+  pair: (today: TodayProgress) => { done: number; total: number };
+}
+
+const MINUTES_ROW: RailRow = {
+  key: "minutes",
+  labelKey: "campus.station.row_minutes",
+  pair: (today) => ({ done: today.minutes.done, total: today.minutes.plan }),
+};
+const VOCAB_ROW: RailRow = {
+  key: "vocab",
+  labelKey: "campus.station.row_vocab",
+  pair: (today) => ({ done: today.vocab.done, total: today.vocab.quota }),
+};
+const TASKS_ROW: RailRow = {
+  key: "tasks",
+  labelKey: "campus.station.row_tasks",
+  pair: (today) => today.tasks,
+};
+const REVIEW_ROW: RailRow = {
+  key: "review",
+  labelKey: "campus.station.row_review",
+  pair: (today) => today.review,
+};
+const GRADING_ROW: RailRow = {
+  key: "grading",
+  labelKey: "campus.station.row_grading",
+  pair: (today) => today.grading,
+};
+const DOCS_ROW: RailRow = {
+  key: "docs",
+  labelKey: "campus.station.row_docs",
+  pair: (today) => ({ done: today.docs.ready, total: today.docs.total }),
+};
+const KNOWLEDGE_ROW: RailRow = {
+  key: "knowledge",
+  labelKey: "campus.station.row_knowledge",
+  pair: (today) => ({ done: today.knowledge.mastered, total: today.knowledge.total }),
+};
+
+// 只有证书台有考试节点时间线（02 §4.17），其余两台的右栏不读 H10，省一次空请求。
+const RAIL_DEADLINES: Record<CampusTrack, boolean> = {
+  cet: false,
+  kaoyan: false,
+  cert: true,
+};
+
+// 设计稿的今日进度恒为四行：时长打头，后三行是该台自己的口径。表按台子取，
+// 组件里不出现 track 分支（01 §3.2）。
+const RAIL_ROWS: Record<CampusTrack, readonly RailRow[]> = {
+  cet: [MINUTES_ROW, VOCAB_ROW, REVIEW_ROW, GRADING_ROW],
+  kaoyan: [MINUTES_ROW, TASKS_ROW, REVIEW_ROW, DOCS_ROW],
+  cert: [MINUTES_ROW, KNOWLEDGE_ROW, REVIEW_ROW, GRADING_ROW],
+};
+
+const EMPTY_PAIR = { done: 0, total: 0 };
+
+function heatClass(count: number): string {
+  if (count >= 4) return "hc hc--3";
+  if (count >= 2) return "hc hc--2";
+  if (count >= 1) return "hc hc--1";
+  return "hc";
+}
+
+// 右栏是常驻的三块：倒计时 / 截止、今日进度、连续打卡。设计稿里三台都是这个骨架，
+// 所以没有数据时也占住位置（数字取 0 或留白），不再整块消失——那会把中栏挤成半屏。
+function StationRail({ track, profile, deadlineViews, onGotoReview }: RailProps) {
   const { t } = useTranslation();
   const Banner = TRACK_BANNERS[track];
   const { progress, loading } = usePlanProgress(profile.id);
-  const tracks = progress ? Object.entries(progress.by_track) : [];
-  const heat = progress?.heatmap ?? [];
-  const total = tracks.reduce((sum, [, stat]) => sum + stat.total, 0);
-  const done = tracks.reduce((sum, [, stat]) => sum + stat.done, 0);
-  const rate = total ? Math.round((done / total) * 100) : 0;
+  const rows = RAIL_ROWS[track];
+  const today = progress?.today ?? null;
+  const minutes = today ? rows[0].pair(today) : EMPTY_PAIR;
+  const rate = Math.round(progressRatio(minutes.done, minutes.total) * 100);
+  const heat = heatWindow(progress?.heatmap ?? []);
+  const checkIn = checkInSummary(progress?.heatmap ?? []);
 
   return (
     <aside className="st-rail thin" data-testid="campus-station-rail">
-      <Banner profile={profile} planRate={total ? done / total : null} />
+      <Banner
+        profile={profile}
+        planRate={progress ? planRateOf(progress) : null}
+        deadlineViews={deadlineViews}
+      />
 
-      {dueCount > 0 ? (
+      <div className="card" data-testid="campus-station-progress">
+        <div className="sec">
+          <span className="ib ib--accent">
+            <Icon name="chart" size={16} />
+          </span>
+          <div className="sec-text">
+            <span className="sec-title">{t("campus.station.progress_title")}</span>
+            <span className="sec-desc">
+              {t("campus.station.progress_desc", { minutes: minutes.total })}
+            </span>
+          </div>
+          <span className="sec-n" data-testid="campus-station-progress-rate">
+            {rate}%
+          </span>
+        </div>
+        {loading && !progress ? (
+          <>
+            <div className="sk" />
+            <div className="sk" style={{ width: "70%" }} />
+          </>
+        ) : (
+          rows.map((row) => {
+            const pair = today ? row.pair(today) : EMPTY_PAIR;
+            return (
+              <div
+                className="prog"
+                key={row.key}
+                data-testid="campus-station-progress-row"
+                data-row={row.key}
+                data-done={pair.done}
+                data-total={pair.total}
+              >
+                <span className="prog-k">{t(row.labelKey)}</span>
+                <span className="bar">
+                  <i
+                    style={
+                      { "--w": `${Math.round(progressRatio(pair.done, pair.total) * 100)}%` } as Record<
+                        string,
+                        string
+                      >
+                    }
+                  />
+                </span>
+                <span className="prog-v">
+                  {pair.done}/{pair.total}
+                </span>
+              </div>
+            );
+          })
+        )}
         <button
           type="button"
           className="btn btn--soft btn--sm btn-start"
@@ -609,83 +745,51 @@ function StationRail({ track, profile, dueCount, onGotoReview }: RailProps) {
           {t("campus.station.goto_review")}
           <Icon name="chevronRight" size={12} />
         </button>
-      ) : null}
+      </div>
 
-      {loading && !progress ? (
-        <div className="card">
-          <div className="sk" style={{ width: 120 }} />
-          <div className="sk" />
-          <div className="sk" style={{ width: "70%" }} />
-        </div>
-      ) : null}
-
-      {progress && tracks.length > 0 ? (
-        <div className="card" data-testid="campus-station-progress">
-          <div className="sec">
-            <span className="ib ib--accent">
-              <Icon name="chart" size={16} />
-            </span>
-            <div className="sec-text">
-              <span className="sec-title">{t("campus.station.progress_title")}</span>
-              <span className="sec-desc">{t("campus.station.progress_desc")}</span>
-            </div>
-            <span className="sec-n" data-testid="campus-station-progress-rate">
-              {rate}%
-            </span>
+      <div className="card" data-testid="campus-station-streak">
+        <div className="sec">
+          <span className="ib ib--brand">
+            <Icon name="flame" size={16} />
+          </span>
+          <div className="sec-text">
+            <span className="sec-title">{t("campus.station.streak_title")}</span>
+            <span className="sec-desc">{t("campus.station.streak_desc")}</span>
           </div>
-          {tracks.map(([subject, stat]) => (
-            <div className="prog" key={subject} data-testid="campus-station-progress-row">
-              <span className="prog-k">
-                {t(TRACK_LABEL_KEYS[subject] ?? "", { defaultValue: subject })}
-              </span>
-              <span className="bar">
-                <i style={{ "--w": `${Math.round(stat.rate * 100)}%` } as Record<string, string>} />
-              </span>
-              <span className="prog-v">
-                {stat.done}/{stat.total}
-              </span>
-            </div>
+          <span className="sec-n">
+            {t("campus.station.streak_days", { count: progress?.streak_days ?? 0 })}
+          </span>
+        </div>
+        <div className="heat" data-testid="campus-station-heat">
+          {heat.map((cell) => (
+            <span
+              key={cell.date}
+              className={heatClass(cell.count)}
+              title={cell.date}
+              data-count={cell.count}
+              data-testid="campus-station-heat-cell"
+            />
           ))}
         </div>
-      ) : null}
-
-      {progress && (progress.streak_days > 0 || heat.length > 0) ? (
-        <div className="card" data-testid="campus-station-streak">
-          <div className="sec">
-            <span className="ib ib--brand">
-              <Icon name="flame" size={16} />
-            </span>
-            <div className="sec-text">
-              <span className="sec-title">{t("campus.station.streak_title")}</span>
-              <span className="sec-desc">{t("campus.station.streak_desc")}</span>
-            </div>
-            <span className="sec-n">
-              {t("campus.station.streak_days", { count: progress.streak_days })}
-            </span>
-          </div>
-          <div className="heat">
-            {heat.map((cell) => (
-              <span
-                key={cell.date}
-                className={
-                  cell.count >= 4
-                    ? "hc hc--3"
-                    : cell.count >= 2
-                      ? "hc hc--2"
-                      : cell.count >= 1
-                        ? "hc hc--1"
-                        : "hc"
-                }
-                title={cell.date}
-                data-count={cell.count}
-                data-testid="campus-station-heat-cell"
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
+        <span className="lrow-meta" data-testid="campus-station-checkin">
+          {t("campus.station.streak_window", {
+            weekDone: checkIn.weekDone,
+            weekTotal: checkIn.weekTotal,
+            monthDone: checkIn.monthDone,
+            monthTotal: checkIn.monthTotal,
+          })}
+        </span>
+      </div>
     </aside>
   );
+}
+
+/** The hero's progress bar follows the plan board, not today: the share of scheduled work done. */
+function planRateOf(progress: ProgressReport): number {
+  const totals = Object.values(progress.by_track);
+  const total = totals.reduce((sum, stat) => sum + stat.total, 0);
+  if (!total) return 0;
+  return totals.reduce((sum, stat) => sum + stat.done, 0) / total;
 }
 
 const ACTION_HEADING_KEY: Record<ProfileAction, string> = {

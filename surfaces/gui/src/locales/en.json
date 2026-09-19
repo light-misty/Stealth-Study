@@ -40,10 +40,10 @@
         "cert_grading": "Subjective",
         "cert_setup": "Milestones"
       },
-      "progress_title": "Study progress",
-      "progress_desc": "How the plan's tasks are going",
+      "progress_title": "Today's progress",
+      "progress_desc": "{{minutes}} minutes a day",
       "streak_title": "Study streak",
-      "streak_desc": "Days with completed tasks",
+      "streak_desc": "Last 21 days",
       "streak_days_one": "{{count}} day",
       "streak_days_other": "{{count}} days",
       "goto_review": "Go to today's review",
@@ -56,7 +56,20 @@
       "dl_days_one": "{{count}}d",
       "dl_days_other": "{{count}}d",
       "dl_today": "today",
-      "dl_overdue": "past"
+      "dl_overdue": "past",
+      "streak_window": "{{weekDone}} / {{weekTotal}} days this week · {{monthDone}} / {{monthTotal}} this month",
+      "row_minutes": "Minutes",
+      "row_vocab": "Words",
+      "row_tasks": "Tasks",
+      "row_review": "Review",
+      "row_grading": "Grading",
+      "row_docs": "Documents",
+      "row_knowledge": "Concepts",
+      "countdown_no_date": "Exam date not set",
+      "hero_nothing_yet": "Nothing finished yet today",
+      "hero_set_exam_date": "Set an exam date on the profile to start the countdown",
+      "dl_nearest": "Next up: {{node}} · {{date}}",
+      "dl_none": "No exam milestones yet"
     },
     "common": {
       "mastery": {

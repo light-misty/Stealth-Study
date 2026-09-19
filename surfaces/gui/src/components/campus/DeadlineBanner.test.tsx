@@ -15,9 +15,50 @@ const view = (over: Partial<DeadlineView>): DeadlineView => ({
 });
 
 describe("DeadlineBanner", () => {
-  it("renders nothing when there is no node to show", () => {
+  it("keeps the countdown card on the rail with a blank number when nothing is registered", () => {
     render(<DeadlineBanner views={[]} />);
-    expect(screen.queryByTestId("campus-deadline-banner")).toBeNull();
+    const banner = screen.getByTestId("campus-deadline-banner");
+    expect(banner.getAttribute("data-empty")).toBe("true");
+    expect(banner.textContent).toContain("--");
+    expect(screen.queryAllByTestId("campus-deadline-row")).toHaveLength(0);
+  });
+
+  it("counts down to the nearest node that has not passed and names it", () => {
+    render(
+      <DeadlineBanner
+        views={[
+          view({ id: "d1", node_type: "registration_close", date: "2026-09-25", days_left: 7 }),
+          view({ id: "d2", node_type: "exam", date: "2026-11-01", days_left: 44 }),
+        ]}
+      />,
+    );
+    const banner = screen.getByTestId("campus-deadline-banner");
+    expect(banner.getAttribute("data-empty")).toBe("false");
+    expect(banner.querySelector(".hero-num")?.textContent).toBe("7");
+    expect(banner.textContent).toContain("2026-09-25");
+  });
+
+  it("says the window has passed instead of counting negative days", () => {
+    render(<DeadlineBanner views={[view({ id: "d1", days_left: -3 })]} />);
+    const banner = screen.getByTestId("campus-deadline-banner");
+    expect(banner.querySelector(".hero-num")).toBeNull();
+    expect(banner.textContent).toContain("past");
+  });
+
+  it("lays each node out as name, date and days left", () => {
+    render(
+      <DeadlineBanner
+        views={[view({ id: "d1", node_type: "exam", date: "2026-11-01", days_left: 44 })]}
+      />,
+    );
+    const row = screen.getByTestId("campus-deadline-row");
+    expect(
+      Array.from(row.children)
+        .map((cell) => cell.getAttribute("class"))
+        .filter((name) => name !== null)
+        .slice(0, 3),
+    ).toEqual(["dl-name", "dl-date", "dl-left"]);
+    expect(row.querySelector(".dl-date")?.textContent).toBe("11-01");
   });
 
   it("lists nodes soonest first", () => {

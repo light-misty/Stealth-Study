@@ -44,6 +44,9 @@
   flex: 1; min-width: 0; min-height: 0;
   display: flex; flex-direction: column; gap: 14px;
 }
+/* 右栏是常驻骨架：倒计时 / 今日进度 / 连续打卡三块，设计稿三台都是这一套。
+   没有数据也占住位置（数字取 0 或 --），因为整块隐藏会把中栏推宽，
+   第二天回来时页面像换了一版——工作台的锚点不能随数据有无而跳动。 */
 .campus-station .st-rail {
   width: 292px; flex: none; min-height: 0;
   display: flex; flex-direction: column; gap: 12px;
@@ -540,24 +543,24 @@
 .campus-station .hero.is-near .hero-unit { color: var(--warn-ink); opacity: .85; }
 
 .campus-station .dl { display: flex; flex-direction: column; gap: 2px; }
-/* 一行两列：节点名与剩余天数在第一行，日期与「以官方公告为准」在第二行。
-   设计稿的单行版式在真实数据下放不下（日期是完整 ISO、参考标记是一句中文）。 */
+/* 单行三列，与设计稿同构：节点名占满剩余宽度、日期收成 MM-DD、剩余天数右对齐定宽。
+   「以官方公告为准」的标记是真实数据带来的第四列，挂在行尾，不参与三列对齐。 */
 .campus-station .dl-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 10px;
-  align-items: baseline; padding: 6px 8px; border-radius: var(--r-9);
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: var(--r-9);
 }
 .campus-station .dl-row:hover { background: var(--paper); }
 .campus-station .dl-name {
-  min-width: 0; font-size: 12px; line-height: 18px; color: var(--muted);
+  flex: 1; min-width: 0; font-size: 12px; line-height: 18px; color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .campus-station .dl-date {
-  grid-column: 1; grid-row: 2;
+  flex: none;
   font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--faint);
 }
-.campus-station .dl-ref { grid-column: 2; grid-row: 2; justify-self: end; }
+.campus-station .dl-ref { flex: none; }
 .campus-station .dl-left {
-  grid-column: 2; grid-row: 1; text-align: right;
+  width: 52px; flex: none; text-align: right;
   font-family: var(--mono); font-size: 11px; line-height: 16px; color: var(--muted);
 }
 

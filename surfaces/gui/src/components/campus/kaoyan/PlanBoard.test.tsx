@@ -42,6 +42,16 @@ const progress = (overrides: Record<string, { done: number; total: number; rate:
     { date: "2026-09-08", count: 1 },
     { date: "2026-09-10", count: 4 },
   ],
+  today: {
+    date: "2026-09-10",
+    minutes: { done: 30, plan: 60 },
+    tasks: { done: 1, total: 4 },
+    review: { done: 0, total: 2 },
+    grading: { done: 0, total: 0 },
+    vocab: { done: 0, quota: 30 },
+    docs: { ready: 0, total: 0 },
+    knowledge: { mastered: 0, total: 0 },
+  },
 });
 
 describe("PlanBoard", () => {
