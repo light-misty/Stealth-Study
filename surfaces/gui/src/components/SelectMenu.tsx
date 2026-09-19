@@ -55,7 +55,7 @@ export function SelectMenu({
           <div
             role="listbox"
             aria-label={ariaLabel}
-            className="absolute z-40 left-0 right-0 mt-1 max-h-72 overflow-y-auto rounded-xl border border-line bg-panel shadow-xl p-1"
+            className="menu-pop absolute z-40 left-0 right-0 mt-1 max-h-72 overflow-y-auto rounded-xl border border-line bg-panel shadow-xl p-1"
           >
             {options.map((o, i) => {
               const sel = o.value === value;

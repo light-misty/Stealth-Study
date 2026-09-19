@@ -1669,7 +1669,7 @@ export function App() {
           on the action (rev 2); auto-dismisses with the 5s drain bar. */}
       {runToast && (
         <div
-          className="fixed top-3 right-3 z-[45] w-[290px] bg-panel border border-line rounded-xl shadow-lg px-3.5 pt-3 pb-2.5"
+          className="toast-in fixed top-3 right-3 z-[45] w-[290px] bg-panel border border-line rounded-xl shadow-lg px-3.5 pt-3 pb-2.5"
           data-testid="automation-toast"
         >
           <div className="flex items-center gap-2 text-[13px] font-semibold">

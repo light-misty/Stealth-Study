@@ -31,4 +31,14 @@ describe("unified motion foundation", () => {
     expect(css).toMatch(/animation-iteration-count:\s*1/);
     expect(css).toMatch(/transition-duration:\s*0\.01ms/);
   });
+
+  it("animates shared overlay surfaces", () => {
+    expect(css).toMatch(/\.gate-overlay\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.gate\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.dd-menu\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.dlg-card\s*\{[^}]*animation:/);
+    expect(css).toMatch(/\.board-overlay\s*\{[^}]*animation:/);
+    expect(css).toContain("@keyframes ss-pop-centered");
+    expect(css).toContain(".modal-pop");
+  });
 });

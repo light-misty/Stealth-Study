@@ -116,10 +116,10 @@ export function Onboarding({ onDone }: { onDone: (next?: "work" | "gallery" | "a
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-ink/30 grid place-items-center" data-testid="onboarding">
+    <div className="overlay-fade fixed inset-0 z-50 bg-ink/30 grid place-items-center" data-testid="onboarding">
       {/* FIXED height across all three steps (owner call 2026-07-12, reaffirmed §39: the
           modal must never resize — the gallery⇄form swap happens inside this box). */}
-      <div className="w-[600px] max-w-[92vw] h-[560px] max-h-[88vh] rounded-2xl border border-line bg-panel shadow-2xl p-8 flex flex-col">
+      <div className="card-pop w-[600px] max-w-[92vw] h-[560px] max-h-[88vh] rounded-2xl border border-line bg-panel shadow-2xl p-8 flex flex-col">
         {dots}
 
         {step === 0 && (

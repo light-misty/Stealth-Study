@@ -112,9 +112,9 @@ export function SearchModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50" onKeyDown={onKey}>
+    <div className="overlay-fade fixed inset-0 z-50" onKeyDown={onKey}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="absolute left-1/2 top-[14vh] -translate-x-1/2 w-[640px] max-w-[92vw] rounded-xl2 border border-line bg-panel shadow-2xl overflow-hidden">
+      <div className="modal-pop absolute left-1/2 top-[14vh] -translate-x-1/2 w-[640px] max-w-[92vw] rounded-xl2 border border-line bg-panel shadow-2xl overflow-hidden">
         <div className="px-4 pt-3.5 pb-2.5 border-b border-line flex items-center gap-2.5">
           <Icon name="search" size={16} className="text-faint shrink-0" />
           <input

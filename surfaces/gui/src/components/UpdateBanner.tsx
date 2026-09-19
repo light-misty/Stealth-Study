@@ -86,7 +86,7 @@ export function UpdateBanner() {
     // card stays clickable, but BELOW the menu itself (z-40) — an open menu must never
     // be occluded by a passive status card.
     <div
-      className="fixed bottom-[64px] left-3 z-[35] w-[276px] rounded-xl border border-line bg-panel shadow-2xl px-4 py-3.5"
+      className="anim-fade-up fixed bottom-[64px] left-3 z-[35] w-[276px] rounded-xl border border-line bg-panel shadow-2xl px-4 py-3.5"
       role="status"
       data-testid="update-banner"
     >
