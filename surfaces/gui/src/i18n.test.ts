@@ -97,4 +97,11 @@ describe("locale contracts", () => {
       expect(rendered, key).not.toMatch(/{{\s*[\w.]+(?:\s*,[^}]*)?\s*}}/);
     }
   });
+
+  it("renames the automation-page buttons to 定时任务", () => {
+    expect(flatZh["automations.new_btn"]).toBe("+ 新建定时任务");
+    expect(flatZh["automations.create_btn"]).toBe("创建定时任务");
+    expect(flatZh["automations.back_to_automations"]).toBe("← 定时任务");
+    expect(flatZh["automations.empty_state"]).toContain("+ 新建定时任务");
+  });
 });
