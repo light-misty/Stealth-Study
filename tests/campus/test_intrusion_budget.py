@@ -1,13 +1,13 @@
 """F-5, 08 §2.2 — the campus frontend intrusion budget as a machine check.
 
-01 §6 registers exactly nine campus intrusion points in existing files; the frontend ones
+01 §6 registers the campus intrusion points in existing files; the frontend ones
 touch App.tsx / Sidebar.tsx / SettingsView.tsx / Composer.tsx / Onboarding.tsx / flags.ts
 (plus the locales and the backend mount in app.py). Anything else modified in the
 production tree — outside the campus-owned trees (`ss/campus/**`,
 `surfaces/gui/src/campus/**`, `surfaces/gui/src/components/campus/**`) plus the registered
-e2e harness files, the locales and the tests — means the "addition only" rule (PRD v1.1 B⑤:
-no spreading into the 24 voice-adjacent files) has been violated and the diff must go back
-through review.
+e2e harness files, the locales, the design mockups and the tests — means the "addition only"
+rule (PRD v1.1 B⑤: no spreading into the 24 voice-adjacent files) has been violated and the
+diff must go back through review.
 
 Pure `git diff --name-status` assertion, no GUI needed; skipped when there is no base
 revision to compare against (a checkout already on the base, a shallow clone without the
@@ -135,7 +135,19 @@ REGISTERED_PATCH: set[str] = {
     # 第二档 B（定时任务与项目绑定域）：命名/校验异常带代号，两处界面取键。
     "ss/projects.py",
     "surfaces/gui/src/components/ProjectBindMenu.tsx",
+    # 备考台原型落地：三个台子的样式层与图标集落在 campus 目录之外，因为它们要能被
+    # `main.tsx` 直接 import（`src/campus/` 下的文件按约定只放数据层与面板）。
+    # `campus-station.css` / `campus-icons.tsx` 是新增文件，另外三处是既有文件的追加式改动。
+    "surfaces/gui/src/campus-station.css",
+    "surfaces/gui/src/components/campus-icons.tsx",
+    "surfaces/gui/src/components/Icon.tsx",
+    "surfaces/gui/src/styles.css",
+    "surfaces/gui/tailwind.config.js",
 }
+
+# Design mockups: neither shipped nor compiled, and the whole redesign workflow lives in there.
+# They are not "the production tree", so the budget's "no spreading" rule does not apply to them.
+NON_PRODUCTION_PREFIXES = ("ui-mocks/",)
 
 CAMPUS_OWNED_PREFIXES = (
     "ss/campus/",
@@ -149,7 +161,7 @@ CAMPUS_OWNED_PREFIXES = (
 def _allowed(path: str) -> bool:
     if path in REGISTERED_PATCH:
         return True
-    if path.startswith(CAMPUS_OWNED_PREFIXES):
+    if path.startswith(CAMPUS_OWNED_PREFIXES) or path.startswith(NON_PRODUCTION_PREFIXES):
         return True
     return path.endswith(".test.tsx") or path.endswith(".test.ts")
 

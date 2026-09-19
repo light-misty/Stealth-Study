@@ -14,6 +14,10 @@ import type {
   AssessmentQuestion,
 } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
+import { Icon } from "../../Icon";
+
+// 定级测评在真实实现里是整卷一次铺开的长卷，所以卷面本身就是滚动区，卡头钉住
+// 「已答 X/N + 自动保存」，滚到最后一题也看得见进度（设计稿 campus-cet.css 的说明）。
 
 const draftKeyFor = (profileId: string) => `ss.campus.cet.assessment.${profileId}`;
 const AUTOSAVE_DELAY_MS = 400;
@@ -35,7 +39,13 @@ function isDraftGone(err: unknown): boolean {
   );
 }
 
-export function AssessmentFlow({ profileId }: { profileId: string }) {
+export function AssessmentFlow({
+  profileId,
+  onGotoTab,
+}: {
+  profileId: string;
+  onGotoTab?: (key: string) => void;
+}) {
   const { t } = useTranslation();
   const [phase, setPhase] = useState<Phase>(() =>
     window.localStorage.getItem(draftKeyFor(profileId)) ? "loading" : "idle",
@@ -209,51 +219,47 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
   );
 
   const errorBox = error ? (
-    <div
-      className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
-      data-testid="campus-cet-assessment-error"
-    >
-      {t(campusErrorKey(campusErrorInfo(error).code), {
-        defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
-      })}
+    <div className="alert" data-testid="campus-cet-assessment-error">
+      <Icon name="warning" size={14} />
+      <div className="alert-text">
+        <span className="alert-title">{t("campus.common.error")}</span>
+        <span className="alert-desc">
+          {t(campusErrorKey(campusErrorInfo(error).code), {
+            defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+          })}
+        </span>
+      </div>
       {campusErrorInfo(error).retryable ? (
-        <button type="button" className="ml-2 text-accent" onClick={onRetry}>
+        <button type="button" className="btn btn--ghost btn--sm" onClick={onRetry}>
           {t("campus.common.retry")}
         </button>
       ) : null}
     </div>
   ) : null;
 
-  const renderQuestion = (q: AssessmentQuestion): ReactNode => {
+  const renderQuestion = (q: AssessmentQuestion, position: number): ReactNode => {
     const value = answers[q.id] ?? "";
     const options = q.options ?? [];
     let body: ReactNode;
     if (!hasPayload(q)) {
       body = (
-        <div
-          className="mt-1 text-[12px] text-faint"
-          data-testid="campus-cet-assessment-question-missing"
-        >
+        <span className="q-tip" data-testid="campus-cet-assessment-question-missing">
           {t("campus.cet.assessment.question_missing")}
-        </div>
+        </span>
       );
     } else if (options.length > 0) {
       body = (
-        <div className="mt-2 grid gap-1.5">
+        <div className="opts">
           {options.map((o) => (
             <button
               key={o.key}
               type="button"
-              className={`rounded-lg2 border px-3 py-1.5 text-left text-[12px] ${
-                value === o.key
-                  ? "border-accent bg-accentSoft text-ink"
-                  : "border-line bg-panel text-muted"
-              }`}
+              className={value === o.key ? "opt is-on" : "opt"}
               aria-pressed={value === o.key}
               data-testid="campus-cet-assessment-option"
               onClick={() => setAnswer(q.id, o.key)}
             >
-              <span className="mr-2 font-semibold text-ink">{o.key}</span>
+              <span className="opt-k">{o.key}</span>
               <span>{o.text}</span>
             </button>
           ))}
@@ -262,7 +268,7 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
     } else if (q.qtype === "blank") {
       body = (
         <input
-          className="mt-2 w-full rounded-lg2 border border-line bg-panel px-3 py-1.5 text-[12px] text-ink"
+          className="input"
           data-testid="campus-cet-assessment-blank"
           value={value}
           onChange={(e) => setAnswer(q.id, e.target.value)}
@@ -271,8 +277,8 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
     } else {
       body = (
         <textarea
-          className="mt-2 w-full rounded-lg2 border border-line bg-panel px-3 py-1.5 text-[12px] text-ink"
-          rows={3}
+          className="textarea"
+          rows={4}
           data-testid="campus-cet-assessment-text"
           value={value}
           onChange={(e) => setAnswer(q.id, e.target.value)}
@@ -282,13 +288,23 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
     return (
       <div
         key={q.id}
-        className="rounded-xl2 border border-line bg-panel px-4 py-3"
+        className="q"
         data-testid="campus-cet-assessment-question"
         data-qid={q.id}
         data-resume-target={resumeTargetId === q.id ? "true" : undefined}
       >
-        {q.stem ? <div className="text-[13px] text-ink">{q.stem}</div> : null}
+        <div className="q-head">
+          {q.qtype ? <span className="tag tag--brand">{t(`campus.common.qtype.${q.qtype}`)}</span> : null}
+          {!hasPayload(q) ? (
+            <span className="tag tag--muted">{t("campus.cet.assessment.missing_tag")}</span>
+          ) : null}
+          <span className="q-no">{t("campus.cet.assessment.qno", { index: position + 1 })}</span>
+        </div>
+        {q.stem ? <p className="q-stem">{q.stem}</p> : null}
         {body}
+        {hasPayload(q) && SUBJECTIVE_TYPES.includes(q.qtype ?? "") ? (
+          <span className="q-tip">{t("campus.cet.assessment.subjective_tip")}</span>
+        ) : null}
       </div>
     );
   };
@@ -299,45 +315,19 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
   const scores = result?.scores ?? assessment?.scores ?? null;
   const gapRows = result?.gap_table ?? [];
 
-  let content: ReactNode;
-  if (phase === "loading") {
-    content = (
-      <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5 text-[12px] text-muted">
-        {t("campus.cet.assessment.loading")}
+  const head = (
+    <div className="mod-head">
+      <span className="ib ib--accent">
+        <Icon name="activity" size={16} />
+      </span>
+      <div className="mod-head-text">
+        <span className="mod-title">{t("campus.cet.assessment.title")}</span>
+        <span className="mod-desc">{t("campus.cet.assessment.intro")}</span>
       </div>
-    );
-  } else if (phase === "idle") {
-    content = (
-      <div className="grid gap-3">
-        {errorBox}
-        <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-          <div className="text-[13px] font-semibold text-ink">
-            {t("campus.cet.assessment.title")}
-          </div>
-          <div className="mt-1 text-[12px] text-muted">
-            {t("campus.cet.assessment.intro")}
-          </div>
-          <button
-            type="button"
-            className="mt-3 rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
-            data-testid="campus-cet-assessment-start"
-            onClick={onStart}
-            disabled={busy}
-          >
-            {t("campus.cet.assessment.start")}
-          </button>
-        </div>
-      </div>
-    );
-  } else if (phase === "paper") {
-    content = (
-      <div className="grid gap-3" data-testid="campus-cet-assessment-paper">
-        <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-          <div className="text-[13px] font-semibold text-ink">
-            {t("campus.cet.assessment.title")}
-          </div>
-          <div
-            className="mt-1 text-[12px] text-muted"
+      {phase === "paper" ? (
+        <div className="mod-acts">
+          <span
+            className="sec-n"
             data-testid="campus-cet-assessment-progress"
             data-answered={answeredCount}
             data-total={questions.length}
@@ -346,106 +336,170 @@ export function AssessmentFlow({ profileId }: { profileId: string }) {
               answered: answeredCount,
               total: questions.length,
             })}
-          </div>
-          {savedAt > 0 && !saveError ? (
-            <div className="mt-1 text-[12px] text-faint" data-testid="campus-cet-assessment-saved">
-              {t("campus.cet.assessment.saved")}
-            </div>
-          ) : null}
-          {saveError ? (
-            <div className="mt-1 text-[12px] text-warnInk">
-              {t("campus.cet.assessment.save_error")}
-            </div>
-          ) : null}
+          </span>
         </div>
-        {questions.map((q) => renderQuestion(q))}
+      ) : null}
+    </div>
+  );
+
+  let body: ReactNode;
+  if (phase === "loading") {
+    body = (
+      <div className="stack-gap">
+        <div className="sk" style={{ width: 140 }} />
+        <div className="sk" />
+        <div className="sk" style={{ width: "68%" }} />
+        <span className="body-text">{t("campus.cet.assessment.loading")}</span>
+      </div>
+    );
+  } else if (phase === "idle") {
+    body = (
+      <>
         {errorBox}
-        <button
-          type="button"
-          className="rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
-          data-testid="campus-cet-assessment-finish"
-          onClick={onFinish}
-          disabled={busy}
-        >
-          {t("campus.cet.assessment.finish")}
-        </button>
+        <div className="empty">
+          <span className="ib ib--brand">
+            <Icon name="activity" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.cet.assessment.idle_title")}</span>
+          <span className="empty-desc">{t("campus.cet.assessment.intro")}</span>
+          <button
+            type="button"
+            className="btn btn--primary"
+            data-testid="campus-cet-assessment-start"
+            onClick={onStart}
+            disabled={busy}
+          >
+            {window.localStorage.getItem(draftKeyFor(profileId))
+              ? t("campus.cet.assessment.resume")
+              : t("campus.cet.assessment.start")}
+          </button>
+        </div>
+      </>
+    );
+  } else if (phase === "paper") {
+    body = (
+      <div className="stack" data-testid="campus-cet-assessment-paper">
+        <div className="bar">
+          <i
+            style={{
+              "--w": `${questions.length ? Math.round((answeredCount / questions.length) * 100) : 0}%`,
+            } as Record<string, string>}
+          />
+        </div>
+        <div className="fill thin qcol">{questions.map((q, i) => renderQuestion(q, i))}</div>
+        {errorBox}
+        <div className="mod-foot">
+          {saveError ? (
+            <span className="field-err" data-testid="campus-cet-assessment-save-error">
+              {t("campus.cet.assessment.save_error")}
+            </span>
+          ) : savedAt > 0 ? (
+            <span className="ai-note" data-testid="campus-cet-assessment-saved">
+              <Icon name="check" size={12} />
+              {t("campus.cet.assessment.saved")}
+            </span>
+          ) : null}
+          <span className="st-spacer" />
+          <button
+            type="button"
+            className="btn btn--primary"
+            data-testid="campus-cet-assessment-finish"
+            onClick={onFinish}
+            disabled={busy}
+          >
+            {t("campus.cet.assessment.finish")}
+          </button>
+        </div>
       </div>
     );
   } else {
-    content = (
-      <div className="grid gap-3" data-testid="campus-cet-assessment-result">
-        <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-          <div className="text-[12px] text-muted">{t("campus.cet.assessment.estimate")}</div>
-          <div
-            className="text-[18px] font-semibold text-ink"
-            data-testid="campus-cet-assessment-estimate"
-          >
-            {estimate}
-          </div>
-        </div>
-        {scores ? (
-          <div className="grid grid-cols-3 gap-2">
-            {SCORE_SECTIONS.map((s) => (
-              <div key={s} className="rounded-xl2 border border-line bg-panel px-3 py-2">
-                <div className="text-[12px] text-faint">
-                  {t(`campus.cet.assessment.section_${s}`)}
-                </div>
-                <div className="text-[13px] text-ink">{scores[s]}</div>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {gapRows.length > 0 ? (
-          <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-            <div className="text-[13px] font-semibold text-ink">
-              {t("campus.cet.assessment.gap_title")}
+    body = (
+      <>
+        <div className="fill thin qcol" data-testid="campus-cet-assessment-result">
+          <div className="stat">
+            <span className="stat-k">{t("campus.cet.assessment.estimate")}</span>
+            <div className="score">
+              <span className="score-n" data-testid="campus-cet-assessment-estimate">
+                {estimate}
+              </span>
+              <span className="score-u">{t("campus.cet.assessment.estimate_unit")}</span>
             </div>
-            <table className="mt-2 w-full text-[12px]">
-              <thead>
-                <tr className="text-faint">
-                  <th className="text-left font-normal" />
-                  <th className="text-right font-normal">
-                    {t("campus.cet.assessment.col_current")}
-                  </th>
-                  <th className="text-right font-normal">
-                    {t("campus.cet.assessment.col_target")}
-                  </th>
-                  <th className="text-right font-normal">
-                    {t("campus.cet.assessment.col_gap")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {gapRows.map((row) => (
-                  <tr
-                    key={row.section}
-                    className="border-t border-line"
-                    data-testid="campus-cet-assessment-gap"
-                    data-section={row.section}
-                    data-gap={row.gap}
-                  >
-                    <td className="py-1 text-ink">
-                      {t(`campus.cet.assessment.section_${row.section}`)}
-                    </td>
-                    <td className="py-1 text-right text-muted">{row.current}</td>
-                    <td className="py-1 text-right text-muted">{row.target}</td>
-                    <td className="py-1 text-right text-ink">{row.gap}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
-        ) : null}
-        <button
-          type="button"
-          className="rounded-lg2 border border-line bg-panel px-4 py-1.5 text-[12px] text-muted"
-          onClick={onAgain}
-        >
-          {t("campus.cet.assessment.again")}
-        </button>
-      </div>
+          {scores ? (
+            <div className="sec-cells">
+              {SCORE_SECTIONS.map((s) => (
+                <div className="sec-cell" key={s}>
+                  <span className="sec-cell-k">{t(`campus.cet.assessment.section_${s}`)}</span>
+                  <span className="sec-cell-v">{scores[s]}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {gapRows.length > 0 ? (
+            <>
+              <div className="sec">
+                <div className="sec-text">
+                  <span className="sec-title">{t("campus.cet.assessment.gap_title")}</span>
+                </div>
+              </div>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th />
+                    <th>{t("campus.cet.assessment.col_current")}</th>
+                    <th>{t("campus.cet.assessment.col_target")}</th>
+                    <th>{t("campus.cet.assessment.col_gap")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {gapRows.map((row) => (
+                    <tr
+                      key={row.section}
+                      data-testid="campus-cet-assessment-gap"
+                      data-section={row.section}
+                      data-gap={row.gap}
+                    >
+                      <td>{t(`campus.cet.assessment.section_${row.section}`)}</td>
+                      <td className="n">{row.current}</td>
+                      <td className="n">{row.target}</td>
+                      <td className="n">{Number(row.gap) > 0 ? <span className="neg">+{row.gap}</span> : row.gap}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : null}
+          <span className="ai-note">
+            <Icon name="sparkle" size={12} />
+            {t("campus.common.ai_notice")}
+          </span>
+          {errorBox}
+        </div>
+        <div className="mod-foot">
+          <button type="button" className="btn btn--ghost" onClick={onAgain} data-testid="campus-cet-assessment-again">
+            {t("campus.cet.assessment.again")}
+          </button>
+          <span className="st-spacer" />
+          {onGotoTab ? (
+            <button
+              type="button"
+              className="btn btn--soft btn--sm"
+              onClick={() => onGotoTab("vocab")}
+              data-testid="campus-cet-assessment-goto-vocab"
+            >
+              {t("campus.cet.assessment.goto_vocab")}
+              <Icon name="chevronRight" size={12} />
+            </button>
+          ) : null}
+        </div>
+      </>
     );
   }
 
-  return <div className="grid gap-3">{content}</div>;
+  return (
+    <section className="mod" data-testid="campus-cet-assessment">
+      {head}
+      {body}
+    </section>
+  );
 }

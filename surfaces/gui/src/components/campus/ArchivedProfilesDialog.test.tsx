@@ -34,7 +34,15 @@ const recent = archived("a1", "四级冲刺", daysAgo(200), daysAgo(2));
 const older = archived("a2", "六级冲关", daysAgo(120), daysAgo(90));
 const legacy = archived("a3", "历史归档", daysAgo(40), null);
 
-const dayText = (value: string | null): string => (value ?? "").slice(0, 10);
+// formatTimestamp renders in the viewer's timezone, so the expected day has to be taken
+// the same way — slicing the UTC ISO string only matched while the run happened to sit on
+// the same local date as the UTC one, and broke the moment the clock crossed midnight.
+const dayText = (value: string | null): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
 
 describe("ArchivedProfilesDialog", () => {
   it("lists the archived profiles with their create and archive dates", () => {
@@ -168,5 +176,39 @@ describe("ArchivedProfilesDialog", () => {
     fireEvent.click(screen.getByTestId("campus-archived-detail-restore"));
     expect(onRestore).toHaveBeenCalledTimes(2);
     expect(onRestore).toHaveBeenLastCalledWith("a1");
+  });
+
+  it("offers the permanent delete from the list and the detail view alike", () => {
+    const onDelete = vi.fn();
+    render(
+      <ArchivedProfilesDialog
+        profiles={[recent]}
+        onRestore={vi.fn()}
+        onRename={vi.fn()}
+        onDelete={onDelete}
+        onClose={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-archived-delete-a1"));
+    expect(onDelete).toHaveBeenCalledWith("a1");
+
+    // The detail view replaces the list, so the row's label has to be read before the swap.
+    const entryLabel = screen.getByTestId("campus-archived-delete-a1").textContent;
+    fireEvent.click(screen.getByTestId("campus-archived-detail-a1"));
+    expect(screen.getByTestId("campus-archived-detail-delete").textContent).toBe(entryLabel);
+    fireEvent.click(screen.getByTestId("campus-archived-detail-delete"));
+    expect(onDelete).toHaveBeenCalledTimes(2);
+    expect(onDelete).toHaveBeenLastCalledWith("a1");
+  });
+
+  it("stays out of the delete business when the station cannot service one", () => {
+    render(
+      <ArchivedProfilesDialog profiles={[recent]} onRestore={vi.fn()} onRename={vi.fn()} onClose={vi.fn()} />,
+    );
+    expect(screen.queryByTestId("campus-archived-delete-a1")).toBeNull();
+
+    fireEvent.click(screen.getByTestId("campus-archived-detail-a1"));
+    expect(screen.queryByTestId("campus-archived-detail-delete")).toBeNull();
   });
 });

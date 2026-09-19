@@ -554,10 +554,29 @@ export interface TrackProgress {
   rate: number;
 }
 
+/** A done/total pair the rail can paint as a bar. */
+export interface ProgressPair {
+  done: number;
+  total: number;
+}
+
+/** G4's today block: the rail's 今日进度 rows, each a pair the student can trace back to a module. */
+export interface TodayProgress {
+  date: string;
+  minutes: { done: number; plan: number };
+  tasks: ProgressPair;
+  review: ProgressPair;
+  grading: ProgressPair;
+  vocab: { done: number; quota: number };
+  docs: { ready: number; total: number };
+  knowledge: { mastered: number; total: number };
+}
+
 export interface ProgressReport {
   by_track: Record<string, TrackProgress>;
   streak_days: number;
   heatmap: { date: string; count: number }[];
+  today: TodayProgress;
 }
 
 export interface PlanGenerationResult {
@@ -630,6 +649,22 @@ export interface ProfilePatch {
 export interface AppStatePatch {
   active_profile_id?: string | null;
   settings?: CampusSettings;
+}
+
+/** A11: what deleting a profile costs — the rows of 02 §7.3's cascade, counted before they go. */
+export interface ProfileImpact {
+  profile_id: string;
+  cascade: Record<string, number>;
+  automation_tasks: number;
+  export_files: number;
+}
+
+/** A5: the same cost, counted from the rows that actually went. */
+export interface ProfileDeleteResult {
+  deleted: boolean;
+  cascade: Record<string, number>;
+  automation_tasks: number;
+  export_files: number;
 }
 
 export interface LibraryQAInput {

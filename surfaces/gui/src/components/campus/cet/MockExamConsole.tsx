@@ -13,6 +13,11 @@ import type {
   MockSubmitResult,
 } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
+import { Icon } from "../../Icon";
+
+// 三阶段计时模考：阶段条说「现在能写哪张卡」，计时器是这一屏最重要的数字，收卡锁定
+// 比「还没写」更明确 —— 保留正文但压暗并挂锁标。快进只在 DEV 下出现，样卷名也照实
+// 标注为调试用（设计稿 campus-cet.css 的说明）。
 
 const draftKeyFor = (profileId: string) => `ss.campus.cet.mock.${profileId}`;
 const stageDraftKey = (examId: string, stage: MockStage) =>
@@ -187,36 +192,57 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
   };
 
   const errorBox = error ? (
-    <div
-      className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
-      data-testid="campus-mock-error"
-    >
-      {t(campusErrorKey(campusErrorInfo(error).code), {
-        defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
-      })}
+    <div className="alert" data-testid="campus-mock-error">
+      <Icon name="warning" size={14} />
+      <div className="alert-text">
+        <span className="alert-title">{t("campus.common.error")}</span>
+        <span className="alert-desc">
+          {t(campusErrorKey(campusErrorInfo(error).code), {
+            defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+          })}
+        </span>
+      </div>
     </div>
   ) : null;
 
+  const head = (
+    <div className="mod-head">
+      <span className="ib ib--accent">
+        <Icon name="timer" size={16} />
+      </span>
+      <div className="mod-head-text">
+        <span className="mod-title">{t("campus.cet.mock.paper_title")}</span>
+        <span className="mod-desc">{t("campus.cet.mock.intro")}</span>
+      </div>
+    </div>
+  );
+
   if (phase === "loading") {
     return (
-      <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5 text-[12px] text-muted">
-        {t("campus.cet.mock.loading")}
-      </div>
+      <section className="mod">
+        {head}
+        <div className="stack-gap">
+          <div className="sk" />
+          <div className="sk" style={{ width: "66%" }} />
+        </div>
+        <span className="body-text">{t("campus.cet.mock.loading")}</span>
+      </section>
     );
   }
 
   if (phase === "idle") {
     return (
-      <div className="grid gap-3">
-        {errorBox}
-        <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-          <div className="text-[13px] font-semibold text-ink">
-            {t("campus.cet.mock.paper_title")}
-          </div>
-          <div className="mt-1 text-[12px] text-muted">{t("campus.cet.mock.intro")}</div>
+      <section className="mod">
+        {head}
+        <div className="empty">
+          <span className="ib ib--brand">
+            <Icon name="timer" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.cet.mock.idle_title")}</span>
+          <span className="empty-desc">{t("campus.cet.mock.intro")}</span>
           <button
             type="button"
-            className="mt-3 rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
+            className="btn btn--primary"
             data-testid="campus-mock-start"
             onClick={onStart}
             disabled={busy}
@@ -224,7 +250,8 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
             {t("campus.cet.mock.start")}
           </button>
         </div>
-      </div>
+        {errorBox}
+      </section>
     );
   }
 
@@ -235,6 +262,36 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
   const isOngoing = phase === "ongoing" && exam.status === "ongoing";
   const expired = remaining <= 0 || exam.stage_expired;
   const isLastStage = exam.current_stage === "reading_translation";
+  const stageIndex = STAGE_AREA.findIndex((area) => area.stage === exam.current_stage);
+
+  const stageCells = STAGE_AREA.map((area) => {
+    const current = area.stage === exam.current_stage && !showResult;
+    const done = showResult || exam.locked_stages.includes(area.stage);
+    const lockedButNotCurrent = !current && done;
+    return (
+      <div
+        key={area.stage}
+        className={current ? "mstage is-on" : lockedButNotCurrent ? "mstage is-done" : "mstage"}
+        data-testid="campus-mock-stage-cell"
+        data-stage={area.stage}
+        data-state={current ? "on" : lockedButNotCurrent ? "done" : "todo"}
+      >
+        <span className="mstage-k">
+          <Icon name={current ? "pencil" : lockedButNotCurrent ? "check" : "lock"} size={12} />
+          {current
+            ? t("campus.cet.mock.stage_running")
+            : lockedButNotCurrent
+              ? t("campus.cet.mock.stage_done")
+              : t("campus.cet.mock.stage_todo")}
+        </span>
+        <span className="mstage-t">{t(`campus.cet.mock.stage_${area.stage}`)}</span>
+        {current ? <span className="mstage-n">{formatClock(remaining)}</span> : null}
+        {lockedButNotCurrent ? (
+          <span className="mstage-n">{t("campus.cet.mock.locked")}</span>
+        ) : null}
+      </div>
+    );
+  });
 
   const answerAreas = STAGE_AREA.map((area) => {
     const locked =
@@ -243,16 +300,28 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
       area.stage !== exam.current_stage ||
       exam.locked_stages.includes(area.stage);
     return (
-      <div key={area.stage} className="rounded-xl2 border border-line bg-panel px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="text-[12px] font-semibold text-ink">{t(area.labelKey)}</div>
+      <div key={area.stage} className={locked ? "answer is-locked" : "answer"}>
+        <div className="answer-h">
+          <span className="answer-t">{t(area.labelKey)}</span>
           {locked ? (
-            <div className="text-[11px] text-faint">{t("campus.cet.mock.locked")}</div>
-          ) : null}
+            <span className="tag tag--muted">
+              <Icon name="lock" size={11} />
+              {t("campus.cet.mock.locked")}
+            </span>
+          ) : (
+            <span
+              className="tag tag--accent"
+              data-testid="campus-mock-stage"
+              data-stage={exam.current_stage}
+            >
+              {t("campus.cet.mock.current_stage")}
+            </span>
+          )}
         </div>
         <textarea
-          className="mt-1.5 w-full rounded-lg2 border border-line bg-panel px-3 py-2 text-[12px] text-ink disabled:opacity-60"
-          rows={area.stage === "writing" ? 8 : 6}
+          className="textarea"
+          rows={area.stage === "writing" ? 8 : 5}
+          placeholder={locked ? t("campus.cet.mock.locked_note") : undefined}
           data-testid={area.testid}
           disabled={locked}
           value={drafts[area.stage] ?? ""}
@@ -263,132 +332,152 @@ export function MockExamConsole({ profileId }: { profileId: string }) {
   });
 
   const sectionRows = result ? Object.entries(result.by_section) : [];
+  const estimateScore = result ? result.estimate_score : exam.estimate_score;
 
-  return (
-    <div
-      className="grid gap-3"
-      data-testid={showResult ? undefined : "campus-mock-console"}
-    >
-      {showResult ? (
-        <div
-          className="rounded-xl2 border border-line bg-panel px-4 py-3.5"
-          data-testid="campus-mock-result"
-        >
-          <div className="text-[13px] font-semibold text-ink">
-            {t("campus.cet.mock.result_title")}
-          </div>
-          <div className="mt-1 text-[12px] text-muted">
-            {t("campus.cet.mock.estimate")}
-          </div>
-          <div
-            className="text-[18px] font-semibold text-ink"
-            data-testid="campus-mock-estimate"
-          >
-            {result ? result.estimate_score : exam.estimate_score}
-          </div>
-          {sectionRows.length > 0 ? (
-            <ul className="mt-2 grid gap-1.5">
-              {sectionRows.map(([section, row]) => (
-                <li
-                  key={section}
-                  className="flex items-center gap-2 text-[12px]"
-                  data-testid="campus-mock-section"
-                  data-section={section}
-                  data-earned={row.earned}
-                  data-max={row.max}
-                >
-                  <span className="text-ink">
-                    {t(`campus.cet.assessment.section_${section}`)}
-                  </span>
-                  <span className="text-muted">
-                    {row.earned} / {row.max}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+  const resultBlock = showResult ? (
+    <div className="sub" data-testid="campus-mock-result">
+      <div className="sec">
+        <div className="sec-text">
+          <span className="sec-title">{t("campus.cet.mock.result_title")}</span>
+          <span className="sec-desc">{t("campus.cet.mock.result_hint")}</span>
         </div>
-      ) : (
-        <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-          <div className="flex items-baseline justify-between">
+      </div>
+      <div className="stat">
+        <span className="stat-k">{t("campus.cet.mock.estimate")}</span>
+        <div className="score">
+          <span className="score-n" data-testid="campus-mock-estimate">
+            {estimateScore ?? "—"}
+          </span>
+          <span className="score-u">{t("campus.cet.assessment.estimate_unit")}</span>
+        </div>
+      </div>
+      {sectionRows.length > 0 ? (
+        <div className="sec-cells">
+          {sectionRows.map(([section, row]) => (
             <div
-              className="text-[13px] font-semibold text-ink"
-              data-testid="campus-mock-stage"
-              data-stage={exam.current_stage}
+              className="sec-cell"
+              key={section}
+              data-testid="campus-mock-section"
+              data-section={section}
+              data-earned={row.earned}
+              data-max={row.max}
             >
-              {t(`campus.cet.mock.stage_${exam.current_stage}`)}
+              <span className="sec-cell-k">{t(`campus.cet.assessment.section_${section}`)}</span>
+              <span className="sec-cell-v">
+                {row.earned} / {row.max}
+              </span>
             </div>
-            <div
-              className={`text-[13px] font-semibold ${expired ? "text-warnInk" : "text-ink"}`}
-              data-testid="campus-mock-timer"
-              data-remaining={remaining}
-            >
-              {formatClock(remaining)}
-            </div>
-          </div>
-          <div className="mt-1 text-[12px] text-faint">{t("campus.cet.mock.timer_label")}</div>
+          ))}
+        </div>
+      ) : null}
+      <span className="ai-note">
+        <Icon name="sparkle" size={12} />
+        {t("campus.common.ai_notice")}
+      </span>
+    </div>
+  ) : null;
+
+  const timerBlock = isOngoing ? (
+    <div className="sub sub--ring">
+      <div className="timer-row">
+        <div className="stack">
+          <span className="timer-k">
+            {expired
+              ? t("campus.cet.mock.stage_expired_label")
+              : t("campus.cet.mock.timer_label")}
+          </span>
+          <span
+            className={expired ? "timer is-over" : "timer"}
+            data-testid="campus-mock-timer"
+            data-remaining={remaining}
+          >
+            {formatClock(remaining)}
+          </span>
+        </div>
+        <span className="st-spacer" />
+        <div className="mod-acts">
           {paused ? (
             <button
               type="button"
-              className="mt-2 rounded-lg2 border border-line bg-panel px-3 py-1 text-[12px] text-muted"
+              className="btn btn--ghost btn--sm"
               data-testid="campus-mock-resume"
               onClick={onResume}
             >
+              <Icon name="play" size={12} />
               {t("campus.cet.mock.resume")}
             </button>
           ) : (
             <button
               type="button"
-              className="mt-2 rounded-lg2 border border-line bg-panel px-3 py-1 text-[12px] text-muted"
+              className="btn btn--ghost btn--sm"
               data-testid="campus-mock-pause"
               onClick={onPause}
             >
+              <Icon name="pause" size={12} />
               {t("campus.cet.mock.pause")}
             </button>
           )}
           {import.meta.env.DEV ? (
             <button
               type="button"
-              className="mt-2 ml-2 rounded-lg2 border border-dashed border-line px-3 py-1 text-[12px] text-faint"
+              className="btn btn--text btn--sm"
               data-hook="fast-forward"
               data-testid="fast-forward-hook"
               onClick={() => setRemaining(0)}
             >
+              <Icon name="forward" size={12} />
               {t("campus.cet.mock.fast_forward")}
             </button>
           ) : null}
-          {expired ? (
-            <div className="mt-2 grid gap-2">
-              <div className="text-[12px] text-warnInk">
-                {t("campus.cet.mock.stage_expired_label")}
-              </div>
-              {isLastStage ? (
-                <button
-                  type="button"
-                  className="rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
-                  data-testid="campus-mock-submit"
-                  onClick={onSubmit}
-                  disabled={busy}
-                >
-                  {t("campus.cet.mock.submit")}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
-                  data-testid="campus-mock-advance"
-                  onClick={onAdvance}
-                  disabled={busy}
-                >
-                  {t("campus.cet.mock.advance")}
-                </button>
-              )}
-            </div>
-          ) : null}
-          {errorBox}
         </div>
-      )}
-      {answerAreas}
+      </div>
     </div>
+  ) : null;
+
+  return (
+    <section className="mod" data-testid="campus-mock">
+      {head}
+      <div className="stack" data-testid={showResult ? undefined : "campus-mock-console"}>
+        {resultBlock}
+        <div className="mstages">{stageCells}</div>
+        {timerBlock}
+
+        <div className="fill thin qcol">{answerAreas}</div>
+        {errorBox}
+
+        <div className="mod-foot">
+          <span className="sec-n">
+            {t("campus.cet.mock.stage_of", {
+              index: stageIndex + 1,
+              total: STAGE_AREA.length,
+            })}
+          </span>
+          <span className="st-spacer" />
+          {expired && isOngoing ? (
+            isLastStage ? (
+              <button
+                type="button"
+                className="btn btn--primary"
+                data-testid="campus-mock-submit"
+                onClick={onSubmit}
+                disabled={busy}
+              >
+                {t("campus.cet.mock.submit")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--primary"
+                data-testid="campus-mock-advance"
+                onClick={onAdvance}
+                disabled={busy}
+              >
+                {t("campus.cet.mock.advance")}
+              </button>
+            )
+          ) : null}
+        </div>
+      </div>
+    </section>
   );
 }

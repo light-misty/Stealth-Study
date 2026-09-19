@@ -4,122 +4,178 @@ import { useWeeklyReports } from "../../../campus/hooks";
 import type { WeeklyReport } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey, formatPercent } from "../../../campus/utils";
 import { Markdown } from "../../Markdown";
+import { Icon } from "../../Icon";
 import { TRACK_LABEL_KEYS } from "./PlanBoard";
 
-function ReportDetail({ report }: { report: WeeklyReport }) {
+// 周卡默认折叠：一屏能看到近 8 周；展开后才给完成率、错点与建议。
+// 状态色只是同一串数字的另一条通道，百分比与次数始终以文字呈现（PRD §7.4）。
+
+const rateCellClass = (rate: number): string =>
+  rate >= 0.8 ? "cell" : rate >= 0.65 ? "cell cell--partial" : "cell cell--miss";
+
+const ReportDetail = ({ report }: { report: WeeklyReport }) => {
   const { t } = useTranslation();
+  const mistakes = report.top_mistake_points;
   return (
-    <div
-      className="mt-2 flex flex-col gap-2 rounded-xl2 border border-line bg-canvas p-3 text-[13px] text-ink"
-      data-testid={`campus-weekly-detail-${report.id}`}
-    >
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
+    <div className="rpt-b" data-testid={`campus-weekly-detail-${report.id}`}>
+      <div className="cells">
         {Object.entries(report.completion_rate).map(([key, rate]) => (
-          <span key={key} className="text-muted">
+          <span className={rateCellClass(rate)} key={key}>
+            <span className="cdot" />
             {t(TRACK_LABEL_KEYS[key] ?? "", { defaultValue: key })} {formatPercent(rate)}
           </span>
         ))}
       </div>
-      <div>
-        <div className="mb-1 text-[12px] text-muted">{t("campus.kaoyan.weekly.top_mistakes")}</div>
-        {report.top_mistake_points.length === 0 ? (
-          <span className="text-faint">{t("campus.kaoyan.weekly.no_mistakes")}</span>
-        ) : (
-          <ul className="list-inside list-disc">
-            {report.top_mistake_points.map((point) => (
-              <li key={point.title}>
-                {point.title} × {point.count}
-              </li>
-            ))}
-          </ul>
-        )}
+
+      <div className="sec">
+        <div className="sec-text">
+          <span className="sec-title">{t("campus.kaoyan.weekly.top_mistakes")}</span>
+        </div>
+        <span className="sec-n">{mistakes.length}</span>
       </div>
-      <div>
-        <div className="mb-1 text-[12px] text-muted">{t("campus.kaoyan.weekly.suggestion")}</div>
+      {mistakes.length === 0 ? (
+        <div className="body-text">{t("campus.kaoyan.weekly.no_mistakes")}</div>
+      ) : (
+        <div className="rows">
+          {mistakes.map((point) => (
+            <div className="lrow" key={point.title}>
+              <div className="lrow-text">
+                <span className="lrow-title">{point.title}</span>
+              </div>
+              <span className={point.count >= 5 ? "tag tag--danger" : "tag tag--warn"}>
+                {t("campus.mistake.wrong_count", { count: point.count })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="sec">
+        <div className="sec-text">
+          <span className="sec-title">{t("campus.kaoyan.weekly.suggestion")}</span>
+        </div>
+      </div>
+      <div className="prose">
         <p>{report.suggestion}</p>
+        <Markdown text={report.content_md} />
       </div>
-      <Markdown text={report.content_md} />
+      <span className="ai-note">
+        <Icon name="sparkle" size={12} />
+        {t("campus.common.ai_notice")}
+      </span>
     </div>
   );
-}
+};
 
 export function WeeklyReportView({ profileId }: { profileId: string }) {
   const { t } = useTranslation();
   const { items, loading, error, retryable, reload, generate, generating, genError } =
     useWeeklyReports(profileId);
-  const [picked, setPicked] = useState<string | null>(null);
+  const [openIds, setOpenIds] = useState<string[]>(() => (items[0] ? [items[0].id] : []));
+
+  const toggle = (id: string) =>
+    setOpenIds((prev) => (prev.includes(id) ? prev.filter((row) => row !== id) : [...prev, id]));
 
   return (
-    <div className="flex flex-col gap-3" data-testid="campus-weekly-view">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          className="rounded-full bg-solid px-3 py-1 text-[12px] text-onSolid disabled:opacity-60"
-          data-testid="campus-weekly-generate"
-          disabled={generating}
-          onClick={() => {
-            void generate();
-          }}
-        >
-          {generating ? t("campus.kaoyan.weekly.generating") : t("campus.kaoyan.weekly.generate")}
-        </button>
-        {genError ? (
-          <span className="text-[12px] text-warnInk" data-testid="campus-weekly-gen-error">
-            {t(campusErrorKey(campusErrorInfo(genError).code), {
-              defaultValue: campusErrorInfo(genError).message || t("campus.common.error"),
-            })}
-          </span>
-        ) : null}
-        {error ? (
-          <span className="flex items-center gap-2 text-[12px] text-warnInk" data-testid="campus-weekly-error">
-            <span>
+    <section className="mod" data-testid="campus-weekly-view">
+      <div className="mod-head">
+        <span className="ib ib--brand">
+          <Icon name="chart" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.kaoyan.weekly.title")}</span>
+          <span className="mod-desc">{t("campus.kaoyan.weekly.hint")}</span>
+        </div>
+        <div className="mod-acts">
+          <button
+            type="button"
+            className="btn btn--primary btn--sm"
+            data-testid="campus-weekly-generate"
+            disabled={generating}
+            onClick={() => {
+              void generate();
+            }}
+          >
+            {generating ? t("campus.kaoyan.weekly.generating") : t("campus.kaoyan.weekly.generate")}
+          </button>
+        </div>
+      </div>
+
+      {genError ? (
+        <div className="alert" data-testid="campus-weekly-gen-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">
+              {t(campusErrorKey(campusErrorInfo(genError).code), {
+                defaultValue: campusErrorInfo(genError).message || t("campus.common.error"),
+              })}
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="alert" data-testid="campus-weekly-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">
               {t(campusErrorKey(campusErrorInfo(error).code), {
                 defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
               })}
             </span>
-            {retryable ? (
-              <button
-                type="button"
-                className="rounded-full border border-line px-2 py-[1px] text-[11px] text-ink hover:bg-chromeHover"
-                onClick={reload}
-                data-testid="campus-weekly-retry"
-              >
-                {t("campus.common.retry")}
-              </button>
-            ) : null}
-          </span>
-        ) : null}
-      </div>
+          </div>
+          {retryable ? (
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              onClick={reload}
+              data-testid="campus-weekly-retry"
+            >
+              {t("campus.common.retry")}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
-      {items.length === 0 && !loading ? (
-        <div
-          className="rounded-xl2 border border-dashed border-line p-4 text-center text-[13px] text-muted"
-          data-testid="campus-weekly-empty"
-        >
-          {t("campus.kaoyan.weekly.empty")}
+      {loading ? (
+        <div className="stack-gap">
+          <div className="sk" style={{ width: 180 }} />
+          <div className="sk" />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="empty" data-testid="campus-weekly-empty">
+          <span className="ib ib--brand">
+            <Icon name="chart" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.kaoyan.weekly.empty")}</span>
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              data-testid={`campus-weekly-item-${item.id}`}
-              className="cursor-pointer rounded-xl2 border border-line bg-panel px-3 py-2 text-[13px] text-ink hover:bg-chromeHover"
-              onClick={() => setPicked(picked === item.id ? null : item.id)}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[12px]">
-                  {item.week_start} ~ {item.week_end}
-                </span>
-                <span className="text-muted">
-                  {formatPercent(item.completion_rate?.overall ?? 0)}
-                </span>
+        <div className="fill thin qcol">
+          {items.map((item) => {
+            const open = openIds.includes(item.id);
+            return (
+              <div key={item.id} className={open ? "rpt is-on" : "rpt"} data-testid={`campus-weekly-item-${item.id}`}>
+                <button
+                  type="button"
+                  className="rpt-h"
+                  data-testid={`campus-weekly-head-${item.id}`}
+                  aria-expanded={open}
+                  onClick={() => toggle(item.id)}
+                >
+                  <Icon name="chevronRight" size={13} className="rpt-chev" />
+                  <span className="rpt-d">
+                    {item.week_start} ~ {item.week_end.slice(5)}
+                  </span>
+                  <span className="rpt-n">
+                    {t("campus.kaoyan.board.overall")} {formatPercent(item.completion_rate?.overall ?? 0)}
+                  </span>
+                </button>
+                {open ? <ReportDetail report={item} /> : null}
               </div>
-              {picked === item.id ? <ReportDetail report={item} /> : null}
-            </li>
-          ))}
-        </ul>
+            );
+          })}
+        </div>
       )}
-    </div>
+    </section>
   );
 }

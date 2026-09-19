@@ -130,6 +130,42 @@ describe("ProfileSwitcher", () => {
     expect(onShowArchived).toHaveBeenCalled();
   });
 
+  it("offers a finished profile nothing but the delete, whose tools would only 409", () => {
+    const onDelete = vi.fn();
+    const onArchive = vi.fn();
+    const onRename = vi.fn();
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1"), profile("p2", "finished")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onArchive={onArchive}
+        onRename={onRename}
+        onDelete={onDelete}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("campus-profile-delete-p2"));
+    expect(onDelete).toHaveBeenCalledWith("p2");
+    expect(screen.queryByTestId("campus-profile-archive-p2")).toBeNull();
+    expect(screen.queryByTestId("campus-profile-rename-p2")).toBeNull();
+    expect(screen.getByTestId("campus-profile-archive-p1")).toBeTruthy();
+  });
+
+  it("keeps the finished profile without a delete affordance when nothing can handle it", () => {
+    render(
+      <ProfileSwitcher
+        profiles={[profile("p1"), profile("p2", "finished")]}
+        activeId="p1"
+        onSwitch={vi.fn()}
+        onCreate={vi.fn()}
+        onArchive={vi.fn()}
+      />,
+    );
+    expect(screen.queryByTestId("campus-profile-delete-p2")).toBeNull();
+  });
+
   it("keeps the archived entry out of the header while the box is empty", () => {
     render(
       <ProfileSwitcher

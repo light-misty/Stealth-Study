@@ -1,6 +1,8 @@
 // A small set of clean, single-weight line icons (SF-Symbols-ish): 24px grid, 1.7 stroke,
 // currentColor, rounded caps/joins. Replaces emoji in the chrome for a crisp, consistent look.
 
+import { campusIcons, type CampusIconName } from "./campus-icons";
+
 export type IconName =
   | "sparkle"
   | "logo"
@@ -43,7 +45,8 @@ export type IconName =
   | "mic"
   | "stop"
   | "warning"
-  | "x";
+  | "x"
+  | CampusIconName;
 
 export function Icon({
   name,
@@ -373,5 +376,7 @@ export function Icon({
           <path d="M9.2 7V4.9c0-.5.4-.9.9-.9h3.8c.5 0 .9.4.9.9V7" />
         </svg>
       );
+    default:
+      return <svg {...s}>{campusIcons[name]}</svg>;
   }
 }

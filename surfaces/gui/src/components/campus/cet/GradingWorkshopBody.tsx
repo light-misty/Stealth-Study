@@ -5,21 +5,31 @@ import type { Attempt, GradeResult, GradingKind } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
 import { CommonErrorsCard } from "./CommonErrorsCard";
 import { GradingResultCard } from "../GradingResultCard";
+import { Icon, type IconName } from "../../Icon";
 
 const HISTORY_PAGE_SIZE = 10;
+
+// One grading workshop = one module card: 原文 → 结果 → 老毛病 → 历史, in that order, so the
+// answer you just wrote stays the thing you see first. The station renders one workshop per
+// grading domain (essay, translation), so the testid prefix is a parameter: sharing
+// `campus-cet-grading-*` between two panels put duplicate data-testid values in one document
+// (04 §2.2 reads a testid as campus-<domain>-<action>).
 
 export function GradingWorkshopBody({
   profileId,
   kind,
   historySubject,
+  title,
+  desc,
+  icon = "pencil",
   testIdPrefix = "campus-cet-grading",
 }: {
   profileId: string;
   kind: GradingKind;
   historySubject?: string;
-  /** The station renders one workshop per grading domain (essay, translation), so the testid
-   * prefix is a parameter: sharing `campus-cet-grading-*` between two panels put duplicate
-   * `data-testid` values in one document (04 §2.2 reads a testid as campus-<domain>-<action>). */
+  title: string;
+  desc: string;
+  icon?: IconName;
   testIdPrefix?: string;
 }) {
   const { t } = useTranslation();
@@ -28,6 +38,7 @@ export function GradingWorkshopBody({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<unknown>(null);
   const [history, setHistory] = useState<Attempt[]>([]);
+  const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [detail, setDetail] = useState<Attempt | null>(null);
   const textRef = useRef<HTMLTextAreaElement | null>(null);
@@ -39,6 +50,7 @@ export function GradingWorkshopBody({
       (res) => {
         if (!alive) return;
         setHistory(res?.items ?? []);
+        setHistoryTotal(res?.total ?? 0);
         setHistoryLoaded(true);
       },
       () => {
@@ -54,6 +66,7 @@ export function GradingWorkshopBody({
   const refreshHistory = () => {
     listGradingHistory(profileId, { kind, page: 1, pageSize: HISTORY_PAGE_SIZE }).then((res) => {
       setHistory(res?.items ?? []);
+      setHistoryTotal(res?.total ?? 0);
       setHistoryLoaded(true);
     });
   };
@@ -88,30 +101,66 @@ export function GradingWorkshopBody({
   };
 
   return (
-    <div className="grid gap-3">
-      <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-        <div className="text-[13px] font-semibold text-ink">
-          {t("campus.cet.grading.input_label")}
+    <section className="mod">
+      <div className="mod-head">
+        <span className="ib ib--accent">
+          <Icon name={icon} size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{title}</span>
+          <span className="mod-desc">{desc}</span>
         </div>
-        <textarea
-          ref={textRef}
-          className="mt-2 w-full rounded-lg2 border border-line bg-panel px-3 py-2 text-[12px] text-ink"
-          rows={8}
-          data-testid={`${testIdPrefix}-text`}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        {submitError ? (
-          <div
-            className="mt-2 rounded-xl2 border border-warnInk/40 bg-warnSoft px-3 py-2 text-[12px] text-warnInk"
-            data-testid={`${testIdPrefix}-error`}
-          >
-            {t(campusErrorKey(campusErrorInfo(submitError).code), {
-              defaultValue: campusErrorInfo(submitError).message || t("campus.common.error"),
-            })}
+        <div className="mod-acts">
+          {historyTotal > 0 ? (
+            <span className="sec-n" data-testid={`${testIdPrefix}-graded-count`}>
+              {t("campus.cet.grading.graded_count", { count: historyTotal })}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="fill thin qcol">
+        <div className="field">
+          <span className="field-label">{t("campus.cet.grading.input_label")}</span>
+          <textarea
+            ref={textRef}
+            className="textarea"
+            rows={6}
+            data-testid={`${testIdPrefix}-text`}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="word-foot">
+            <span className="st-spacer" />
             <button
               type="button"
-              className="ml-2 text-accent"
+              className="btn btn--primary"
+              data-testid={`${testIdPrefix}-submit`}
+              onClick={onSubmit}
+              disabled={submitting || !text.trim()}
+            >
+              {submitting
+                ? t("campus.cet.grading.submitting")
+                : t("campus.cet.grading.submit")}
+            </button>
+          </div>
+        </div>
+
+        {submitError ? (
+          <div className="alert" data-testid={`${testIdPrefix}-error`}>
+            <Icon name="warning" size={14} />
+            <div className="alert-text">
+              <span className="alert-title">{t("campus.common.error")}</span>
+              <span className="alert-desc">
+                {t(campusErrorKey(campusErrorInfo(submitError).code), {
+                  defaultValue:
+                    campusErrorInfo(submitError).message || t("campus.common.error"),
+                })}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
               onClick={onSubmit}
               disabled={submitting}
               data-testid={`${testIdPrefix}-retry`}
@@ -120,81 +169,80 @@ export function GradingWorkshopBody({
             </button>
           </div>
         ) : null}
-        <div className="mt-3">
-          <button
-            type="button"
-            className="rounded-lg2 bg-accent px-4 py-1.5 text-[12px] font-semibold text-inkOnAccent disabled:opacity-50"
-            data-testid={`${testIdPrefix}-submit`}
-            onClick={onSubmit}
-            disabled={submitting || !text.trim()}
-          >
-            {submitting
-              ? t("campus.cet.grading.submitting")
-              : t("campus.cet.grading.submit")}
-          </button>
-        </div>
-      </div>
 
-      {result ? (
-        <div className="grid gap-3" data-testid={`${testIdPrefix}-result`}>
-          <GradingResultCard result={result} onLocate={locate} />
-          <CommonErrorsCard
-            profileId={profileId}
-            kind={kind}
-            testIdPrefix={testIdPrefix.replace(/-grading$/, "")}
-          />
-        </div>
-      ) : null}
+        {result ? (
+          <div className="qcol" data-testid={`${testIdPrefix}-result`}>
+            <GradingResultCard result={result} onLocate={locate} />
+            <CommonErrorsCard
+              profileId={profileId}
+              kind={kind}
+              testIdPrefix={testIdPrefix.replace(/-grading$/, "")}
+            />
+          </div>
+        ) : null}
 
-      <div className="rounded-xl2 border border-line bg-panel px-4 py-3.5">
-        <div className="text-[13px] font-semibold text-ink">
-          {t("campus.cet.grading.history_title")}
+        <div className="sec">
+          <div className="sec-text">
+            <span className="sec-title">{t("campus.cet.grading.history_title")}</span>
+          </div>
+          {historyLoaded && history.length > 0 ? (
+            <span className="sec-n">
+              {t("campus.cet.grading.history_recent", { count: history.length })}
+            </span>
+          ) : null}
         </div>
-        {!historyLoaded ? null : history.length === 0 ? (
-          <div
-            className="mt-1 text-[12px] text-faint"
-            data-testid={`${testIdPrefix}-history-empty`}
-          >
+
+        {!historyLoaded ? (
+          <div className="stack-gap">
+            <div className="sk" />
+            <div className="sk" style={{ width: "64%" }} />
+          </div>
+        ) : history.length === 0 ? (
+          <div className="body-text" data-testid={`${testIdPrefix}-history-empty`}>
             {t("campus.cet.grading.history_empty")}
           </div>
         ) : (
-          <ul className="mt-2 grid gap-1.5">
+          <div className="rows">
             {history.map((item) => (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-lg2 border border-line px-3 py-1.5 text-left text-[12px] text-muted"
-                  data-testid={`${testIdPrefix}-history-item`}
-                  data-attempt={item.id}
-                  onClick={() => openDetail(item.id)}
-                >
-                  <span className="text-ink">{item.created_at.slice(0, 10)}</span>
-                  <span>{item.score ?? "—"}</span>
-                </button>
-              </li>
+              <button
+                key={item.id}
+                type="button"
+                className="lrow lrow--link"
+                data-testid={`${testIdPrefix}-history-item`}
+                data-attempt={item.id}
+                onClick={() => openDetail(item.id)}
+              >
+                <div className="lrow-text">
+                  <span className="lrow-title">{item.created_at.slice(0, 10)}</span>
+                  <span className="lrow-meta">{item.user_answer}</span>
+                </div>
+                <div className="lrow-acts">
+                  <span className="sec-n">{item.score ?? "—"}</span>
+                  <Icon name="chevronRight" size={13} />
+                </div>
+              </button>
             ))}
-          </ul>
+          </div>
         )}
+
         {detail ? (
-          <div
-            className="mt-2 rounded-lg2 border border-line px-3 py-2 text-[12px]"
-            data-testid={`${testIdPrefix}-history-detail`}
-            data-attempt={detail.id}
-          >
-            <div className="text-muted">
-              <span className="text-faint">{t("campus.cet.grading.detail_score")}</span>
-              <span className="ml-1 text-ink">
-                {detail.score ?? "—"}
-                {detail.max_score != null ? ` / ${detail.max_score}` : ""}
-              </span>
-            </div>
-            <div className="mt-1 text-muted">
-              <span className="text-faint">{t("campus.cet.grading.detail_answer")}</span>
-              <span className="ml-1 text-ink">{detail.user_answer}</span>
+          <div className="sub" data-testid={`${testIdPrefix}-history-detail`} data-attempt={detail.id}>
+            <div className="kv">
+              <div className="kv-row">
+                <span className="kv-k">{t("campus.cet.grading.detail_score")}</span>
+                <span className="kv-v kv-v--mono">
+                  {detail.score ?? "—"}
+                  {detail.max_score != null ? ` / ${detail.max_score}` : ""}
+                </span>
+              </div>
+              <div className="kv-row">
+                <span className="kv-k">{t("campus.cet.grading.detail_answer")}</span>
+                <span className="kv-v">{detail.user_answer}</span>
+              </div>
             </div>
           </div>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }

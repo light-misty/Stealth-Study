@@ -8,6 +8,7 @@ import { initI18n } from "./i18n";
 import { startLogCapture } from "./logging";
 import "./tailwind.css";
 import "./styles.css";
+import "./campus-station.css";
 
 initTheme();
 // Platform hook for CSS (html[data-platform="windows"] scrollbar styling etc.).

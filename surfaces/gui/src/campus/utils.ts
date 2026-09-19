@@ -1,5 +1,11 @@
 import { CampusApiError } from "./api";
-import type { DegradeLevel, DeadlineTier, ExamProfile, ScoringState } from "./types";
+import type {
+  DegradeLevel,
+  DeadlineTier,
+  ExamProfile,
+  ProfileImpact,
+  ScoringState,
+} from "./types";
 
 // Shared display helpers for the campus station UI. Kept dependency-free and pure so
 // every panel can be tested without rendering or network access.
@@ -134,4 +140,122 @@ export function suggestProfileTitle(profiles: ExamProfile[], title: string, exce
     if (!profileTitleTaken(profiles, candidate, exceptId)) return candidate;
   }
   return "";
+}
+
+/**
+ * The A11 cascade told back in the words the station already uses for it (02 §7.3). Ordered:
+ * the desk's own modules first, then the profile row itself, then the two things that live
+ * outside campus.db. A table this list never heard of lands in `other` rather than vanishing —
+ * an irreversible delete must not under-report what it takes.
+ */
+export const PROFILE_IMPACT_GROUPS: readonly { key: string; tables: readonly string[] }[] = [
+  { key: "library", tables: ["source_doc", "doc_chunk"] },
+  { key: "questions", tables: ["question_bank_item"] },
+  { key: "vocab", tables: ["vocab_item"] },
+  { key: "knowledge", tables: ["knowledge_point", "mastery"] },
+  { key: "attempts", tables: ["attempt"] },
+  { key: "mistakes", tables: ["mistake_book"] },
+  { key: "review", tables: ["review_queue"] },
+  { key: "plans", tables: ["study_plan", "plan_task"] },
+  { key: "exams", tables: ["mock_exam", "assessment"] },
+  { key: "reports", tables: ["weekly_report"] },
+  { key: "deadlines", tables: ["cert_deadline"] },
+  { key: "school", tables: ["school_profile"] },
+];
+
+/** The group keys, in render order, including the three that are not campus tables. */
+export const PROFILE_IMPACT_KEYS: readonly string[] = [
+  ...PROFILE_IMPACT_GROUPS.map((group) => group.key),
+  "other",
+  "profile",
+  "automations",
+  "exports",
+];
+
+export interface ProfileImpactRow {
+  key: string;
+  count: number;
+}
+
+export function profileImpactRows(impact: ProfileImpact | null): ProfileImpactRow[] {
+  if (!impact) return [];
+  const rows: ProfileImpactRow[] = [];
+  const named = new Set<string>();
+  for (const group of PROFILE_IMPACT_GROUPS) {
+    const count = group.tables.reduce(
+      (sum, table) => sum + (impact.cascade[table] ?? 0),
+      0,
+    );
+    for (const table of group.tables) named.add(table);
+    if (count) rows.push({ key: group.key, count });
+  }
+  const other = Object.entries(impact.cascade).reduce(
+    (sum, [table, count]) =>
+      named.has(table) || table === "exam_profile" ? sum : sum + count,
+    0,
+  );
+  if (other) rows.push({ key: "other", count: other });
+  if (impact.cascade.exam_profile) rows.push({ key: "profile", count: impact.cascade.exam_profile });
+  if (impact.automation_tasks) rows.push({ key: "automations", count: impact.automation_tasks });
+  if (impact.export_files) rows.push({ key: "exports", count: impact.export_files });
+  return rows;
+}
+
+/** Everything the delete takes, the profile row included; `null` when the cost is unknown. */
+export function profileImpactTotal(impact: ProfileImpact | null): number | null {
+  if (!impact) return null;
+  return profileImpactRows(impact).reduce((sum, row) => sum + row.count, 0);
+}
+
+/** The rail's heat strip is a fixed 21-day window, so the caption can say 近 21 天 truthfully. */
+export const HEAT_WINDOW_DAYS = 21;
+
+/** `YYYY-MM-DD` in the viewer's own calendar — `toISOString` would slide across a UTC boundary. */
+export function localDay(date: Date): string {
+  const pad = (part: number) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** A row's fill ratio, clamped: an over-plan day must not paint a bar past its own track. */
+export function progressRatio(done: number, total: number): number {
+  if (!total) return 0;
+  return Math.max(0, Math.min(1, done / total));
+}
+
+/** The window as `days` cells, oldest first, ending on the local today, gaps filled with zero. */
+export function heatWindow(
+  heatmap: readonly { date: string; count: number }[],
+  days: number = HEAT_WINDOW_DAYS,
+  now: Date = new Date(),
+): { date: string; count: number }[] {
+  const counts = new Map(heatmap.map((cell) => [cell.date, cell.count]));
+  const cells: { date: string; count: number }[] = [];
+  for (let back = days - 1; back >= 0; back -= 1) {
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+    const date = localDay(day);
+    cells.push({ date, count: counts.get(date) ?? 0 });
+  }
+  return cells;
+}
+
+/** How much of this week (Monday first) and this calendar month already has a check-in. */
+export function checkInSummary(
+  heatmap: readonly { date: string; count: number }[],
+  now: Date = new Date(),
+): { weekDone: number; weekTotal: number; monthDone: number; monthTotal: number } {
+  const days = new Set(heatmap.filter((cell) => cell.count > 0).map((cell) => cell.date));
+  const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  let weekDone = 0;
+  for (let step = 0; step < 7; step += 1) {
+    const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + step);
+    if (days.has(localDay(day))) weekDone += 1;
+  }
+  const monthTotal = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  let monthDone = 0;
+  for (let step = 1; step <= monthTotal; step += 1) {
+    const day = new Date(now.getFullYear(), now.getMonth(), step);
+    if (days.has(localDay(day))) monthDone += 1;
+  }
+  return { weekDone, weekTotal: 7, monthDone, monthTotal };
 }

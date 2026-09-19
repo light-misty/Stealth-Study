@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { listVocabToday, makeMnemonic, setVocabMastery } from "../../../campus/api";
 import type { MasteryLevel, VocabItem } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey } from "../../../campus/utils";
+import { Icon } from "../../Icon";
 
 const MASTERY_LEVELS: MasteryLevel[] = ["unknown", "fuzzy", "mastered"];
 
@@ -106,90 +107,104 @@ export function VocabPanel({ profileId }: { profileId: string }) {
   };
 
   const renderItem = (item: VocabItem) => (
-    <div
-      key={item.id}
-      className="rounded-xl2 border border-line bg-panel px-3 py-2.5"
-      data-testid="campus-cet-vocab-item"
-      data-word={item.word}
-    >
-      <div className="flex items-baseline gap-2">
-        <span className="text-[13px] font-semibold text-ink">{item.word}</span>
-        {item.phonetic ? <span className="text-[12px] text-faint">{item.phonetic}</span> : null}
+    <div className="sub word" key={item.id} data-testid="campus-cet-vocab-item" data-word={item.word}>
+      <div className="word-h">
+        <span className="word-t">{item.word}</span>
+        {item.phonetic ? <span className="word-p">{item.phonetic}</span> : null}
       </div>
-      <div className="mt-0.5 text-[12px] text-muted">{item.meaning}</div>
-      {item.example ? <div className="mt-0.5 text-[12px] text-faint">{item.example}</div> : null}
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        {MASTERY_LEVELS.map((level) => (
-          <button
-            key={level}
-            type="button"
-            className={`rounded-lg2 border px-2 py-0.5 text-[11px] ${
-              item.mastery === level
-                ? "border-accent bg-accentSoft text-ink"
-                : "border-line bg-panel text-muted"
-            }`}
-            data-testid="campus-cet-vocab-mastery"
-            data-vocab={item.id}
-            data-level={level}
-            data-active={item.mastery === level ? "true" : "false"}
-            onClick={() => markMastery(item.id, level)}
-          >
-            {t(MASTERY_KEY[level])}
-          </button>
-        ))}
+      <p className="word-m">{item.meaning}</p>
+      {item.example ? <p className="word-x">{item.example}</p> : null}
+      <div className="word-foot">
+        <div className="picks">
+          {MASTERY_LEVELS.map((level) => (
+            <button
+              key={level}
+              type="button"
+              className={item.mastery === level ? "pick is-on" : "pick"}
+              data-testid="campus-cet-vocab-mastery"
+              data-vocab={item.id}
+              data-level={level}
+              data-active={item.mastery === level ? "true" : "false"}
+              onClick={() => markMastery(item.id, level)}
+            >
+              <span
+                className={
+                  item.mastery === level ? `mas-dot mas-dot--${level} is-on` : `mas-dot mas-dot--${level}`
+                }
+              />
+              {t(MASTERY_KEY[level])}
+            </button>
+          ))}
+        </div>
+        <span className="st-spacer" />
         <button
           type="button"
-          className="ml-auto rounded-lg2 border border-line bg-panel px-2 py-0.5 text-[11px] text-muted disabled:opacity-50"
+          className="btn btn--ghost btn--sm"
           data-testid="campus-cet-vocab-mnemonic"
           data-vocab={item.id}
           disabled={mnemonicBusy === item.id}
           onClick={() => requestMnemonic(item.id)}
         >
+          <Icon name="sparkle" size={12} />
           {mnemonicBusy === item.id
             ? t("campus.cet.vocab.mnemonic_busy")
             : t("campus.cet.vocab.mnemonic")}
         </button>
       </div>
       {markError === item.id ? (
-        <div
-          className="mt-1 text-[12px] text-warnInk"
-          data-testid="campus-cet-vocab-mastery-error"
-        >
+        <span className="field-err" data-testid="campus-cet-vocab-mastery-error">
           {t("campus.cet.vocab.mastery_error")}
-        </div>
+        </span>
       ) : null}
       {mnemonicError === item.id ? (
-        <div
-          className="mt-1 text-[12px] text-warnInk"
-          data-testid="campus-cet-vocab-mnemonic-error"
-        >
+        <span className="field-err" data-testid="campus-cet-vocab-mnemonic-error">
           {t("campus.cet.vocab.mnemonic_error")}
-        </div>
+        </span>
       ) : null}
       {mnemonics[item.id] ? (
-        <div
-          className="mt-1.5 rounded-lg2 border border-line bg-panel px-2.5 py-1.5 text-[12px] text-ink"
-          data-testid="campus-cet-vocab-mnemonic-text"
-          data-vocab={item.id}
-        >
-          {mnemonics[item.id]}
+        <div className="mnemonic" data-testid="campus-cet-vocab-mnemonic-text" data-vocab={item.id}>
+          <Icon name="sparkle" size={14} />
+          <div className="mnemonic-text">
+            <span className="mnemonic-k">{t("campus.cet.vocab.mnemonic")}</span>
+            <span>{mnemonics[item.id]}</span>
+          </div>
         </div>
       ) : null}
     </div>
   );
 
+  const renderSection = (
+    testId: string,
+    label: string,
+    items: VocabItem[],
+  ) =>
+    items.length === 0 ? null : (
+      <section className="qcol" data-testid={testId}>
+        <div className="sec">
+          <div className="sec-text">
+            <span className="sec-title">{label}</span>
+          </div>
+          <span className="sec-n">{items.length}</span>
+        </div>
+        {items.map(renderItem)}
+      </section>
+    );
+
   if (error) {
     return (
-      <div
-        className="rounded-xl2 border border-warnInk/40 bg-warnSoft px-4 py-3 text-[13px] text-warnInk"
-        data-testid="campus-cet-vocab-error"
-      >
-        {t(campusErrorKey(campusErrorInfo(error).code), {
-          defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
-        })}
+      <div className="alert" data-testid="campus-cet-vocab-error">
+        <Icon name="warning" size={14} />
+        <div className="alert-text">
+          <span className="alert-title">{t("campus.common.error")}</span>
+          <span className="alert-desc">
+            {t(campusErrorKey(campusErrorInfo(error).code), {
+              defaultValue: campusErrorInfo(error).message || t("campus.common.error"),
+            })}
+          </span>
+        </div>
         <button
           type="button"
-          className="ml-2 text-accent"
+          className="btn btn--ghost btn--sm"
           onClick={() => setNonce((n) => n + 1)}
           data-testid="campus-cet-vocab-retry"
         >
@@ -199,34 +214,51 @@ export function VocabPanel({ profileId }: { profileId: string }) {
     );
   }
 
-  const isEmpty =
-    !loading && data.new_items.length === 0 && data.review_items.length === 0;
+  const isEmpty = !loading && data.new_items.length === 0 && data.review_items.length === 0;
 
   return (
-    <div className="grid gap-3" data-testid="campus-cet-vocab">
-      {isEmpty ? (
-        <div
-          className="rounded-xl2 border border-line bg-panel px-4 py-3.5 text-[12px] text-faint"
-          data-testid="campus-cet-vocab-empty"
-        >
-          {t("campus.cet.vocab.empty")}
+    <section className="mod" data-testid="campus-cet-vocab">
+      <div className="mod-head">
+        <span className="ib ib--accent">
+          <Icon name="book" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.cet.vocab.title")}</span>
+          <span className="mod-desc">{t("campus.cet.vocab.hint")}</span>
+        </div>
+        <div className="mod-acts">
+          {data.new_items.length + data.review_items.length > 0 ? (
+            <span className="sec-n">
+              {t("campus.cet.vocab.today_new")} {data.new_items.length} ·{" "}
+              {t("campus.cet.vocab.today_review")} {data.review_items.length}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="stack-gap">
+          <div className="sk" style={{ width: 160 }} />
+          <div className="sk" />
+          <div className="sk" style={{ width: "70%" }} />
+        </div>
+      ) : isEmpty ? (
+        <div className="empty" data-testid="campus-cet-vocab-empty">
+          <span className="ib ib--brand">
+            <Icon name="book" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.cet.vocab.empty")}</span>
         </div>
       ) : (
-        <>
-          <section className="grid gap-2" data-testid="campus-cet-vocab-section-new">
-            <div className="text-[13px] font-semibold text-ink">
-              {t("campus.cet.vocab.today_new")}
-            </div>
-            {loading ? null : data.new_items.map(renderItem)}
-          </section>
-          <section className="grid gap-2" data-testid="campus-cet-vocab-section-review">
-            <div className="text-[13px] font-semibold text-ink">
-              {t("campus.cet.vocab.today_review")}
-            </div>
-            {loading ? null : data.review_items.map(renderItem)}
-          </section>
-        </>
+        <div className="fill thin qcol">
+          {renderSection("campus-cet-vocab-section-new", t("campus.cet.vocab.today_new"), data.new_items)}
+          {renderSection(
+            "campus-cet-vocab-section-review",
+            t("campus.cet.vocab.today_review"),
+            data.review_items,
+          )}
+        </div>
       )}
-    </div>
+    </section>
   );
 }

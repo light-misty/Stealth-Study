@@ -88,15 +88,21 @@ describe("PlanPanel", () => {
 
     render(<PlanPanel profileId="p1" />);
     await waitFor(() => expect(screen.getByTestId("campus-kaoyan-task-t-todo")).toBeTruthy());
-    expect(screen.getByTestId("campus-kaoyan-task-t-todo").textContent).toContain("2026-09-08");
+    expect(screen.getByTestId("campus-kaoyan-task-t-todo").getAttribute("data-date")).toBe(
+      "2026-09-08",
+    );
 
     fireEvent.click(screen.getByTestId("campus-plan-reschedule"));
     await waitFor(() => expect(apiMock.listTasks).toHaveBeenCalledTimes(2));
     await waitFor(() =>
-      expect(screen.getByTestId("campus-kaoyan-task-t-todo").textContent).toContain("2026-09-15"),
+      expect(screen.getByTestId("campus-kaoyan-task-t-todo").getAttribute("data-date")).toBe(
+        "2026-09-15",
+      ),
     );
     expect(apiMock.reschedulePlan).toHaveBeenCalledWith("p1", "plan-1", undefined);
-    expect(screen.getByTestId("campus-kaoyan-task-t-done").textContent).toContain("2026-09-07");
+    expect(screen.getByTestId("campus-kaoyan-task-t-done").getAttribute("data-date")).toBe(
+      "2026-09-07",
+    );
   });
 
   it("refreshes the board after a successful generation", async () => {

@@ -4,16 +4,14 @@ import { GradingWorkshopBody } from "./GradingWorkshopBody";
 export function TranslationGradingPanel({ profileId }: { profileId: string }) {
   const { t } = useTranslation();
   return (
-    <div className="grid gap-3">
-      <div className="text-[13px] font-semibold text-ink">
-        {t("campus.cet.translation.title")}
-      </div>
-      <GradingWorkshopBody
-        profileId={profileId}
-        kind="translation"
-        historySubject="translation"
-        testIdPrefix="campus-cet-translation-grading"
-      />
-    </div>
+    <GradingWorkshopBody
+      profileId={profileId}
+      kind="translation"
+      historySubject="translation"
+      title={t("campus.cet.translation.title")}
+      desc={t("campus.cet.translation.hint")}
+      icon="globe"
+      testIdPrefix="campus-cet-translation-grading"
+    />
   );
 }

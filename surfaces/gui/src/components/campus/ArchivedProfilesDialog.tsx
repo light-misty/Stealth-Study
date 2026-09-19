@@ -3,14 +3,12 @@ import { useTranslation } from "react-i18next";
 import type { ExamProfile } from "../../campus/types";
 import { daysSince, formatTimestamp } from "../../campus/utils";
 import { CampusDialog } from "./CampusDialog";
+import { Icon } from "../Icon";
 
 type ArchiveFilter = "all" | "recent_7d" | "recent_30d" | "older";
 type ArchiveSort = "archived_desc" | "created_desc";
 
 const NO_TIME = "--";
-
-const CONTROL =
-  "rounded-lg border border-line bg-transparent px-2 py-1 text-[12.5px] text-ink outline-none";
 
 const FILTERS: readonly ArchiveFilter[] = ["all", "recent_7d", "recent_30d", "older"];
 const SORTS: readonly ArchiveSort[] = ["archived_desc", "created_desc"];
@@ -33,10 +31,11 @@ interface Props {
   profiles: ExamProfile[];
   onRestore: (id: string) => void;
   onRename: (id: string) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
 }
 
-export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose }: Props) {
+export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onDelete, onClose }: Props) {
   const { t } = useTranslation();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ArchiveFilter>("all");
@@ -61,52 +60,69 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose 
   const detail = detailId ? archived.find((p) => p.id === detailId) ?? null : null;
 
   const toolbar = (
-    <div className="grid gap-2" data-testid="campus-archived-toolbar">
+    <div className="stack-gap" data-testid="campus-archived-toolbar">
       <input
-        className={CONTROL}
+        className="input"
         value={query}
         placeholder={t("campus.archived.search_placeholder")}
         onChange={(e) => setQuery(e.target.value)}
         data-testid="campus-archived-search"
         aria-label={t("campus.archived.search_placeholder")}
       />
-      <div className="flex items-center gap-2">
-        <select
-          className={CONTROL}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as ArchiveFilter)}
-          data-testid="campus-archived-filter"
-          aria-label={t("campus.archived.filter_aria")}
-        >
-          {FILTERS.map((option) => (
-            <option key={option} value={option}>
-              {t(`campus.archived.filter_${option}`)}
-            </option>
-          ))}
-        </select>
-        <select
-          className={CONTROL}
-          value={sort}
-          onChange={(e) => setSort(e.target.value as ArchiveSort)}
-          data-testid="campus-archived-sort"
-          aria-label={t("campus.archived.sort_aria")}
-        >
-          {SORTS.map((option) => (
-            <option key={option} value={option}>
-              {t(`campus.archived.sort_${option}`)}
-            </option>
-          ))}
-        </select>
+      <div className="field-rows">
+        <div className="field">
+          <div className="sel">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as ArchiveFilter)}
+              data-testid="campus-archived-filter"
+              aria-label={t("campus.archived.filter_aria")}
+            >
+              {FILTERS.map((option) => (
+                <option key={option} value={option}>
+                  {t(`campus.archived.filter_${option}`)}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevronDown" size={14} className="sel-chev" />
+          </div>
+        </div>
+        <div className="field">
+          <div className="sel">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as ArchiveSort)}
+              data-testid="campus-archived-sort"
+              aria-label={t("campus.archived.sort_aria")}
+            >
+              {SORTS.map((option) => (
+                <option key={option} value={option}>
+                  {t(`campus.archived.sort_${option}`)}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevronDown" size={14} className="sel-chev" />
+          </div>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <CampusDialog testId="campus-archived-dialog" title={t("campus.archived.title")} onClose={onClose} width="w-[520px]">
+    <CampusDialog
+      testId="campus-archived-dialog"
+      title={t("campus.archived.title")}
+      icon="archive"
+      wide
+      onClose={onClose}
+    >
       {archived.length === 0 ? (
-        <p className="py-3 text-[13px] text-muted" data-testid="campus-archived-empty">
-          {t("campus.archived.empty")}
-        </p>
+        <div className="empty" data-testid="campus-archived-empty">
+          <span className="ib ib--brand">
+            <Icon name="archive" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.archived.empty")}</span>
+        </div>
       ) : (
         <>
           {toolbar}
@@ -116,60 +132,78 @@ export function ArchivedProfilesDialog({ profiles, onRestore, onRename, onClose 
               onBack={() => setDetailId(null)}
               onRename={() => onRename(detail.id)}
               onRestore={() => onRestore(detail.id)}
+              onDelete={onDelete ? () => onDelete(detail.id) : undefined}
             />
           ) : visible.length === 0 ? (
-            <p className="py-3 text-[13px] text-muted" data-testid="campus-archived-nomatch">
+            <p className="dlg-note" data-testid="campus-archived-nomatch">
               {t("campus.archived.nomatch")}
             </p>
           ) : (
-            <div className="mt-1" data-testid="campus-archived-list">
-              {visible.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-2 border-t border-line py-2"
-                  data-testid={`campus-archived-row-${p.id}`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[13px] text-ink" data-testid={`campus-archived-title-${p.id}`}>
-                      {p.title}
+            <div className="arch-list" data-testid="campus-archived-list">
+              <div className="rows">
+                {visible.map((p) => (
+                  <div key={p.id} className="lrow" data-testid={`campus-archived-row-${p.id}`}>
+                    <div className="lrow-text">
+                      <span className="lrow-title" data-testid={`campus-archived-title-${p.id}`}>
+                        {p.title}
+                      </span>
+                      <span className="lrow-meta">
+                        {t("campus.archived.created")}{" "}
+                        <span data-testid={`campus-archived-created-${p.id}`}>
+                          {formatTimestamp(p.created_at) || NO_TIME}
+                        </span>
+                        {" · "}
+                        {t("campus.archived.archived")}{" "}
+                        <span data-testid={`campus-archived-at-${p.id}`}>
+                          {formatTimestamp(p.archived_at) || NO_TIME}
+                        </span>
+                      </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap gap-x-2 text-[11.5px] text-faint">
-                      <span>{t("campus.archived.created")}</span>
-                      <span data-testid={`campus-archived-created-${p.id}`}>
-                        {formatTimestamp(p.created_at) || NO_TIME}
-                      </span>
-                      <span>{t("campus.archived.archived")}</span>
-                      <span data-testid={`campus-archived-at-${p.id}`}>
-                        {formatTimestamp(p.archived_at) || NO_TIME}
-                      </span>
+                    <div className="lrow-acts">
+                      <button
+                        type="button"
+                        className="btn btn--text btn--sm"
+                        onClick={() => setDetailId(p.id)}
+                        data-testid={`campus-archived-detail-${p.id}`}
+                      >
+                        {t("campus.archived.detail")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--text btn--sm"
+                        onClick={() => onRename(p.id)}
+                        data-testid={`campus-archived-rename-${p.id}`}
+                      >
+                        {t("campus.profile.rename")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--soft btn--sm"
+                        onClick={() => onRestore(p.id)}
+                        data-testid={`campus-archived-restore-${p.id}`}
+                      >
+                        {t("campus.archived.restore")}
+                      </button>
+                      {onDelete ? (
+                        <button
+                          type="button"
+                          className="btn btn--text btn--sm btn--danger-text"
+                          onClick={() => onDelete(p.id)}
+                          data-testid={`campus-archived-delete-${p.id}`}
+                        >
+                          {t("campus.profile.delete")}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-[12.5px] text-muted hover:text-ink"
-                    onClick={() => setDetailId(p.id)}
-                    data-testid={`campus-archived-detail-${p.id}`}
-                  >
-                    {t("campus.archived.detail")}
-                  </button>
-                  <button
-                    type="button"
-                    className="px-2 py-1 text-[12.5px] text-muted hover:text-ink"
-                    onClick={() => onRename(p.id)}
-                    data-testid={`campus-archived-rename-${p.id}`}
-                  >
-                    {t("campus.profile.rename")}
-                  </button>
-                  <button
-                    type="button"
-                    className="px-2.5 py-1 rounded-lg text-[12.5px] bg-accent text-white"
-                    onClick={() => onRestore(p.id)}
-                    data-testid={`campus-archived-restore-${p.id}`}
-                  >
-                    {t("campus.archived.restore")}
-                  </button>
+                ))}
+              </div>
+              <div className="alert alert--info">
+                <Icon name="warning" size={14} />
+                <div className="alert-text">
+                  <span className="alert-desc">{t("campus.archived.restore_hint")}</span>
                 </div>
-              ))}
+              </div>
             </div>
           )}
         </>
@@ -183,55 +217,70 @@ function ProfileDetail({
   onBack,
   onRename,
   onRestore,
+  onDelete,
 }: {
   profile: ExamProfile;
   onBack: () => void;
   onRename: () => void;
   onRestore: () => void;
+  onDelete?: () => void;
 }) {
   const { t } = useTranslation();
   const rows: readonly [string, string][] = [
     [t("campus.profile.title_label"), profile.title],
     [t("campus.profile.exam_date_label"), profile.exam_date || NO_TIME],
-    [t("campus.profile.target_score_label"), profile.target_score == null ? NO_TIME : String(profile.target_score)],
+    [
+      t("campus.profile.target_score_label"),
+      profile.target_score == null ? NO_TIME : String(profile.target_score),
+    ],
     [t("campus.profile.daily_minutes_label"), String(profile.daily_minutes)],
     [t("campus.archived.created"), formatTimestamp(profile.created_at) || NO_TIME],
     [t("campus.archived.archived"), formatTimestamp(profile.archived_at) || NO_TIME],
   ];
 
   return (
-    <div className="mt-3" data-testid="campus-archived-detail">
-      <dl className="grid gap-1.5">
+    <div className="arch-detail" data-testid="campus-archived-detail">
+      <div className="kv">
         {rows.map(([label, value]) => (
-          <div key={label} className="flex items-baseline gap-2 text-[12.5px]">
-            <dt className="w-[92px] shrink-0 text-faint">{label}</dt>
-            <dd className="min-w-0 flex-1 break-words text-ink">{value}</dd>
+          <div className="kv-row" key={label}>
+            <span className="kv-k">{label}</span>
+            <span className="kv-v">{value}</span>
           </div>
         ))}
-      </dl>
-      <p className="mt-2.5 text-[11.5px] leading-[18px] text-faint">
-        {t("campus.archived.restore_hint")}
-      </p>
-      <div className="mt-2.5 flex items-center gap-2">
+      </div>
+      <p className="dlg-note">{t("campus.archived.restore_hint")}</p>
+      {onDelete ? <p className="dlg-note">{t("campus.archived.delete_hint")}</p> : null}
+      <div className="mod-foot">
         <button
           type="button"
-          className="px-2.5 py-1.5 rounded-lg text-[13px] text-muted border border-line hover:text-ink"
+          className="btn btn--ghost btn--sm"
           onClick={onBack}
           data-testid="campus-archived-detail-back"
         >
           {t("campus.archived.back")}
         </button>
+        <span className="st-spacer" />
         <button
           type="button"
-          className="px-2.5 py-1.5 rounded-lg text-[13px] text-muted border border-line hover:text-ink"
+          className="btn btn--ghost btn--sm"
           onClick={onRename}
           data-testid="campus-archived-detail-rename"
         >
           {t("campus.profile.rename")}
         </button>
+        {onDelete ? (
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm btn--danger-text"
+            onClick={onDelete}
+            data-testid="campus-archived-detail-delete"
+          >
+            {t("campus.profile.delete")}
+          </button>
+        ) : null}
         <button
           type="button"
-          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px]"
+          className="btn btn--primary btn--sm"
           onClick={onRestore}
           data-testid="campus-archived-detail-restore"
         >

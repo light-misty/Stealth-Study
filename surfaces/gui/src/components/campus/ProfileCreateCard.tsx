@@ -6,9 +6,6 @@ import type { CampusTrack, ProfileCreateInput } from "../../campus/types";
 // (07 §5 T16 acceptance ①). Optional fields are omitted rather than sent blank so the
 // backend applies its own defaults instead of choking on "".
 
-const FIELD =
-  "w-full rounded-lg border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-ink outline-none";
-
 export function ProfileCreateCard({
   track,
   onCreate,
@@ -56,83 +53,87 @@ export function ProfileCreateCard({
   };
 
   return (
-    <div
-      className="rounded-xl2 border border-line bg-panel px-4 py-3.5"
-      data-testid="campus-profile-create-card"
-    >
-      <div className="text-[13px] font-semibold text-ink">{t("campus.profile.create")}</div>
-
-      <div className="mt-3 grid gap-2.5">
-        <label className="block">
-          <span className="text-[12px] text-muted">{t("campus.profile.title_label")}</span>
-          <input
-            className={`${FIELD} mt-1`}
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              setInvalid(false);
-            }}
-            data-testid="campus-profile-create-title"
-          />
-        </label>
-        <label className="block">
-          <span className="text-[12px] text-muted">{t("campus.profile.exam_date_label")}</span>
-          <input
-            type="date"
-            className={`${FIELD} mt-1`}
-            value={examDate}
-            onChange={(e) => setExamDate(e.target.value)}
-            data-testid="campus-profile-create-exam-date"
-          />
-        </label>
-        <div className="grid grid-cols-2 gap-2.5">
-          <label className="block">
-            <span className="text-[12px] text-muted">{t("campus.profile.target_score_label")}</span>
-            <input
-              className={`${FIELD} mt-1`}
-              value={targetScore}
-              onChange={(e) => setTargetScore(e.target.value)}
-              data-testid="campus-profile-create-target-score"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[12px] text-muted">{t("campus.profile.daily_minutes_label")}</span>
-            <input
-              className={`${FIELD} mt-1`}
-              value={dailyMinutes}
-              onChange={(e) => setDailyMinutes(e.target.value)}
-              data-testid="campus-profile-create-daily-minutes"
-            />
-          </label>
+    <div className="mod" data-testid="campus-profile-create-card">
+      <div className="mod-head">
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.profile.create")}</span>
+          <span className="mod-desc">{t(`campus.track.${track}.tagline`)}</span>
         </div>
       </div>
 
-      {invalid && (
-        <div className="mt-2 text-[12px] text-warnInk" data-testid="campus-profile-create-error">
-          {t("campus.profile.title_required")}
-        </div>
-      )}
+      <div className={invalid ? "field is-bad" : "field"}>
+        <span className="field-label">{t("campus.profile.title_label")}</span>
+        <input
+          className="input"
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setInvalid(false);
+          }}
+          data-testid="campus-profile-create-title"
+        />
+        {invalid ? (
+          <span className="field-err" data-testid="campus-profile-create-error">
+            {t("campus.profile.title_required")}
+          </span>
+        ) : null}
+      </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="field">
+        <span className="field-label">{t("campus.profile.exam_date_label")}</span>
+        <input
+          className="input input--num"
+          type="date"
+          value={examDate}
+          onChange={(e) => setExamDate(e.target.value)}
+          data-testid="campus-profile-create-exam-date"
+        />
+      </div>
+
+      <div className="field-rows">
+        <div className="field">
+          <span className="field-label">{t("campus.profile.target_score_label")}</span>
+          <input
+            className="input input--num"
+            inputMode="numeric"
+            value={targetScore}
+            onChange={(e) => setTargetScore(e.target.value)}
+            data-testid="campus-profile-create-target-score"
+          />
+        </div>
+        <div className="field">
+          <span className="field-label">{t("campus.profile.daily_minutes_label")}</span>
+          <input
+            className="input input--num"
+            inputMode="numeric"
+            value={dailyMinutes}
+            onChange={(e) => setDailyMinutes(e.target.value)}
+            data-testid="campus-profile-create-daily-minutes"
+          />
+        </div>
+      </div>
+
+      <div className="mod-foot">
+        {onCancel ? (
+          <button
+            type="button"
+            className="btn btn--text"
+            onClick={onCancel}
+            data-testid="campus-profile-create-cancel"
+          >
+            {t("campus.profile.create_cancel")}
+          </button>
+        ) : null}
+        <span className="st-spacer" />
         <button
           type="button"
-          className="px-3 py-1.5 rounded-lg bg-accent text-white text-[13px] disabled:opacity-40"
+          className="btn btn--primary"
           onClick={submit}
           disabled={busy}
           data-testid="campus-profile-create-submit"
         >
           {t("campus.profile.create_submit")}
         </button>
-        {onCancel && (
-          <button
-            type="button"
-            className="px-2 py-1.5 text-[13px] text-faint hover:text-muted"
-            onClick={onCancel}
-            data-testid="campus-profile-create-cancel"
-          >
-            {t("campus.profile.create_cancel")}
-          </button>
-        )}
       </div>
     </div>
   );

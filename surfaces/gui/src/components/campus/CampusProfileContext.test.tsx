@@ -14,6 +14,7 @@ vi.mock("../../campus/api", async (importOriginal) => {
     patchAppState: vi.fn(),
     createProfile: vi.fn(),
     patchProfile: vi.fn(),
+    deleteProfile: vi.fn(),
   };
 });
 
@@ -52,8 +53,10 @@ function Probe() {
     createProfile,
     renameProfile,
     setStatus,
+    deleteProfile,
   } = useCampusProfile();
   const [renameResult, setRenameResult] = useState("none");
+  const [deleteResult, setDeleteResult] = useState("none");
   return (
     <div>
       <span data-testid="profiles">{profiles.map((p) => p.id).join(",")}</span>
@@ -66,6 +69,17 @@ function Probe() {
       <span data-testid="action-title">{actionError?.title ?? "none"}</span>
       <span data-testid="action-id">{actionError?.profileId ?? "none"}</span>
       <span data-testid="rename-result">{renameResult}</span>
+      <span data-testid="delete-result">{deleteResult}</span>
+      <button
+        data-testid="delete"
+        onClick={() => {
+          void deleteProfile("p1").then((outcome) =>
+            setDeleteResult(
+              outcome.ok ? `ok:${outcome.result.cascade.exam_profile}` : `fail:${campusErrorInfo(outcome.error).code}`,
+            ),
+          );
+        }}
+      />
       <button data-testid="switch" onClick={() => void setActive("p2")} />
       <button data-testid="archive" onClick={() => void setStatus("p1", "archived")} />
       <button data-testid="restore" onClick={() => void setStatus("p1", "active")} />
@@ -275,6 +289,50 @@ describe("CampusProfileProvider", () => {
         title: "换个名字回来",
       }),
     );
+  });
+
+  it("hands the delete receipt back and refreshes the desk", async () => {
+    apiMock.deleteProfile.mockResolvedValue({
+      deleted: true,
+      cascade: { exam_profile: 1, mistake_book: 3 },
+      automation_tasks: 2,
+      export_files: 0,
+    });
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+    const loads = apiMock.listProfiles.mock.calls.length;
+
+    screen.getByTestId("delete").click();
+
+    await waitFor(() => expect(screen.getByTestId("delete-result").textContent).toBe("ok:1"));
+    expect(apiMock.deleteProfile).toHaveBeenCalledWith("p1");
+    expect(apiMock.listProfiles.mock.calls.length).toBeGreaterThan(loads);
+    expect(screen.getByTestId("action-error").textContent).toBe("none");
+  });
+
+  it("keeps a refused delete with the caller rather than the page", async () => {
+    apiMock.deleteProfile.mockRejectedValue(
+      new CampusApiError("PROFILE_NOT_FOUND", "档案不存在：p1", false, 404),
+    );
+    render(
+      <CampusProfileProvider>
+        <Probe />
+      </CampusProfileProvider>,
+    );
+    await waitFor(() => expect(screen.getByTestId("loading").textContent).toBe("false"));
+    const loads = apiMock.listProfiles.mock.calls.length;
+
+    screen.getByTestId("delete").click();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("delete-result").textContent).toBe("fail:PROFILE_NOT_FOUND"),
+    );
+    expect(screen.getByTestId("action-error").textContent).toBe("none");
+    expect(apiMock.listProfiles.mock.calls.length).toBe(loads);
   });
 });
 

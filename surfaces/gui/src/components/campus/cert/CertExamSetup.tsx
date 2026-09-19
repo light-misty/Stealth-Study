@@ -3,8 +3,18 @@ import { useTranslation } from "react-i18next";
 import { useCertDeadlines } from "../../../campus/hooks";
 import { DEADLINE_NODE_TYPES, type DeadlineNodeType } from "../../../campus/types";
 import { campusErrorInfo, campusErrorKey, deadlineTier } from "../../../campus/utils";
+import { Icon } from "../../Icon";
 
-export function CertExamSetup({ profileId }: { profileId: string }) {
+// 考试节点是一条与学习无关、但会决定节奏的外部时间线，所以它走事务侧的临期语义
+// （warn / danger），与知识点的掌握度绿黄红不互相借用。
+
+export function CertExamSetup({
+  profileId,
+  onDeadlinesChanged,
+}: {
+  profileId: string;
+  onDeadlinesChanged?: () => void;
+}) {
   const { t } = useTranslation();
   const { items, loading, error, retryable, reload, createNode, createReminders } =
     useCertDeadlines(profileId);
@@ -20,13 +30,13 @@ export function CertExamSetup({ profileId }: { profileId: string }) {
       return;
     }
     setFormError(null);
-    await createNode({ profileId, nodeType, date });
+    if (await createNode({ profileId, nodeType, date })) onDeadlinesChanged?.();
   };
 
   const remind = async (deadlineId: string) => {
     if (remindBusy) return;
     setRemindBusy(deadlineId);
-    await createReminders(deadlineId);
+    if (await createReminders(deadlineId)) onDeadlinesChanged?.();
     setRemindBusy(null);
   };
 
@@ -36,40 +46,64 @@ export function CertExamSetup({ profileId }: { profileId: string }) {
     : info
       ? t(campusErrorKey(info.code), { defaultValue: info.message || t("campus.common.error") })
       : null;
+  const filled = items.length;
 
   return (
-    <div className="rounded-xl2 border border-line bg-panel" data-testid="campus-cert-setup-panel">
-      <div className="px-4 pt-3.5 text-[13px] font-semibold text-ink">
-        {t("campus.cert.setup.title")}
+    <section className="mod" data-testid="campus-cert-setup-panel">
+      <div className="mod-head">
+        <span className="ib ib--brand">
+          <Icon name="flag" size={16} />
+        </span>
+        <div className="mod-head-text">
+          <span className="mod-title">{t("campus.cert.setup.title")}</span>
+          <span className="mod-desc">{t("campus.cert.setup.hint")}</span>
+        </div>
+        <div className="mod-acts">
+          <span className="sec-n" data-testid="campus-cert-setup-count">
+            {filled} / {DEADLINE_NODE_TYPES.length}
+          </span>
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-4 pt-2.5">
-        <select
-          className="rounded-lg border border-line bg-panel px-2 py-1 text-[12px] text-ink"
-          value={nodeType}
-          onChange={(e) => setNodeType(e.target.value as DeadlineNodeType)}
-          data-testid="campus-cert-setup-type"
-        >
-          {DEADLINE_NODE_TYPES.map((option) => (
-            <option key={option} value={option}>
-              {t(`campus.cert.deadline.node.${option}`)}
-            </option>
-          ))}
-        </select>
-        <input
-          type="date"
-          className="rounded-lg border border-line bg-panel px-2 py-1 text-[12px] text-ink"
-          value={date}
-          placeholder={t("campus.cert.setup.date_label")}
-          onChange={(e) => {
-            setDate(e.target.value);
-            setFormError(null);
-          }}
-          data-testid="campus-cert-setup-date"
-        />
+      <div className="node-form">
+        <div className="field">
+          <span className="field-label">{t("campus.cert.setup.node_type")}</span>
+          <div className="sel">
+            <select
+              value={nodeType}
+              onChange={(e) => setNodeType(e.target.value as DeadlineNodeType)}
+              data-testid="campus-cert-setup-type"
+            >
+              {DEADLINE_NODE_TYPES.map((option) => (
+                <option key={option} value={option}>
+                  {t(`campus.cert.deadline.node.${option}`)}
+                </option>
+              ))}
+            </select>
+            <Icon name="chevronDown" size={14} className="sel-chev" />
+          </div>
+        </div>
+        <div className={formError ? "field node-date is-bad" : "field node-date"}>
+          <span className="field-label">{t("campus.cert.setup.date_label")}</span>
+          <input
+            className="input input--num"
+            type="date"
+            value={date}
+            onChange={(e) => {
+              setDate(e.target.value);
+              setFormError(null);
+            }}
+            data-testid="campus-cert-setup-date"
+          />
+          {formError ? (
+            <span className="field-err" data-testid="campus-cert-setup-error">
+              {message}
+            </span>
+          ) : null}
+        </div>
         <button
           type="button"
-          className="rounded-lg border border-accent px-2.5 py-1 text-[12px] text-accent disabled:opacity-50"
+          className="btn btn--primary"
           disabled={loading}
           onClick={() => void submit()}
           data-testid="campus-cert-setup-create"
@@ -78,22 +112,16 @@ export function CertExamSetup({ profileId }: { profileId: string }) {
         </button>
       </div>
 
-      {loading ? (
-        <div className="px-4 py-3 text-[12px] text-faint" data-testid="campus-cert-setup-loading">
-          {t("campus.common.loading")}
-        </div>
-      ) : null}
-
-      {message ? (
-        <div
-          className="flex items-center gap-2 px-4 py-2 text-[12px] text-warnInk"
-          data-testid="campus-cert-setup-error"
-        >
-          <span className="min-w-0 truncate">{message}</span>
+      {info ? (
+        <div className="alert" data-testid="campus-cert-setup-error">
+          <Icon name="warning" size={14} />
+          <div className="alert-text">
+            <span className="alert-title">{message}</span>
+          </div>
           {retryable ? (
             <button
               type="button"
-              className="shrink-0 rounded-lg border border-line px-2 py-0.5 text-[11px] text-muted"
+              className="btn btn--ghost btn--sm"
               onClick={() => reload()}
               data-testid="campus-cert-setup-retry"
             >
@@ -103,53 +131,70 @@ export function CertExamSetup({ profileId }: { profileId: string }) {
         </div>
       ) : null}
 
+      {loading ? (
+        <div className="stack-gap" data-testid="campus-cert-setup-loading">
+          <div className="sk" />
+          <div className="sk" style={{ width: "70%" }} />
+        </div>
+      ) : null}
+
       {!loading && items.length === 0 && !info ? (
-        <div className="px-4 py-3 text-[12px] text-faint" data-testid="campus-cert-setup-empty">
-          {t("campus.cert.setup.empty")}
+        <div className="empty" data-testid="campus-cert-setup-empty">
+          <span className="ib ib--brand">
+            <Icon name="flag" size={17} />
+          </span>
+          <span className="empty-title">{t("campus.cert.setup.empty")}</span>
         </div>
       ) : null}
 
       {items.length > 0 ? (
-        <ul className="mt-2 grid gap-1.5 px-4 pb-3.5">
+        <div className="rows fill thin">
           {items.map((node) => (
-            <li
+            <div
               key={node.id}
-              className="flex items-center gap-2 rounded-lg border border-line px-2.5 py-2"
+              className="lrow nrow"
               data-testid="campus-cert-setup-node"
               data-id={node.id}
               data-type={node.node_type}
               data-days={node.days_left}
               data-tier={deadlineTier(node.days_left)}
             >
-              <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
-                {t(`campus.cert.deadline.node.${node.node_type}`)}
-              </span>
-              <span className="shrink-0 text-[11px] text-muted">{node.date}</span>
-              <span className="shrink-0 text-[11px] text-faint">
-                {t("campus.common.days_left", { count: node.days_left })}
-              </span>
-              {node.automation_ids.length > 0 ? (
-                <span
-                  className="shrink-0 text-[11px] text-ok"
-                  data-testid="campus-cert-setup-reminders"
-                >
-                  {t("campus.cert.setup.reminders_done")}
+              <div className="lrow-text">
+                <span className="lrow-title">
+                  {t(`campus.cert.deadline.node.${node.node_type}`)}
                 </span>
-              ) : (
-                <button
-                  type="button"
-                  className="shrink-0 rounded-lg border border-line px-2 py-0.5 text-[11px] text-accent disabled:opacity-50"
-                  disabled={remindBusy !== null}
-                  onClick={() => void remind(node.id)}
-                  data-testid="campus-cert-setup-remind"
-                >
-                  {t("campus.cert.deadline.create_reminders")}
-                </button>
-              )}
-            </li>
+                <span className="lrow-meta">{node.date}</span>
+              </div>
+              <span className="nrow-left">
+                {node.days_left < 0
+                  ? t("campus.station.dl_overdue")
+                  : node.days_left === 0
+                    ? t("campus.station.dl_today")
+                    : t("campus.station.dl_days", { count: node.days_left })}
+              </span>
+              <div className="remind">
+                {node.automation_ids.length > 0 ? (
+                  <span className="tag tag--ok" data-testid="campus-cert-setup-reminders">
+                    <Icon name="check" size={11} />
+                    {t("campus.cert.setup.reminders_done")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    disabled={remindBusy !== null}
+                    onClick={() => void remind(node.id)}
+                    data-testid="campus-cert-setup-remind"
+                  >
+                    <Icon name="bell" size={12} />
+                    {t("campus.cert.deadline.create_reminders")}
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       ) : null}
-    </div>
+    </section>
   );
 }
