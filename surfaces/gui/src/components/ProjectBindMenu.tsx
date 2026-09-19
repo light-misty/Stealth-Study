@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { getProjectMenu, nameCurrentProject, setProjectBinding } from "../api";
 import type { ProjectMenu } from "../api";
 import { Icon } from "./Icon";
+import { apiErrorText } from "../errors";
 
 const MRU_VISIBLE = 5;
 const FILTER_AT = 6;
@@ -48,7 +49,7 @@ export function ProjectBindMenu(props: {
   const bind = async (name: string | null) => {
     const res = await setProjectBinding(sessionId, kind, name);
     if (!res.ok) {
-      setError(res.error || t("bindmenu.bind_error"));
+      setError(apiErrorText(res, t, t("bindmenu.bind_error")));
       return;
     }
     props.onClose();
@@ -59,7 +60,7 @@ export function ProjectBindMenu(props: {
     if (!name) return;
     const res = await nameCurrentProject(sessionId, kind, name);
     if (!res.ok) {
-      setError(res.error || t("bindmenu.name_error"));
+      setError(apiErrorText(res, t, t("bindmenu.name_error")));
       return;
     }
     setNaming(false);

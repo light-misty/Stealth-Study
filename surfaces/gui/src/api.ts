@@ -2069,7 +2069,7 @@ export async function createAutomation(payload: {
   // §25 standing grants (the creating surface rendered them; submit IS the consent).
   // Only target-bound write entries survive server-side validation.
   permissions?: { tool: string; target: string; access: "read" | "write" }[];
-}): Promise<{ ok: boolean; error?: string; task?: Automation }> {
+}): Promise<ErrorBearing & { ok: boolean; error?: string; task?: Automation }> {
   const res = await fetch(`${httpBase()}/v1/automations`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -2530,7 +2530,7 @@ export async function setProjectBinding(
   sessionId: string,
   kind: "memory" | "board",
   name: string | null,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const r = await fetch(`${httpBase()}/v1/sessions/${sessionId}/bindings`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -2543,7 +2543,7 @@ export async function nameCurrentProject(
   sessionId: string,
   kind: "memory" | "board",
   name: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<ErrorBearing & { ok: boolean; error?: string }> {
   const r = await fetch(`${httpBase()}/v1/sessions/${sessionId}/project-name`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

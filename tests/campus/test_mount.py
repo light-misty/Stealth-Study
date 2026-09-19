@@ -119,6 +119,8 @@ BACKEND_PATCH = {
     # 与 install/export 端点随之附带 error_code（裸文本照旧保留）
     "M\tss/personas/registry.py",
     "M\tss/cloud.py",
+    # i18n-chinese-coverage 分支续：项目命名异常改抛带代号类型（定时任务与绑定域）
+    "M\tss/projects.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
 # campus 挂载、日志系统、inbox 修复与错误代号四条分支各自的 app.py 增量预算

@@ -132,6 +132,9 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/components/GalleryModal.tsx",
     "surfaces/gui/src/components/PersonaView.tsx",
     "surfaces/gui/src/components/PersonasTab.tsx",
+    # 第二档 B（定时任务与项目绑定域）：命名/校验异常带代号，两处界面取键。
+    "ss/projects.py",
+    "surfaces/gui/src/components/ProjectBindMenu.tsx",
 }
 
 CAMPUS_OWNED_PREFIXES = (

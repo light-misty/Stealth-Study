@@ -38,7 +38,7 @@ from ..unrouted import UnroutedStore
 from ..unattended import UnattendedRegistry
 from ..audit import AuditStore
 from ..config import load_config, workspace_allowed_commands
-from ..errors import coded_error, error_payload
+from ..errors import coded_error, error_payload, forwarded_error
 from ..conversations import ConversationStore, title_from
 from ..engine import ApprovalOutcome, Approver, TurnEngine
 from ..roots import RootDir
@@ -5047,7 +5047,7 @@ class SessionManager:
     def mark_automation_seen(self, task_id: str) -> dict[str, Any]:
         task = self.task_store.get(task_id)
         if task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         task.seen_runs_at = time.time()
         self.task_store.save(task)
         return {"ok": True}
@@ -5055,7 +5055,7 @@ class SessionManager:
     def get_automation(self, task_id: str) -> dict[str, Any]:
         task = self.task_store.get(task_id)
         if task is None:
-            return {"error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND")
         return {
             "task": task.public(),
             "runs": [r.to_dict() for r in self.task_store.runs(task_id)],
@@ -5074,16 +5074,21 @@ class SessionManager:
         timezone = (payload.get("timezone") or "").strip() or "local"
 
         if not title:
-            return {"ok": False, "error": "title is required"}
+            return coded_error("title is required", "TITLE_REQUIRED", ok=False)
         if not instructions:
-            return {"ok": False, "error": "instructions are required"}
+            return coded_error(
+                "instructions are required", "INSTRUCTIONS_REQUIRED", ok=False
+            )
         if not cron and not fire_at:
-            return {
-                "ok": False,
-                "error": "provide a cron (recurring) or a fire_at ISO datetime (one-time)",
-            }
+            return coded_error(
+                "provide a cron (recurring) or a fire_at ISO datetime (one-time)",
+                "SCHEDULE_REQUIRED",
+                ok=False,
+            )
         if cron and not croniter.is_valid(cron):
-            return {"ok": False, "error": f"invalid cron expression: {cron}"}
+            return coded_error(
+                f"invalid cron expression: {cron}", "INVALID_CRON", ok=False
+            )
 
         schedule = Schedule(
             kind="once" if (fire_at and not cron) else "cron",
@@ -5114,7 +5119,7 @@ class SessionManager:
     ) -> dict[str, Any]:
         task = self.task_store.get(task_id)
         if task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         if "enabled" in changes:
             task.enabled = bool(changes["enabled"])
         if changes.get("instructions") is not None:
@@ -5125,7 +5130,7 @@ class SessionManager:
             from croniter import croniter
 
             if not croniter.is_valid(changes["cron"]):
-                return {"ok": False, "error": "invalid cron"}
+                return coded_error("invalid cron", "INVALID_CRON", ok=False)
             task.schedule.cron, task.schedule.kind = changes["cron"], "cron"
         if changes.get("revoke"):
             # Revocation from the task detail page ("Allowed without asking … · Revoke").
@@ -5149,7 +5154,7 @@ class SessionManager:
         automatic scheduler path stays headless (`_run_scheduled_task`)."""
         task = self.task_store.get(task_id)
         if task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         Path(task.workspace).mkdir(parents=True, exist_ok=True)
         run = TaskRun(
             task_id=task.id, trigger="manual"
@@ -5179,7 +5184,7 @@ class SessionManager:
         )
         task = self.task_store.get(task_id)
         if run is None or task is None:
-            return {"ok": False, "error": "not found"}
+            return coded_error("not found", "RESOURCE_NOT_FOUND", ok=False)
         if run.status == "running":
             record = self.session_store.load(run.session_id)
             run.result_text = _last_assistant_text(record.messages) if record else None
@@ -6105,11 +6110,15 @@ class SessionManager:
         effect at the next engine build — the running engine keeps the knowledge
         it started with (same doctrine as memory deletions)."""
         if kind not in ("memory", "board"):
-            return {"ok": False, "error": f"unknown kind {kind!r}"}
+            return coded_error(f"unknown kind {kind!r}", "BINDING_KIND_UNKNOWN", ok=False)
         if self.is_running(session_id):
-            return {"ok": False, "error": "wait for the current task to finish first"}
+            return coded_error(
+                "wait for the current task to finish first", "SESSION_BUSY", ok=False
+            )
         if name and self.session_store.names().resolve(kind, name) is None:
-            return {"ok": False, "error": f"no {kind} named {name!r}"}
+            return coded_error(
+                f"no {kind} named {name!r}", "BINDING_TARGET_MISSING", ok=False
+            )
         record = self.session_store.load(session_id)
         bindings = dict((record.bindings if record else {}) or {})
         if name:
@@ -6117,7 +6126,7 @@ class SessionManager:
         else:
             bindings.pop(kind, None)
         if record is None:
-            return {"ok": False, "error": "unknown session"}
+            return coded_error("unknown session", "SESSION_UNKNOWN", ok=False)
         self.session_store.set_bindings(session_id, bindings)
         # Rebind applies from the next engine build; drop the cached engine so the
         # next turn rebuilds with the new key (messages persist via the record).
@@ -6131,13 +6140,15 @@ class SessionManager:
         record = self.session_store.load(session_id)
         ws = (record.workspace if record else None) or self.default_workspace
         if not ws:
-            return {"ok": False, "error": "session has no workspace"}
+            return coded_error(
+                "session has no workspace", "WORKSPACE_MISSING", ok=False
+            )
         try:
             entry = self.session_store.names().name_current(
                 kind, name, project_key(ws)
             )
         except ValueError as e:
-            return {"ok": False, "error": str(e)}
+            return forwarded_error(e, ok=False)
         return {"ok": True, **entry}
 
     def list_memory(self) -> list[dict[str, Any]]:

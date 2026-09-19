@@ -12,6 +12,7 @@ import {
   type Automation,
   type AutomationRun,
 } from "../api";
+import { apiErrorText } from "../errors";
 import { Icon } from "./Icon";
 import { PanelHead } from "./IntegrationsView";
 import { AutomationQuickstart } from "./AutomationQuickstart";
@@ -102,7 +103,7 @@ export function ScheduledView({ onOpenRun, onRunNow, initialOpenId }: Props) {
         setShowForm(false);
         setOpenId(res.task.id);
       } else if (res.error) {
-        alert(res.error);
+        alert(apiErrorText(res, t));
       }
     } finally {
       setBusy(null);

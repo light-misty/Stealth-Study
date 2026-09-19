@@ -15,6 +15,8 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 
+from .errors import CodedValueError
+
 NAME_KINDS = ("memory", "board")
 MAX_NAME_CHARS = 60
 
@@ -99,9 +101,9 @@ class ProjectNames:
     def name_current(self, kind: str, name: str, key: str) -> dict[str, Any]:
         name = (name or "").strip()[:MAX_NAME_CHARS]
         if kind not in NAME_KINDS:
-            raise ValueError(f"unknown kind {kind!r}")
+            raise CodedValueError("BINDING_KIND_UNKNOWN", f"unknown kind {kind!r}")
         if not name:
-            raise ValueError("empty name")
+            raise CodedValueError("NAME_REQUIRED", "empty name")
         with self._lock:
             self._conn.execute(
                 "INSERT INTO project_names (kind, name, key) VALUES (?, ?, ?) "
