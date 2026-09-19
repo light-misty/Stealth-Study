@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { App } from "./App";
 import { initTheme } from "./theme";
 import { platformOS } from "./tauri";
+import { installContextMenuGuard } from "./desktopChrome";
 import { initI18n } from "./i18n";
 import { startLogCapture } from "./logging";
 import "./tailwind.css";
@@ -23,6 +24,8 @@ startLogCapture({ intervalMs: 1000, minEntries: 1 });
 // native drag-drop interception so HTML5 drag events reach the DOM at all — see lib.rs.)
 window.addEventListener("dragover", (e) => e.preventDefault());
 window.addEventListener("drop", (e) => e.preventDefault());
+
+installContextMenuGuard();
 
 // Initialize i18n before the first render so t() resolves everywhere.
 initI18n().finally(() => {
