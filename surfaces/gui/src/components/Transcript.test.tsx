@@ -23,8 +23,9 @@ describe("TurnGroup (Transcript §33)", () => {
   it("groups the whole turn; answer stays outside; narration and humanized steps inside", () => {
     const { container } = render(<Transcript items={TURN} onApprove={vi.fn()} />);
 
-    // Collapsed at rest: "2 steps", NO approval count, and no step/narration content visible.
-    expect(screen.getByText("2 steps")).toBeTruthy();
+    // Collapsed at rest: an action summary ("read 1 file, sent 1 message"), NO approval
+    // count, and no step/narration content visible.
+    expect(screen.getByText("read 1 file, sent 1 message")).toBeTruthy();
     expect(screen.queryByText(/approval/)).toBeNull();
     expect(screen.queryByTestId("turn-narration")).toBeNull();
     expect(screen.queryByText(/Sent a Slack message/)).toBeNull();
@@ -52,7 +53,7 @@ describe("TurnGroup (Transcript §33)", () => {
       { kind: "tool", id: "t1", name: "grep", args: { pattern: "TODO" }, status: "…" },
     ];
     const { container } = render(<Transcript items={items} onApprove={vi.fn()} />);
-    expect(screen.getByText(/Running 1 step…/)).toBeTruthy();
+    expect(screen.getByText(/In progress: searched 1 time/)).toBeTruthy();
     expect(screen.queryByTestId("turn-narration")).toBeNull(); // collapsed by default
     expect(screen.getByTestId("turn-live-line").textContent).toContain("Looking at the repo");
     fireEvent.click(container.querySelector("summary.stepgroup-head")!);
@@ -81,6 +82,15 @@ describe("TurnGroup (Transcript §33)", () => {
     const { container } = render(<Transcript items={items} onApprove={vi.fn()} />);
     expect(container.querySelector("details.stepgroup")).toBeNull();
     expect(screen.getByText("Hello there.")).toBeTruthy();
+  });
+
+  it("assistant bubbles carry no speaker label (owner ask: the study-partner tag is gone)", () => {
+    const items: Item[] = [
+      { kind: "user", text: "hi" },
+      { kind: "assistant", text: "Hello there." },
+    ];
+    render(<Transcript items={items} onApprove={vi.fn()} />);
+    expect(screen.queryByText("study partner")).toBeNull();
   });
 });
 

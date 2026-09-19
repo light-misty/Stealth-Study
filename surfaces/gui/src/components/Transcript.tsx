@@ -121,6 +121,43 @@ type TurnRow =
   | { type: "step"; tool: ToolItem; approval?: ApprovalItem }
   | { type: "ask"; approval: ApprovalItem };
 
+// The collapsed turn header reads as an action summary ("read 2 files, searched once")
+// instead of a bare step count (owner ask 2026-09-19). Tools bucket into a handful of
+// everyday verbs; anything else groups under its own tool name.
+const ACTION_BUCKETS: Array<{ names: string[]; key: string }> = [
+  { names: ["read_file"], key: "actions_files_read" },
+  { names: ["write_file", "replace_in_file", "apply_patch", "apply_unified_diff"], key: "actions_files_written" },
+  { names: ["grep", "web_search"], key: "actions_searches" },
+  { names: ["run_shell", "shell_task_output", "shell_task_kill"], key: "actions_commands" },
+  { names: ["send_message", "send_file"], key: "actions_messages" },
+  { names: ["load_skill", "save_skill"], key: "actions_skills" },
+  { names: ["ask_user"], key: "actions_questions" },
+];
+
+type Translate = (key: string, opts?: Record<string, unknown>) => string;
+
+function summarizeTurnSteps(tools: ToolItem[], t: Translate): string {
+  const counts = new Map<string, number>();
+  const firstNames = new Map<string, string>();
+  const order: string[] = [];
+  for (const tool of tools) {
+    const bucket = ACTION_BUCKETS.find((b) => b.names.includes(tool.name));
+    const id = bucket ? bucket.key : tool.name;
+    if (!counts.has(id)) {
+      order.push(id);
+      firstNames.set(id, tool.name);
+    }
+    counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return order
+    .map((id) =>
+      firstNames.has(id) && !ACTION_BUCKETS.some((b) => b.key === id)
+        ? t("transcript.turn.actions_tool", { count: counts.get(id), name: firstNames.get(id) })
+        : t(`transcript.turn.${id}`, { count: counts.get(id) }),
+    )
+    .join(t("transcript.turn.summary_sep"));
+}
+
 function buildRows(items: TurnItem[]): TurnRow[] {
   // First pass: tool rows in order; then pair each resolved approval with the nearest
   // same-name tool that doesn't have one yet (approvals may stream before or after their call).
@@ -384,7 +421,7 @@ function TurnGroup({
   const nSteps = rows.filter((r) => r.type !== "narr").length;
   const declined = items.filter((it) => it.kind === "approval" && it.resolved === "deny").length;
   const hiddenTotal = tools.reduce((n, t) => n + (t.hidden || 0), 0);
-  const stepsLabel = t("transcript.turn.steps_label", { count: nSteps });
+  const stepsLabel = summarizeTurnSteps(tools, t) || t("transcript.turn.steps_label", { count: nSteps });
 
   return (
     <details className="stepgroup" open={open}>
@@ -627,7 +664,6 @@ export function Transcript({ items, running, streamingText, onRetry, onOpenConne
               );
             return (
               <div className="group bubble-assistant" key={bi}>
-                <div className="who">{t("transcript.who_assistant")}</div>
                 {item.reasoning && <ThinkingBlock text={item.reasoning} />}
                 <Markdown text={item.text} />
                 <BubbleMeta text={item.text} ts={item.ts} align="left" />
