@@ -22,6 +22,14 @@ function closeServer(server: AnyServer): Promise<void> {
   return new Promise((resolve) => server.close(() => resolve()));
 }
 
+function listenOnIpv6(): Promise<AnyServer> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "::1", () => resolve(server));
+  });
+}
+
 async function occupyConsecutivePorts(count: number): Promise<{ servers: AnyServer[]; start: number }> {
   for (;;) {
     const first = await listenOn();
@@ -54,6 +62,16 @@ describe("isPortAvailable", () => {
     const port = portOf(server);
     await closeServer(server);
     await expect(isPortAvailable(port)).resolves.toBe(true);
+  });
+
+  it("treats a port occupied only on IPv6 localhost as unavailable", async () => {
+    const server = await listenOnIpv6();
+    const port = portOf(server);
+    try {
+      await expect(isPortAvailable(port)).resolves.toBe(false);
+    } finally {
+      await closeServer(server);
+    }
   });
 });
 

@@ -1,10 +1,10 @@
 import net from "node:net";
 
 const DEFAULT_START_PORT = 1420;
-const DEFAULT_HOST = "127.0.0.1";
+const PROBE_HOSTS = ["127.0.0.1", "::1"];
 const DEFAULT_MAX_ATTEMPTS = 100;
 
-export function isPortAvailable(port, host = DEFAULT_HOST) {
+function isHostAvailable(port, host) {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
     server.once("error", (err) => {
@@ -21,16 +21,22 @@ export function isPortAvailable(port, host = DEFAULT_HOST) {
   });
 }
 
+export async function isPortAvailable(port, hosts = PROBE_HOSTS) {
+  for (const host of hosts) {
+    if (!(await isHostAvailable(port, host))) return false;
+  }
+  return true;
+}
+
 export async function findAvailablePort(options = {}) {
   const {
     startPort = DEFAULT_START_PORT,
-    host = DEFAULT_HOST,
     maxAttempts = DEFAULT_MAX_ATTEMPTS,
     logger = null,
   } = options;
   for (let offset = 0; offset < maxAttempts; offset += 1) {
     const port = startPort + offset;
-    if (await isPortAvailable(port, host)) {
+    if (await isPortAvailable(port)) {
       if (logger) logger(`[dev-port] using port ${port}`);
       return port;
     }
