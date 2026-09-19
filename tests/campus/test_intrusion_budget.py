@@ -103,6 +103,7 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/components/TodoPanel.tsx",
     # 后端错误代号分类器与前端取键入口（中文化方案 C 的地基，两侧各一个新文件）。
     "ss/errors.py",
+    "ss/server/manager.py",
     "surfaces/gui/src/errors.ts",
 }
 

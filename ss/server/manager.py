@@ -38,6 +38,7 @@ from ..unrouted import UnroutedStore
 from ..unattended import UnattendedRegistry
 from ..audit import AuditStore
 from ..config import load_config, workspace_allowed_commands
+from ..errors import error_payload
 from ..conversations import ConversationStore, title_from
 from ..engine import ApprovalOutcome, Approver, TurnEngine
 from ..roots import RootDir
@@ -379,7 +380,7 @@ class SessionManager:
             try:
                 resolved.mkdir(parents=True, exist_ok=True)
             except OSError as exc:
-                return {"path": str(resolved), "ok": False, "error": str(exc)}
+                return error_payload(exc, ok=False, path=str(resolved))
         resolved = resolved.resolve()
         self.session_store.touch_workspace(str(resolved))
         return {
@@ -1608,7 +1609,7 @@ class SessionManager:
                     stderr=subprocess.DEVNULL,
                 )
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, context="reveal", ok=False)
         return {"ok": True, "path": str(target)}
 
     # -- OPE-136 durable MCP trust (server detail page) --------------------------
@@ -1668,7 +1669,7 @@ class SessionManager:
                 try:
                     conn = await self.mcp.ensure(server)
                 except Exception as exc:
-                    return {"name": name, "ok": False, "error": str(exc), "tools": []}
+                    return error_payload(exc, name=name, ok=False, tools=[])
                 return {
                     "name": name,
                     "ok": True,
@@ -2855,7 +2856,7 @@ class SessionManager:
                     target.iterdir(), key=lambda c: (c.is_file(), c.name.lower())
                 )
             except OSError as exc:
-                return {"ok": False, "error": str(exc)}
+                return error_payload(exc, ok=False)
             for child in children[:500]:
                 try:
                     size = 0 if child.is_dir() else child.stat().st_size
@@ -2945,7 +2946,7 @@ class SessionManager:
                     stderr=subprocess.DEVNULL,
                 )
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, context="reveal", ok=False)
         return {"ok": True}
 
     # -- web search -------------------------------------------------------------
@@ -3182,7 +3183,7 @@ class SessionManager:
             result = await codex_auth.sign_in(self.secrets)
         except Exception as exc:
             self._codex_error = str(exc)
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         finally:
             self._codex_authorizing = False
         self._refresh_provider("openai-codex")
@@ -3701,7 +3702,7 @@ class SessionManager:
         try:
             Path(path).expanduser().mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         self._prefs["scratch_base"] = path
         self._save_prefs()
         return {"ok": True, **self.get_settings()}
@@ -5794,7 +5795,7 @@ class SessionManager:
         try:
             folder, _scope = self.skill_store.find(name, workspace or None)
         except ValueError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, ok=False)
         try:
             if sys.platform == "darwin":
                 subprocess.Popen(
@@ -5813,7 +5814,7 @@ class SessionManager:
                     stderr=subprocess.DEVNULL,
                 )
         except OSError as exc:
-            return {"ok": False, "error": str(exc)}
+            return error_payload(exc, context="reveal", ok=False)
         return {"ok": True}
 
     def persona_mcp_scope(self, persona_id: str) -> Optional[set[str]]:

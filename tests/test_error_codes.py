@@ -10,6 +10,8 @@ from __future__ import annotations
 import errno
 import re
 import socket
+import subprocess
+from pathlib import Path
 
 import httpx
 import pytest
@@ -84,6 +86,28 @@ def test_spawn_context_distinguishes_a_missing_executable() -> None:
     exc = FileNotFoundError(errno.ENOENT, "No such file or directory: 'openworker-server'")
     assert error_code(exc) == "PATH_NOT_FOUND"
     assert error_code(exc, context="spawn") == "EXECUTABLE_NOT_FOUND"
+
+
+def test_reveal_context_blames_the_file_manager_not_the_path() -> None:
+    exc = FileNotFoundError(errno.ENOENT, "No such file or directory: 'explorer'")
+    assert error_code(exc, context="reveal") == "FILE_MANAGER_UNAVAILABLE"
+    assert error_code(PermissionError(errno.EACCES, "denied"), context="reveal") == "FILE_MANAGER_UNAVAILABLE"
+
+
+def test_a_real_mkdir_failure_is_classified_not_unclassified(tmp_path: Path) -> None:
+    """构造出的 OSError 只能证明映射表，这里验真实系统调用抛出的异常确实能被分类。"""
+    blocker = tmp_path / "regular.txt"
+    blocker.write_text("not a directory", encoding="utf-8")
+    with pytest.raises(OSError) as info:
+        (blocker / "child").mkdir(parents=True)
+    assert error_code(info.value) != UNCLASSIFIED
+
+
+def test_a_real_missing_executable_launch_is_classified(tmp_path: Path) -> None:
+    with pytest.raises(OSError) as info:
+        subprocess.Popen(["definitely-not-a-real-binary-8f3a1c"])
+    assert error_code(info.value) == "PATH_NOT_FOUND"
+    assert error_code(info.value, context="spawn") == "EXECUTABLE_NOT_FOUND"
 
 
 @pytest.mark.parametrize(
@@ -163,6 +187,7 @@ def test_registry_codes_are_all_reachable() -> None:
         "EXECUTABLE_NOT_FOUND",
         "ENCODING",
         "FILE_LOCKED",
+        "FILE_MANAGER_UNAVAILABLE",
         "HTTP_CLIENT_ERROR",
         "HTTP_NOT_FOUND",
         "HTTP_SERVER_ERROR",

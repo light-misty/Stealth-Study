@@ -102,6 +102,8 @@ BACKEND_PATCH = {
     "M\tss/automation/store.py",
     # logging-system 分支：sidecar 启动时初始化统一日志
     "M\tss/server/run.py",
+    # i18n-chinese-coverage 分支：错误响应附带稳定 error_code（文案仍为原英文，见 ss/errors.py）
+    "M\tss/server/manager.py",
 }
 CAMPUS_OWNED_PREFIX = "ss/campus/"
 # campus 挂载与日志系统两条分支各自的 app.py 增量预算

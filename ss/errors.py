@@ -26,6 +26,7 @@ CODES: frozenset[str] = frozenset(
         "ENCODING",
         "EXECUTABLE_NOT_FOUND",
         "FILE_LOCKED",
+        "FILE_MANAGER_UNAVAILABLE",
         "HTTP_CLIENT_ERROR",
         "HTTP_NOT_FOUND",
         "HTTP_SERVER_ERROR",
@@ -130,7 +131,13 @@ def _status_code(status: int) -> Optional[str]:
 
 
 def error_code(exc: BaseException, context: Optional[str] = None) -> str:
-    """The stable code for an exception; `context="spawn"` marks subprocess launch sites."""
+    """The stable code for an exception; `context` distinguishes same-type call sites.
+
+    `spawn` = we tried to launch an executable; `reveal` = we tried to hand a path to the
+    desktop's file manager, where a missing entry means the file manager is missing.
+    """
+    if context == "reveal":
+        return "FILE_MANAGER_UNAVAILABLE"
     if context == "spawn" and isinstance(exc, FileNotFoundError):
         return "EXECUTABLE_NOT_FOUND"
 

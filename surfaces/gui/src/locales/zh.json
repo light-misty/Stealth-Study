@@ -462,6 +462,7 @@
     "encoding": "该文件不是我们能读取的有效文本编码。",
     "executable_not_found": "找不到后台服务的可执行文件 —— 请重新安装应用。",
     "file_locked": "该文件正被其他程序占用 —— 请关闭后重试。",
+    "file_manager_unavailable": "无法打开文件管理器 —— 请手动前往上面显示的路径。",
     "http_client_error": "请求被拒绝 —— 请查看细节后重试。",
     "http_not_found": "该资源已不存在 —— 可能已被删除。",
     "http_server_error": "服务端自身出错 —— 请稍候再试。",
