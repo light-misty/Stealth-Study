@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>偷偷学 Stealth Study｜本地 AI 备考台</title>
+<meta name="description" content="偷偷学是一款跑在本机的 AI 备考台。四六级、考研、证书三张台面共用一套底座，资料、错题与进度只存在你自己的硬盘里，模型走你自己的 API Key。">
+<link rel="icon" href="assets/brand-icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <symbol id="ic-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+      <path d="M8.5 2v20"/><path d="M11.5 8.5h5"/><path d="M11.5 12h3.5"/>
+    </symbol>
+    <symbol id="ic-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="8.3"/><path d="M12 7.8V12l2.8 1.7"/>
+    </symbol>
+    <symbol id="ic-shield" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3.2l7 2.8v5.1c0 4.3-2.9 7.4-7 9.7-4.1-2.3-7-5.4-7-9.7V6l7-2.8z"/>
+      <path d="M9.3 12.1l1.9 1.9 3.5-3.6"/>
+    </symbol>
+    <symbol id="ic-sparkle" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M12 2.4c.5 4.7 2.5 6.7 7.2 7.2-4.7.5-6.7 2.5-7.2 7.2-.5-4.7-2.5-6.7-7.2-7.2 4.7-.5 6.7-2.5 7.2-7.2z"/>
+    </symbol>
+    <symbol id="ic-pencil" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 20l1.1-3.9L15.6 5.6a1.6 1.6 0 0 1 2.3 0l.5.5a1.6 1.6 0 0 1 0 2.3L7.9 18.9 4 20z"/>
+      <path d="M14.5 6.7l2.8 2.8"/>
+    </symbol>
+    <symbol id="ic-diamond" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M12 3.2 20.8 12 12 20.8 3.2 12z"/>
+    </symbol>
+    <symbol id="ic-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 11a8 8 0 0 0-14.3-4.9L4 8M4 4v4h4M4 13a8 8 0 0 0 14.3 4.9L20 16M16 16h4v4"/>
+    </symbol>
+    <symbol id="ic-folderPlus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9l-.81-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h8.5"/>
+      <path d="M19 14v6M16 17h6"/>
+    </symbol>
+    <symbol id="ic-audit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 4h10a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/>
+      <path d="M8.5 9h7M8.5 13h7M8.5 17H13"/>
+    </symbol>
+    <symbol id="ic-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 8h10M18 8h2M4 16h2M10 16h10"/>
+      <circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/>
+    </symbol>
+    <symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 3.5h7L18 8v11a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 5 19V5a1.5 1.5 0 0 1 1.5-1.5z"/>
+      <path d="M13.5 3.5V8H18M8.5 12.5h7M8.5 16h5"/>
+    </symbol>
+    <symbol id="ic-chevronDown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m6 9 6 6 6-6"/>
+    </symbol>
+    <symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 6l12 12M18 6L6 18"/>
+    </symbol>
+    <symbol id="ic-arrowRight" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="nav-sentinel" id="navSentinel" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="lockup" href="#top" aria-label="偷偷学 首页">
+      <img class="lockup-mark" src="assets/brand-icon.png" alt="" width="28" height="28">
+      <span class="lockup-name">偷偷学</span>
+      <span class="lockup-chip">BETA</span>
+    </a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="#stations">三张台面</a>
+      <a href="#abilities">核心能力</a>
+      <a href="#privacy">隐私与数据</a>
+      <a href="#faq">常见问题</a>
+    </nav>
+    <a class="btn btn-primary btn-sm" href="#download">
+      <span>免费下载</span>
+      <svg class="ic ic-14" aria-hidden="true"><use href="#ic-arrowRight"/></svg>
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============================ HERO ============================ -->
+  <section class="hero" id="top">
+    <div class="hero-wash" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">本地运行，无需注册</p>
+        <h1 class="display">
+          把 AI 备考台<br>
+          装进你自己的电脑
+        </h1>
+        <p class="lede hero-lede">
+          四六级、考研、证书三张台面共用一套底座。资料与进度留在本机，模型走你自己的 API Key。
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-primary btn-lg" href="#download">
+            <span>免费下载</span>
+            <svg class="ic ic-16" aria-hidden="true"><use href="#ic-arrowRight"/></svg>
+          </a>
+          <a class="btn btn-ghost btn-lg" href="#how">看它怎么工作</a>
+        </div>
+      </div>
+
+      <div class="hero-stack" aria-label="产品界面示意">
+        <article class="pcard pcard-a">
+          <div class="pcard-top">
+            <span class="ptag">2026-12 四级</span>
+            <span class="pmeta mono">125 分钟</span>
+          </div>
+          <div class="pcount">
+            <svg class="ic ic-16" aria-hidden="true"><use href="#ic-clock"/></svg>
+            <span>还剩 <b class="mono">84</b> 天</span>
+            <span class="psep" aria-hidden="true"></span>
+            <span class="pdate">12 月 12 日</span>
+          </div>
+          <ul class="pscores">
+            <li><span>听力</span><b class="mono">248.5</b></li>
+            <li><span>阅读</span><b class="mono">248.5</b></li>
+            <li><span>写作</span><b class="mono">106.5</b></li>
+            <li><span>翻译</span><b class="mono">106.5</b></li>
+          </ul>
+          <p class="pnote">听力与阅读合计 70% 分值，先把这两块拉起来。</p>
+        </article>
+
+        <article class="pcard pcard-b">
+          <div class="pcard-top">
+            <span class="ptag ptag--icon">
+              <svg class="ic ic-14" aria-hidden="true"><use href="#ic-pencil"/></svg>写作批改
+            </span>
+            <span class="pscore mono">11 / 14</span>
+          </div>
+          <p class="porig">…the society <mark>has been changed</mark> a lot by the Internet.</p>
+          <ul class="perrs">
+            <li><span class="petype">时态</span><span>has been changed → has changed</span></li>
+            <li><span class="petype">搭配</span><span>a lot → a great deal</span></li>
+          </ul>
+        </article>
+
+        <article class="pcard pcard-c">
+          <div class="pcard-top">
+            <span class="ptag ptag--icon">
+              <svg class="ic ic-14" aria-hidden="true"><use href="#ic-refresh"/></svg>今日待复习
+            </span>
+            <span class="pmeta"><b class="mono">12</b> 道</span>
+          </div>
+          <p class="pnote">答对延长间隔，答错缩短间隔。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= 三张台面 ========================= -->
+  <section class="section" id="stations">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 class="h2">三张台面，三套打法</h2>
+        <p class="lede">
+          不是一套模板换三次皮。四六级按题型拆短周期冲刺，考研按科目轨跑长线，证书按考纲树追覆盖率。错题本、间隔复习和掌握度是三台共用的底座。
+        </p>
+      </div>
+
+      <div class="stations reveal">
+        <div class="st-tabs" role="tablist" aria-label="备考台">
+          <button class="st-tab is-on" role="tab" id="tab-cet" aria-controls="pane-cet" aria-selected="true" data-track="cet">
+            <span class="st-ic"><svg class="ic ic-16" aria-hidden="true"><use href="#ic-book"/></svg></span>
+            <span class="st-txt"><b>四六级</b><i>听力 阅读 写作 翻译</i></span>
+          </button>
+          <button class="st-tab" role="tab" id="tab-kaoyan" aria-controls="pane-kaoyan" aria-selected="false" data-track="kaoyan">
+            <span class="st-ic"><svg class="ic ic-16" aria-hidden="true"><use href="#ic-clock"/></svg></span>
+            <span class="st-txt"><b>考研</b><i>政治 英语 数学 专业课</i></span>
+          </button>
+          <button class="st-tab" role="tab" id="tab-cert" aria-controls="pane-cert" aria-selected="false" data-track="cert">
+            <span class="st-ic"><svg class="ic ic-16" aria-hidden="true"><use href="#ic-shield"/></svg></span>
+            <span class="st-txt"><b>证书</b><i>知识树 刷题 批改</i></span>
+          </button>
+          <span class="st-bar" aria-hidden="true"></span>
+        </div>
+
+        <div class="st-panes">
+          <div class="st-pane is-on" id="pane-cet" role="tabpanel" aria-labelledby="tab-cet">
+            <p class="st-lead">四六级是短周期的一次性考试，所有安排都围着那一个日期和题量走。</p>
+            <dl class="st-spec">
+              <div><dt>周期</dt><dd>4 到 12 周，按天推进</dd></div>
+              <div><dt>目标</dt><dd>425 分参考线，拆到听力、阅读、写作、翻译的分项目标</dd></div>
+              <div><dt>组织方式</dt><dd>题型：听力、阅读、写作、翻译</dd></div>
+              <div><dt>推进节奏</dt><dd>定级测评，然后冲刺，最后模考</dd></div>
+              <div><dt>AI 做什么</dt><dd>写译按官方五档 rubric 批改，听力错因归到连读、关键词、同义替换</dd></div>
+              <div><dt>专属模块</dt><dd>阶段化计时模考，模拟收答题卡；高频词冲刺；考务清单</dd></div>
+            </dl>
+          </div>
+
+          <div class="st-pane" id="pane-kaoyan" role="tabpanel" aria-labelledby="tab-kaoyan" hidden>
+            <p class="st-lead">考研是四个科目、半年到一年半的长项目，难的是分轨推进和进度不失控。</p>
+            <dl class="st-spec">
+              <div><dt>周期</dt><dd>6 到 18 个月，按周和阶段推进</dd></div>
+              <div><dt>目标</dt><dd>目标总分，拆到四轨分目标，对照目标院校的复试线</dd></div>
+              <div><dt>组织方式</dt><dd>科目轨：政治、英语、数学、专业课</dd></div>
+              <div><dt>推进节奏</dt><dd>规划，分轨执行，每周复盘</dd></div>
+              <div><dt>AI 做什么</dt><dd>生成四轨并行的长线计划并按进度重排；专业课资料问答带页码引用</dd></div>
+              <div><dt>专属模块</dt><dd>分科异构工作台；目标院校档案；落后预警；周报</dd></div>
+            </dl>
+          </div>
+
+          <div class="st-pane" id="pane-cert" role="tabpanel" aria-labelledby="tab-cert" hidden>
+            <p class="st-lead">证书考的是覆盖率和刚性节点，缺一块知识点和错过一次报名是同一级别的损失。</p>
+            <dl class="st-spec">
+              <div><dt>周期</dt><dd>2 到 6 个月，按天和周推进</dd></div>
+              <div><dt>目标</dt><dd>考纲覆盖率，加上通过或等第</dd></div>
+              <div><dt>组织方式</dt><dd>知识点树：章、节、点</dd></div>
+              <div><dt>推进节奏</dt><dd>铺覆盖，刷题，做归因</dd></div>
+              <div><dt>AI 做什么</dt><dd>从考纲文本抽知识点树；主观题按 rubric 批改，未命中得分点自动标未掌握</dd></div>
+              <div><dt>专属模块</dt><dd>覆盖率与薄弱排行；归因分布；报名节点时间轴</dd></div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================= 核心能力 ========================= -->
+  <section class="section" id="abilities">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 class="h2">不做题库，做阅卷老师</h2>
+        <p class="lede">
+          写译按官方五档批改，错题自动归因入本，复习按间隔重复排期，资料问答带页码引用。
+        </p>
+      </div>
+
+      <div class="bento">
+        <article class="bcell bc-1 reveal">
+          <h3 class="bcell-h">写作与翻译批改</h3>
+          <p class="bcell-p">按官方五档 rubric 逐项打分，错误逐条定位到原文，点一下就进错题本。</p>
+          <div class="grade">
+            <ol class="grade-scale" aria-label="官方五档">
+              <li><b class="mono">14</b><span>优秀</span></li>
+              <li class="is-on"><b class="mono">11</b><span>良好</span></li>
+              <li><b class="mono">8</b><span>及格</span></li>
+              <li><b class="mono">5</b><span>较差</span></li>
+              <li><b class="mono">2</b><span>差</span></li>
+            </ol>
+            <div class="dims">
+              <div><span>内容切题</span><b class="mono">4 / 5</b></div>
+              <div><span>语言表达</span><b class="mono">4 / 5</b></div>
+              <div><span>篇章结构</span><b class="mono">3 / 4</b></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="bcell bc-2 bcell--tint reveal">
+          <h3 class="bcell-h">错题归因</h3>
+          <p class="bcell-p">每道错题都落到五类归因上，你才知道下一次该改什么。</p>
+          <ul class="pchips">
+            <li class="pchip is-top">概念不清<b class="mono">4</b></li>
+            <li class="pchip">审题失误<b class="mono">3</b></li>
+            <li class="pchip">计算或操作失误<b class="mono">2</b></li>
+            <li class="pchip">时间不足<b class="mono">2</b></li>
+            <li class="pchip">超纲<b class="mono">1</b></li>
+          </ul>
+          <p class="bcell-foot">归因不是标签，是下一步动作的来源：概念不清就回教材，审题失误就练题干拆解。</p>
+        </article>
+
+        <article class="bcell bc-3 reveal">
+          <h3 class="bcell-h">资料库与页码引用</h3>
+          <p class="bcell-p">导入 PDF、Markdown 或纯文本，按页切片建索引。回答只取命中页，并给出页码。</p>
+          <div class="qa">
+            <p class="qa-q">这一章的三个核心概念之间是什么关系？</p>
+            <p class="qa-a">三者构成一条递进链：第一个概念给出定义边界，第二个把边界落到判断标准，第三个在案例里检验前两者。</p>
+            <div class="qa-cites">
+              <span class="cite"><svg class="ic ic-12" aria-hidden="true"><use href="#ic-file"/></svg>专业课讲义 第 42 页</span>
+              <span class="cite"><svg class="ic ic-12" aria-hidden="true"><use href="#ic-file"/></svg>专业课讲义 第 44 页</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="bcell bc-4 reveal">
+          <h3 class="bcell-h">长线规划与看板</h3>
+          <p class="bcell-p">四轨并行，每轨独立阶段。周级与日级任务落到看板的四列里，追不上进度会提前预警。</p>
+          <div class="tracks" aria-label="四轨阶段示意">
+            <div class="tr-head" aria-hidden="true">
+              <span></span><span>基础</span><span>强化</span><span>真题</span><span>冲刺</span>
+            </div>
+            <div class="tr-row">
+              <span class="tr-name">政治</span>
+              <span class="tr-cell"></span><span class="tr-cell is-on"></span><span class="tr-cell"></span><span class="tr-cell"></span>
+            </div>
+            <div class="tr-row">
+              <span class="tr-name">英语</span>
+              <span class="tr-cell is-on"></span><span class="tr-cell"></span><span class="tr-cell"></span><span class="tr-cell"></span>
+            </div>
+            <div class="tr-row">
+              <span class="tr-name">数学</span>
+              <span class="tr-cell"></span><span class="tr-cell is-on"></span><span class="tr-cell"></span><span class="tr-cell"></span>
+            </div>
+            <div class="tr-row">
+              <span class="tr-name">专业课</span>
+              <span class="tr-cell is-on"></span><span class="tr-cell"></span><span class="tr-cell"></span><span class="tr-cell"></span>
+            </div>
+          </div>
+        </article>
+
+        <article class="bcell bc-5 bcell--sunken reveal">
+          <div class="bc-5-grid">
+            <div>
+              <h3 class="bcell-h">间隔复习</h3>
+              <p class="bcell-p">答错自动进复习队列，按间隔重复排期。答对一次往后推一格，答错一次退回上一格，每天只推今天真正到期的那几道。</p>
+            </div>
+            <ol class="ladder">
+              <li><i aria-hidden="true"></i><b class="mono">1 天</b><span></span></li>
+              <li><i aria-hidden="true"></i><b class="mono">3 天</b><span></span></li>
+              <li class="is-on"><i aria-hidden="true"></i><b class="mono">7 天</b><span>当前</span></li>
+              <li><i aria-hidden="true"></i><b class="mono">15 天</b><span></span></li>
+              <li><i aria-hidden="true"></i><b class="mono">30 天</b><span></span></li>
+            </ol>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== 隐私与数据 ======================== -->
+  <section class="section" id="privacy">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 class="h2">数据留在你的硬盘里</h2>
+        <p class="lede">
+          没有账号体系，没有云端副本。资料、错题和进度只落在一个本机目录里，你随时可以自己打开、自己删掉。
+        </p>
+      </div>
+
+      <div class="compare reveal">
+        <div class="cmp cmp--cloud">
+          <h3 class="cmp-h">
+            <svg class="ic ic-14" aria-hidden="true"><use href="#ic-x"/></svg>
+            常见的云端题库 App
+          </h3>
+          <ul class="cmp-list">
+            <li>先注册账号，再谈学习</li>
+            <li>导入的资料要上传到别人的服务器</li>
+            <li>做题时长、错题分布、点击行为被记录下来</li>
+            <li>换一台电脑，历史和进度从零开始</li>
+            <li>想彻底删掉，得先想清楚去哪个后台点哪个按钮</li>
+          </ul>
+        </div>
+        <div class="cmp cmp--local">
+          <h3 class="cmp-h">
+            <svg class="ic ic-14" aria-hidden="true"><use href="#ic-shield"/></svg>
+            偷偷学
+          </h3>
+          <ul class="cmp-list">
+            <li>无账号、无注册，装完就能用</li>
+            <li>资料解析、切片、建索引全在本机完成</li>
+            <li>不做学习行为采集，也没有埋点上报</li>
+            <li>整个数据目录可以拷走，也可以一键清空</li>
+            <li>AI 只在你主动提交时才连你配置的模型服务商</li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="cmp-path reveal">
+        Windows 下的数据目录：<code>%APPDATA%\ss</code>
+        <span class="cmp-path-note">设置里的数据与隐私面板可以直接打开这个目录</span>
+      </p>
+    </div>
+  </section>
+
+  <!-- ========================== 夜读 ========================== -->
+  <section class="section" id="theme">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 class="h2">白天白纸，夜里夜读</h2>
+        <p class="lede">
+          整套界面按浅色与夜读两套色彩校准过。深夜刷题，屏幕不刺眼。
+        </p>
+      </div>
+
+      <div class="theme-demo reveal" data-mode="light">
+        <div class="theme-bar">
+          <div class="seg" role="group" aria-label="配色切换">
+            <button class="seg-btn is-on" data-mode="light" aria-pressed="true">浅色</button>
+            <button class="seg-btn" data-mode="dark" aria-pressed="false">夜读</button>
+            <span class="seg-thumb" aria-hidden="true"></span>
+          </div>
+          <span class="theme-hint">同一套界面，两套配色</span>
+        </div>
+
+        <div class="demo">
+          <div class="demo-tree">
+            <p class="demo-label">考纲知识点树</p>
+            <ul class="tree">
+              <li>
+                <span class="tree-t">第一章 课程与教学的基本原理</span>
+                <span class="mdots" data-level="mastered"><i></i><i></i><i></i><em>已掌握</em></span>
+              </li>
+              <li class="tree-sub">
+                <span class="tree-t">课程的定义与类型</span>
+                <span class="mdots" data-level="mastered"><i></i><i></i><i></i><em>已掌握</em></span>
+              </li>
+              <li class="tree-sub">
+                <span class="tree-t">课程编制的三种取向</span>
+                <span class="mdots" data-level="fuzzy"><i></i><i></i><i></i><em>模糊</em></span>
+              </li>
+              <li>
+                <span class="tree-t">第二章 教学过程与组织形式</span>
+                <span class="mdots" data-level="fuzzy"><i></i><i></i><i></i><em>模糊</em></span>
+              </li>
+              <li class="tree-sub">
+                <span class="tree-t">教学过程的本质与规律</span>
+                <span class="mdots" data-level="unknown"><i></i><i></i><i></i><em>未掌握</em></span>
+              </li>
+            </ul>
+          </div>
+
+          <aside class="demo-side">
+            <img class="demo-mascot" src="assets/brand-icon.png" alt="" width="56" height="56">
+            <p class="demo-label">今日待复习</p>
+            <ul class="rq">
+              <li><span class="rq-t">课程编制的三种取向</span><span class="rq-d mono">今天</span></li>
+              <li><span class="rq-t">教学过程的规律</span><span class="rq-d mono">今天</span></li>
+              <li><span class="rq-t">课程类型辨析</span><span class="rq-d mono">3 天后</span></li>
+            </ul>
+            <p class="demo-foot">答对延长间隔，答错缩短间隔。</p>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================== 工作方式 ======================== -->
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 class="h2">四步就能跑起来</h2>
+        <p class="lede">
+          没有配置向导，也没有七天养成计划。把资料导进去，当天就能开始。
+        </p>
+      </div>
+
+      <ol class="steps">
+        <li class="step reveal">
+          <span class="step-ic"><svg class="ic ic-18" aria-hidden="true"><use href="#ic-folderPlus"/></svg></span>
+          <div class="step-body">
+            <h3>导入资料</h3>
+            <p>把真题 PDF、课件、笔记拖进资料库，按页切片建索引。扫描件会被明确标成解析失败并说明原因，不会拿去硬答。</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <span class="step-ic"><svg class="ic ic-18" aria-hidden="true"><use href="#ic-sparkle"/></svg></span>
+          <div class="step-body">
+            <h3>定级或规划</h3>
+            <p>四六级先做一套定级测评，拿到预计总分与目标分的差距；考研生成四轨长线计划；证书从考纲文本抽出知识点树。</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <span class="step-ic"><svg class="ic ic-18" aria-hidden="true"><use href="#ic-pencil"/></svg></span>
+          <div class="step-body">
+            <h3>做当天的量</h3>
+            <p>高频词、听力精练、刷题各按今天的配额走。提交后立刻拿到批改与讲解，错题和错因自动入本。</p>
+          </div>
+        </li>
+        <li class="step reveal">
+          <span class="step-ic"><svg class="ic ic-18" aria-hidden="true"><use href="#ic-audit"/></svg></span>
+          <div class="step-body">
+            <h3>到点复盘</h3>
+            <p>每天按你设的时间推今日待复习，考研每周日出周报，证书考前 30 天开始提醒报名与缴费节点。</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ========================== FAQ ========================== -->
+  <section class="section" id="faq">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <h2 class="h2">常见问题</h2>
+      </div>
+
+      <div class="faq reveal">
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>需要联网吗？</span>
+            <svg class="ic ic-16 faq-chev" aria-hidden="true"><use href="#ic-chevronDown"/></svg>
+          </button>
+          <div class="faq-body"><div><p>导入、刷题、统计、间隔复习这些纯本地功能都不需要联网。只有你主动提交批改、出题、讲解或资料问答时，才会连到你配置的模型服务商。</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>我的资料和数据存在哪里？</span>
+            <svg class="ic ic-16 faq-chev" aria-hidden="true"><use href="#ic-chevronDown"/></svg>
+          </button>
+          <div class="faq-body"><div><p>Windows 下统一放在 <code>%APPDATA%\ss</code>。数据库、导入的资料原文件、导出的报表都在这个目录里，设置里的数据与隐私面板可以直接打开它。</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>要自己准备 API Key 吗？能接哪些模型？</span>
+            <svg class="ic ic-16 faq-chev" aria-hidden="true"><use href="#ic-chevronDown"/></svg>
+          </button>
+          <div class="faq-body"><div><p>要一个模型服务商的 Key。目前可以接 OpenAI、Anthropic、Google 等常见服务商，也可以接入兼容接口的开放权重服务。Key 只写在本机配置里，不经过我们的服务器。</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>扫描件 PDF 能导入吗？</span>
+            <svg class="ic ic-16 faq-chev" aria-hidden="true"><use href="#ic-chevronDown"/></svg>
+          </button>
+          <div class="faq-body"><div><p>暂时不能。没有文字层的扫描件会被明确标成解析失败并说明原因，而不是假装解析成功、再在问答里编答案。请换有文字层的电子版，或者手动录入关键内容。</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>不想要了，怎么删干净？</span>
+            <svg class="ic ic-16 faq-chev" aria-hidden="true"><use href="#ic-chevronDown"/></svg>
+          </button>
+          <div class="faq-body"><div><p>设置里可以一键清空备考数据，卸载后把 <code>%APPDATA%\ss</code> 目录删掉就彻底干净了。没有云端副本，不需要另行申请注销。</p></div></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q" aria-expanded="false">
+            <span>收费吗？</span>
+            <svg class="ic ic-16 faq-chev" aria-hidden="true"><use href="#ic-chevronDown"/></svg>
+          </button>
+          <div class="faq-body"><div><p>开源项目，下载和使用都不收费。唯一的花费是模型服务商那边的 API 用量，用多少算多少。</p></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================== CTA ========================== -->
+  <section class="cta" id="download">
+    <div class="wrap cta-inner reveal">
+      <div class="cta-copy">
+        <h2 class="h2">先装上，再决定从哪门开始</h2>
+        <p class="lede">支持 macOS 12+ 与 Windows 10/11。装完加一个模型 Key，把真题拖进去就能开始。</p>
+      </div>
+      <div class="cta-actions">
+        <a class="btn btn-primary btn-lg" href="https://github.com/light-misty/HIU-WorkSpace/releases" target="_blank" rel="noopener noreferrer">
+          <span>免费下载</span>
+          <svg class="ic ic-16" aria-hidden="true"><use href="#ic-arrowRight"/></svg>
+        </a>
+        <a class="btn btn-ghost btn-lg" href="https://github.com/light-misty/HIU-WorkSpace" target="_blank" rel="noopener noreferrer">在 GitHub 上查看</a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <a class="lockup" href="#top">
+        <img class="lockup-mark" src="assets/brand-icon.png" alt="" width="28" height="28">
+        <span class="lockup-name">偷偷学</span>
+        <span class="lockup-chip">BETA</span>
+      </a>
+      <p class="footer-note">开源的多智能体运行时，加上一层给大学生用的备考台。</p>
+    </div>
+
+    <nav class="footer-cols" aria-label="页脚导航">
+      <div class="footer-col">
+        <h3>产品</h3>
+        <a href="#stations">三张台面</a>
+        <a href="#abilities">核心能力</a>
+        <a href="#privacy">隐私与数据</a>
+      </div>
+      <div class="footer-col">
+        <h3>资源</h3>
+        <a href="https://github.com/light-misty/HIU-WorkSpace" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://github.com/light-misty/HIU-WorkSpace/releases" target="_blank" rel="noopener noreferrer">版本发布</a>
+        <a href="https://github.com/light-misty/HIU-WorkSpace/issues" target="_blank" rel="noopener noreferrer">问题反馈</a>
+      </div>
+    </nav>
+  </div>
+
+  <div class="wrap footer-legal">
+    <span>© 2026 偷偷学 Stealth Study</span>
+    <span>页面中的界面与数据为示意图</span>
+  </div>
+</footer>
+
+<script src="app.js" defer></script>
+</body>
+</html>
