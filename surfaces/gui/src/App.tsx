@@ -55,6 +55,7 @@ import { itemsFromMessages } from "./itemsFromMessages";
 import { addTurnUsage, emptyUsage, usageFromMessages } from "./usage";
 import { streamMode } from "./streamGate";
 import { dismissPendingQuestion, pendingQuestionOf } from "./pendingQuestion";
+import { warmCampusStation } from "./campus/hooks";
 import { InboxItemCard, approvalItemFromParked } from "./components/InboxItemCard";
 import { chooseFolder, isTauri, platformOS, startWindowDrag } from "./tauri";
 import { shouldBeginWindowDrag } from "./desktopChrome";
@@ -633,6 +634,14 @@ export function App() {
     const t = setTimeout(() => setUiReady(true), 1500);
     return () => clearTimeout(t);
   }, [uiReady, booting]);
+
+  // Warm the three exam stations once the UI is up, so the FIRST entry renders fully populated
+  // from the cache instead of painting a shell and filling it in (that fill-in is the flicker).
+  useEffect(() => {
+    if (!uiReady) return;
+    const t = setTimeout(() => void warmCampusStation(), 1500);
+    return () => clearTimeout(t);
+  }, [uiReady]);
 
   const loadSettings = () =>
     getSettings()

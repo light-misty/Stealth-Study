@@ -52,6 +52,7 @@ import {
   useProfileImpact,
   useProfiles,
   useWeeklyReports,
+  warmCampusStation,
 } from "../hooks";
 import type { PlanTask, ProgressReport, WeeklyReport } from "../types";
 import { campusErrorInfo } from "../utils";
@@ -655,5 +656,51 @@ describe("cross-mount cache", () => {
     const remount = renderHook(() => useActiveProfile([profile("p1"), profile("p2")]));
     expect(remount.result.current.loading).toBe(false);
     expect(remount.result.current.profile?.id).toBe("p2");
+  });
+});
+
+describe("warmCampusStation", () => {
+  it("seeds every first-paint cache so a cold entry renders fully populated", async () => {
+    apiMock.getAppState.mockResolvedValue({ active_profile_id: "p1", settings: {} });
+    apiMock.getCapabilities.mockResolvedValue({ current_model: "m", tasks: [] });
+    apiMock.listProfiles.mockResolvedValue({ items: [profile("p1")] });
+    apiMock.listMistakes.mockResolvedValue({ items: [mistake("m1")], total: 1 });
+    apiMock.listDueReviews.mockResolvedValue({ items: [dueItem("d1")] });
+    apiMock.getProgress.mockResolvedValue({ by_track: {}, streak_days: 3, heatmap: [] });
+    apiMock.getReminders.mockResolvedValue({ banner: [], expired: [] });
+
+    await warmCampusStation();
+
+    const profiles = renderHook(() => useProfiles("cert"));
+    expect(profiles.result.current.loading).toBe(false);
+    expect(profiles.result.current.profiles).toHaveLength(1);
+
+    const mistakes = renderHook(() => useMistakes("p1"));
+    expect(mistakes.result.current.loading).toBe(false);
+    expect(mistakes.result.current.items).toHaveLength(1);
+
+    const reviews = renderHook(() => useDueReviews("p1"));
+    expect(reviews.result.current.loading).toBe(false);
+    expect(reviews.result.current.items).toHaveLength(1);
+
+    const progress = renderHook(() => usePlanProgress("p1"));
+    expect(progress.result.current.loading).toBe(false);
+    expect(progress.result.current.progress?.streak_days).toBe(3);
+
+    const deadlines = renderHook(() => useDeadlineViews("p1"));
+    expect(deadlines.result.current.loading).toBe(false);
+
+    const capabilities = renderHook(() => useCapabilities());
+    expect(capabilities.result.current.loading).toBe(false);
+    expect(capabilities.result.current.capabilities?.current_model).toBe("m");
+
+    const active = renderHook(() => useActiveProfile([profile("p1")]));
+    expect(active.result.current.loading).toBe(false);
+    expect(active.result.current.profile?.id).toBe("p1");
+  });
+
+  it("stays silent when the warm-up requests fail", async () => {
+    apiMock.getAppState.mockRejectedValue(new Error("down"));
+    await expect(warmCampusStation()).resolves.toBeUndefined();
   });
 });

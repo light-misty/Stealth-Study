@@ -48,7 +48,7 @@ vi.mock("../../campus/api", async (importOriginal) => {
 });
 
 import * as api from "../../campus/api";
-import { clearCampusCache } from "../../campus/hooks";
+import { clearCampusCache, warmCampusStation } from "../../campus/hooks";
 import { localDay } from "../../campus/utils";
 import { CampusStationView } from "./CampusStationView";
 
@@ -366,6 +366,15 @@ describe("CampusStationView", () => {
     expect(loading.querySelectorAll(".st-rail .card").length).toBe(3);
     await waitFor(() => expect(loading.querySelectorAll(".st-rail .prog").length).toBe(4));
     expect(loading.querySelectorAll(".st-rail .heat span").length).toBe(21);
+  });
+
+  it("paints the whole station on the first entry when the caches are warm", async () => {
+    await warmCampusStation();
+    render(<CampusStationView track="cet" />);
+    expect(screen.queryByTestId("campus-station-loading")).toBeNull();
+    expect(screen.getByTestId("campus-profile-switcher")).toBeTruthy();
+    expect(screen.getByTestId("campus-mistake-panel")).toBeTruthy();
+    expect(screen.queryAllByTestId("campus-station-progress-row")).toHaveLength(4);
   });
 
   it("opens the archived profiles from the station header and restores one", async () => {

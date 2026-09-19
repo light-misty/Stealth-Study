@@ -82,6 +82,14 @@ export function clearCampusCache(): void {
 
 const APP_STATE_KEY = "app-state";
 
+// 缓存键只在这里与 warmCampusStation 两侧出现，收口成函数防止两边拼写漂移。
+const profilesKey = (track?: CampusTrack) => `profiles:${track ?? "all"}`;
+const mistakesKey = (profileId: string | null, filterKey: string) =>
+  `mistakes:${profileId ?? "none"}:${filterKey}`;
+const dueReviewsKey = (profileId: string | null) => `due-reviews:${profileId ?? "none"}`;
+const planProgressKey = (profileId: string | null) => `plan-progress:${profileId ?? "none"}`;
+const deadlineViewsKey = (profileId: string | null) => `deadline-views:${profileId ?? "none"}`;
+
 function useAsync<T>(
   load: () => Promise<T>,
   deps: unknown[],
@@ -145,13 +153,61 @@ function useAsync<T>(
   return { data, setData, setError, loading, error, retryable: campusErrorInfo(error).retryable, reload };
 }
 
+// 启动空闲时把三台的首屏数据预先写进缓存：首次进入某台前无从命中，不预热的话第一帧只有
+// 外壳、随后数据分批填充，看起来就是闪。预热后第一帧即完整内容，进台后台刷新无感更新。
+export async function warmCampusStation(): Promise<void> {
+  const tracks: CampusTrack[] = ["cet", "kaoyan", "cert"];
+  try {
+    const [state, capabilities] = await Promise.all([getAppState(), getCapabilities()]);
+    campusCache.set(APP_STATE_KEY, { active_profile_id: state?.active_profile_id ?? null });
+    campusCache.set("capabilities", capabilities);
+    const remembered = state?.active_profile_id ?? null;
+    const trackLists = await Promise.all(tracks.map((track) => listProfiles(track)));
+    await Promise.all(
+      trackLists.map(async (res, index) => {
+        const items = res?.items ?? [];
+        campusCache.set(profilesKey(tracks[index]), items);
+        const active =
+          items.find((p) => p.id === remembered && p.status !== "archived") ??
+          items.find((p) => p.status === "active") ??
+          null;
+        if (!active) return;
+        const requests: Promise<unknown>[] = [
+          listMistakes(active.id, {}).then((list) =>
+            campusCache.set(
+              mistakesKey(active.id, JSON.stringify({})),
+              { items: list?.items ?? [], total: list?.total ?? 0 },
+            ),
+          ),
+          listDueReviews(active.id).then((res2) =>
+            campusCache.set(dueReviewsKey(active.id), res2?.items ?? []),
+          ),
+          getProgress(active.id).then((report) =>
+            campusCache.set(planProgressKey(active.id), report),
+          ),
+        ];
+        if (tracks[index] === "cert") {
+          requests.push(
+            getReminders(active.id).then((res2) =>
+              campusCache.set(deadlineViewsKey(active.id), res2?.banner ?? []),
+            ),
+          );
+        }
+        await Promise.all(requests);
+      }),
+    );
+  } catch {
+    // 预热失败不致命：进台后 hooks 会照常拉取。
+  }
+}
+
 /** A1: every profile for the station (archived ones stay hidden by the switcher). */
 export function useProfiles(track?: CampusTrack) {
   const { data, loading, error, retryable, reload } = useAsync<ExamProfile[]>(
     () => listProfiles(track).then((res) => res?.items ?? []),
     [track],
     [],
-    `profiles:${track ?? "all"}`,
+    profilesKey(track),
   );
   return { profiles: data, loading, error, retryable, reload };
 }
@@ -225,7 +281,7 @@ export function useDueReviews(profileId: string | null) {
     () => (profileId ? listDueReviews(profileId).then((res) => res?.items ?? []) : Promise.resolve([])),
     [profileId],
     [],
-    `due-reviews:${profileId ?? "none"}`,
+    dueReviewsKey(profileId),
   );
 
   const submit = useCallback(
@@ -266,7 +322,7 @@ export function useMistakes(profileId: string | null, filters: MistakeFilters = 
         : Promise.resolve({ items: [], total: 0 }),
     [profileId, filterKey],
     { items: [], total: 0 },
-    `mistakes:${profileId ?? "none"}:${filterKey}`,
+    mistakesKey(profileId, filterKey),
   );
 
   const setAttribution = useCallback(
@@ -451,7 +507,7 @@ export function useDeadlineViews(profileId: string | null) {
     () => (profileId ? getReminders(profileId).then((res) => res?.banner ?? []) : Promise.resolve([])),
     [profileId],
     [],
-    `deadline-views:${profileId ?? "none"}`,
+    deadlineViewsKey(profileId),
   );
   return { views: data, loading, error, reload };
 }
@@ -618,7 +674,7 @@ export function usePlanProgress(profileId: string | null) {
     () => (profileId ? getProgress(profileId) : Promise.resolve(null)),
     [profileId],
     null,
-    `plan-progress:${profileId ?? "none"}`,
+    planProgressKey(profileId),
   );
   return { progress: data, loading, error, retryable, reload };
 }
