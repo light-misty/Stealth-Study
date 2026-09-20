@@ -1,4 +1,4 @@
-# StealthStudy（偷偷学）
+<h1 align="center">StealthStudy（偷偷学）</h1>
 
 <p align="center">
   <strong>English</strong> · <a href="README.md">简体中文</a>
