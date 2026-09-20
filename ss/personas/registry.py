@@ -147,13 +147,12 @@ class PersonaRegistry:
         # default) leads. Chat is GONE (owner call 2026-08-21; retired-but-listed since
         # 2026-08-11) — stray `persona=chat` session ids resolve to the default via
         # agent()'s unknown-id fallback. Code ships disabled + unsurfaced (same owner
-        # call): StealthStudy is the launch generalist, but Code stays one checkbox away
-        # as the only plain work-in-my-repo persona.
+        # call): 学习伙伴是默认全科人设，Code 仍是纯代码仓库人设（默认隐藏）。
         self._register_builder(
             "cowork",
-            "StealthStudy",
+            "学习伙伴",
             "cowork",
-            "Produce a deliverable — research, analysis, scripts",
+            "学习答疑、复习计划、错题整理与备考陪伴",
             cowork_agent,
             COWORK_CAPABILITIES,
         )

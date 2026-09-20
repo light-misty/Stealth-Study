@@ -61,4 +61,10 @@ def test_default_cowork_prompt_is_study_oriented():
     assert "deliverable" not in prompt.lower()
     assert "knowledge-work" not in prompt.lower()
 
-
+def test_default_cowork_registry_meta_is_study_oriented():
+    reg = PersonaRegistry()
+    entry = reg.get("cowork")
+    assert entry is not None
+    assert entry.name == "学习伙伴"
+    assert "学习" in entry.tagline
+    assert "deliverable" not in entry.tagline.lower()
