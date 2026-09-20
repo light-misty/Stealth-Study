@@ -161,7 +161,7 @@ def is_readonly_command(command: str) -> bool:
 # -- read targets (OPE-130) ------------------------------------------------------------
 # The classifier above decides what a command may DO. It says nothing about what the
 # command may READ, so a session grant meant for "stop asking about my project files" also
-# covered ~/.aws/credentials, ~/.ssh/id_rsa and OpenWorker's own secrets file. These
+# covered ~/.aws/credentials, ~/.ssh/id_rsa and Stealth Study's own secrets file. These
 # helpers name the file operands so the caller can hold them to the session's roots — the
 # same shape as the fix for browser uploads in OPE-122.
 #

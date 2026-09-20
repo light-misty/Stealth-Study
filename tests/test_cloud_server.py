@@ -1,4 +1,4 @@
-"""Sidecar loopback routes for OpenWorker Cloud: /oauth/callback,
+"""Sidecar loopback routes for Stealth Study Cloud: /oauth/callback,
 /auth/callback, /v1/cloud/*, connect-managed gating.
 
 These exercise the UPSTREAM one-click flow, so the fixture turns `campus.login_enabled` on

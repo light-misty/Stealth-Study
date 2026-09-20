@@ -763,7 +763,7 @@ def _verify_bedrock(fields: dict[str, Any], timeout: float) -> dict[str, Any]:
     except ImportError:
         return {
             "ok": False,
-            "error": "boto3 is not installed — `pip install 'openworker[bedrock]'`.",
+            "error": "boto3 is not installed — `pip install 'ss[bedrock]'`.",
         }
     # Exactly one auth method is exercised — the one the form has selected. Per-method
     # required fields are checked here so the Test button says what's missing.

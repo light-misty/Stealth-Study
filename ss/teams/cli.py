@@ -47,7 +47,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="ocw", description="OpenWorker team board + journal CLI."
+        prog="ocw", description="Stealth Study team board + journal CLI."
     )
     sub = parser.add_subparsers(dest="group")
 
