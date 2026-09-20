@@ -184,6 +184,15 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/index.html",
     "surfaces/gui/vite.config.ts",
     "stealth_study/__init__.py",
+    # 命名统一收尾：CI 注释、脚本 UA、STT crate 与 Tauri dev 脚本、主题键文件。
+    ".github/workflows/ci.yml",
+    "scripts/v0-spikes/fetch_corpus.py",
+    "scripts/v0-spikes/fetch_pdf_corpus.py",
+    "stt/Cargo.toml",
+    "stt/Cargo.lock",
+    "stt/src/lib.rs",
+    "surfaces/gui/scripts/tauri-dev.mjs",
+    "surfaces/gui/src/theme.ts",
 }
 
 # Design mockups: neither shipped nor compiled, and the whole redesign workflow lives in there.
