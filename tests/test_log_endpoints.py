@@ -37,7 +37,7 @@ def test_ingest_writes_frontend_file(tmp_path, monkeypatch):
     client = _make_client(tmp_path, monkeypatch)
     resp = client.post(
         "/v1/logs/frontend",
-        headers={"X-SS-Token": "secret-token"},
+        headers={"X-StealthStudy-Token": "secret-token"},
         json={
             "logs": [
                 {"ts": "2026-09-16 22:31:00,000", "level": "INFO", "message": "页面加载完成"}
@@ -56,7 +56,7 @@ def test_ingest_counts_invalid_entries(tmp_path, monkeypatch):
     client = _make_client(tmp_path, monkeypatch)
     resp = client.post(
         "/v1/logs/frontend",
-        headers={"X-SS-Token": "secret-token"},
+        headers={"X-StealthStudy-Token": "secret-token"},
         json={
             "logs": [
                 {"ts": "bad", "level": "INFO", "message": "跳过"},
@@ -73,7 +73,7 @@ def test_ingest_malformed_payload_returns_422(tmp_path, monkeypatch):
     client = _make_client(tmp_path, monkeypatch)
     resp = client.post(
         "/v1/logs/frontend",
-        headers={"X-SS-Token": "secret-token"},
+        headers={"X-StealthStudy-Token": "secret-token"},
         content=b"[1,2,3]",
     )
     assert resp.status_code == 422
@@ -86,7 +86,7 @@ def test_ingest_rotates_when_max_bytes_hit(tmp_path, monkeypatch):
     for i in range(30):
         resp = client.post(
             "/v1/logs/frontend",
-            headers={"X-SS-Token": "secret-token"},
+            headers={"X-StealthStudy-Token": "secret-token"},
             json={"logs": [{"ts": f"2026-09-16 22:31:{i:02d},000", "level": "INFO", "message": f"row-{i}"}]},
         )
         body = resp.json()
@@ -111,7 +111,7 @@ def test_request_user_id_prefers_actor_header(tmp_path, monkeypatch):
     req = Request(
         {
             "type": "http",
-            "headers": [(b"x-ss-actor", b"actor-42"), (b"host", b"localhost")],
+            "headers": [(b"x-stealthstudy-actor", b"actor-42"), (b"host", b"localhost")],
             "query_string": b"profile_id=prof-1",
             "method": "GET",
             "path": "/v1/test",

@@ -47,14 +47,14 @@ describe("campus api transport", () => {
     await api.listProfiles();
     expect(calls).toHaveLength(1);
     expect(calls[0].url).toBe("http://127.0.0.1:8765/v1/campus/profiles");
-    expect(headersOf(calls[0]).get("X-SS-Token")).toBe("tok-123");
+    expect(headersOf(calls[0]).get("X-StealthStudy-Token")).toBe("tok-123");
   });
 
   it("omits the token header when no token is configured", async () => {
     delete (globalThis as { __COWORKER_API_TOKEN__?: string }).__COWORKER_API_TOKEN__;
     const calls = installFetch();
     await api.getAppState();
-    expect(headersOf(calls[0]).get("X-SS-Token")).toBeNull();
+    expect(headersOf(calls[0]).get("X-StealthStudy-Token")).toBeNull();
   });
 
   it("encodes list filters into the query string and skips empty ones", async () => {

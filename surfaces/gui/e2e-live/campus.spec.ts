@@ -31,7 +31,7 @@ function liveToken(): string {
 }
 
 const TOKEN = liveToken();
-const auth = { "X-SS-Token": TOKEN };
+const auth = { "X-StealthStudy-Token": TOKEN };
 
 /** Every `/v1/campus/*` response the page received that was not a success. */
 function watchCampusCalls(page: Page): string[] {

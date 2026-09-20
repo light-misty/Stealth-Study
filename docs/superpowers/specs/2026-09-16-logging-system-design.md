@@ -75,7 +75,7 @@
 
 ### 4.3 前端日志接收端点 `POST /v1/logs/frontend`（扩展 `app.py`）
 
-- 认证走现有 token 中间件（前端 `api.ts` 自动注入 `X-SS-Token`）。
+- 认证走现有 token 中间件（前端 `api.ts` 自动注入 `X-StealthStudy-Token`）。
 - 请求体：
 
 ```json

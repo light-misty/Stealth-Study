@@ -248,7 +248,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 def _subsystem_codes() -> set[str]:
     """代码里真写出来的代号。扫整棵 `stealth_study/` 树，新增站点自动进登记表，不必再维护文件清单。"""
     found: set[str] = set()
-    for path in sorted((_ROOT / "ss").rglob("*.py")):
+    for path in sorted((_ROOT / "stealth_study").rglob("*.py")):
         for groups in _CODE_LITERALS.findall(path.read_text(encoding="utf-8")):
             found |= {value for value in groups if value}
     return found

@@ -233,14 +233,14 @@ def run_smoke() -> dict:
 
             r = get("/v1/campus/health")
             check("campus_health_no_token_401", r.status_code == 401, r.status_code)
-            r = get("/v1/campus/health", {"x-ss-token": "wrong"})
+            r = get("/v1/campus/health", {"x-stealthstudy-token": "wrong"})
             check("campus_health_wrong_token_401", r.status_code == 401, r.status_code)
-            r = get("/v1/campus/health", {"x-ss-token": token})
+            r = get("/v1/campus/health", {"x-stealthstudy-token": token})
             ok = r.status_code == 200 and r.json().get("status") == "ok"
             check("campus_health_with_token_200", ok, r.status_code)
 
             for path in ("/v1/sessions", "/v1/settings", "/v1/automations"):
-                r = get(path, {"x-ss-token": token})
+                r = get(path, {"x-stealthstudy-token": token})
                 check(f"existing_{path.strip('/').replace('/', '_')}_200",
                       r.status_code == 200, r.status_code)
 

@@ -83,7 +83,7 @@ npm install
 npm run dev        # browser UI on the Vite dev port (1420)
 ```
 
-On each start, the standalone server writes a token to `<state-dir>/sidecar-8765.token`; Vite reads that user-only file at startup. For direct API calls, send its value in the `X-SS-Token` header. The desktop app uses an in-memory launch token that is never written to disk.
+On each start, the standalone server writes a token to `<state-dir>/sidecar-8765.token`; Vite reads that user-only file at startup. For direct API calls, send its value in the `X-StealthStudy-Token` header. The desktop app uses an in-memory launch token that is never written to disk.
 
 To run the full desktop app instead of the browser UI, replace step 3 with `npm run tauri dev` (from `surfaces/gui/`) — the Tauri shell opens the window and manages the service itself.
 

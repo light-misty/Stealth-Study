@@ -605,10 +605,10 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
     assert client.get("/v1/health").json() == {"status": "ok"}
     assert client.get("/v1/sessions").status_code == 401
     assert client.get(
-        "/v1/sessions", headers={"X-SS-Token": "wrong"}
+        "/v1/sessions", headers={"X-StealthStudy-Token": "wrong"}
     ).status_code == 401
 
-    headers = {"X-SS-Token": "a" * 64}
+    headers = {"X-StealthStudy-Token": "a" * 64}
     assert client.get("/v1/health", headers=headers).json()[
         "default_workspace"
     ] == str(tmp_path.resolve())

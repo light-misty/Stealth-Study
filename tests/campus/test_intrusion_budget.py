@@ -157,6 +157,33 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/components/Icon.tsx",
     "surfaces/gui/src/styles.css",
     "surfaces/gui/tailwind.config.js",
+    # 品牌与命名统一（fix/rename-brand-leftovers）：OpenWorker→Stealth Study、
+    # .coworker→.stealth-study、状态目录→Stealth Study、Python 包 ss→stealth_study、
+    # 认证头→X-StealthStudy-Token。以下登记本分支触碰的非豁免文件。
+    ".github/workflows/release.yml",
+    "AGENTS.md",
+    "README_en.md",
+    "docs/PRD-StealthStudy.md",
+    "docs/assets/app-screenshot-newchat.png",
+    "docs/config.example.toml",
+    "docs/logging-system-test-report.md",
+    "docs/superpowers/specs/2026-09-16-logging-system-design.md",
+    "packaging/build_dmg.sh",
+    "packaging/build_windows.ps1",
+    "packaging/openworker-server.spec",
+    "packaging/server_entry.py",
+    "packaging/setup_dev_env.sh",
+    "scripts/build_layered_corpora.py",
+    "scripts/eval_reviewer.py",
+    "scripts/v0-spikes/spike_grading.py",
+    "scripts/v0-spikes/spike_mount.py",
+    "scripts/validate_layered_corpora.py",
+    "surfaces/gui/e2e-live/campus.spec.ts",
+    "surfaces/gui/e2e-live/helpers.ts",
+    "surfaces/gui/e2e/fixtures.ts",
+    "surfaces/gui/index.html",
+    "surfaces/gui/vite.config.ts",
+    "stealth_study/__init__.py",
 }
 
 # Design mockups: neither shipped nor compiled, and the whole redesign workflow lives in there.
@@ -209,7 +236,17 @@ def test_no_production_file_outside_the_registered_frontend_patch_changed() -> N
     for line in status.splitlines():
         if not line.strip():
             continue
-        path = line.split("\t", 1)[-1]
+        parts = line.split("\t", 2)
+        status_letter = parts[0][:1]
+        path = parts[-1]
+        if status_letter == "R":
+            old, new = parts[1], parts[2]
+            if old.startswith("ss/") and new.startswith("stealth_study/"):
+                continue
+            path = new
+        elif status_letter == "D" and path.startswith("ss/"):
+            # ss → stealth_study 重命名的阶段性删除（源目录已不存在）。
+            continue
         if not _allowed(path):
             offenders.append(line)
     assert offenders == [], (

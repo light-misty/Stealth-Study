@@ -15,7 +15,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSONAS = ROOT / "ss" / "personas" / "builtin"
+PERSONAS = ROOT / "stealth_study" / "personas" / "builtin"
 
 from stealth_study.campus import rubrics
 

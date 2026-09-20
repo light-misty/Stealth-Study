@@ -63,22 +63,22 @@ def test_token_middleware_covers_mounted_router(spike, tmp_path: Path, monkeypat
 
     assert client.get("/v1/campus/health").status_code == 401
     assert (
-        client.get("/v1/campus/health", headers={"x-ss-token": "wrong"}).status_code
+        client.get("/v1/campus/health", headers={"x-stealthstudy-token": "wrong"}).status_code
         == 401
     )
-    ok = client.get("/v1/campus/health", headers={"x-ss-token": token})
+    ok = client.get("/v1/campus/health", headers={"x-stealthstudy-token": token})
     assert ok.status_code == 200
     assert ok.json()["status"] == "ok"
 
-    assert client.get("/v1/sessions", headers={"x-ss-token": token}).status_code == 200
-    assert client.get("/v1/settings", headers={"x-ss-token": token}).status_code == 200
+    assert client.get("/v1/sessions", headers={"x-stealthstudy-token": token}).status_code == 200
+    assert client.get("/v1/settings", headers={"x-stealthstudy-token": token}).status_code == 200
     assert (
-        client.get("/v1/automations", headers={"x-ss-token": token}).status_code == 200
+        client.get("/v1/automations", headers={"x-stealthstudy-token": token}).status_code == 200
     )
 
 
 def test_patch_inserts_two_lines_after_app_creation(spike):
-    original = (ROOT / "ss" / "server" / "app.py").read_text(encoding="utf-8")
+    original = (ROOT / "stealth_study" / "server" / "app.py").read_text(encoding="utf-8")
     patched = spike.apply_mount_patch(original)
     lines = patched.splitlines()
     anchor = next(
@@ -92,7 +92,7 @@ def test_patch_inserts_two_lines_after_app_creation(spike):
 
 
 def test_restore_returns_original_exactly(spike):
-    original = (ROOT / "ss" / "server" / "app.py").read_text(encoding="utf-8")
+    original = (ROOT / "stealth_study" / "server" / "app.py").read_text(encoding="utf-8")
     patched = spike.apply_mount_patch(original)
     assert spike.restore_mount_patch(patched) == original
 

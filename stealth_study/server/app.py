@@ -172,7 +172,7 @@ from .manager import SessionManager, _approval_body
 
 def _request_user_id(request: Request) -> str:
     """从请求中尽力推导当前用户身份供日志记录：优先 X-SS-Actor 头，其次 profile_id。"""
-    return request.headers.get("x-ss-actor") or request.query_params.get("profile_id") or ""
+    return request.headers.get("x-stealthstudy-actor") or request.query_params.get("profile_id") or ""
 
 
 def create_app(manager: SessionManager) -> FastAPI:
@@ -203,7 +203,7 @@ def create_app(manager: SessionManager) -> FastAPI:
     }
 
     def _request_authenticated(request: Request) -> bool:
-        provided = request.headers.get("x-ss-token", "")
+        provided = request.headers.get("x-stealthstudy-token", "")
         return bool(
             api_token
             and provided

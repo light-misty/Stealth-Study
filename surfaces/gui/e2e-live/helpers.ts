@@ -25,7 +25,7 @@ function sidecarToken(): string {
 export function backendFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   const token = sidecarToken();
-  if (token) headers.set("X-SS-Token", token);
+  if (token) headers.set("X-StealthStudy-Token", token);
   return fetch(`${BACKEND}${path}`, { ...init, headers });
 }
 

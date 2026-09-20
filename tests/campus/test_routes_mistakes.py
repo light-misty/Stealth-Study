@@ -460,7 +460,7 @@ def test_d7_answers_for_a_finished_profile_because_it_writes_nothing(
 
 # -- I1 人设清单 ------------------------------------------------------------
 
-PERSONAS = Path(__file__).resolve().parents[2] / "ss" / "personas" / "builtin"
+PERSONAS = Path(__file__).resolve().parents[2] / "stealth_study" / "personas" / "builtin"
 
 
 def _registry(tmp_path: Path) -> PersonaRegistry:

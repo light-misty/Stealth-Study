@@ -82,7 +82,7 @@ def test_frontend_endpoint_bulk_ingest(tmp_path, monkeypatch, capsys):
         for i in range(5000)
     ]
     start = time.perf_counter()
-    resp = client.post("/v1/logs/frontend", headers={"X-SS-Token": "t"}, json={"logs": entries})
+    resp = client.post("/v1/logs/frontend", headers={"X-StealthStudy-Token": "t"}, json={"logs": entries})
     elapsed = time.perf_counter() - start
     assert resp.status_code == 200
     body = resp.json()

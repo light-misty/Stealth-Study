@@ -10,8 +10,8 @@
 * **端点集合**：把 `campus/api.ts` 的声明解析成 `(method, path)` 集合，逐个断言它落在
   `build_campus_router()` 真实注册的路由里（占位符按形状归一，`{pid}` 与 `{doc_id}` 等价）。
   反向不设断言：后端允许存在前端暂未接线的端点（例如 I5 下载由 `exportDownloadUrl` 拼 URL）。
-* **鉴权头**：前端发出的头名必须是后端 `_request_authenticated` 读的那个（`x-ss-token`）。
-  文档 03 §1/04 §6.1 写作 `X-StealthStudy-Token`，实现是 `X-SS-Token`，T15 已按实现为准；
+* **鉴权头**：前端发出的头名必须是后端 `_request_authenticated` 读的那个（`x-stealthstudy-token`）。
+  文档 03 §1/04 §6.1 与实现均为 `X-StealthStudy-Token`；
   这条断言让"文档与实现的差异"不会再演化成"前端与后端的差异"。
 """
 
@@ -26,7 +26,7 @@ from stealth_study.campus import routes
 
 ROOT = Path(__file__).resolve().parents[2]
 API_TS = ROOT / "surfaces" / "gui" / "src" / "campus" / "api.ts"
-SERVER_APP = ROOT / "ss" / "server" / "app.py"
+SERVER_APP = ROOT / "stealth_study" / "server" / "app.py"
 
 _ENDPOINT_ROW = re.compile(
     r'id:\s*"(?P<id>[^"]+)",\s*method:\s*"(?P<method>[A-Z]+)",\s*path:\s*"(?P<path>[^"]+)"'
@@ -81,8 +81,8 @@ def test_the_auth_header_matches_the_backend_middleware() -> None:
     names = {match.group("name").lower() for match in _HEADER.finditer(source)}
     assert names, "campus/api.ts 里没有解析到鉴权头"
     middleware = SERVER_APP.read_text(encoding="utf-8")
-    assert 'request.headers.get("x-ss-token"' in middleware, "后端中间件读取的头名变了"
-    assert names == {"x-ss-token"}, f"前端发出的鉴权头与后端不一致：{sorted(names)}"
+    assert 'request.headers.get("x-stealthstudy-token"' in middleware, "后端中间件读取的头名变了"
+    assert names == {"x-stealthstudy-token"}, f"前端发出的鉴权头与后端不一致：{sorted(names)}"
 
 
 @pytest.mark.parametrize("endpoint_id", ["A2", "B1", "C1", "D1", "F11", "G3", "H4", "I1"])

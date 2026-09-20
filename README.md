@@ -83,7 +83,7 @@ npm install
 npm run dev        # 浏览器 UI 运行在 Vite 开发端口（1420）
 ```
 
-每次启动时，独立服务器会在 `<state-dir>/sidecar-8765.token` 生成令牌；Vite 启动时读取该仅用户可访问的文件。直接调用 API 时请在 `X-SS-Token` 头部中发送该值。桌面应用使用内存中的启动令牌，从不写入磁盘。
+每次启动时，独立服务器会在 `<state-dir>/sidecar-8765.token` 生成令牌；Vite 启动时读取该仅用户可访问的文件。直接调用 API 时请在 `X-StealthStudy-Token` 头部中发送该值。桌面应用使用内存中的启动令牌，从不写入磁盘。
 
 要运行完整的桌面应用而非浏览器 UI，请把第 3 步换成 `npm run tauri dev`（在 `surfaces/gui/` 下运行）——Tauri 外壳会打开窗口并自行管理服务。
 

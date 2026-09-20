@@ -25,7 +25,7 @@ from stealth_study.sessions import SessionRecord
 from stealth_study.skills.base import SkillLoader
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSONAS = ROOT / "ss" / "personas" / "builtin"
+PERSONAS = ROOT / "stealth_study" / "personas" / "builtin"
 DOC = ROOT / "docs" / "dev" / "05-人设与技能包设计.md"
 
 # 人设 id → 该 bundle 的技能 allowlist（05 §2 字段分配总表）。
@@ -181,7 +181,7 @@ def test_seven_skill_bundles_live_inside_their_persona_directories() -> None:
     """7 个技能包必须落在人设 bundle 内（ADR-02），不建 `stealth_study/skills/campus/`。"""
     assert len(ALL_SKILLS) == 7
     assert len(set(ALL_SKILLS)) == 7
-    assert not (ROOT / "ss" / "skills" / "campus").exists()
+    assert not (ROOT / "stealth_study" / "skills" / "campus").exists()
 
     for persona_id, skills in BUNDLES.items():
         bundle = PERSONAS / persona_id / "skills"
