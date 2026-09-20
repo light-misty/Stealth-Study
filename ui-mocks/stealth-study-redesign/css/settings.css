@@ -2,9 +2,8 @@
    settings.css · 设置 · 通用
    ----------------------------------------------------------------------------
    对应画布节点「01/02 · 设置-通用」。
-   结构：页头（标题 + 说明） / 内容行（纸页面板 + 右侧品牌栏） / 页脚
-   面板是一整张纸页 + 细分割线，不再用多张独立大卡片 —— 减少卡片阴影互相打架，
-   扫读成本更低。
+   结构：页头（标题 + 说明） / 内容行（独立卡片 + 右侧品牌栏） / 页脚
+   每个设置项使用独立卡片，减少视觉复杂度。
    ============================================================================ */
 
 .view--settings {
@@ -26,17 +25,22 @@
   overflow: auto;
 }
 
-/* ------------------------------------------------------- 设置面板（纸页） */
+/* ------------------------------------------------------- 设置面板（独立卡片） */
 .panel {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column;
+  gap: 16px;
+}
+
+/* 单个设置卡片 */
+.setting-card {
   background: var(--surface);
   border-radius: var(--r-16);
   box-shadow: var(--shadow-panel);
   overflow: hidden;
   transition: background .28s ease, box-shadow .2s ease;
 }
-.panel:hover { box-shadow: var(--shadow-hover); }
+.setting-card:hover { box-shadow: var(--shadow-hover); }
 
 /* 单行：彩色图标底 + 标题/说明 + 控件 */
 .srow { display: flex; align-items: center; gap: 14px; padding: 16px 22px; }
@@ -48,8 +52,8 @@
 
 /* 设计稿只展开了「通用」页；切到其他导航项时用占位说明替代面板内容 */
 .panel-ph { display: none; padding: 64px 22px; text-align: center; font-size: 11.5px; line-height: 18px; color: var(--ink-3); }
-.panel.is-ph .srow,
-.panel.is-ph .divider { display: none; }
+.panel.is-ph .setting-card,
+.panel.is-ph .panel-ph { display: none; }
 .panel.is-ph .panel-ph { display: block; }
 
 /* ============================================================== 控件 == */

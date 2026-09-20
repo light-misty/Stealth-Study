@@ -114,17 +114,18 @@
 
       <!-- 设置导航 -->
       <div class="nav-set nav-set--settings">
-        <div class="group-label">
+        <div class="brand-row-settings">
+          <button class="nav-back" data-open="new"><svg class="ic" width="16" height="16"><use href="#i-chev-right" style="transform:rotate(180deg)"/></svg></button>
           <svg class="ic" width="15" height="15"><use href="#i-settings"/></svg>
-          <span class="group-text">设置</span>
+          <span class="group-text" style="font-size:13px;font-weight:600;color:var(--ink)">设置</span>
         </div>
         <button class="nav-item is-active" data-nav="通用"><svg class="ic" width="17" height="17"><use href="#i-sliders"/></svg><span class="nav-label">通用</span></button>
         <button class="nav-item" data-nav="模型"><svg class="ic" width="17" height="17"><use href="#i-model"/></svg><span class="nav-label">模型</span></button>
         <button class="nav-item" data-nav="上下文优化"><svg class="ic" width="17" height="17"><use href="#i-context"/></svg><span class="nav-label">上下文优化</span></button>
         <button class="nav-item" data-nav="技能"><svg class="ic" width="17" height="17"><use href="#i-skills"/></svg><span class="nav-label">技能</span></button>
-        <button class="nav-item" data-nav="语音输入"><svg class="ic" width="17" height="17"><use href="#i-mic"/></svg><span class="nav-label">语音输入</span></button>
         <button class="nav-item" data-nav="记忆"><svg class="ic" width="17" height="17"><use href="#i-memory"/></svg><span class="nav-label">记忆</span></button>
-        <button class="nav-item" data-nav="同事"><svg class="ic" width="17" height="17"><use href="#i-coworker"/></svg><span class="nav-label">同事</span></button>
+        <button class="nav-item" data-nav="学习伙伴"><svg class="ic" width="17" height="17"><use href="#i-coworker"/></svg><span class="nav-label">学习伙伴</span></button>
+        <button class="nav-item" data-nav="备考台"><svg class="ic" width="17" height="17"><use href="#i-book"/></svg><span class="nav-label">备考台</span></button>
       </div>
 
       <!-- 备考台导航：三行与真实侧栏同序同图标，另给两个回跳入口 -->
@@ -148,19 +149,22 @@
 
       <!-- 会话导航 -->
       <div class="nav-set nav-set--new">
-<button class="primary-btn" id="newSessionBtn">
-<svg class="ic" width="17" height="17"><use href="#i-plus"/></svg>
-<span class="nav-label">新建会话</span>
-</button>
+        <button class="primary-btn" id="newSessionBtn">
+          <svg class="ic" width="17" height="17"><use href="#i-plus"/></svg>
+          <span class="nav-label">新建会话</span>
+        </button>
         <button class="nav-item"><svg class="ic" width="17" height="17"><use href="#i-search"/></svg><span class="nav-label">搜索</span></button>
-        <button class="nav-item"><svg class="ic" width="17" height="17"><use href="#i-automation"/></svg><span class="nav-label">自动化</span></button>
+        <button class="nav-item"><svg class="ic" width="17" height="17"><use href="#i-clock"/></svg><span class="nav-label">定时任务</span></button>
+        <button class="nav-item"><svg class="ic" width="17" height="17"><use href="#i-book"/></svg><span class="nav-label">CET 备考台</span></button>
+        <button class="nav-item"><svg class="ic" width="17" height="17"><use href="#i-clock"/></svg><span class="nav-label">考研备考台</span></button>
+        <button class="nav-item"><svg class="ic" width="17" height="17"><use href="#i-shield"/></svg><span class="nav-label">证书备考台</span></button>
         <div class="gap-8"></div>
         <div class="divider"></div>
         <div class="group-label">
           <span class="group-text">最近</span>
           <svg class="ic" width="15" height="15"><use href="#i-panel"/></svg>
         </div>
-        <p class="empty-text">还没有会话。</p>
+        <p class="empty-text">还没有学习会话。</p>
       </div>
 
       <div class="sidebar-spacer"></div>
@@ -181,112 +185,99 @@
       <section class="view view--settings is-on" id="viewSettings" data-view-name="settings">
         <header class="page-head">
           <h1 class="page-title" id="pageTitle">通用</h1>
-          <p class="page-sub" id="pageSub">Stealth Study 在本机的外观与行为。改动立即生效，无需重启。</p>
+          <p class="page-sub" id="pageSub">偷偷学在本机的外观与行为。</p>
         </header>
 
         <div class="content-row">
-          <!-- 设置面板：一整张纸页 + 细分割线，每行「彩色图标底 + 标题说明 + 控件」 -->
+          <!-- 设置面板：独立卡片布局 -->
           <div class="panel" id="panel">
             <div class="panel-ph" id="panelPh">「通用」以外的页面未包含在本次设计稿中。</div>
 
-            <!-- 行 · 主题 -->
-            <div class="srow">
-              <span class="ib ib--accent"><svg class="ic" width="17" height="17"><use href="#i-sun"/></svg></span>
-              <div class="srow-text">
-                <span class="srow-title">主题</span>
-                <span class="srow-desc">自动跟随系统外观；日落前切到夜读，色调更暖、底色更深。</span>
-              </div>
-              <div class="srow-ctl">
-                <div class="seg" data-mode-group>
-                  <button class="seg-item" data-mode-btn="light">浅色</button>
-                  <button class="seg-item" data-mode-btn="dark">深色</button>
-                  <button class="seg-item is-on" data-mode-btn="auto">自动</button>
+            <!-- 主题卡片 -->
+            <div class="setting-card">
+              <div class="srow">
+                <span class="ib ib--accent"><svg class="ic" width="17" height="17"><use href="#i-sun"/></svg></span>
+                <div class="srow-text">
+                  <span class="srow-title">主题</span>
+                  <span class="srow-desc">自动跟随系统外观。</span>
+                </div>
+                <div class="srow-ctl">
+                  <div class="seg" data-mode-group>
+                    <button class="seg-item" data-mode-btn="light">浅色</button>
+                    <button class="seg-item" data-mode-btn="dark">深色</button>
+                    <button class="seg-item is-on" data-mode-btn="auto">自动</button>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="divider"></div>
 
-            <!-- 行 · 语言 -->
-            <div class="srow">
-              <span class="ib ib--brand"><svg class="ic" width="17" height="17"><use href="#i-globe"/></svg></span>
-              <div class="srow-text">
-                <span class="srow-title">语言</span>
-                <span class="srow-desc">切换界面语言，立即生效。</span>
-              </div>
-              <div class="srow-ctl">
-                <div class="seg" data-seg>
-                  <button class="seg-item is-on">跟随系统</button>
-                  <button class="seg-item">English</button>
-                  <button class="seg-item">中文</button>
+            <!-- 语言卡片 -->
+            <div class="setting-card">
+              <div class="srow">
+                <span class="ib ib--brand"><svg class="ic" width="17" height="17"><use href="#i-globe"/></svg></span>
+                <div class="srow-text">
+                  <span class="srow-title">语言</span>
+                  <span class="srow-desc">切换界面语言，立即生效。</span>
+                </div>
+                <div class="srow-ctl">
+                  <div class="seg" data-seg>
+                    <button class="seg-item is-on">跟随系统</button>
+                    <button class="seg-item">English</button>
+                    <button class="seg-item">中文</button>
+                  </div>
                 </div>
               </div>
             </div>
-            <div class="divider"></div>
 
-            <!-- 行 · 侧栏密度 -->
-            <div class="srow">
-              <span class="ib ib--brand"><svg class="ic" width="17" height="17"><use href="#i-density"/></svg></span>
-              <div class="srow-text">
+            <!-- 侧栏密度卡片 -->
+            <div class="setting-card">
+              <div class="srow" style="flex-direction:column;align-items:stretch;gap:12px">
                 <span class="srow-title">侧栏密度</span>
-                <span class="srow-desc">每个角色在侧栏里预览的会话数。</span>
-              </div>
-              <div class="srow-ctl">
-                <div class="stepper">
-                  <button class="step-btn" data-step="-1" aria-label="减少"><svg class="ic sw19" width="15" height="15"><use href="#i-minus"/></svg></button>
-                  <span class="step-val" id="densityVal">5</span>
-                  <button class="step-btn" data-step="1" aria-label="增加"><svg class="ic sw19" width="15" height="15"><use href="#i-plus"/></svg></button>
+                <div style="display:flex;align-items:center;gap:12px">
+                  <span class="srow-desc" style="flex:1">每个学习伙伴的会话数</span>
+                  <div class="stepper">
+                    <button class="step-btn" data-step="-1" aria-label="减少"><svg class="ic sw19" width="15" height="15"><use href="#i-minus"/></svg></button>
+                    <span class="step-val" id="densityVal">5</span>
+                    <button class="step-btn" data-step="1" aria-label="增加"><svg class="ic sw19" width="15" height="15"><use href="#i-plus"/></svg></button>
+                  </div>
                 </div>
+                <span class="srow-desc">侧栏在展开前预览的学习会话数。</span>
               </div>
             </div>
-            <div class="divider"></div>
 
-            <!-- 行 · 输入框 -->
-            <div class="srow">
-              <span class="ib ib--brand"><svg class="ic" width="17" height="17"><use href="#i-inputbox"/></svg></span>
-              <div class="srow-text">
+            <!-- 输入框卡片 -->
+            <div class="setting-card">
+              <div class="srow" style="flex-direction:column;align-items:stretch;gap:12px">
                 <span class="srow-title">输入框</span>
-                <span class="srow-desc">显示上下文窗口占用条，关闭后改用数字显示。</span>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                  <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent)">
+                  <span>
+                    <span class="srow-title" style="font-weight:400">显示上下文窗口占用条</span>
+                    <span class="srow-desc" style="display:block;margin-top:2px">一个小指示条，显示模型上下文窗口的占用程度。关闭后将改为以数字形式显示。</span>
+                  </span>
+                </label>
               </div>
-              <div class="srow-ctl"><button class="sw" role="switch" aria-checked="false"><span class="knob"></span></button></div>
             </div>
-            <div class="divider"></div>
 
-            <!-- 行 · 自动批准 -->
-            <div class="srow">
-              <span class="ib ib--success"><svg class="ic" width="17" height="17"><use href="#i-shield"/></svg></span>
-              <div class="srow-text">
+            <!-- 自动批准卡片 -->
+            <div class="setting-card">
+              <div class="srow" style="flex-direction:column;align-items:stretch;gap:12px">
                 <span class="srow-title">自动批准（实验性）</span>
-                <span class="srow-desc">开启后模型会先自检每一步动作，涉及删除、付款等操作仍需你确认。</span>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+                  <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent)">
+                  <span>
+                    <span class="srow-title" style="font-weight:400">启用自动批准模式</span>
+                    <span class="srow-desc" style="display:block;margin-top:2px">在模式选择器中增加一个<strong>自动批准</strong>选项。该模式下，你的会话模型会逐个审阅通常需要批准的操作，并放行其中常规的部分；存疑的仍然会来问你。它永远无法放行被规则拦住的操作。每次判定多一次模型调用，计入你的用量。</span>
+                  </span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-left:26px">
+                  <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent)">
+                  <span>
+                    <span class="srow-title" style="font-weight:400">影子评估（用于度量）</span>
+                    <span class="srow-desc" style="display:block;margin-top:2px">在任意模式下，reviewer 都会把它本来会做出的决定记录在你的选择旁边 —— 不改变任何结果。让你在信任它之前先看它如何表现。同样每次审批多一次模型调用。</span>
+                  </span>
+                </label>
               </div>
-              <div class="srow-ctl"><button class="sw" role="switch" aria-checked="true"><span class="knob"></span></button></div>
-            </div>
-            <div class="divider"></div>
-
-            <!-- 行 · 界面缩放 -->
-            <div class="srow">
-              <span class="ib ib--accent"><svg class="ic" width="17" height="17"><use href="#i-panel"/></svg></span>
-              <div class="srow-text">
-                <span class="srow-title">界面缩放</span>
-                <span class="srow-desc">调整侧栏、列表与文字的整体尺寸。</span>
-              </div>
-              <div class="srow-ctl">
-                <div class="seg" data-seg>
-                  <button class="seg-item">紧凑</button>
-                  <button class="seg-item is-on">标准</button>
-                  <button class="seg-item">宽松</button>
-                </div>
-              </div>
-            </div>
-            <div class="divider"></div>
-
-            <!-- 行 · 启动 -->
-            <div class="srow">
-              <span class="ib ib--brand"><svg class="ic" width="17" height="17"><use href="#i-automation"/></svg></span>
-              <div class="srow-text">
-                <span class="srow-title">启动</span>
-                <span class="srow-desc">登录后在后台待命，随时唤起。</span>
-              </div>
-              <div class="srow-ctl"><button class="sw" role="switch" aria-checked="false"><span class="knob"></span></button></div>
             </div>
           </div>
 
@@ -336,18 +327,9 @@
             <!-- 上弹性留白 -->
             <div class="fl"></div>
 
-            <!-- 吉祥物徽章：浅色＝狐狸头位图铺满，夜读＝brandSoft 底 + 44px 应用图标 -->
-            <div class="mascot-wrap">
-              <div class="mascot">
-                <img class="mascot-img" src="assets/images/mascot.png" alt="" />
-                <img class="mascot-glyph" src="assets/images/app-icon.png" alt="" />
-              </div>
-            </div>
-
-            <div class="h18"></div>
-            <h1 class="hero-title">需要我产出什么？</h1>
+            <h1 class="hero-title"><img class="mascot-inline" src="assets/images/mascot.png" alt="" />今天学点什么？</h1>
             <div class="h9"></div>
-            <p class="hero-sub">选一个任务开始，我来做并把结果保存好；也可以直接在下面描述你的需求。</p>
+            <p class="hero-sub">挑一个学习任务开始 —— 我来讲解、出题、批改，并保存结果。也可以直接在下面输入你的问题。</p>
             <div class="h28"></div>
 
             <!-- 任务行：三行各自一套渐变；操作文案按语义分色 -->
@@ -355,17 +337,17 @@
               <div class="task task--1">
                 <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-folder"/></svg></span>
                 <div class="task-text">
-                  <span class="task-name">分析目录中的文件</span>
-                  <span class="task-desc">我会读取目录内容，总结要点并给出可执行建议。</span>
+                  <span class="task-name">梳理资料夹里的讲义</span>
+                  <span class="task-desc">我会读取笔记并提炼考点与重点</span>
                 </div>
-                <span class="task-action"><span>开始</span><svg class="ic sw19" width="13" height="13"><use href="#i-chev-right"/></svg></span>
+                <span class="task-action"><span>选择文件夹</span><svg class="ic sw19" width="13" height="13"><use href="#i-chev-right"/></svg></span>
               </div>
 
               <div class="task task--2">
                 <span class="ib ib--accent"><svg class="ic" width="16" height="16"><use href="#i-context"/></svg></span>
                 <div class="task-text">
-                  <span class="task-name">从我的 HubSpot 线索生成报告</span>
-                  <span class="task-desc">按来源、阶段分组，列出本周需要跟进的对象。</span>
+                  <span class="task-name">把 HubSpot 线索整理成案例讲解</span>
+                  <span class="task-desc">来源、阶段，以及需要跟进的对象</span>
                 </div>
                 <span class="task-action"><span>配置</span><svg class="ic sw19" width="13" height="13"><use href="#i-chev-right"/></svg></span>
               </div>
@@ -373,8 +355,8 @@
               <div class="task task--3">
                 <span class="ib ib--brand"><svg class="ic" width="16" height="16"><use href="#i-automation"/></svg></span>
                 <div class="task-text">
-                  <span class="task-name">自动生成每周 GitHub 进展报告并发到 Slack</span>
-                  <span class="task-desc">抓取仓库动态，每周五 17:00 汇总后发布。</span>
+                  <span class="task-name">每周五自动把我的进展总结发到 Slack</span>
+                  <span class="task-desc">仓库与练习动态，每周五总结后发布</span>
                 </div>
                 <span class="task-action"><span>配置</span><svg class="ic sw19" width="13" height="13"><use href="#i-chev-right"/></svg></span>
               </div>
@@ -384,7 +366,7 @@
             <div class="fl"></div>
 
             <div class="meta-row">
-              <button class="meta-chip">Coworker<svg class="ic sw19" width="14" height="14"><use href="#i-chev-down"/></svg></button>
+              <button class="meta-chip">学习伙伴<svg class="ic sw19" width="14" height="14"><use href="#i-chev-down"/></svg></button>
               <button class="meta-chip"><svg class="ic" width="14" height="14"><use href="#i-folder"/></svg>选择文件夹<svg class="ic sw19" width="14" height="14"><use href="#i-chev-down"/></svg></button>
             </div>
 
@@ -392,15 +374,13 @@
 
             <div class="composer">
               <div class="composer-input">
-                <img class="glyph" src="assets/images/app-icon.png" alt="" />
-                <input id="promptInput" type="text" placeholder="问问同事…（拖入或粘贴文件）" autocomplete="off" />
+                <input id="promptInput" type="text" placeholder="问问学习伙伴…（拖入或粘贴文件）" autocomplete="off" />
               </div>
               <div class="composer-ctrl">
                 <button class="icon-btn" aria-label="添加附件"><svg class="ic" width="16" height="16"><use href="#i-plus"/></svg></button>
                 <button class="chip">需审批<svg class="ic sw19" width="12" height="12"><use href="#i-chev-down"/></svg></button>
                 <div class="fl"></div>
-                <span class="chip chip--status" id="modelStatus"><span class="dot"></span>正在加载模型…</span>
-                <button class="icon-btn icon-btn--lg" aria-label="语音输入"><svg class="ic" width="16" height="16"><use href="#i-mic"/></svg></button>
+                <span class="chip chip--status" id="modelStatus">deepseek-flash<svg class="ic sw19" width="12" height="12"><use href="#i-chev-down"/></svg></span>
                 <button class="send" aria-label="发送"><svg class="ic sw26" width="16" height="16"><use href="#i-send"/></svg></button>
               </div>
             </div>

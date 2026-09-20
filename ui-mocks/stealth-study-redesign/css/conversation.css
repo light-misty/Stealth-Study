@@ -40,21 +40,28 @@
 .mascot-wrap { display: flex; justify-content: center; flex: none; }
 
 .mascot {
-  width: 76px; height: 76px;
-  border-radius: var(--r-24);
+  width: 96px; height: 96px;
   display: grid; place-items: center;
-  overflow: hidden;
+  overflow: visible;
   transition: background .28s ease;
 }
-.mascot-img   { width: 76px; height: 76px; object-fit: cover; display: block; }
+.mascot-img   { width: 96px; height: 96px; object-fit: contain; display: block; }
 .mascot-glyph { width: 44px; height: 44px; display: none; }
 
-html[data-theme='dark'] .mascot       { background: var(--brand-soft); }
+html[data-theme='dark'] .mascot       { background: var(--brand-soft); border-radius: var(--r-24); }
 html[data-theme='dark'] .mascot-img   { display: none; }
 html[data-theme='dark'] .mascot-glyph { display: block; }
 
+/* 内联狐狸图标：标题左侧的小图标 */
+.mascot-inline {
+  width: 40px; height: 40px;
+  vertical-align: middle;
+  margin-right: 10px;
+  object-fit: contain;
+}
+
 /* ---------------------------------------------------------------- 主标题 */
-.hero-title { margin: 0; font-size: 26px; font-weight: 700; line-height: 36px; text-align: center; color: var(--ink); }
+.hero-title { margin: 0; font-size: 26px; font-weight: 700; line-height: 36px; text-align: center; color: var(--ink); display: flex; align-items: center; justify-content: center; }
 .hero-sub   { margin: 0; font-size: 12.5px; line-height: 19px; text-align: center; color: var(--ink-2); }
 
 /* ---------------------------------------------------------------- 任务行 */

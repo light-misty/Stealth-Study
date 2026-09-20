@@ -20,6 +20,9 @@
 .brand-row { display: flex; align-items: center; gap: 9px; padding: 6px 6px 10px; }
 .brand-row .glyph { width: 26px; height: 26px; display: block; flex: none; }
 
+.brand-row-settings { display: flex; align-items: center; gap: 7px; padding: 6px 6px 10px; }
+.brand-row-settings .ic { color: var(--icon); }
+
 .product-name {
   flex: 1; min-width: 0;
   font-size: 13px; font-weight: 600; line-height: 19px; color: var(--ink);
@@ -32,6 +35,15 @@
   font-size: 9px; font-weight: 700; line-height: 13px; letter-spacing: .6px;
   color: #FFFFFF; white-space: nowrap;
 }
+
+.nav-back {
+  width: 24px; height: 24px;
+  border: 0; border-radius: var(--r-6); background: transparent;
+  display: grid; place-items: center; cursor: pointer;
+  color: var(--icon);
+  transition: background .14s ease;
+}
+.nav-back:hover { background: var(--surface-sunken); }
 
 /* ---------------------------------------------------------------- 导航集 */
 /* 三套导航互斥显示，由 device 的 data-view 驱动（见 js/app.js）：
