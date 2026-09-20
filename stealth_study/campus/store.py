@@ -1,6 +1,6 @@
 """`campus.db` — the connection, the 19 tables and the `schema_meta` migration runner.
 
-The connection mode is copied from `ss/memory/sqlite_store.py:13-43` (`check_same_thread=False`
+The connection mode is copied from `stealth_study/memory/sqlite_store.py:13-43` (`check_same_thread=False`
 plus a single long-lived connection guarded by a `threading.RLock`), with one addition:
 `PRAGMA journal_mode=WAL`, so a FastAPI handler writing while the GUI polls does not block
 readers (02 §2.1).

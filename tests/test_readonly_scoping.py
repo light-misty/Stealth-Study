@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from ss.permissions import Mode, PermissionEngine
-from ss.readonly import is_readonly_command, read_targets
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.readonly import is_readonly_command, read_targets
 
 
 @pytest.fixture()
@@ -87,7 +87,7 @@ def test_traversal_is_resolved_not_string_matched(session):
 
 
 def test_a_second_granted_root_is_in_scope(tmp_path):
-    from ss.roots import RootDir
+    from stealth_study.roots import RootDir
 
     repo, notes = tmp_path / "repo", tmp_path / "notes"
     repo.mkdir()

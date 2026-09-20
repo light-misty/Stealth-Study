@@ -12,7 +12,7 @@ import en from "./locales/en.json";
 import zh from "./locales/zh.json";
 import { setTrayLabels } from "./tauri";
 
-const STORAGE_KEY = "ss.lang";
+const STORAGE_KEY = "stealth_study.lang";
 
 export const SUPPORTED_LANGS = ["en", "zh"] as const;
 export type Lang = (typeof SUPPORTED_LANGS)[number];

@@ -73,7 +73,7 @@
 > **v1.1 特别约束（架构师评审后收紧，工程师必须遵守）：**
 >
 > 1. **【隐藏/关闭】只允许"短路"，不允许"删除"**。语音关键词命中 24 个文件，但**实际只需 2 个卡点**（§3.3.1）—— **禁止**去改其余 22 个文件。
-> 2. **`ss/reviewer.py`** **是权限链路的一部分，禁止任何改动**（§3.1-7）。批改走新建的 `campus/grading.py`。
+> 2. **`stealth_study/reviewer.py`** **是权限链路的一部分，禁止任何改动**（§3.1-7）。批改走新建的 `campus/grading.py`。
 > 3. 数据层**禁止** **`ALTER`** **既有表、禁止写入** **`coworker.db`**（§6.1）。
 > 4. 新增后端接口**必须在** **`server/app.py`** **的** **`create_app()`** **内插入一行** **`include_router`**（§3.2 R7），否则接口不可达。
 
@@ -85,7 +85,7 @@
 
 OpenWorker 是一个 **Tauri 2 桌面应用（数据本地、模型走云端 API Key）**：Python FastAPI 后端 + React 18 / TypeScript / Vite 5 / Tailwind CSS 3 前端，内置 i18next 中英双语与 Vitest 测试。它的核心是"**多智能体协作工作台**"：
 
-- 用 **Persona（人设）** 定义不同角色的 AI 同事（`ss/personas/builtin/` 下 17 个内置人设，每个是 `manifest.md` + `skills/`）；
+- 用 **Persona（人设）** 定义不同角色的 AI 同事（`stealth_study/personas/builtin/` 下 17 个内置人设，每个是 `manifest.md` + `skills/`）；
 - 用 **Skills（技能包）** 把可复用的工作方法固化为能力；
 - 用 **Teams 看板 + Journal** 管理任务与过程记录；
 - 用 **Automation（croniter 调度）** 做定时/周期任务；
@@ -163,7 +163,7 @@ OpenWorker 是一个 **Tauri 2 桌面应用（数据本地、模型走云端 API
 
 **执行口径（三条判定规则）：**
 
-1. **能放到新文件里的，一律放新文件。** 新页面 → `surfaces/gui/src/components/campus/*.tsx`；新后端逻辑 → `ss/campus/*.py`；新人设 → `ss/personas/builtin/<new-id>/`；新技能 → `ss/skills/campus/*`；新数据 → 新库文件 `campus.db`。
+1. **能放到新文件里的，一律放新文件。** 新页面 → `surfaces/gui/src/components/campus/*.tsx`；新后端逻辑 → `stealth_study/campus/*.py`；新人设 → `stealth_study/personas/builtin/<new-id>/`；新技能 → `stealth_study/skills/campus/*`；新数据 → 新库文件 `campus.db`。
 2. **必须触碰既有文件时的最小侵入形式**：只在既有组件的**渲染入口 / 路由分支 / 列表常量**处加一层**条件短路**，不改任何既有函数的内部逻辑、不改既有数据结构、不改既有 API 契约。
 3. **减法需求一律用 Feature Flag，不用删除。** 见 §3.3。
 
@@ -352,25 +352,25 @@ OpenWorker 是一个 **Tauri 2 桌面应用（数据本地、模型走云端 API
 
 | # | 已有能力（真实路径）                                                                     | 现状                                                                                                                                                                       | 对学习场景的复用价值                    | 新增的学习功能（本 PRD 提出）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 侵入性                          |
 | - | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 1 | **Persona 人设系统** `ss/personas/builtin/`（17 个内置，每个 = `manifest.md` + `skills/`） | 目录式，新增即生效                                                                                                                                                                | 直接映射"AI 考官 / 助教 / 阅卷老师 / 规划师" | **【新增】6 个学习人设目录**：`cet-examiner`（四六级考官）、`cet-grader`（四六级阅卷/写作翻译批改）、`kaoyan-planner`（考研规划师）、`kaoyan-subject-tutor`（考研分科导师）、`cert-instructor`（证书教研员）、`study-companion`（学习陪伴/答疑）。每个仅含 `manifest.md` + `skills/<name>/SKILL.md`。**必须遵守 §3.1.1 人设 manifest 编写规范，否则 6 个会全部隐身**                                                                                                                                                                                                                                                                                                               | **零侵入**（新增目录）                |
-| 2 | **Skills 技能系统** `ss/skills/`（base.py, store.py）                                | **只扫两个落点**：`state_dir()/skills`（`skills/store.py:87`）与 `<workspace>/.stealth-study/skills`（`:93`、`agent.py:184-188`）；`_base()` 只认 global/project 两档（`:96-107`），**不存在"内置包目录"** | 把批改/精讲/归因固化为**可复用、可一致执行**的方法  | **【新增】7 个技能包，投放到「人设 bundle」落点**（v1.1 修正）：`cet-essay-grading`（作文批改，含**官方五档评分标准：14/11/8/5/2 分档**）、`cet-translation-grading`（汉译英逐句批改）、`cet-listening-drill`（听力精听/听写）、`mistake-attribution`（错题五分类归因）、`kaoyan-weekly-review`（周报复盘）、`cert-knowledge-tree`（考纲知识点树生成）、`mock-exam-proctor`（计时模考流程）。**落点**：`ss/personas/builtin/<persona-id>/skills/<name>/SKILL.md`（`registry.py:184-192` 支持 `skills/` 同级目录；`manager.py:5830-5843` 的 `persona_skill_scope()` 会把它作为 `extra_skill_dirs` 注入 `SkillLoader`；`skills/base.py:45-48` 按 `<dir>/<name>/SKILL.md` 发现）**备选**：首次启动播种到 `state_dir()/skills/` | **零侵入**（新增目录，且放在**会被扫描**的位置） |
+| 1 | **Persona 人设系统** `stealth_study/personas/builtin/`（17 个内置，每个 = `manifest.md` + `skills/`） | 目录式，新增即生效                                                                                                                                                                | 直接映射"AI 考官 / 助教 / 阅卷老师 / 规划师" | **【新增】6 个学习人设目录**：`cet-examiner`（四六级考官）、`cet-grader`（四六级阅卷/写作翻译批改）、`kaoyan-planner`（考研规划师）、`kaoyan-subject-tutor`（考研分科导师）、`cert-instructor`（证书教研员）、`study-companion`（学习陪伴/答疑）。每个仅含 `manifest.md` + `skills/<name>/SKILL.md`。**必须遵守 §3.1.1 人设 manifest 编写规范，否则 6 个会全部隐身**                                                                                                                                                                                                                                                                                                               | **零侵入**（新增目录）                |
+| 2 | **Skills 技能系统** `stealth_study/skills/`（base.py, store.py）                                | **只扫两个落点**：`state_dir()/skills`（`skills/store.py:87`）与 `<workspace>/.stealth-study/skills`（`:93`、`agent.py:184-188`）；`_base()` 只认 global/project 两档（`:96-107`），**不存在"内置包目录"** | 把批改/精讲/归因固化为**可复用、可一致执行**的方法  | **【新增】7 个技能包，投放到「人设 bundle」落点**（v1.1 修正）：`cet-essay-grading`（作文批改，含**官方五档评分标准：14/11/8/5/2 分档**）、`cet-translation-grading`（汉译英逐句批改）、`cet-listening-drill`（听力精听/听写）、`mistake-attribution`（错题五分类归因）、`kaoyan-weekly-review`（周报复盘）、`cert-knowledge-tree`（考纲知识点树生成）、`mock-exam-proctor`（计时模考流程）。**落点**：`stealth_study/personas/builtin/<persona-id>/skills/<name>/SKILL.md`（`registry.py:184-192` 支持 `skills/` 同级目录；`manager.py:5830-5843` 的 `persona_skill_scope()` 会把它作为 `extra_skill_dirs` 注入 `SkillLoader`；`skills/base.py:45-48` 按 `<dir>/<name>/SKILL.md` 发现）**备选**：首次启动播种到 `state_dir()/skills/` | **零侵入**（新增目录，且放在**会被扫描**的位置） |
 
-> **v1.1 修订说明**：v1.0 写的是"新建 `ss/skills/campus/`"，架构师核验后确认**该目录不会被任何代码扫描，建了是死代码**（§13.2 R9）。已改为投放到人设 bundle。评分标准（rubric）内容本身不变，只是**存放位置**改了。
-> \| 3 | **Automation 自动化/定时任务** `ss/automation/`（models.py, scheduler.py, store.py, tools.py，croniter） | 完整 CRUD + 调度 + Run 记录 | 承载"每日复习推送""间隔重复提醒""考前冲刺计划""报名节点提醒" | **【新增】四个自动化模板**（通过既有 automation CRUD 创建）：① 每日复习推送（每日 20:00）② 艾宾浩斯复习队列（每日/隔日，可配）③ 每周进度复盘（每周日 21:00）④ 考试节点 D-30/D-7/D-1 提醒。**不新增调度器，只新增模板定义与创建入口** | **零侵入**（调用既有 API） |
-> \| 4 | **Memory 记忆存储** `ss/memory/`（sqlite\_store.py → `state_dir()/ss.db` 的 `memories` 表；tools.py；settings.py） | SQLite + 工具调用 | 承载"薄弱知识点长期记忆""学习档案摘要" | **【复用】** 用于 LLM 侧的语义记忆（如"用户听力篇章弱、分部积分常错"）；**【新增】** 结构化数据另建 `campus.db`（见 §6），**不修改** **`memories`** **表结构** | 复用 + 新增独立库 |
-> \| 5 | **多模型 Provider 路由** `ss/providers/`（openai/anthropic/gemini/bedrock/vertex/codex，router.py, capabilities.py, matrix.py）⚠️ `ModelCapabilities` 仅 5 个字段（tools/vision/pdf/parallel\_tool\_calls/streaming，`base.py:81-90`），**无 json\_mode / structured\_output 标记**；`matrix.py` **未覆盖全部模型条目** | 已有路由；**能力矩阵不含结构化输出标记** | 模型可控（自带 Key）对大学生**极其关键**；可按任务选模型（批改用强模型、出题用便宜模型） | **【复用】** 全部复用。**【新增】** ① `ss/campus/models.py` 维护**静态推荐清单** `{task → [推荐模型, 最低可用模型]}`（替代做不到的运行时自检）；② UI 明示"该功能建议使用 XX 及以上模型"；③ 结构化输出能力通过 `provider.complete(**{"response_format": {"type":"json_object"}})` **实际试错**判定(，`registry.py:197-201`；`openai_provider.py:189-193` 原样透传 `**settings`），失败则去掉该参数重试一次（注意 `openai_provider.py:92-120` 的 `_param_fix_retry` 对未列举参数会 re-raise，必须 try/except） | 复用 + 新增文件 |
-> \| 6 | **工具集** `ss/tools/`（files.py, search.py, shell.py, git.py, todo.py, plan.py, ask.py, subagent.py）⚠️ **v1.3 更正**：manifest 的 `tools` 白名单（catalog）**仅 6 个合法值**（`files` / `search` / `shell` / `git` / `todo` 等文件系工具）；`ask` / `plan` / `subagent` **不在白名单内** —— 它们是**引擎层运行时工具**，写进 manifest `tools` 字段会抛 `ManifestError` **打断注册表加载（= 启动失败）**，同 §3.1.1 的 `group` 陷阱 | 已有；**manifest 可写的是白名单子集，运行时另有引擎层工具** | 资料导入、真题检索、计划拆解 | **【复用】两类，落点不同**：**① 进 manifest** **`tools`** **字段（白名单内，如** **`[files, search, todo]`）**：`files`（导入/读取 PDF 与笔记）、`search`（联网查报名时间与考纲变动）、`todo`（任务清单）**② 引擎层运行时提供，不进 manifest，无需声明即可用**：`plan`（学习计划拆解）、`ask`（定级测评中向用户提问）、`subagent`（多科目并行处理）**红线**：学习人设的 manifest `tools` 字段只写白名单内组合，绝不写 `plan`/`ask`/`subagent`（见 §3.1.1 规范表） | 零侵入（复用） |
-> \| 7 | **~~Reviewer 评审器~~** `ss/reviewer.py` —— **v1.1 更正：它不是批改器，是"动作安全闸门"**输入签名固定 `review(*, request, history, tool_name, arguments, provenance)`（`reviewer.py:349-357`），**无 rubric 参数**；提示词为模块级硬编码常量（`:287`）；输出 `Verdict` 仅 `verdict`/`reason`/token（`:180-200`）；`parse_verdict` 只接受 `allow/deny/unsure` 三枚举（`:177, 207-229`） | **不可用**于批改；且它是权限链路一部分（`config.py:45-54` 的 Auto-Approve/Shadow 依赖它，`:203` fail-closed） | v1.0 误以为"天然对应 AI 阅卷"——**此判断错误，已推翻** | **【新增】** `ss/campus/grading.py`：**独立链路，不走 reviewer**。自己组装 messages（system = rubric，user = 题目 + 作答）→ 调 `provider.complete(...)` → 自己 parse JSON → 维度分 / 错误清单 / 示范段落 → 失败重试 1 次 → 降级纯文本 → 落 `attempt.grading_json`。仅**借鉴** reviewer 的工程模式（`reviewer.py:349-396`）：`asyncio.wait_for` 超时、异常兜底不抛、`**settings` 透传、token 计量。**红线：禁止修改** **`reviewer.py`**（会污染安全语义，且 `auto_approve_shadow` 会把批改结果写进审计日志） | 新增文件，独立实现（**不再"复用"**） |
-> \| 8 | **PDF 支持** `ss/pdf_support.py`、`ss/attachments.py`⚠️ **扫描件（无文字层）会静默返回空字符串而非报错**（`pdf_support.py:102-104` 文档字符串原文："Scanned PDFs legitimately return `""`"；`:116-119` `text = page.extract_text() or ""`，全空时 chunks 为空） | 有文字层的 PDF 解析可用；**扫描件静默失败**；加密 PDF 能正确报错（`:92-96`） | 真题 PDF、课件、笔记导入解析 | **【复用】** 有文字层 PDF 的抽取。**【新增】** `ss/campus/library.py`：① 按页切片（pypdf 逐页提取，天然带 `page_no`）② **显式判空**：`if not (text or "").strip(): parse_status = "failed"，reason = "无文字层（疑似扫描件）"` ③ 两级检索（L1 目录路由 / L2 关键词召回）**OCR 不进 V0.x**（Tesseract 需系统二进制、PaddleOCR 300MB+，均不适合 Tauri 打包；若将来做只考虑 RapidOCR）。V0.3 优先评估**视觉模型兜底**（复用既有 `rasterize()` + `FALLBACK_MODES`，`pdf_support.py:33, 164+`，但 `RASTER_MAX_PAGES = 100`） | 复用 + 新增文件（**判空为强制要求**） |
-> \| 9 | **Teams 看板 + Journal** `ss/teams/`⚠️ 状态**固定六态** `open/in_progress/blocked/review/done/canceled`（`model.py:16-22`）；`EDGES[DONE] = set()` 即 **`done`** **是终态回不去**（`:31-38`）；space **绑定工作区文件夹**（`:79-84`）且无创建 space 的 API | 看板可用，但"备考语义"不匹配 | v1.0 想映射"备考任务看板"——**语义冲突，降级** | **【降级·见 KY-03】** 备考看板**自建**（前端一个四列 CSS Grid + `campus.db` 的 `plan_task.status`），保留 `board_card_id` 字段但 **V0.x 不使用**。**【复用】** journal 记录每日学习日志（这部分仍可用） | 复用 journal；**看板不再依赖 Teams** |
-> \| 10 | **Compaction 长上下文压缩** `ss/compaction.py`⚠️ 触发阈值 = `min(0.8 × 窗口, 250_000)`，中等上下文模型上仅 **102,400 token**（`:23-26, 60-68`）；触发后**把旧内容摘要掉**（`:391`） | 是**事后**压缩机制，不是"让大文档塞得进去"的机制；且**有损** | v1.0 设想"整本教材答疑不炸上下文"——**此判断错误，已推翻** | **【改为·新增】** `ss/campus/library.py` 做**按页切片 + 两级检索**：**L1 目录路由（主力）**：把"章节/页标题清单"喂模型 → 模型选出最相关的 N 页 → 只取这 N 页原文 → 回答。✅ 天然给出页码引用 ✅ prompt 短、模型可靠 ✅ 零新依赖**L2 关键词召回（补充）**：SQLite FTS5（Python 内置 sqlite3 自带）bigram，或 Python 侧 BM25 打分。⚠️ 中文无空格，unicode61 对中文效果差，需 bigram 或退化为 LIKE + 打分**❌ 不引入 embedding / 向量依赖**（与"复杂度适中"冲突）Compaction 仍可在"单页精讲"等小上下文场景自然生效，但**不再是 KY-09 的承重机制** | 新增检索层（数据层不变，仅加 `doc_chunk` 表） |
-> \| 11 | **权限引擎 / 审计** `ss/permissions.py`, `ss/audit.py` | 已有 | 数据本地、数据可控、可审计（用户能看到 AI 干了什么） | **【复用】** 学习场景的所有文件操作走既有权限引擎；**【新增】** 一条审计分类标签 `campus`（若审计支持分类则配置，否则不改） | 复用 |
+> **v1.1 修订说明**：v1.0 写的是"新建 `stealth_study/skills/campus/`"，架构师核验后确认**该目录不会被任何代码扫描，建了是死代码**（§13.2 R9）。已改为投放到人设 bundle。评分标准（rubric）内容本身不变，只是**存放位置**改了。
+> \| 3 | **Automation 自动化/定时任务** `stealth_study/automation/`（models.py, scheduler.py, store.py, tools.py，croniter） | 完整 CRUD + 调度 + Run 记录 | 承载"每日复习推送""间隔重复提醒""考前冲刺计划""报名节点提醒" | **【新增】四个自动化模板**（通过既有 automation CRUD 创建）：① 每日复习推送（每日 20:00）② 艾宾浩斯复习队列（每日/隔日，可配）③ 每周进度复盘（每周日 21:00）④ 考试节点 D-30/D-7/D-1 提醒。**不新增调度器，只新增模板定义与创建入口** | **零侵入**（调用既有 API） |
+> \| 4 | **Memory 记忆存储** `stealth_study/memory/`（sqlite\_store.py → `state_dir()/stealth_study.db` 的 `memories` 表；tools.py；settings.py） | SQLite + 工具调用 | 承载"薄弱知识点长期记忆""学习档案摘要" | **【复用】** 用于 LLM 侧的语义记忆（如"用户听力篇章弱、分部积分常错"）；**【新增】** 结构化数据另建 `campus.db`（见 §6），**不修改** **`memories`** **表结构** | 复用 + 新增独立库 |
+> \| 5 | **多模型 Provider 路由** `stealth_study/providers/`（openai/anthropic/gemini/bedrock/vertex/codex，router.py, capabilities.py, matrix.py）⚠️ `ModelCapabilities` 仅 5 个字段（tools/vision/pdf/parallel\_tool\_calls/streaming，`base.py:81-90`），**无 json\_mode / structured\_output 标记**；`matrix.py` **未覆盖全部模型条目** | 已有路由；**能力矩阵不含结构化输出标记** | 模型可控（自带 Key）对大学生**极其关键**；可按任务选模型（批改用强模型、出题用便宜模型） | **【复用】** 全部复用。**【新增】** ① `stealth_study/campus/models.py` 维护**静态推荐清单** `{task → [推荐模型, 最低可用模型]}`（替代做不到的运行时自检）；② UI 明示"该功能建议使用 XX 及以上模型"；③ 结构化输出能力通过 `provider.complete(**{"response_format": {"type":"json_object"}})` **实际试错**判定(，`registry.py:197-201`；`openai_provider.py:189-193` 原样透传 `**settings`），失败则去掉该参数重试一次（注意 `openai_provider.py:92-120` 的 `_param_fix_retry` 对未列举参数会 re-raise，必须 try/except） | 复用 + 新增文件 |
+> \| 6 | **工具集** `stealth_study/tools/`（files.py, search.py, shell.py, git.py, todo.py, plan.py, ask.py, subagent.py）⚠️ **v1.3 更正**：manifest 的 `tools` 白名单（catalog）**仅 6 个合法值**（`files` / `search` / `shell` / `git` / `todo` 等文件系工具）；`ask` / `plan` / `subagent` **不在白名单内** —— 它们是**引擎层运行时工具**，写进 manifest `tools` 字段会抛 `ManifestError` **打断注册表加载（= 启动失败）**，同 §3.1.1 的 `group` 陷阱 | 已有；**manifest 可写的是白名单子集，运行时另有引擎层工具** | 资料导入、真题检索、计划拆解 | **【复用】两类，落点不同**：**① 进 manifest** **`tools`** **字段（白名单内，如** **`[files, search, todo]`）**：`files`（导入/读取 PDF 与笔记）、`search`（联网查报名时间与考纲变动）、`todo`（任务清单）**② 引擎层运行时提供，不进 manifest，无需声明即可用**：`plan`（学习计划拆解）、`ask`（定级测评中向用户提问）、`subagent`（多科目并行处理）**红线**：学习人设的 manifest `tools` 字段只写白名单内组合，绝不写 `plan`/`ask`/`subagent`（见 §3.1.1 规范表） | 零侵入（复用） |
+> \| 7 | **~~Reviewer 评审器~~** `stealth_study/reviewer.py` —— **v1.1 更正：它不是批改器，是"动作安全闸门"**输入签名固定 `review(*, request, history, tool_name, arguments, provenance)`（`reviewer.py:349-357`），**无 rubric 参数**；提示词为模块级硬编码常量（`:287`）；输出 `Verdict` 仅 `verdict`/`reason`/token（`:180-200`）；`parse_verdict` 只接受 `allow/deny/unsure` 三枚举（`:177, 207-229`） | **不可用**于批改；且它是权限链路一部分（`config.py:45-54` 的 Auto-Approve/Shadow 依赖它，`:203` fail-closed） | v1.0 误以为"天然对应 AI 阅卷"——**此判断错误，已推翻** | **【新增】** `stealth_study/campus/grading.py`：**独立链路，不走 reviewer**。自己组装 messages（system = rubric，user = 题目 + 作答）→ 调 `provider.complete(...)` → 自己 parse JSON → 维度分 / 错误清单 / 示范段落 → 失败重试 1 次 → 降级纯文本 → 落 `attempt.grading_json`。仅**借鉴** reviewer 的工程模式（`reviewer.py:349-396`）：`asyncio.wait_for` 超时、异常兜底不抛、`**settings` 透传、token 计量。**红线：禁止修改** **`reviewer.py`**（会污染安全语义，且 `auto_approve_shadow` 会把批改结果写进审计日志） | 新增文件，独立实现（**不再"复用"**） |
+> \| 8 | **PDF 支持** `stealth_study/pdf_support.py`、`stealth_study/attachments.py`⚠️ **扫描件（无文字层）会静默返回空字符串而非报错**（`pdf_support.py:102-104` 文档字符串原文："Scanned PDFs legitimately return `""`"；`:116-119` `text = page.extract_text() or ""`，全空时 chunks 为空） | 有文字层的 PDF 解析可用；**扫描件静默失败**；加密 PDF 能正确报错（`:92-96`） | 真题 PDF、课件、笔记导入解析 | **【复用】** 有文字层 PDF 的抽取。**【新增】** `stealth_study/campus/library.py`：① 按页切片（pypdf 逐页提取，天然带 `page_no`）② **显式判空**：`if not (text or "").strip(): parse_status = "failed"，reason = "无文字层（疑似扫描件）"` ③ 两级检索（L1 目录路由 / L2 关键词召回）**OCR 不进 V0.x**（Tesseract 需系统二进制、PaddleOCR 300MB+，均不适合 Tauri 打包；若将来做只考虑 RapidOCR）。V0.3 优先评估**视觉模型兜底**（复用既有 `rasterize()` + `FALLBACK_MODES`，`pdf_support.py:33, 164+`，但 `RASTER_MAX_PAGES = 100`） | 复用 + 新增文件（**判空为强制要求**） |
+> \| 9 | **Teams 看板 + Journal** `stealth_study/teams/`⚠️ 状态**固定六态** `open/in_progress/blocked/review/done/canceled`（`model.py:16-22`）；`EDGES[DONE] = set()` 即 **`done`** **是终态回不去**（`:31-38`）；space **绑定工作区文件夹**（`:79-84`）且无创建 space 的 API | 看板可用，但"备考语义"不匹配 | v1.0 想映射"备考任务看板"——**语义冲突，降级** | **【降级·见 KY-03】** 备考看板**自建**（前端一个四列 CSS Grid + `campus.db` 的 `plan_task.status`），保留 `board_card_id` 字段但 **V0.x 不使用**。**【复用】** journal 记录每日学习日志（这部分仍可用） | 复用 journal；**看板不再依赖 Teams** |
+> \| 10 | **Compaction 长上下文压缩** `stealth_study/compaction.py`⚠️ 触发阈值 = `min(0.8 × 窗口, 250_000)`，中等上下文模型上仅 **102,400 token**（`:23-26, 60-68`）；触发后**把旧内容摘要掉**（`:391`） | 是**事后**压缩机制，不是"让大文档塞得进去"的机制；且**有损** | v1.0 设想"整本教材答疑不炸上下文"——**此判断错误，已推翻** | **【改为·新增】** `stealth_study/campus/library.py` 做**按页切片 + 两级检索**：**L1 目录路由（主力）**：把"章节/页标题清单"喂模型 → 模型选出最相关的 N 页 → 只取这 N 页原文 → 回答。✅ 天然给出页码引用 ✅ prompt 短、模型可靠 ✅ 零新依赖**L2 关键词召回（补充）**：SQLite FTS5（Python 内置 sqlite3 自带）bigram，或 Python 侧 BM25 打分。⚠️ 中文无空格，unicode61 对中文效果差，需 bigram 或退化为 LIKE + 打分**❌ 不引入 embedding / 向量依赖**（与"复杂度适中"冲突）Compaction 仍可在"单页精讲"等小上下文场景自然生效，但**不再是 KY-09 的承重机制** | 新增检索层（数据层不变，仅加 `doc_chunk` 表） |
+> \| 11 | **权限引擎 / 审计** `stealth_study/permissions.py`, `stealth_study/audit.py` | 已有 | 数据本地、数据可控、可审计（用户能看到 AI 干了什么） | **【复用】** 学习场景的所有文件操作走既有权限引擎；**【新增】** 一条审计分类标签 `campus`（若审计支持分类则配置，否则不改） | 复用 |
 > \| 12 | **国际化** `surfaces/gui/src/locales/{zh,en}.json` | 已有 zh/en | 新页面必须双语 | **【新增】** 在既有 zh/en 文件中**追加** `campus.*` 命名空间 key（只追加，不修改既有 key） | 追加式修改（见 §3.2 注） |
 > \| 13 | **设置页 tab 机制** `SettingsView.tsx`（第 58 行 tab 类型 union，第 78 行 tab 列表） | 已有 | 承载"备考偏好设置" | **【新增】** 追加一个 tab `campus`（备考偏好：默认考试档案、每日学习时长、提醒时间、模型选择）。**注**：需在第 58 行类型 union 与第 78 行列表中各追加一项 —— 这是本文档**唯一允许的两行追加式改动**，见 §3.2 R4 |
 > \| 14 | **侧边栏导航按钮区** `Sidebar.tsx:1033-1067`（**v1.1 更正落点**）⚠️ v1.0 误认的第 33 行 `SURFACES` **不是导航菜单**，它是"人设手风琴 + 会话列表"的兜底（`:853-862` 只在 personas 未加载时生效；`:1080-1121` 点头部只展开**不切 surface**）—— 往里追加会得到 3 个"假人设" | 真正的导航是一组独立 `<button>` 行（New session / Search / Automations） | 承载三个备考台入口 | **【新增】** 在该按钮区**追加 3 个** **`<button>`**（照抄 Automations 行的写法）。图标 `book` / `clock` / `shield` **三个都真实存在**（`Icon.tsx:11/16/36`），无需新增图标类型。**注意**：`SURFACES` 的 `label` 是硬编码英文（`:34-36`），**新按钮的 label 必须走** **`t()`**，否则违反 G5 | **零侵入**（追加按钮） |
 > \| 15 | **主视图路由** `App.tsx` | 三元链在 `:1756-1793`；**`surface`** **的 state 类型联合在** **`:276-278`** | 承载新页面渲染 | **【新增】2 处插入点**：① 扩展 `surface` 类型联合（`:276-278`）加入 `"cet" \| "kaoyan" \| "cert"`；② 在三元链**追加** 3 个分支（`:1785` 后）渲染 `CampusStationView` 并通过 prop 传 `track`。**只扩展类型联合不加分支（或反之）都会 TS 编译失败** | **零侵入**（2 处追加） |
 > \| 16 | **API 封装 / 类型** `surfaces/gui/src/api.ts`、`types.ts` | 已有（2542 / 263 行）；`api.ts:8-18` 的 `httpBase()` / `apiToken()` 只读 `globalThis.__COWORKER_HTTP__` / `__COWORKER_API_TOKEN__` | 前后端契约 | **【新增】** 新建 `surfaces/gui/src/campus/api.ts` 与 `campus/types.ts`，**不动既有 api.ts / types.ts**；照抄 3 行读取 `httpBase`/`apiToken` 即可，无需 import 既有模块 | 零侵入（新文件） |
-> \| 17 | **后端路由挂载** `ss/server/app.py`⚠️ **v1.0 完全漏了这一项** | `app.py:187` 是**单个** **`FastAPI()`** **实例**；**2882 行 / 180 条路由全部内联**；**全项目无任何** **`APIRouter`** **/** **`include_router`** **先例** | 新增约 40 个 campus 接口**必须**在此挂载，否则接口全部 404 | **【新增·单行插入】** 新建 `ss/campus/routes.py`（`APIRouter`），并在 `create_app()` 内插入一行 `app.include_router(campus_router)`。这是 v1.1 **全篇唯一一处"单行插入既有文件"**，纯插入、不改任何既有行、不改变既有行为 | **零侵入**（1 行插入 + 新文件） |
+> \| 17 | **后端路由挂载** `stealth_study/server/app.py`⚠️ **v1.0 完全漏了这一项** | `app.py:187` 是**单个** **`FastAPI()`** **实例**；**2882 行 / 180 条路由全部内联**；**全项目无任何** **`APIRouter`** **/** **`include_router`** **先例** | 新增约 40 个 campus 接口**必须**在此挂载，否则接口全部 404 | **【新增·单行插入】** 新建 `stealth_study/campus/routes.py`（`APIRouter`），并在 `create_app()` 内插入一行 `app.include_router(campus_router)`。这是 v1.1 **全篇唯一一处"单行插入既有文件"**，纯插入、不改任何既有行、不改变既有行为 | **零侵入**（1 行插入 + 新文件） |
 
 ### 3.1.1 人设 manifest 编写规范（v1.1 新增 —— 照抄会全军覆没，必须遵守）
 
@@ -413,11 +413,11 @@ OpenWorker 是一个 **Tauri 2 桌面应用（数据本地、模型走云端 API
 | **R4**  | `surfaces/gui/src/locales/zh.json`、`en.json`                                                       | **追加** `campus.*` 命名空间                                                                                                    | ⚠️ **有自动化测试门禁**：`locales.test.ts:31-38` 强制 zh/en key 集合**完全相等**，漏一个语言 CI 直接红。必须双语同步追加                                                                                                                                                                                                                                                                                        |
 | **R5**  | 新建 `surfaces/gui/src/components/campus/` 目录                                                        | 全新文件                                                                                                                      | 见 §4.2 组件清单                                                                                                                                                                                                                                                                                                                                                                  |
 | **R6**  | 新建 `surfaces/gui/src/campus/` 目录（api / types / hooks / utils）                                      | 全新文件                                                                                                                      | 不修改既有 `api.ts` / `types.ts`；照抄 `api.ts:8-18` 的 3 行读取 `httpBase`/`apiToken` 即可                                                                                                                                                                                                                                                                                                |
-| **R7**  | 新建 `ss/campus/` 后端包 **+** **`server/app.py`** **单行插入**                                             | 全新文件 + **【新增·单行插入】**                                                                                                      | ⚠️ **v1.0 完全漏了路由挂载**：`app.py:187` 单 `FastAPI()` 实例、180 条内联路由、无 `APIRouter` 先例。必须新建 `ss/campus/routes.py` 并在 `create_app()` 内插入 1 行 `app.include_router(campus_router)`                                                                                                                                                                                                       |
-| **R8**  | 新建 `ss/personas/builtin/cet-examiner/` 等 6 个目录                                                     | 全新目录                                                                                                                      | 见 §3.1-1。**必须遵守 §3.1.1 的 manifest 编写规范**（`ships` / `group` / `team` / `icon` 四条），否则 6 个全部隐身或打断注册表加载                                                                                                                                                                                                                                                                          |
-| **R9**  | 技能包 → **`ss/personas/builtin/<id>/skills/<name>/SKILL.md`**                                        | 全新目录（**换落点**）                                                                                                             | ❌ **v1.0 的** **`ss/skills/campus/`** **不会被任何代码扫描**（`skills/store.py:87, 96-107, 122-135`），建了是死代码。改为人设 bundle（`registry.py:184-192` + `manager.py:5830-5843` + `skills/base.py:45-48`）。备选：首次启动播种到 `state_dir()/skills/`                                                                                                                                                       |
-| **R10** | **前端**：`surfaces/gui/src/flags.ts` 追加 `showVoice()` / `showLogin()`**后端**：新建 `ss/campus/config.py` | 追加函数 / 新增文件（**换机制**）                                                                                                      | ⚠️ **v1.0 的"分层 TOML** **`[features]`"不成立**：`config.toml` 是**扁平 KV**（`config.py:132-157` 只认 18 个顶层 key），写 section 会被**静默忽略**（好处：不破坏既有逻辑）。**改为两轨**：① 前端开关**复用既有 Feature Flag 机制** `flags.ts:8-19`（`flag(key, fallback)` 读 localStorage，`showPersonas()` 是已上线先例）—— **零新增依赖、连配置文件都不用动、天然可逆**；② 后端 `campus.*` 偏好由 `campus/config.py` 自己 `tomllib.load(global_config_path())` 读嵌套表 |
-| **R11** | 新建 `ss/campus/library.py`（切片 + 检索）                                                                 | 全新文件                                                                                                                      | ⚠️ v1.0 把检索寄托在 Compaction 上，**该寄托不成立**（§3.1-10）。此文件是 G-10 / KY-09 的实际承重，工作量约为原估的 2–3 倍                                                                                                                                                                                                                                                                                       |
+| **R7**  | 新建 `stealth_study/campus/` 后端包 **+** **`server/app.py`** **单行插入**                                             | 全新文件 + **【新增·单行插入】**                                                                                                      | ⚠️ **v1.0 完全漏了路由挂载**：`app.py:187` 单 `FastAPI()` 实例、180 条内联路由、无 `APIRouter` 先例。必须新建 `stealth_study/campus/routes.py` 并在 `create_app()` 内插入 1 行 `app.include_router(campus_router)`                                                                                                                                                                                                       |
+| **R8**  | 新建 `stealth_study/personas/builtin/cet-examiner/` 等 6 个目录                                                     | 全新目录                                                                                                                      | 见 §3.1-1。**必须遵守 §3.1.1 的 manifest 编写规范**（`ships` / `group` / `team` / `icon` 四条），否则 6 个全部隐身或打断注册表加载                                                                                                                                                                                                                                                                          |
+| **R9**  | 技能包 → **`stealth_study/personas/builtin/<id>/skills/<name>/SKILL.md`**                                        | 全新目录（**换落点**）                                                                                                             | ❌ **v1.0 的** **`stealth_study/skills/campus/`** **不会被任何代码扫描**（`skills/store.py:87, 96-107, 122-135`），建了是死代码。改为人设 bundle（`registry.py:184-192` + `manager.py:5830-5843` + `skills/base.py:45-48`）。备选：首次启动播种到 `state_dir()/skills/`                                                                                                                                                       |
+| **R10** | **前端**：`surfaces/gui/src/flags.ts` 追加 `showVoice()` / `showLogin()`**后端**：新建 `stealth_study/campus/config.py` | 追加函数 / 新增文件（**换机制**）                                                                                                      | ⚠️ **v1.0 的"分层 TOML** **`[features]`"不成立**：`config.toml` 是**扁平 KV**（`config.py:132-157` 只认 18 个顶层 key），写 section 会被**静默忽略**（好处：不破坏既有逻辑）。**改为两轨**：① 前端开关**复用既有 Feature Flag 机制** `flags.ts:8-19`（`flag(key, fallback)` 读 localStorage，`showPersonas()` 是已上线先例）—— **零新增依赖、连配置文件都不用动、天然可逆**；② 后端 `campus.*` 偏好由 `campus/config.py` 自己 `tomllib.load(global_config_path())` 读嵌套表 |
+| **R11** | 新建 `stealth_study/campus/library.py`（切片 + 检索）                                                                 | 全新文件                                                                                                                      | ⚠️ v1.0 把检索寄托在 Compaction 上，**该寄托不成立**（§3.1-10）。此文件是 G-10 / KY-09 的实际承重，工作量约为原估的 2–3 倍                                                                                                                                                                                                                                                                                       |
 
 **改动点汇总（v1.1）**：
 
@@ -601,7 +601,7 @@ flowchart TD
   - 默认备考档案；
   - 每日可用学习时长（默认 60 分钟）；
   - 每日复习推送时间（默认 20:00）；
-  - 各任务推荐模型（批改 / 出题 / 讲解 三类，默认继承全局）—— 取值来自 §3.1-5 的**静态推荐清单** `ss/campus/models.py`；
+  - 各任务推荐模型（批改 / 出题 / 讲解 三类，默认继承全局）—— 取值来自 §3.1-5 的**静态推荐清单** `stealth_study/campus/models.py`；
   - 间隔重复强度（宽松 / 标准 / 激进）。
 - **数据存哪**：`campus.db` 的 `app_state` 表（JSON 值）。**注意**：备考偏好**不写** **`config.toml`** —— 该文件是扁平 KV（`config.py:132-157` 只认 18 个顶层 key），写 section 会被静默忽略（v1.1 修正）。
 - **验收标准**：设置项持久化（重启后保持）；修改后计划生成与提醒时间随之变化；切换推荐模型后批改走新模型。
@@ -613,7 +613,7 @@ flowchart TD
 - **⚠️ 强制要求：扫描件判空（v1.1 新增）**
   - 既有 `pdf_support.py:102-104` 对**扫描件（无文字层）静默返回空字符串**，不抛异常（`text = page.extract_text() or ""`，全空时 chunks 为空返回 `""`）。
   - 这比报错更危险：若只看异常判断，扫描件会被标成 `ready`，随后问答产生**幻觉**。
-  - `ss/campus/library.py` **必须**显式判空：`if not (text or "").strip(): parse_status = "failed"; reason = "无文字层（疑似扫描件）"`。
+  - `stealth_study/campus/library.py` **必须**显式判空：`if not (text or "").strip(): parse_status = "failed"; reason = "无文字层（疑似扫描件）"`。
   - **用户可见提示文案**：「该 PDF 没有文字层（疑似扫描件/图片型），暂时无法解析。请改用有文字层的电子版，或手动录入关键内容。」
   - **OCR 不进 V0.x**（Tesseract 需系统二进制、PaddleOCR 300MB+ 均不适合 Tauri 打包）；V0.3 优先评估**视觉模型兜底**（复用既有 `rasterize()`，但 `RASTER_MAX_PAGES = 100`，仅适合关键页精读）。
 - **数据存哪**：文件落在\*\*【新增】\*\* `state_dir()/campus/library/`；元信息落在 `campus.db` 的 `source_doc` 表，切片落在 `doc_chunk` 表。**不写工作区，不改动既有** **`pdf_support.py`** **/ attachments 逻辑**（通过新增入口调用既有解析）。
@@ -694,7 +694,7 @@ flowchart TD
   - 左侧：作文/翻译题目（真题题库 + AI 生成）+ 输入框（字数实时统计）。
   - 右侧：批改结果卡 —— **分项得分**（内容/结构/语言，或翻译的准确性/流畅度）、**错误清单**（原文 → 修改建议 → 错误类型）、**升格示范段落**、**我的常见错误 TOP3**（跨历史批改统计）。
   - 模板库：书信/图表/议论文等模板卡片，可一键插入到输入框。
-- **点击后发生什么**：点"提交批改" → 调 `ss/campus/grading.py`（**独立批改链路**：注入 `cet-essay-grading` / `cet-translation-grading` 技能包提供的 rubric → `provider.complete(...)` → parse JSON）→ 返回结构化 JSON → 渲染 + 落库 → 错误项自动入错题本（按错误类型归因）。
+- **点击后发生什么**：点"提交批改" → 调 `stealth_study/campus/grading.py`（**独立批改链路**：注入 `cet-essay-grading` / `cet-translation-grading` 技能包提供的 rubric → `provider.complete(...)` → parse JSON）→ 返回结构化 JSON → 渲染 + 落库 → 错误项自动入错题本（按错误类型归因）。
 - **数据存哪**：`campus.db` → `attempt`（含原文、批改 JSON、分数）+ `mistake_book`。
 - **复用**：**新建** **`campus/grading.py`（核心）** —— **不复用** **`reviewer.py`**（它是动作安全闸门，不可用于批改，且是权限链路一部分，禁止改动，见 §3.1-7）、技能包（评分标准固化）、Memory（记住用户常犯错误，下次批改重点关注）。
 - **用户故事**：作为林晓，我希望我写的作文有人按四六级的标准改，并且告诉我老毛病是什么，以便考前改掉。
@@ -703,7 +703,7 @@ flowchart TD
   2. 错误清单每条含原文片段、修改建议、错误类型，可点击定位到原文；
   3. "我的常见错误 TOP3"在批改 ≥3 次后非空；
   4. 批改结果可导出为 Markdown；
-  5. **工程验收（v1.1 新增）**：diff 中**不得出现对** **`ss/reviewer.py`** **的任何改动**；批改请求可携带 `response_format={"type":"json_object"}`，当模型/服务不支持该参数时自动降级去掉重试（不崩溃）。
+  5. **工程验收（v1.1 新增）**：diff 中**不得出现对** **`stealth_study/reviewer.py`** **的任何改动**；批改请求可携带 `response_format={"type":"json_object"}`，当模型/服务不支持该参数时自动降级去掉重试（不崩溃）。
 
 #### CET5 真题计时模考 【新增】
 
@@ -778,7 +778,7 @@ flowchart TD
 - **点击后发生什么**：提问 → 后端按**切片检索**定位相关页 → 只取这 N 页原文调模型 → 返回带**页码引用**的答案；点"生成题目" → 生成 `question_bank_item` 并进入刷题。
 - **⚠️ 实现方式（v1.1 重大修订，替代 v1.0 的 Compaction 方案）**：
   - v1.0 写"长上下文走 Compaction"——架构师核验后**推翻**：触发阈值在 中等上下文模型上仅 **102,400 token**（`compaction.py:23-26, 60-68`），一份 200 页中文教材 ≈ 15 万+ token **单独就超限**；且 Compaction 是**事后压缩**，会把旧内容**摘要掉**（`:391`）——**摘要会丢页码**，与本模块"带页码引用"直接冲突。
-  - 改为**两级检索**（`ss/campus/library.py`，全项目无检索基础设施，需从零建）：
+  - 改为**两级检索**（`stealth_study/campus/library.py`，全项目无检索基础设施，需从零建）：
     - **L1 目录路由（主力）**：把"章节/页标题清单"喂给模型 → 模型选出最相关的 N 页 → 只取这 N 页原文 → 回答。天然带页码、prompt 短（模型可靠）、零新依赖；
     - **L2 关键词召回（补充）**：SQLite FTS5（Python 内置）+ **bigram**（中文无空格分词，unicode61 对中文效果差），或 Python 侧 BM25；
     - **❌ 不引入 embedding / 向量依赖**（与"复杂度适中"冲突）。
@@ -903,7 +903,7 @@ flowchart TD
     - 为一个非核心功能突破铁律、承担 Tauri 插件的构建与权限风险，不划算。
   - **补偿设计**：`cert_deadline` 增加**启动检查**逻辑（打开 App 即比对 `date <= today` 的节点并横幅提示，含"已错过 N 天"），弥补"App 关闭期间不提醒"的缺口；节点逾期 3 天以上仍显示"已错过"状态，避免用户彻底遗忘。
   - **若未来用户反馈强烈**：以独立变更申请立项 `tauri-plugin-notification`（见 §11.2 Q13），不阻塞本版本。
-- **数据存哪**：`campus.db` → `cert_deadline`；提醒任务走既有 `ss/automation/`（`once` 类型）。
+- **数据存哪**：`campus.db` → `cert_deadline`；提醒任务走既有 `stealth_study/automation/`（`once` 类型）。
 - **复用**：**Automation（核心）**、既有 Inbox、Tools（search 可选联网核对时间）。
 - **用户故事**：作为苏晴，我希望打开应用第一眼就能看到"距离教资报名截止还有 3 天"，以便不再因为刷小红书才知道报名结束了。
 - **验收标准**：
@@ -919,7 +919,7 @@ flowchart TD
   - 题目输入（简答/论述/材料分析/教案设计/实操步骤描述）。
   - 批改结果：**得分点清单**（每个得分点：命中/部分命中/未命中 + 说明）+ 总分 + 结构建议 + 示范答案要点。
   - 支持自定义评分标准（用户可粘贴评分细则，批改时作为 rubric）。
-- **点击后发生什么**：提交 → `ss/campus/grading.py`（独立链路）+ `cert-instructor` 人设 → 结构化 JSON → 渲染落库 → 未命中得分点自动关联到知识点并标记"未掌握"。
+- **点击后发生什么**：提交 → `stealth_study/campus/grading.py`（独立链路）+ `cert-instructor` 人设 → 结构化 JSON → 渲染落库 → 未命中得分点自动关联到知识点并标记"未掌握"。
 - **数据存哪**：`campus.db` → `attempt`（含 rubric 与批改 JSON）+ `mastery`（自动降级未命中知识点）。
 - **复用**：**`campus/grading.py`（核心，独立链路，非 reviewer）**、Skills、Persona。
 - **用户故事**：作为苏晴，我希望我的教案设计有人按教资的评分点改，以便知道漏了哪几条。
@@ -950,7 +950,7 @@ flowchart TD
 **结论：预留"扩展位"，但 V0.x 不做 UI；只做两件事。**
 
 1. **数据层【新增】**：`exam_profile.track_type` 使用**字符串枚举**（`cet` / `kaoyan` / `cert` / `other`），新增场景无需改表结构。所有学习表（`study_plan` / `mistake_book` / `knowledge_point` / `attempt`）都带 `track_type` 与 `subject` 字段，第 4 个场景复用同一套表。
-2. **配置层【新增】**：`ss/campus/tracks.py` 中用一个**声明式配置字典**描述每个场景（id / 名称 / i18n key / 启用的模块列表 / 默认人设 / 默认考试结构）。第 4 个场景 = 往字典里加一项 + 提供对应的模块实现。
+2. **配置层【新增】**：`stealth_study/campus/tracks.py` 中用一个**声明式配置字典**描述每个场景（id / 名称 / i18n key / 启用的模块列表 / 默认人设 / 默认考试结构）。第 4 个场景 = 往字典里加一项 + 提供对应的模块实现。
 
 **不做的**：不在 V0.x 猜测第四场景是什么（考公？雅思托福？期末冲刺？），不建空壳页面。
 
@@ -981,12 +981,12 @@ flowchart TD
 | G-11 | G7 资料库  | 资料列表管理与删除                                                                                                       | P1  | files                                                  | 低              | 删除后文件与记录清理                                          | 【新增】         |
 | G-12 | 人设      | 6 个学习人设目录（**含 manifest 编写规范**，见 §3.1.1）                                                                         | P0  | Persona 系统                                             | 中              | 不设环境变量下 6 个人设全部可见；既有 14 个人设可见性不变                    | 【新增】         |
 | G-13 | 技能      | 7 个学习技能包（批改/精听/归因/周报/知识点树/模考/讲解），**落点为人设 bundle**                                                               | P0  | Skills 系统                                              | 高              | 技能可被对应 Persona 加载并执行（`<id>/skills/<name>/SKILL.md`） | 【新增】         |
-| G-14 | 后端      | `ss/campus/` 包骨架 + `campus.db` 建表（含 `schema_meta` 版本管理）                                                         | P0  | —                                                      | **高**（v1.1 上调） | 表结构按 §6 建立（19 张），既有库不受影响                            | 【新增】         |
-| G-15 | 后端      | `ss/campus/grading.py`：**独立结构化批改链路**（非 reviewer）                                                                | P0  | Providers（`response_format` 透传）                        | **高**（v1.1 上调） | 批改返回结构化 JSON；推荐模型上两次一致；弱模型 走 L1 填空式解析               | 【新增】         |
+| G-14 | 后端      | `stealth_study/campus/` 包骨架 + `campus.db` 建表（含 `schema_meta` 版本管理）                                                         | P0  | —                                                      | **高**（v1.1 上调） | 表结构按 §6 建立（19 张），既有库不受影响                            | 【新增】         |
+| G-15 | 后端      | `stealth_study/campus/grading.py`：**独立结构化批改链路**（非 reviewer）                                                                | P0  | Providers（`response_format` 透传）                        | **高**（v1.1 上调） | 批改返回结构化 JSON；推荐模型上两次一致；弱模型 走 L1 填空式解析               | 【新增】         |
 | G-16 | 共享      | 统一错题本（三台汇入，按 track/subject 区分）                                                                                  | P0  | Memory + `grading.py`                                  | 中              | 三台错题均可见且筛选正确                                        | 【新增】         |
 | G-17 | 共享      | 间隔复习调度器（简化 SM-2）+ `review_queue`                                                                                | P0  | Automation                                             | 中              | 队列按间隔生成，应用内复习卡可达                                    | 【新增】         |
 | G-18 | 共享      | 4 个自动化模板（每日复习/周报/冲刺/节点提醒 `once`）                                                                                | P0  | Automation                                             | 中              | 模板可一键创建，cron / `fire_at` 正确                         | 【新增】         |
-| G-19 | 模型      | **静态模型推荐清单** `ss/campus/models.py`（`{task → [推荐, 最低可用]}`）                                                       | P0  | —                                                      | 低              | 设置页按任务展示推荐模型；UI 明示"该功能建议使用 XX 及以上模型"                | 【新增】         |
+| G-19 | 模型      | **静态模型推荐清单** `stealth_study/campus/models.py`（`{task → [推荐, 最低可用]}`）                                                       | P0  | —                                                      | 低              | 设置页按任务展示推荐模型；UI 明示"该功能建议使用 XX 及以上模型"                | 【新增】         |
 
 #### 四六级备考台
 
@@ -1059,7 +1059,7 @@ flowchart TD
 | INF-06 | 测试   | 新组件 Vitest 测试（对齐既有测试风格；`campus.*` 双语 key 对齐过 `locales.test.ts`）                                                               | P1  | Vitest             | 中              | 覆盖率 ≥ 既有平均                              | 【新增】      |
 | INF-07 | 测试   | 语音/登录关闭路径的回归测试（含"2 个卡点之外不得有 diff"的代码审查项）                                                                                      | P1  | Vitest             | 低              | flag 关闭时无相关渲染                           | 【新增】      |
 | INF-08 | 配置   | 前端 flag（`flags.ts` 追加 `showVoice()`/`showLogin()`）+ 后端 `campus/config.py` 嵌套表读取                                               | P0  | **flags.ts**（既有）   | 低              | 配置项生效；`config.toml` 不被写入                | 【新增】      |
-| INF-09 | 后端   | **路由挂载**：新建 `ss/campus/routes.py`（`APIRouter`），在 `server/app.py` 的 `create_app()` 内插入 1 行 `app.include_router(campus_router)` | P0  | FastAPI            | 低              | 全部 campus 接口可达（v1.0 漏项，v1.1 补）          | 【新增·单行插入】 |
+| INF-09 | 后端   | **路由挂载**：新建 `stealth_study/campus/routes.py`（`APIRouter`），在 `server/app.py` 的 `create_app()` 内插入 1 行 `app.include_router(campus_router)` | P0  | FastAPI            | 低              | 全部 campus 接口可达（v1.0 漏项，v1.1 补）          | 【新增·单行插入】 |
 | INF-10 | 数据   | `doc_chunk` 页级切片表 + 两级检索实现（L1 目录路由 / L2 FTS5-bigram 或 BM25）                                                                   | P0  | sqlite3（内置）        | **高**          | 见 G-10 / KY-09 验收                       | 【新增】      |
 | INF-11 | 数据   | 批改一致性评测脚手架（同一篇跑 N 次比对分差）                                                                                                      | P1  | —                  | 中              | 能输出"分差分布"报告，支撑 CET-09/CERT-07 验收        | 【新增】      |
 | INF-12 | 数据   | `attribution_confidence` 的产生方式定义（V0.1 不落值或落"模型自报未校准值"并标注）                                                                     | P2  | —                  | 低              | 字段语义在 §6.3 明确，UI 如实标注                   | 【新增】      |
@@ -1098,7 +1098,7 @@ sequenceDiagram
     participant APP as App 主视图
     participant CV as CampusStationView
     participant API as campus/api.ts
-    participant BE as ss/campus 后端
+    participant BE as stealth_study/campus 后端
     participant P as Persona cet-examiner
     participant T as Tools（ask / plan / todo）
     participant DB as campus.db
@@ -1230,7 +1230,7 @@ flowchart LR
 
 | 决策       | 内容                                                                                                                                                                                   | 理由                                                                                                                                                                        |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **库文件**  | **【新增】** `state_dir()/campus.db`（与既有 `state_dir()/ss.db` 平级，**独立文件**）                                                                                                                | 不修改 `memories` 表结构，不动 `coworker.db`；备份/删除学习数据不影响既有功能                                                                                                                      |
+| **库文件**  | **【新增】** `state_dir()/campus.db`（与既有 `state_dir()/stealth_study.db` 平级，**独立文件**）                                                                                                                | 不修改 `memories` 表结构，不动 `coworker.db`；备份/删除学习数据不影响既有功能                                                                                                                      |
 | **文件目录** | **【新增】** `state_dir()/campus/library/`（资料原件与切片）、`state_dir()/campus/exports/`（导出）                                                                                                    | 同上                                                                                                                                                                        |
 | **语义记忆** | **【复用】** 既有 `memories` 表（`coworker.db`）存"用户薄弱点"等供 LLM 检索的自然语言记忆                                                                                                                      | 复用既有能力，不重复建语义索引                                                                                                                                                           |
 | **任务看板** | **【新增·自建】** `campus.db` 的 `plan_task.status` + 前端四列 CSS Grid（待学/在学/待复习/已掌握）；`board_card_id` 字段保留但 V0.x 不写值，V0.2 再评估对 Teams 看板做只读同步。**【复用】** 既有 Teams **journal** 记录学习日志（该部分语义匹配，继续用） | Teams 看板状态**固定六态**（`teams/model.py:16-22`）、`done` 是**终态回不去**（`EDGES[DONE]=set()`，`:31-38`）、space **绑定工作区文件夹**而非备考档案（`:79-84`）且无创建 space 的 API —— 三处语义硬冲突，故自建（详见 §13.5-B4） |
@@ -1238,10 +1238,10 @@ flowchart LR
 
 > 架构师需确认 `state_dir()` 的实际解析路径，以决定 `campus.db` 的最终落点。产品侧只要求：**与既有库同目录、独立文件、可单独删除而不影响主程序**。~~（v1.1 已确认，见下）~~
 
-> **【架构师已确认 · 详见 §13.3 B6】** ✅ `state_dir()` 见 `ss/secrets.py:28-44`：
+> **【架构师已确认 · 详见 §13.3 B6】** ✅ `state_dir()` 见 `stealth_study/secrets.py:28-44`：
 > `$COWORKER_STATE_DIR` → Windows `%APPDATA%\Stealth Study` → 其他 `~/.config/Stealth Study`。
 > **本用户环境（Windows 11）实测落点 =** **`C:\Users\<用户名>\AppData\Roaming\ss`**。
-> 既有库确认为 `state_dir()/ss.db`（`cli.py:45`、`conversations.py:82`、`server/manager.py:220`）。
+> 既有库确认为 `state_dir()/stealth_study.db`（`cli.py:45`、`conversations.py:82`、`server/manager.py:220`）。
 > 因此 `campus.db` 定为 **`C:\Users\<用户名>\AppData\Roaming\ss\campus.db`** ——
 > 与既有库同目录 ✅、独立文件 ✅、可单独删除且不被任何既有代码引用 ✅，产品侧三条要求全部满足。
 > ⚠️ Windows 提醒：`AppData\Roaming` 是隐藏目录，G-03 的「在文件管理器中打开」应直接用 `explorer.exe` 打开该绝对路径。
@@ -1505,7 +1505,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 
 - 所有 AI 调用必须有**超时 + 可中断**；
 - **结构化输出能力判定（v1.1 修订）**：既有 `providers/capabilities.py` / `matrix.py` **没有**结构化输出标记（`base.py:81-90` 仅 5 个字段；`matrix.py` 未覆盖全部模型条目），**不做运行时自检**。改为：① §3.1-5 的**静态推荐清单**；② `grading.py` 用 `response_format={"type":"json_object"}` **实际试错**(，`**settings` 原样透传；不支持时 `_param_fix_retry` 会 re-raise，须 try/except 后去掉该参数重试一次）；
-- **批改降级四级（L0–L3，写入** **`ss/campus/grading.py`，v1.1 新增）**：
+- **批改降级四级（L0–L3，写入** **`stealth_study/campus/grading.py`，v1.1 新增）**：
 
 | 级别                 | 触发条件       | 做法                                                                                                   |
 | ------------------ | ---------- | ---------------------------------------------------------------------------------------------------- |
@@ -1692,9 +1692,9 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 
 | 依赖                                         | 说明                  | 风险                                                                                                                                                                                                                                              |
 | ------------------------------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ss/automation/` 的 cron / `once` 调度        | 每日复习与节点提醒完全依赖       | ✅ 调度本身可用（`scheduler.py`，sidecar 内 30 秒 tick）。**⚠️ 两个已知限制（v1.1 决策已采纳）**：① 无 OS 桌面通知通道（`Cargo.toml` 无 `tauri-plugin-notification`），提醒呈现为**应用内横幅 + Inbox 条目**（CERT4）；② App 关闭时 sidecar 不运行，错过任务**下次启动补跑**（`scheduler.py:4-6`）→ 已用"启动检查 + 逾期状态补偿"缓解 |
-| `ss/campus/grading.py`（新建，而非改 reviewer.py） | 作文/主观题批改需自定义 rubric | `reviewer.py` **并非批改器而是动作安全闸门**（见 §13-A1），不可注入 rubric；批改链路走独立新建的 `campus/grading.py`，绝不动 reviewer.py                                                                                                                                            |
-| `ss/teams/` 看板 API                         | KY-03 看板同步依赖        | 状态固定六态、`done` 为终态、space 绑定真实文件夹（见 §13）；采用 PRD 已预留的"自建只读列表"降级，不依赖双向同步                                                                                                                                                                            |
+| `stealth_study/automation/` 的 cron / `once` 调度        | 每日复习与节点提醒完全依赖       | ✅ 调度本身可用（`scheduler.py`，sidecar 内 30 秒 tick）。**⚠️ 两个已知限制（v1.1 决策已采纳）**：① 无 OS 桌面通知通道（`Cargo.toml` 无 `tauri-plugin-notification`），提醒呈现为**应用内横幅 + Inbox 条目**（CERT4）；② App 关闭时 sidecar 不运行，错过任务**下次启动补跑**（`scheduler.py:4-6`）→ 已用"启动检查 + 逾期状态补偿"缓解 |
+| `stealth_study/campus/grading.py`（新建，而非改 reviewer.py） | 作文/主观题批改需自定义 rubric | `reviewer.py` **并非批改器而是动作安全闸门**（见 §13-A1），不可注入 rubric；批改链路走独立新建的 `campus/grading.py`，绝不动 reviewer.py                                                                                                                                            |
+| `stealth_study/teams/` 看板 API                         | KY-03 看板同步依赖        | 状态固定六态、`done` 为终态、space 绑定真实文件夹（见 §13）；采用 PRD 已预留的"自建只读列表"降级，不依赖双向同步                                                                                                                                                                            |
 | 静态模型推荐清单（非 capabilities/matrix 运行时探测）      | 模型能力自检依赖            | `capabilities.py` 仅有 5 字段且无 `json_mode` 标记、`matrix.py` 未覆盖全部模型条目，无法运行时自检；改用静态清单 + `response_format` 试错（见 §13-A2）                                                                                                                                |
 | 云端模型提供商（外部）                                | 模型调用场景              | 用户自行配置 API Key，产品只做检测与指引                                                                                                                                                                                                                        |
 | `flags.ts`（既有 Feature Flag 机制）             | 语音/登录开关的落点          | 无风险（localStorage，已上线先例 `showPersonas()`）；**不写** **`config.toml`**（扁平 KV，写 section 会被静默忽略）                                                                                                                                                       |
@@ -1838,9 +1838,9 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 
 | 路径                | 证据                                                                                                                     | 结论                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
-| 新增独立库 `campus.db` | `ss/memory/sqlite_store.py:14-22` 的 store 类**接受任意 path 参数**并自建连接                                                       | 新写一个同类 store 即可，不碰 `coworker.db`                    |
-| 独立库落点             | `ss/secrets.py:28-44` → Windows 11 解析为 `%APPDATA%\ss`                                                                  | `campus.db` 与 `coworker.db` 同目录、独立文件、可单独删除 ✅ 满足产品要求 |
-| 人设目录式新增           | `ss/personas/registry.py:176-192` `_load_dir()` 扫描 `<dir>/<id>/manifest.md` + 同级 `skills/`                             | 新增目录**确实零代码生效**                                     |
+| 新增独立库 `campus.db` | `stealth_study/memory/sqlite_store.py:14-22` 的 store 类**接受任意 path 参数**并自建连接                                                       | 新写一个同类 store 即可，不碰 `coworker.db`                    |
+| 独立库落点             | `stealth_study/secrets.py:28-44` → Windows 11 解析为 `%APPDATA%\ss`                                                                  | `campus.db` 与 `coworker.db` 同目录、独立文件、可单独删除 ✅ 满足产品要求 |
+| 人设目录式新增           | `stealth_study/personas/registry.py:176-192` `_load_dir()` 扫描 `<dir>/<id>/manifest.md` + 同级 `skills/`                             | 新增目录**确实零代码生效**                                     |
 | 设置页 tab 增删改       | `SettingsView.tsx:95` **已有同款先例**：`const tabs = personas ? SET_TABS : SET_TABS.filter((tab) => tab.key !== "personas")` | "过滤 tab" 是本仓库**已验证的惯用法**，不是新发明                      |
 | i18n 追加           | `locales/zh.json` 顶层为扁平命名空间；`locales.test.ts:31-38` 强制 zh/en key 完全对齐                                                  | 追加 `campus.*` 可行，且有自动化测试兜底                          |
 
@@ -1848,8 +1848,8 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 
 | # | 问题                                                                        | 严重度   | 性质      |
 | - | ------------------------------------------------------------------------- | ----- | ------- |
-| 1 | `ss/reviewer.py` **不是批改器，是动作安全闸门**，无法注入 rubric                            | 🔴 阻断 | 能力不存在   |
-| 2 | `ss/skills/campus/` **不是被扫描目录**，建了也是死代码                                   | 🔴 阻断 | 扩展点不存在  |
+| 1 | `stealth_study/reviewer.py` **不是批改器，是动作安全闸门**，无法注入 rubric                            | 🔴 阻断 | 能力不存在   |
+| 2 | `stealth_study/skills/campus/` **不是被扫描目录**，建了也是死代码                                   | 🔴 阻断 | 扩展点不存在  |
 | 3 | `providers/capabilities.py` / `matrix.py` **没有结构化输出能力标记**，做不了运行时自检        | 🟠 高  | 能力不存在   |
 | 4 | `Sidebar.tsx:33` 的 `SURFACES` **不是导航菜单**，是"人设手风琴 + 会话列表"，追加 3 项会得到 3 个假人设 | 🟠 高  | 扩展点理解错误 |
 | 5 | `config.toml` **是扁平 KV，不支持** **`[section]`**，分层 TOML 配置会被静默忽略             | 🟠 高  | 扩展点不存在  |
@@ -1857,7 +1857,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 
 **次要但必须知道的问题：**
 
-- `ss/server/app.py` 有 **2882 行 / 180 条内联路由，无** **`APIRouter`**，新增 \~40 个 campus 接口必须在此插入一行 `app.include_router(...)`（PRD 完全没有这一项工作）。
+- `stealth_study/server/app.py` 有 **2882 行 / 180 条内联路由，无** **`APIRouter`**，新增 \~40 个 campus 接口必须在此插入一行 `app.include_router(...)`（PRD 完全没有这一项工作）。
 - 全项目**没有任何向量检索 / 全文索引（无 FTS5、无 embedding）**，KY-09 的"资料问答 + 页码引用"所需检索层要从零建。
 
 ***
@@ -1875,10 +1875,10 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 | **R4**  | `locales/{zh,en}.json` 追加 `campus.*`                                   | ✅ 真实可行（有测试门禁）                             | `zh.json` 顶层是扁平命名空间（55 个 key），追加顶层 `campus` 是纯 JSON 插入。**注意** `locales.test.ts:31-38` 强制 zh/en key 集合**完全相等**，漏一个语言直接测试失败 —— 这是好事，但要写进开发规范                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **R5**  | 新建 `components/campus/`                                                | ✅ 真实可行                                    | 全新目录，无依赖冲突                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | **R6**  | 新建 `src/campus/`（api/types/hooks）                                      | ✅ 真实可行，且可完全不依赖既有 `api.ts`                 | `api.ts:16-18` 的 `apiToken()` 与 `:8-14` 的 `httpBase()` 都只读 `globalThis.__COWORKER_HTTP__` / `__COWORKER_API_TOKEN__`，新文件照抄 3 行即可，无需 import 既有模块                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **R7**  | 新建 `ss/campus/` 后端包                                                    | ⚠️ 可行，但**缺一项必修工作**                        | `server/app.py:187` 是**单个** **`FastAPI()`** **实例**，180 条路由全部内联，**全项目无任何** **`APIRouter`** **/** **`include_router`**（已 grep 确认）。必须新增一条：在 `create_app()` 内插入 `app.include_router(campus_router)`（1 行）。**PRD §3.2 完全没有这一项**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **R8**  | 新建 `ss/personas/builtin/<id>/` 6 个目录，零代码生效                             | ⚠️ **机制正确，但有一个会让 6 个人设全部"隐身"的坑，PRD 完全没写** | ① `_load_dir()` 目录扫描 ✅ `registry.py:176-192`② `_load_builtin()` 默认扫 `Path(__file__).parent/"builtin"` ✅ `registry.py:173-174`③ 🔴 **`ships`** **坑**：`registry.py:247-250` `_visible()` = `e.ships or include_unshipped() or 显式启用`；`include_unshipped()`（`registry.py:30-37`）要求环境变量 `OPENWORKER_UNSHIPPED=1`。**而现有 14 个 markdown 人设全部是** **`ships: false`**（`grep -rh "^ships:" ss/personas/builtin/` → 14/14 false）。工程师照抄现有人设做模板 = 6 个人设**全部不可见**④ `ships` 默认值是 **True**（`manifest.py:91` dataclass + `:337` 解析），所以**只要不写** **`ships`** **就是可见的**⑤ 另外两个静默坑：`group` 只能是 `general`/`security`（`manifest.py:29`），写 `campus` 会抛 `ManifestError` 打断整个注册表加载；`team: worker` 会导致 `default_surfaced=False`（`registry.py:211`）⑥ 人设 `icon` 只能取 `personaIcon.tsx:19-33` 的 `NAMED` 集合 —— **该集合不含** **`book`**（含 `shield`/`clock`/`pencil`/`table`），写 `icon: book` 会静默回退成 `sparkle` |
-| **R9**  | 新建 `ss/skills/campus/` 技能包目录                                           | ❌ **不可行 —— 该目录不会被任何代码扫描，建了是死代码**          | ① `SkillStore.global_dir = state_dir()/"skills"`（`skills/store.py:87`）② `_base()` 只认 `GLOBAL_SCOPE` / `PROJECT_SCOPE` 两种（`skills/store.py:96-107`）—— **没有"内置包目录"这一档**③ `find()` 只查 project + global 两个目录（`skills/store.py:122-135`）④ 加载入口 `agent.py:184-188` `_skill_dirs()` = `[state_dir()/"skills"] + [workspace/".stealth-study"/"skills"]`⑤ `ss/skills/` 下现在只有 `base.py` / `store.py` 两个**机制文件**，没有任何技能内容                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **R10** | 新增 `features.voice` / `features.login` / `campus.*` **分层 TOML** 配置项    | ⚠️ **可行但"分层"是错的 —— config.toml 是扁平 KV**   | ① `config.py:132-157` `load_config()` 是 `for key, value in _read(g).items(): if key in _FIELDS`，**只认顶层 key**（`_FIELDS` 见 `config.py:78-95`，18 个）② 写 `[features] voice = false` 会以 `{"features": {...}}` 出现在顶层，`"features" not in _FIELDS` → **被静默忽略，不报错**③ ✅ 好消息：正因如此，加 section **不会破坏任何既有逻辑**；新增 `ss/campus/config.py` 自己 `tomllib.load(global_config_path())` 读嵌套表即可，**零侵入**④ 🟢 **更优解**：前端已有现成的 Feature Flag 机制 —— `surfaces/gui/src/flags.ts:8-19` 的 `flag(key, fallback)` 读 `localStorage`，`showPersonas()` 是已上线先例。**语音/登录开关应直接复用** **`flags.ts`** **追加** **`showVoice()`** **/** **`showLogin()`**，连配置文件都不用动，且天然可逆（改 localStorage 即可）                                                                                                                                                                                                                           |
+| **R7**  | 新建 `stealth_study/campus/` 后端包                                                    | ⚠️ 可行，但**缺一项必修工作**                        | `server/app.py:187` 是**单个** **`FastAPI()`** **实例**，180 条路由全部内联，**全项目无任何** **`APIRouter`** **/** **`include_router`**（已 grep 确认）。必须新增一条：在 `create_app()` 内插入 `app.include_router(campus_router)`（1 行）。**PRD §3.2 完全没有这一项**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **R8**  | 新建 `stealth_study/personas/builtin/<id>/` 6 个目录，零代码生效                             | ⚠️ **机制正确，但有一个会让 6 个人设全部"隐身"的坑，PRD 完全没写** | ① `_load_dir()` 目录扫描 ✅ `registry.py:176-192`② `_load_builtin()` 默认扫 `Path(__file__).parent/"builtin"` ✅ `registry.py:173-174`③ 🔴 **`ships`** **坑**：`registry.py:247-250` `_visible()` = `e.ships or include_unshipped() or 显式启用`；`include_unshipped()`（`registry.py:30-37`）要求环境变量 `OPENWORKER_UNSHIPPED=1`。**而现有 14 个 markdown 人设全部是** **`ships: false`**（`grep -rh "^ships:" stealth_study/personas/builtin/` → 14/14 false）。工程师照抄现有人设做模板 = 6 个人设**全部不可见**④ `ships` 默认值是 **True**（`manifest.py:91` dataclass + `:337` 解析），所以**只要不写** **`ships`** **就是可见的**⑤ 另外两个静默坑：`group` 只能是 `general`/`security`（`manifest.py:29`），写 `campus` 会抛 `ManifestError` 打断整个注册表加载；`team: worker` 会导致 `default_surfaced=False`（`registry.py:211`）⑥ 人设 `icon` 只能取 `personaIcon.tsx:19-33` 的 `NAMED` 集合 —— **该集合不含** **`book`**（含 `shield`/`clock`/`pencil`/`table`），写 `icon: book` 会静默回退成 `sparkle` |
+| **R9**  | 新建 `stealth_study/skills/campus/` 技能包目录                                           | ❌ **不可行 —— 该目录不会被任何代码扫描，建了是死代码**          | ① `SkillStore.global_dir = state_dir()/"skills"`（`skills/store.py:87`）② `_base()` 只认 `GLOBAL_SCOPE` / `PROJECT_SCOPE` 两种（`skills/store.py:96-107`）—— **没有"内置包目录"这一档**③ `find()` 只查 project + global 两个目录（`skills/store.py:122-135`）④ 加载入口 `agent.py:184-188` `_skill_dirs()` = `[state_dir()/"skills"] + [workspace/".stealth-study"/"skills"]`⑤ `stealth_study/skills/` 下现在只有 `base.py` / `store.py` 两个**机制文件**，没有任何技能内容                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **R10** | 新增 `features.voice` / `features.login` / `campus.*` **分层 TOML** 配置项    | ⚠️ **可行但"分层"是错的 —— config.toml 是扁平 KV**   | ① `config.py:132-157` `load_config()` 是 `for key, value in _read(g).items(): if key in _FIELDS`，**只认顶层 key**（`_FIELDS` 见 `config.py:78-95`，18 个）② 写 `[features] voice = false` 会以 `{"features": {...}}` 出现在顶层，`"features" not in _FIELDS` → **被静默忽略，不报错**③ ✅ 好消息：正因如此，加 section **不会破坏任何既有逻辑**；新增 `stealth_study/campus/config.py` 自己 `tomllib.load(global_config_path())` 读嵌套表即可，**零侵入**④ 🟢 **更优解**：前端已有现成的 Feature Flag 机制 —— `surfaces/gui/src/flags.ts:8-19` 的 `flag(key, fallback)` 读 `localStorage`，`showPersonas()` 是已上线先例。**语音/登录开关应直接复用** **`flags.ts`** **追加** **`showVoice()`** **/** **`showLogin()`**，连配置文件都不用动，且天然可逆（改 localStorage 即可）                                                                                                                                                                                                                           |
 
 **R1–R10 汇总**：✅ 5 条（R3/R4/R5/R6 + R7 本体）｜ ⚠️ 4 条（R1/R2/R8/R10）｜ ❌ 1 条（R9）
 
@@ -1886,7 +1886,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 
 ### 13.3 五个技术不确定性的答复
 
-#### B1. `ss/reviewer.py` 是否支持注入自定义评分标准（rubric）？
+#### B1. `stealth_study/reviewer.py` 是否支持注入自定义评分标准（rubric）？
 
 > ## 结论：**不支持，且它根本不是批改器。必须新建独立批改链路，不要试图改造 reviewer.py。**
 
@@ -1906,7 +1906,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 **能否不改 reviewer.py 就加一层？** —— **能，而且应该这么做。**
 
 ```
-ss/campus/grading.py   ← 新建，独立链路
+stealth_study/campus/grading.py   ← 新建，独立链路
   ├─ 自己组装 messages（system = 评分标准 rubric；user = 题目 + 作答）
   ├─ 调用 provider.complete(model=..., messages=..., **{"response_format": {...}})   # 见 B2
   ├─ 自己 parse JSON → 维度分 / 错误清单 / 示范段落
@@ -1950,7 +1950,7 @@ ss/campus/grading.py   ← 新建，独立链路
 - 枚举值合法（`attribution` 五分类，弱模型 容易造出第六类）；
 - 数字在量程内（给 15 分制打 106.5 分）。
 
-**（4）建议的三级降级方案（写入** **`ss/campus/grading.py`）：**
+**（4）建议的三级降级方案（写入** **`stealth_study/campus/grading.py`）：**
 
 | 级别                 | 触发条件       | 做法                                                                                                                            |
 | ------------------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -1959,7 +1959,7 @@ ss/campus/grading.py   ← 新建，独立链路
 | L2 逐维度拆分           | L1 仍不稳定    | **一次调用只问一个维度**（"只输出内容分，0-15 的整数"）。调用次数 ×3，但每次输出极短，弱模型 稳定度大幅提升，总耗时可接受                                                          |
 | L3 放弃结构化           | 连续 2 次解析失败 | 降级为纯文本展示 + UI 标注"AI 返回格式异常，结果可能不完整"（PRD §7.6 已有此条 ✅）                                                                          |
 
-**（5）配套的模型推荐清单（替代不存在的运行时检测）：** 在 `ss/campus/models.py` 里维护一张**静态表**（`{task: [推荐模型id, 最低可用模型id]}`），并在 UI 明示"该功能建议使用 XX 及以上模型"。这比运行时探测更可控，PRD §10.4 已预留"改为静态推荐清单"的退路 ✅。
+**（5）配套的模型推荐清单（替代不存在的运行时检测）：** 在 `stealth_study/campus/models.py` 里维护一张**静态表**（`{task: [推荐模型id, 最低可用模型id]}`），并在 UI 明示"该功能建议使用 XX 及以上模型"。这比运行时探测更可控，PRD §10.4 已预留"改为静态推荐清单"的退路 ✅。
 
 **（6）"两次批改分差 ≤1 档"（CET-09 验收标准 1）的现实性**：`temperature=0` + 固定 rubric + 得分点级证据能显著收窄波动，但**弱模型上无法保证**。建议：该验收标准**只在云端强模型上承诺**；弱模型场景改为"同一篇连批 3 次，取中位数展示，并在 UI 标注'评分仅供参考'"。
 
@@ -2004,7 +2004,7 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 
 **（4）对数据层的影响：** ✅ **核心 17 张表的规模与设计保持不变**。只需在 `source_doc` 上落实已有的 `chunk_count` 字段（PRD §6.3 已定义），并新增 1 张 `doc_chunk`（见 §6.2）。
 
-**（5）必须在 PRD 中新增的工作项（当前完全没有）**：`ss/campus/library.py` 的**切片 + 检索**部分，≈ G-10 的 2\~3 倍工作量。
+**（5）必须在 PRD 中新增的工作项（当前完全没有）**：`stealth_study/campus/library.py` 的**切片 + 检索**部分，≈ G-10 的 2\~3 倍工作量。
 
 ***
 
@@ -2023,7 +2023,7 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 | 静默风险   | `pdf_support.py:116-119` | `text = page.extract_text() or ""`；`if text:` 才 append → 全空时 `chunks` 为空，返回 `""`，`parse_status` 若只看异常就会被标成 **ready** |
 | 加密 PDF | `pdf_support.py:92-96`   | 正确返回 `{"ok": False, "error": "PDF is password-protected"}` —— 有错误处理的，扫描件却没有                                          |
 
-→ **`ss/campus/library.py`** **必须显式判空**：`if not (text or "").strip(): parse_status = "failed"，reason = "无文字层（疑似扫描件）"`。否则用户会得到一个"就绪"但问答全是幻觉的资料。这条要写进 G-10 验收标准。
+→ **`stealth_study/campus/library.py`** **必须显式判空**：`if not (text or "").strip(): parse_status = "failed"，reason = "无文字层（疑似扫描件）"`。否则用户会得到一个"就绪"但问答全是幻觉的资料。这条要写进 G-10 验收标准。
 
 **（2）已有的、PRD 没提到的替代路径 —— 视觉模型兜底：**
 
@@ -2048,7 +2048,7 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 
 ##### B5-a. 桌面通知（CERT-13 的地基）—— 🔴 **通道不存在**
 
-> **结论：`ss/automation/`** **的调度本身 ✅ 可用；但它没有操作系统级通知通道。CERT-13"到点推送，用户收到通知"在当前代码上无法实现。**
+> **结论：`stealth_study/automation/`** **的调度本身 ✅ 可用；但它没有操作系统级通知通道。CERT-13"到点推送，用户收到通知"在当前代码上无法实现。**
 
 **证据链：**
 
@@ -2102,7 +2102,7 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 
 > ## 结论：**Windows 11 下 =** **`%APPDATA%\ss`，即** **`C:\Users\<用户名>\AppData\Roaming\ss`。**
 
-**证据**：`ss/secrets.py:28-44`，注释与代码一致 ——
+**证据**：`stealth_study/secrets.py:28-44`，注释与代码一致 ——
 
 ```
 1. $COWORKER_STATE_DIR      —— 显式覆盖（测试/旁路进程用）
@@ -2114,7 +2114,7 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 
 | 文件        | 路径                            | 证据                                                        |
 | --------- | ----------------------------- | --------------------------------------------------------- |
-| 既有库       | `state_dir()/ss.db`           | `cli.py:45`、`conversations.py:82`、`server/manager.py:220` |
+| 既有库       | `state_dir()/stealth_study.db`           | `cli.py:45`、`conversations.py:82`、`server/manager.py:220` |
 | **新增学习库** | `state_dir()/campus.db`       | 建议                                                        |
 | 新增资料目录    | `state_dir()/campus/library/` | 建议                                                        |
 | 人设状态      | `state_dir()/personas.json`   | `personas/registry.py:560`                                |
@@ -2188,13 +2188,13 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 
 | #  | 需求 ID / 章节                                             | 现状                                                  | 必须改为                                                                                                                                                                                                                                                                    |
 | -- | ------------------------------------------------------ | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A1 | **§3.1-7、G-15、CET-09、CET-10、CERT-07、CERT-14、KY-05/06** | "复用 Reviewer"                                       | **改为"新建** **`ss/campus/grading.py`，独立调用 provider"**。Reviewer 是动作安全闸门（`reviewer.py:177, 349-357`），不可用于批改                                                                                                                                                                 |
-| A2 | **R9 / §3.1-2 / G-13**                                 | 新建 `ss/skills/campus/`                              | **改为两种之一**：① 放进各人设 bundle：`personas/builtin/<id>/skills/<name>/SKILL.md`（`registry.py:184-192` + `manager.py:5830-5843` 已支持）；② 首次启动时播种到 `state_dir()/skills/`（`skills/store.py:87`）                                                                                     |
+| A1 | **§3.1-7、G-15、CET-09、CET-10、CERT-07、CERT-14、KY-05/06** | "复用 Reviewer"                                       | **改为"新建** **`stealth_study/campus/grading.py`，独立调用 provider"**。Reviewer 是动作安全闸门（`reviewer.py:177, 349-357`），不可用于批改                                                                                                                                                                 |
+| A2 | **R9 / §3.1-2 / G-13**                                 | 新建 `stealth_study/skills/campus/`                              | **改为两种之一**：① 放进各人设 bundle：`personas/builtin/<id>/skills/<name>/SKILL.md`（`registry.py:184-192` + `manager.py:5830-5843` 已支持）；② 首次启动时播种到 `state_dir()/skills/`（`skills/store.py:87`）                                                                                     |
 | A3 | **R2 / G-02**                                          | 在 `Sidebar.tsx:33` `SURFACES` 追加 3 项                | **改为在** **`Sidebar.tsx:1033-1067`** **的导航按钮区追加 3 个** **`<button>`**（照抄 Automations 行的写法，label 走 `t()`）；`SURFACES` 是"人设手风琴 + 会话列表"（`:853-862, 1080-1121`），不是导航                                                                                                           |
-| A4 | **R10 / G-05 / G-06 / INF-08**                         | 新建分层 TOML `[features]` / `[campus]`                 | **改为两轨**：① 前端开关**复用既有** **`flags.ts:8-19`** 追加 `showVoice()` / `showLogin()`（localStorage，零新增依赖，天然可逆）；② 后端偏好新增 `ss/campus/config.py` 自读 `global_config_path()` 的嵌套表（`config.py:132-157` 是扁平 KV，写 section 会被静默忽略但不破坏既有逻辑）                                                |
+| A4 | **R10 / G-05 / G-06 / INF-08**                         | 新建分层 TOML `[features]` / `[campus]`                 | **改为两轨**：① 前端开关**复用既有** **`flags.ts:8-19`** 追加 `showVoice()` / `showLogin()`（localStorage，零新增依赖，天然可逆）；② 后端偏好新增 `stealth_study/campus/config.py` 自读 `global_config_path()` 的嵌套表（`config.py:132-157` 是扁平 KV，写 section 会被静默忽略但不破坏既有逻辑）                                                |
 | A5 | **R8 / G-12**                                          | 新建 6 个人设目录                                          | **在 PRD 中写明三条硬约束**：① `ships` **必须显式写** **`true`** **或省略**（现有 14/14 人设都是 `ships: false`，照抄即隐身；`registry.py:247-250`）；② `group` **只能是** **`general`/`security`**（`manifest.py:29`，写 `campus` 会抛 `ManifestError` 打断整个注册表）；③ `team` **不要填** **`worker`**（`registry.py:211`） |
-| A6 | **§7.1、§10.4（依赖表第 4 行）**                               | "用 `capabilities.py` / `matrix.py` 判断当前模型是否支持结构化输出" | **改为"静态推荐清单"**：这两个文件**没有结构化输出能力标记**（`base.py:81-90` 仅 5 个字段）。改由 `ss/campus/models.py` 维护 `{task → [推荐, 最低可用]}` 静态表；结构化输出能力通过 `provider.complete(**{"response_format": ...})` **试错**判定(，`openai_provider.py:189-193` 透传 `**settings`）                                    |
-| A7 | **R7 / G-14 / INF-01（新增条目）**                           | PRD 无此项                                             | **新增一条需求**："在 `ss/server/app.py` 的 `create_app()` 内插入 `app.include_router(campus_router)`（1 行）"。`app.py:187` 是单 `FastAPI()` 实例 + 180 条内联路由，**全项目无** **`APIRouter`** **先例**                                                                                              |
+| A6 | **§7.1、§10.4（依赖表第 4 行）**                               | "用 `capabilities.py` / `matrix.py` 判断当前模型是否支持结构化输出" | **改为"静态推荐清单"**：这两个文件**没有结构化输出能力标记**（`base.py:81-90` 仅 5 个字段）。改由 `stealth_study/campus/models.py` 维护 `{task → [推荐, 最低可用]}` 静态表；结构化输出能力通过 `provider.complete(**{"response_format": ...})` **试错**判定(，`openai_provider.py:189-193` 透传 `**settings`）                                    |
+| A7 | **R7 / G-14 / INF-01（新增条目）**                           | PRD 无此项                                             | **新增一条需求**："在 `stealth_study/server/app.py` 的 `create_app()` 内插入 `app.include_router(campus_router)`（1 行）"。`app.py:187` 是单 `FastAPI()` 实例 + 180 条内联路由，**全项目无** **`APIRouter`** **先例**                                                                                              |
 
 #### B 类：验收标准 / 范围调整（5 项）
 
@@ -2286,7 +2286,7 @@ graph TD
 
 | # | 位置                       | 补注内容                                             |
 | - | ------------------------ | ------------------------------------------------ |
-| 1 | §3.1 第 2 行（Skills 技能系统）  | 指出 `ss/skills/campus/` 非扫描目录，给出两个可行落点            |
+| 1 | §3.1 第 2 行（Skills 技能系统）  | 指出 `stealth_study/skills/campus/` 非扫描目录，给出两个可行落点            |
 | 2 | §3.1 第 7 行（Reviewer 评审器） | 指出 reviewer 是动作安全闸门，不可用于批改                       |
 | 3 | §3.1 第 10 行（Compaction）  | 指出触发阈值 102,400 tokens 与 200 页 PDF 的容量冲突，且摘要会丢失页码 |
 | 4 | §3.1 第 14 行（侧边栏导航常量）     | 指出 `SURFACES` 是人设手风琴兜底，非导航菜单                     |
@@ -2322,7 +2322,7 @@ graph TD
 | 4  | A4 / B2(扫描件)          | G-10 新增**强制判空**要求（`pdf_support.py:102-104` 静默返回空）+ 用户可见提示文案；验收新增"扫描件 → failed"；`source_doc` 增加 `parse_reason` 字段；T3 风险重写（含视觉模型兜底 V0.2 评估、OCR 只考虑 RapidOCR）                                                                                                      | §4.2、§6.3、§10.1            |
 | 5  | A5 / R8               | 新增 **§3.1.1 人设 manifest 编写规范**（`ships` / `group` / `team` / `icon` 四条硬约束 + 6 个人设推荐字段值表 + 验收标准）                                                                                                                                                                  | §3.1.1、§4.8                |
 | 6  | A6 / §13.3 B5-a       | **CERT-13 决策为"应用内提醒"**（常驻倒计时卡 + 红点 + 启动检查横幅 + Inbox 条目），不改验收承诺 OS 通知；CERT4 模块全文重写并附取舍论证；§10.4 Automation 依赖行改写（sidecar 不跑 + 启动补跑的补偿设计）；§11.1 决策 D2                                                                                                              | §4.5、§10.4、§11.1           |
-| 7  | A7 / R7               | 新增 §3.1-17 与 **INF-09**：`ss/campus/routes.py` + `server/app.py` 单行插入 `app.include_router`；§0.2 新增【新增·单行插入】标记                                                                                                                                                    | §3.1、§3.2、§4.8、§0.2        |
+| 7  | A7 / R7               | 新增 §3.1-17 与 **INF-09**：`stealth_study/campus/routes.py` + `server/app.py` 单行插入 `app.include_router`；§0.2 新增【新增·单行插入】标记                                                                                                                                                    | §3.1、§3.2、§4.8、§0.2        |
 | 8  | A8 / R2               | R2 重写：导航落点改为 `Sidebar.tsx:1033-1067` 按钮区，label 必须走 `t()`；G-02 / CET1 页面描述同步；§3.1-14/15 重写（App.tsx 补第 2 处插入点：`surface` 类型联合 `:276-278`）；R1b 行号修正（`SettingsView.tsx:95/:151`）                                                                                     | §3.1、§3.2、§4.2             |
 | 9  | A9 / R10              | R10 重写：前端开关复用 **`flags.ts`**（`showVoice()`/`showLogin()`），后端偏好走 `campus/config.py`；G-05/06、G-09、INF-08 同步；§3.3.1 重写为 **2 个卡点**方案并加"不要改那 24 个文件"强约束 + G-04 验收 8（卡点外不得有 diff）；§7.2 自动化提醒改为"应用内横幅 + Inbox"                                                         | §3.2、§3.3.1、§4.2、§4.8、§7.2 |
 | 10 | B1                    | CET-09 验收改分模型承诺（同 #1）                                                                                                                                                                                                                                           | §4.3                       |

@@ -1,4 +1,4 @@
-"""Unit tests for `ss.campus.tracks` — the declarative three-station config (01 §3.2)."""
+"""Unit tests for `stealth_study.campus.tracks` — the declarative three-station config (01 §3.2)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import dataclasses
 
 import pytest
 
-from ss.campus import models, tracks
+from stealth_study.campus import models, tracks
 
 EXPECTED_TRACK_IDS = ("cet", "kaoyan", "cert")
 

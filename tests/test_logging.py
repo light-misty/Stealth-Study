@@ -9,7 +9,7 @@ from datetime import datetime
 
 import pytest
 
-from ss.logging_setup import (
+from stealth_study.logging_setup import (
     DailyRotatingSizeHandler,
     get_logger,
     request_id_var,

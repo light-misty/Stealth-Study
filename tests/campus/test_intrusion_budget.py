@@ -3,7 +3,7 @@
 01 §6 registers the campus intrusion points in existing files; the frontend ones
 touch App.tsx / Sidebar.tsx / SettingsView.tsx / Composer.tsx / Onboarding.tsx / flags.ts
 (plus the locales and the backend mount in app.py). Anything else modified in the
-production tree — outside the campus-owned trees (`ss/campus/**`,
+production tree — outside the campus-owned trees (`stealth_study/campus/**`,
 `surfaces/gui/src/campus/**`, `surfaces/gui/src/components/campus/**`) plus the registered
 e2e harness files, the locales, the design mockups and the tests — means the "addition only"
 rule (PRD v1.1 B⑤: no spreading into the 24 voice-adjacent files) has been violated and the
@@ -44,10 +44,10 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src-tauri/Cargo.toml",
     "surfaces/gui/src-tauri/Cargo.lock",
     "stt/Cargo.lock",
-    "ss/server/app.py",
+    "stealth_study/server/app.py",
     # logging-system 分支登记：统一日志配置、启动初始化、上传端点与前端日志模块
-    "ss/logging_setup.py",
-    "ss/server/run.py",
+    "stealth_study/logging_setup.py",
+    "stealth_study/server/run.py",
     "surfaces/gui/src/api.ts",
     "surfaces/gui/src/main.tsx",
     "surfaces/gui/src/logging/capture.ts",
@@ -64,9 +64,9 @@ REGISTERED_PATCH: set[str] = {
     # skip-question-card 分支登记：OPE-153 跳过提问——ask 工具的哨兵值与跳过结算、
     # 引擎对全跳过卡片的 denied 判定、Slack 镜像的 Skip 按钮、收件箱卡片的跳过
     # 入口，以及覆盖四个跳过场景的 e2e 规格
-    "ss/tools/ask.py",
-    "ss/engine.py",
-    "ss/interactions.py",
+    "stealth_study/tools/ask.py",
+    "stealth_study/engine.py",
+    "stealth_study/interactions.py",
     "surfaces/gui/src/components/InboxItemCard.tsx",
     "surfaces/gui/e2e/ask-skip.spec.ts",
     "docs/skip-question-test-report.md",
@@ -114,11 +114,11 @@ REGISTERED_PATCH: set[str] = {
     # 已删除的废弃组件：待办面板早被 RightRail 取代，全仓库零引用（删除同样要过本登记）。
     "surfaces/gui/src/components/TodoPanel.tsx",
     # 后端错误代号分类器与前端取键入口（中文化方案 C 的地基，两侧各一个新文件）。
-    "ss/errors.py",
-    "ss/server/manager.py",
+    "stealth_study/errors.py",
+    "stealth_study/server/manager.py",
     "surfaces/gui/src/errors.ts",
     # 技能子系统的校验异常改抛带代号的 CodedValueError（仍是 ValueError，消息逐字未变）。
-    "ss/skills/store.py",
+    "stealth_study/skills/store.py",
     # 错误显示点接线第一片：SkillsTab 的 fail() 改走 apiErrorText，原文降级为悬浮提示。
     "surfaces/gui/src/components/SkillsTab.tsx",
     # 工作区/文件夹域接线（同一片的第二组）：错误文案改由 error_code 查语言包，
@@ -130,25 +130,25 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/components/SessionSetupRow.tsx",
     "surfaces/gui/src/components/WorkspaceTrustPrompt.tsx",
     # 第二档 A（personas 域）：清单/导出异常带代号，安装/导出/删除/画廊四处界面取键。
-    "ss/personas/registry.py",
+    "stealth_study/personas/registry.py",
     # fix/study-agent-persona 分支登记：默认人设（cowork）系统提示词与元数据学习向改造。
-    "ss/agents/cowork.py",
-    "ss/cloud.py",
+    "stealth_study/agents/cowork.py",
+    "stealth_study/cloud.py",
     "surfaces/gui/src/components/GalleryModal.tsx",
     "surfaces/gui/src/components/PersonaView.tsx",
     "surfaces/gui/src/components/PersonasTab.tsx",
     # 第二档 B（定时任务与项目绑定域）：命名/校验异常带代号，两处界面取键。
-    "ss/projects.py",
+    "stealth_study/projects.py",
     "surfaces/gui/src/components/ProjectBindMenu.tsx",
     # 第二档 C（Slack/Inbox/订阅域）：连接态与入参守卫消息带代号，6 处界面取键。
-    "ss/connectors/slack_directory.py",
+    "stealth_study/connectors/slack_directory.py",
     # 第二档 D（连接器一键/手动连接与 PDF 检查）：自写守卫消息带代号，10 处界面取键。
-    "ss/connectors/setup.py",
-    "ss/pdf_support.py",
+    "stealth_study/connectors/setup.py",
+    "stealth_study/pdf_support.py",
     "surfaces/gui/src/components/ManageTabs.tsx",
     "surfaces/gui/src/components/connectors/AddConnectionModal.tsx",
     # 第三档（模型提供方校验）：自写校验消息带代号，ProviderSetup 取键。
-    "ss/providers/registry.py",
+    "stealth_study/providers/registry.py",
     # 备考台原型落地：三个台子的样式层与图标集落在 campus 目录之外，因为它们要能被
     # `main.tsx` 直接 import（`src/campus/` 下的文件按约定只放数据层与面板）。
     # `campus-station.css` / `campus-icons.tsx` 是新增文件，另外三处是既有文件的追加式改动。
@@ -164,7 +164,7 @@ REGISTERED_PATCH: set[str] = {
 NON_PRODUCTION_PREFIXES = ("ui-mocks/",)
 
 CAMPUS_OWNED_PREFIXES = (
-    "ss/campus/",
+    "stealth_study/campus/",
     "surfaces/gui/src/campus/",
     "surfaces/gui/src/components/campus/",
     "tests/",

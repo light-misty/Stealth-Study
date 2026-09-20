@@ -51,7 +51,7 @@
 
 `pytest tests -q`：**3342 通过，27 跳过，0 失败**（修复 test_mount 守护预算后）。
 
-说明：`tests/campus/test_mount.py` 对 `ss/` 后端模块改动有白名单守护，本次按该文件既有「预算扩宽注册」先例（G-06、store.py）登记了日志分支的两处合法改动：`ss/server/run.py`（启动初始化日志）与 `app.py` 增量预算；守护用例 9 例全部通过。
+说明：`tests/campus/test_mount.py` 对 `stealth_study/` 后端模块改动有白名单守护，本次按该文件既有「预算扩宽注册」先例（G-06、store.py）登记了日志分支的两处合法改动：`stealth_study/server/run.py`（启动初始化日志）与 `app.py` 增量预算；守护用例 9 例全部通过。
 
 ## 3. 前端功能测试
 

@@ -1,4 +1,4 @@
-"""Unit tests for `ss.campus.config` — self-read TOML nested tables (ADR-04 / INF-08)."""
+"""Unit tests for `stealth_study.campus.config` — self-read TOML nested tables (ADR-04 / INF-08)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ss.campus import config as campus_config
+from stealth_study.campus import config as campus_config
 
 
 def write_toml(tmp_path: Path, body: str) -> Path:

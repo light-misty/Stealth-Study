@@ -3,7 +3,7 @@ filtered reads, raw-capture discipline, per-case hash chains."""
 
 import pytest
 
-from ss.teams import (
+from stealth_study.teams import (
     Actor,
     AuthorityError,
     BoardError,
@@ -12,7 +12,7 @@ from ss.teams import (
     Role,
     TeamStore,
 )
-from ss.teams.model import JOURNAL_BODY_LIMIT
+from stealth_study.teams.model import JOURNAL_BODY_LIMIT
 
 USER = Actor(id="user", role=Role.USER)
 LEAD = Actor(id="lead-1", role=Role.LEAD)

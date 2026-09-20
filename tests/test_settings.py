@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ss.providers import resolve_api_key
-from ss.secrets import SecretStore
+from stealth_study.providers import resolve_api_key
+from stealth_study.secrets import SecretStore
 
 
 def test_resolve_api_key_prefers_env(monkeypatch, tmp_path):
@@ -31,8 +31,8 @@ def test_resolve_api_key_falls_back_to_store(monkeypatch, tmp_path):
 def test_settings_rest_roundtrip(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
@@ -71,8 +71,8 @@ def test_settings_rest_roundtrip(tmp_path, monkeypatch):
 def test_default_model_and_onboarding_persist(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     data_dir = tmp_path / "data"
@@ -104,8 +104,8 @@ def test_default_model_and_onboarding_persist(tmp_path, monkeypatch):
 def test_nav_layout_setting_roundtrips(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     data_dir = tmp_path / "data"
@@ -133,8 +133,8 @@ def test_nav_layout_setting_roundtrips(tmp_path, monkeypatch):
 def test_scratch_base_setting_persists_and_drives_provisioning(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     data_dir = tmp_path / "data"
@@ -162,7 +162,7 @@ def test_scratch_base_setting_persists_and_drives_provisioning(tmp_path, monkeyp
 def test_ollama_models_gated_on_liveness(tmp_path, monkeypatch):
     """`ollama:*` entries show only while a local Ollama answers — keyless must not mean
     always-present (a stray ollama:<junk> pref would otherwise render forever)."""
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))

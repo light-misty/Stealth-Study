@@ -3,11 +3,11 @@ the registry + budget gate, pre-spawn at staffing, and digests."""
 
 import pytest
 
-from ss.personas.loading import capability_set
-from ss.personas.manifest import ManifestError, parse_manifest
-from ss.server.manager import SessionManager
-from ss.teams import Actor, Role, TeamStore
-from ss.teams.registry import TeamRegistry, TeamWorker
+from stealth_study.personas.loading import capability_set
+from stealth_study.personas.manifest import ManifestError, parse_manifest
+from stealth_study.server.manager import SessionManager
+from stealth_study.teams import Actor, Role, TeamStore
+from stealth_study.teams.registry import TeamRegistry, TeamWorker
 
 USER = Actor(id="user", role=Role.USER)
 LEAD = Actor(id="lead-1", role=Role.LEAD)
@@ -127,7 +127,7 @@ def manager(tmp_path, monkeypatch):
 
 
 def test_create_team_fails_closed_on_solo_personas(manager, tmp_path):
-    from ss.sessions import SessionRecord
+    from stealth_study.sessions import SessionRecord
 
     manager.session_store.save(
         SessionRecord(
@@ -148,14 +148,14 @@ def test_create_team_fails_closed_on_solo_personas(manager, tmp_path):
 
 
 def test_create_team_prespawns_worker_sessions(manager, monkeypatch):
-    from ss.agents.base import Agent
-    from ss.sessions import SessionRecord
+    from stealth_study.agents.base import Agent
+    from stealth_study.sessions import SessionRecord
 
     worker_agent = Agent(
         name="swe-worker", title="SWE", system_prompt="p", team="worker"
     )
     monkeypatch.setattr(
-        "ss.server.manager.get_agent", lambda name: worker_agent
+        "stealth_study.server.manager.get_agent", lambda name: worker_agent
     )
     manager.session_store.save(
         SessionRecord(
@@ -192,15 +192,15 @@ def test_create_team_prespawns_worker_sessions(manager, monkeypatch):
 
 
 def test_staleness_digest_is_role_scoped(manager, monkeypatch):
-    from ss.agents.base import Agent
-    from ss.sessions import SessionRecord
-    from ss.teams.model import space_for_workspace
+    from stealth_study.agents.base import Agent
+    from stealth_study.sessions import SessionRecord
+    from stealth_study.teams.model import space_for_workspace
 
     # no team role → no digest (bare wake)
     assert manager.team_staleness_digest("nobody") == ""
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("stealth_study.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",
@@ -239,11 +239,11 @@ def test_team_options_lists_only_enabled_workers(manager):
 
 
 def test_turn_saves_never_detach_a_worker_from_its_team(manager, monkeypatch):
-    from ss.agents.base import Agent
-    from ss.sessions import SessionRecord
+    from stealth_study.agents.base import Agent
+    from stealth_study.sessions import SessionRecord
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("stealth_study.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",
@@ -276,7 +276,7 @@ def test_turn_saves_never_detach_a_worker_from_its_team(manager, monkeypatch):
 # ------------------------------------------------------------------- chat (OPE-99)
 
 def test_chat_groups_mentions_and_wake_reads(tmp_path):
-    from ss.teams.chat import ChatStore
+    from stealth_study.teams.chat import ChatStore
 
     chat = ChatStore(tmp_path / "chat.db")
     group = chat.create_group(
@@ -307,11 +307,11 @@ def test_chat_groups_mentions_and_wake_reads(tmp_path):
 
 
 def test_create_team_uses_callnames_and_creates_the_chat_group(manager, monkeypatch):
-    from ss.agents.base import Agent
-    from ss.sessions import SessionRecord
+    from stealth_study.agents.base import Agent
+    from stealth_study.sessions import SessionRecord
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("stealth_study.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",
@@ -347,7 +347,7 @@ def test_digest_clamps_long_comments_and_carries_structured_rows(manager):
     """Hand-off essays live on the board; the wake message carries a head, the
     sidecar carries UI rows (owner ruling 2026-08-16 — the digest was arriving
     as a wall of text)."""
-    from ss.teams.registry import Team
+    from stealth_study.teams.registry import Team
 
     space = str(manager.default_workspace)
     lead = Actor(id="lead-1", role=Role.LEAD)
@@ -390,7 +390,7 @@ def test_item_detail_timeline_and_blocker_fact(manager):
         space, worker, item["id"], "blocked", comment="need the staging tfvars"
     )
     # session with this workspace → the board space resolves
-    from ss.sessions import SessionRecord
+    from stealth_study.sessions import SessionRecord
 
     manager.session_store.save(
         SessionRecord(
@@ -414,9 +414,9 @@ def test_item_detail_timeline_and_blocker_fact(manager):
 
 
 def test_session_attachment_read_is_scoped_to_its_board(manager):
-    from ss.sessions import SessionRecord
-    from ss.teams import BoardError
-    from ss.teams.attachments import stored_name
+    from stealth_study.sessions import SessionRecord
+    from stealth_study.teams import BoardError
+    from stealth_study.teams.attachments import stored_name
 
     space = str(manager.default_workspace)
     manager.session_store.save(
@@ -446,9 +446,9 @@ def test_session_attachment_read_is_scoped_to_its_board(manager):
 def test_session_attachment_route_uses_the_session_board(manager, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.sessions import SessionRecord
-    from ss.teams.attachments import stored_name
+    from stealth_study.server.app import create_app
+    from stealth_study.sessions import SessionRecord
+    from stealth_study.teams.attachments import stored_name
 
     monkeypatch.delenv("COWORKER_API_TOKEN", raising=False)
     space = str(manager.default_workspace)
@@ -558,12 +558,12 @@ def test_cancel_reaches_the_assignee_through_the_feed(store):
 def test_lead_backstop_fires_only_for_forgotten_timers(manager, monkeypatch):
     import time as _time
 
-    from ss.agents.base import Agent
-    from ss.sessions import SessionRecord
-    from ss.teams.model import space_for_workspace
+    from stealth_study.agents.base import Agent
+    from stealth_study.sessions import SessionRecord
+    from stealth_study.teams.model import space_for_workspace
 
     worker_agent = Agent(name="swe-worker", title="SWE", system_prompt="p", team="worker")
-    monkeypatch.setattr("ss.server.manager.get_agent", lambda name: worker_agent)
+    monkeypatch.setattr("stealth_study.server.manager.get_agent", lambda name: worker_agent)
     manager.session_store.save(
         SessionRecord(
             session_id="lead-sid",

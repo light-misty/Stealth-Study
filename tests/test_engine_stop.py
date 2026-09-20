@@ -8,17 +8,17 @@ from __future__ import annotations
 import asyncio
 import time
 
-from ss.engine import ApprovalOutcome, TurnEngine
-from ss.events import EventType
-from ss.permissions import PermissionEngine
-from ss.providers import (
+from stealth_study.engine import ApprovalOutcome, TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import PermissionEngine
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     StreamChunk,
     ToolCall,
 )
-from ss.tools import ToolRegistry
+from stealth_study.tools import ToolRegistry
 
 
 class EndlessStreamProvider(ProviderClient):

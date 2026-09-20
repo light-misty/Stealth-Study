@@ -1,7 +1,7 @@
 """campus HTTP surface — the single mounted router and the profile_id cross-cutting guard.
 
 This is the only campus module that talks HTTP. It is mounted exactly once, from
-`ss/server/app.py`'s `create_app()`, through the two lines registered as intrusion point #9
+`stealth_study/server/app.py`'s `create_app()`, through the two lines registered as intrusion point #9
 of `docs/dev/01-系统架构设计.md` §6 (form and rationale in `docs/dev/03-API接口设计.md` §2):
 the campus router carries the `/v1/campus` prefix and inherits the existing sidecar token
 middleware without being added to `tokenless_paths` (03 §1).

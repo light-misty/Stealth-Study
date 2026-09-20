@@ -16,9 +16,9 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from ss.campus import models
-from ss.campus.review_scheduler import apply_result, due_items, next_interval
-from ss.campus.store import CampusStore
+from stealth_study.campus import models
+from stealth_study.campus.review_scheduler import apply_result, due_items, next_interval
+from stealth_study.campus.store import CampusStore
 
 PROFILE_ID = "profile-rq"
 OTHER_ID = "profile-other"

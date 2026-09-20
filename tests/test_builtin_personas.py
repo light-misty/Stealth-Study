@@ -6,11 +6,11 @@ toolset. Ties back to the Phase 0 catalog equivalence."""
 
 from __future__ import annotations
 
-from ss.agents.base import AgentContext
-from ss.agents.code import code_agent
-from ss.agents.cowork import cowork_agent
-from ss.personas.registry import PersonaRegistry
-from ss.tools.todo import TodoList
+from stealth_study.agents.base import AgentContext
+from stealth_study.agents.code import code_agent
+from stealth_study.agents.cowork import cowork_agent
+from stealth_study.personas.registry import PersonaRegistry
+from stealth_study.tools.todo import TodoList
 
 
 def _ctx(tmp_path) -> AgentContext:
@@ -54,7 +54,7 @@ def test_code_keeps_single_root_file_tools(tmp_path):
 
 
 def test_default_cowork_prompt_is_study_oriented():
-    from ss.agents.cowork import COWORK_INSTRUCTIONS
+    from stealth_study.agents.cowork import COWORK_INSTRUCTIONS
 
     prompt = COWORK_INSTRUCTIONS
     assert "学习" in prompt

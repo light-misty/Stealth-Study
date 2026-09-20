@@ -10,16 +10,16 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
-from ss.connectors.setup import (
+from stealth_study.connectors.setup import (
     connector_list,
     disconnect_connector,
     update_connector_tools,
 )
-from ss.connectors.descriptors import list_descriptors
-from ss.connectors.tool_defs import mcp_pinned_tools, mcp_tool_defs, tool_dicts
-from ss.mcp.config import put_global_server, read_global
-from ss.secrets import SecretStore
-from ss.server.manager import SessionManager
+from stealth_study.connectors.descriptors import list_descriptors
+from stealth_study.connectors.tool_defs import mcp_pinned_tools, mcp_tool_defs, tool_dicts
+from stealth_study.mcp.config import put_global_server, read_global
+from stealth_study.secrets import SecretStore
+from stealth_study.server.manager import SessionManager
 
 
 def _state(tmp_path, monkeypatch):
@@ -236,7 +236,7 @@ def test_stale_token_reauth_never_opens_a_browser_mid_turn(tmp_path, monkeypatch
     wrapped in an ExceptionGroup by the anyio transport): the session skips the
     server and the failure is recorded — owner-hit 2026-07-20: an Atlassian
     authorize page opened at app LAUNCH from a background session start."""
-    from ss.mcp import oauth as mcp_oauth
+    from stealth_study.mcp import oauth as mcp_oauth
 
     _state(tmp_path, monkeypatch)
     manager = SessionManager(data_dir=tmp_path / "data")
@@ -262,7 +262,7 @@ def test_non_interactive_auth_wiring_refuses_the_browser():
     and is_auth_required() finds the marker bare, wrapped, or chained."""
     import pytest
 
-    from ss.mcp import oauth as mcp_oauth
+    from stealth_study.mcp import oauth as mcp_oauth
 
     with pytest.raises(mcp_oauth.InteractiveAuthRequired):
         asyncio.run(mcp_oauth._refuse_browser("https://vendor/authorize?x=1"))

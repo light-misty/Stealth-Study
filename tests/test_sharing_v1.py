@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ss.personas.registry import PersonaRegistry
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server import create_app
-from ss.server.manager import SessionManager
+from stealth_study.personas.registry import PersonaRegistry
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
 
 MANIFEST_V1 = """---
 id: team-sec

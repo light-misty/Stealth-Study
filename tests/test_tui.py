@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import pytest
 
-from ss.providers import (
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.tui.app import CoworkerApp
+from stealth_study.tui.app import CoworkerApp
 
 
 def _text_turn(text):

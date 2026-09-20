@@ -15,7 +15,7 @@
       // Same reason as the theme: <html lang> must be right before the app mounts, or
       // screen readers voice the whole Chinese UI with an English pronunciation table.
       try {
-        var l = localStorage.getItem("ss.lang");
+        var l = localStorage.getItem("stealth_study.lang");
         if (!l) l = (navigator.language || "").toLowerCase().startsWith("zh") ? "zh" : "en";
         document.documentElement.lang = l;
       } catch (e) {}

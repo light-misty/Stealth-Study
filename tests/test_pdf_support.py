@@ -9,9 +9,9 @@ import zlib
 
 import pytest
 
-from ss import pdf_support
-from ss.providers.base import ModelCapabilities
-from ss.providers.capabilities import capabilities_for
+from stealth_study import pdf_support
+from stealth_study.providers.base import ModelCapabilities
+from stealth_study.providers.capabilities import capabilities_for
 
 
 def _blank_pdf_url(pages: int = 3) -> str:

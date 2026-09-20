@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ss"
+name = "stealth_study"
 version = "0.0.0"
 description = "Stealth Study — provider-agnostic agentic study runtime"
 license = {text = "Apache-2.0"}
@@ -51,19 +51,19 @@ browser = ["playwright>=1.44"]
 bedrock = ["boto3>=1.34"]
 
 [project.scripts]
-openworker = "ss.cli:main"
-openworker-server = "ss.server.run:main"
-openworker-connectors = "ss.connectors.cli:main"
+openworker = "stealth_study.cli:main"
+openworker-server = "stealth_study.server.run:main"
+openworker-connectors = "stealth_study.connectors.cli:main"
 # The board as an open surface (OPE-100): `ocw board …` / `ocw journal …`,
 # including `ocw board mcp` — the stdio MCP server external harnesses attach to.
-ocw = "ss.teams.cli:main"
+ocw = "stealth_study.teams.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["ss*"]
+include = ["stealth_study*"]
 
 [tool.setuptools.package-data]
-ss = [
+stealth_study = [
     "personas/builtin/*.md",
     "personas/builtin/*/manifest.md",
     "personas/builtin/*/skills/*/SKILL.md",

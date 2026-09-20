@@ -2,10 +2,10 @@
 channel NAMES resolve to addresses in send_message/send_file ("post Hi to #general" must
 just work when Slack is connected — owner repro 2026-07-14)."""
 
-from ss.connectors.base import SendResult
-from ss.connectors.tool_defs import TOOL_DEFS, approval_for_tool
-from ss.connectors.tools import make_send_file_tool, make_send_message_tool
-from ss.secrets import SecretStore
+from stealth_study.connectors.base import SendResult
+from stealth_study.connectors.tool_defs import TOOL_DEFS, approval_for_tool
+from stealth_study.connectors.tools import make_send_file_tool, make_send_message_tool
+from stealth_study.secrets import SecretStore
 
 
 # -- connector reads never gate ---------------------------------------------------------
@@ -19,7 +19,7 @@ def test_registry_kinds_are_exhaustive_and_drive_approval():
 
 
 def test_integration_tools_reads_are_free_writes_gate(tmp_path):
-    from ss.connectors.integration_tools import make_integration_tools
+    from stealth_study.connectors.integration_tools import make_integration_tools
 
     tools = {
         t.__name__: t
@@ -44,7 +44,7 @@ def test_integration_tools_reads_are_free_writes_gate(tmp_path):
 
 
 def test_browser_automation_reads_are_free_interactions_gate():
-    from ss.connectors.browser_automation import make_browser_automation_tools
+    from stealth_study.connectors.browser_automation import make_browser_automation_tools
 
     tools = {t.__name__: t for t in make_browser_automation_tools()}
     assert (
@@ -75,7 +75,7 @@ def _record_sender(record: list):
 
 
 def _fake_roster(monkeypatch, channels_by_team: dict):
-    from ss.connectors import slack_directory
+    from stealth_study.connectors import slack_directory
 
     calls: list = []
 

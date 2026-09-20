@@ -11,7 +11,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ss.campus.library import (
+from stealth_study.campus.library import (
     QA_SNIPPET_CHARS,
     CampusLibrary,
     LibraryError,
@@ -20,7 +20,7 @@ from ss.campus.library import (
     build_router_prompt,
     parse_router_output,
 )
-from ss.campus.store import CampusStore
+from stealth_study.campus.store import CampusStore
 
 
 class FakeProvider:
@@ -221,7 +221,7 @@ def test_answer_qa_doc_not_found(lib) -> None:
 
 
 def test_answer_qa_scan_empty_maps_to_doc_scan_empty(lib, tmp_path) -> None:
-    from ss.campus.library import FAIL_NO_TEXT_LAYER
+    from stealth_study.campus.library import FAIL_NO_TEXT_LAYER
 
     lib.store.insert(
         "source_doc",

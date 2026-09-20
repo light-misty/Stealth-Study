@@ -21,7 +21,7 @@
 ```
 ┌──────────────────────┐   POST /v1/logs/frontend   ┌─────────────────────────────┐
 │ 前端 (React/Vite)     │ ─────────────────────────▶ │ 后端 FastAPI                 │
-│ 全局捕获 console.*    │      批量日志条目(JSON)      │ ss/logging_setup.py 配置     │
+│ 全局捕获 console.*    │      批量日志条目(JSON)      │ stealth_study/logging_setup.py 配置     │
 │ IndexedDB 本地缓存     │                            │  └▶ log/frontend_*.log      │
 │ 定时上传+失败重试       │                            │  └▶ log/backend_*.log       │
 └──────────────────────┘   X-Request-ID 回传          └─────────────────────────────┘
@@ -33,7 +33,7 @@
 
 ## 4. 组件设计
 
-### 4.1 后端日志核心 `ss/logging_setup.py`（新增）
+### 4.1 后端日志核心 `stealth_study/logging_setup.py`（新增）
 
 职责：初始化全局日志配置。暴露 `setup_logging(project_root, level)` 与 `get_logger(name)`。
 
@@ -42,7 +42,7 @@
 - 日志格式：
 
 ```
-2026-09-16 14:30:05,123 [INFO] [ss.server.app] [req=a1b2] [user=-] 日志消息
+2026-09-16 14:30:05,123 [INFO] [stealth_study.server.app] [req=a1b2] [user=-] 日志消息
 ```
 
 - 级别：`CRITICAL` 对应需求的 FATAL 级（Python 标准库语义）。
@@ -64,7 +64,7 @@
 - contextvars：`request_id_var`、`user_id_var`；格式化器从 contextvars 取填充，无值显示 `-`。
 - 返回与全局 handler 相同格式的记录方法，供 get_logger(name) 使用。
 
-### 4.2 请求上下文中间件（扩展 `ss/server/app.py`）
+### 4.2 请求上下文中间件（扩展 `stealth_study/server/app.py`）
 
 - 新增 `RequestContextMiddleware`，位于现有 token 中间件之前执行：
 
@@ -97,7 +97,7 @@
 - 复用 4.1 的轮转机制（frontend 文件同样 50MB/按日切割）。
 - 响应：`{ "accepted": n, "skipped": m, "rotated": bool }`。
 
-### 4.4 启动接线（`ss/server/run.py`）
+### 4.4 启动接线（`stealth_study/server/run.py`）
 
 - `main()` 中于 build_app 前调用 `setup_logging(project_root, level)`，project_root 取自 `--cwd`（未提供则退回当前工作目录）。
 

@@ -16,10 +16,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.automation.models import Schedule, ScheduledTask
-from ss.automation.store import TaskStore
-from ss.campus import automation_templates, config, models, routes, service, store
+from stealth_study import secrets
+from stealth_study.automation.models import Schedule, ScheduledTask
+from stealth_study.automation.store import TaskStore
+from stealth_study.campus import automation_templates, config, models, routes, service, store
 
 ACTIVE_ID = "profile-active"
 FINISHED_ID = "profile-finished"

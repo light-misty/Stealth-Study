@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from ss import provenance as prov
-from ss.provenance import DOWNLOADED, WRITTEN, SessionFiles
+from stealth_study import provenance as prov
+from stealth_study.provenance import DOWNLOADED, WRITTEN, SessionFiles
 
 
 @pytest.fixture()

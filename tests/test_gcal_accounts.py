@@ -12,10 +12,10 @@ import time
 
 import pytest
 
-from ss.connectors import gcal_accounts
-from ss.connectors.integration_tools import make_integration_tools
-from ss.connectors.setup import connector_list, disconnect_connector
-from ss.secrets import SecretStore
+from stealth_study.connectors import gcal_accounts
+from stealth_study.connectors.integration_tools import make_integration_tools
+from stealth_study.connectors.setup import connector_list, disconnect_connector
+from stealth_study.secrets import SecretStore
 
 
 @pytest.fixture
@@ -42,7 +42,7 @@ def _tool(secrets, name: str):
 
 def _fake_gcal(monkeypatch, responses: dict[str, dict]):
     """Route _request by URL suffix; records (method, url, bearer, body)."""
-    from ss.connectors import integration_tools
+    from stealth_study.connectors import integration_tools
 
     calls: list[tuple[str, str, str, dict | None]] = []
 
@@ -223,7 +223,7 @@ def test_write_tools_require_approval(secrets):
 
 
 def test_account_profile_refreshes_in_place(secrets, monkeypatch):
-    from ss import cloud
+    from stealth_study import cloud
 
     secrets.put(
         cloud.CLOUD_AUTH_PROFILE, {"access_token": "jwt", "expires": time.time() + 3600}

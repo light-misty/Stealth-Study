@@ -1,4 +1,4 @@
-"""Unit tests for `ss.campus.store` — connection mode, 19 tables, WAL, locking and self-heal."""
+"""Unit tests for `stealth_study.campus.store` — connection mode, 19 tables, WAL, locking and self-heal."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ss.campus import models, store
+from stealth_study.campus import models, store
 
 EXPECTED_INDEXES = {
     "idx_profile_track",
@@ -411,7 +411,7 @@ def test_close_is_idempotent(db_path: Path) -> None:
 
 
 def test_document_text_is_not_capped_like_conversation_attachments(store_under_test) -> None:
-    from ss import attachments
+    from stealth_study import attachments
 
     oversized = "知" * (attachments.MAX_TEXT_CHARS + 50_000)
     store_under_test.insert(

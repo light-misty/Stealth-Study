@@ -13,7 +13,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from ss.campus import routes
+from stealth_study.campus import routes
 
 SECTION_6_CODES: dict[str, tuple[int, bool]] = {
     "PROFILE_REQUIRED": (400, False),

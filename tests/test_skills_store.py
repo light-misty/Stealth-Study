@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from ss.skills import SkillLoader, SkillStore, validate_name
+from stealth_study.skills import SkillLoader, SkillStore, validate_name
 
 
 @pytest.fixture()
@@ -315,7 +315,7 @@ def test_corrupt_settings_json_treated_as_empty(store):
 # -- save_skill tool (SKILLS-SPEC §5.2 — the worker-authors door) -------------------
 
 
-from ss.skills import save_skill_tool  # noqa: E402
+from stealth_study.skills import save_skill_tool  # noqa: E402
 
 
 @pytest.fixture()

@@ -19,7 +19,7 @@ import { Icon } from "../../Icon";
 // 定级测评在真实实现里是整卷一次铺开的长卷，所以卷面本身就是滚动区，卡头钉住
 // 「已答 X/N + 自动保存」，滚到最后一题也看得见进度（设计稿 campus-cet.css 的说明）。
 
-const draftKeyFor = (profileId: string) => `ss.campus.cet.assessment.${profileId}`;
+const draftKeyFor = (profileId: string) => `stealth_study.campus.cet.assessment.${profileId}`;
 const AUTOSAVE_DELAY_MS = 400;
 const SUBJECTIVE_TYPES = ["short_answer", "essay", "material", "lesson_plan", "practical"];
 const SCORE_SECTIONS = ["listening", "reading", "writing_translation"] as const;

@@ -19,9 +19,9 @@ import { Icon } from "../../Icon";
 // 比「还没写」更明确 —— 保留正文但压暗并挂锁标。快进只在 DEV 下出现，样卷名也照实
 // 标注为调试用（设计稿 campus-cet.css 的说明）。
 
-const draftKeyFor = (profileId: string) => `ss.campus.cet.mock.${profileId}`;
+const draftKeyFor = (profileId: string) => `stealth_study.campus.cet.mock.${profileId}`;
 const stageDraftKey = (examId: string, stage: MockStage) =>
-  `ss.campus.cet.mock.${examId}.${stage}`;
+  `stealth_study.campus.cet.mock.${examId}.${stage}`;
 
 const STAGE_AREA: { stage: MockStage; testid: string; labelKey: string }[] = [
   { stage: "writing", testid: "campus-mock-essay", labelKey: "campus.cet.mock.answer_writing" },

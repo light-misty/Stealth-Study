@@ -15,8 +15,8 @@ import pytest
 from fastapi import APIRouter, FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import routes, store, tracks
+from stealth_study import secrets
+from stealth_study.campus import routes, store, tracks
 
 EXPECTED_TABLE_COUNT = 19
 APPLIED_AT = "2026-09-14T00:00:00Z"

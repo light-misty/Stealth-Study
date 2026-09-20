@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from ss.campus import routes
+from stealth_study.campus import routes
 
 ROOT = Path(__file__).resolve().parents[2]
 API_TS = ROOT / "surfaces" / "gui" / "src" / "campus" / "api.ts"

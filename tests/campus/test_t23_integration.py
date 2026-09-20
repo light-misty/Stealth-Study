@@ -30,7 +30,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss.campus import routes
+from stealth_study.campus import routes
 
 
 class FakeProvider:

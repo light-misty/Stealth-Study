@@ -27,16 +27,16 @@ import time
 
 from fastapi.testclient import TestClient
 
-from ss.interactions import decode
-from ss.providers import (
+from stealth_study.interactions import decode
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.server import create_app
-from ss.server.manager import SessionManager
-from ss.sessions import SessionRecord
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
+from stealth_study.sessions import SessionRecord
 
 SID = "incident"
 CHANNEL = "C_OPS"

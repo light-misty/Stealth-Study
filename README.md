@@ -93,9 +93,9 @@ npm run dev        # 浏览器 UI 运行在 Vite 开发端口（1420）
 
 | 目录 | 内容 |
 |---|---|
-| `ss/` | Python 后端——Agent 引擎、模型提供商、连接器、MCP 客户端、记忆、自动化 |
-| `ss/personas/builtin/` | 学习伙伴人设——manifest 与其配套 `skills/` |
-| `ss/campus/` | 备考台域——批改引擎、错题本、复习队列、计划 |
+| `stealth_study/` | Python 后端——Agent 引擎、模型提供商、连接器、MCP 客户端、记忆、自动化 |
+| `stealth_study/personas/builtin/` | 学习伙伴人设——manifest 与其配套 `skills/` |
+| `stealth_study/campus/` | 备考台域——批改引擎、错题本、复习队列、计划 |
 | `surfaces/gui/` | 桌面应用——React UI + 承载服务器的 Tauri 外壳 |
 | `surfaces/gui/src/campus/` | 备考台前端（四六级 / 考研 / 证书） |
 | `stt/` | 语音转文本副进程 (Rust) |

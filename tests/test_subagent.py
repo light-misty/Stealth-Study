@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from ss.permissions import Mode
-from ss.providers import (
+from stealth_study.permissions import Mode
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.tools import ToolRegistry
-from ss.tools.subagent import build_explorer_engine, explorer_tools
+from stealth_study.tools import ToolRegistry
+from stealth_study.tools.subagent import build_explorer_engine, explorer_tools
 
 
 def _text_turn(text):
@@ -109,9 +109,9 @@ def test_explore_flags_partial_report_on_iteration_rail(tmp_path):
 
 
 def test_code_engine_registers_explore_chat_does_not(tmp_path):
-    from ss.agent import build_engine
-    from ss.agents import code_agent
-    from ss.agents.chat import chat_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents import code_agent
+    from stealth_study.agents.chat import chat_agent
 
     class _Stub:
         def complete(self, **kwargs):  # pragma: no cover

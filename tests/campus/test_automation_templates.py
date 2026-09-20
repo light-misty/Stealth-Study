@@ -23,9 +23,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.automation.store import TaskStore
-from ss.campus import models, routes, store
+from stealth_study import secrets
+from stealth_study.automation.store import TaskStore
+from stealth_study.campus import models, routes, store
 
 ACTIVE_ID = "profile-active"
 FINISHED_ID = "profile-finished"
@@ -48,7 +48,7 @@ class FakeManager:
         return {"model": self.model, "model_ready": self._ready, "models": [self.model] if self.model else []}
 
     def create_automation(self, payload: dict[str, Any]) -> dict[str, Any]:
-        from ss.automation.models import Schedule, ScheduledTask
+        from stealth_study.automation.models import Schedule, ScheduledTask
 
         cron = (payload.get("cron") or "").strip() or None
         fire_at = (payload.get("fire_at") or "").strip() or None

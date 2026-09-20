@@ -42,7 +42,7 @@ export function isCountdownHighlight(daysLeft: number): boolean {
   return (COUNTDOWN_HIGHLIGHT_DAYS as readonly number[]).includes(daysLeft);
 }
 
-/** The `deadline_snapshot` band of a countdown (ss/campus/reminders.tier). */
+/** The `deadline_snapshot` band of a countdown (stealth_study/campus/reminders.tier). */
 export function deadlineTier(daysLeft: number): DeadlineTier {
   if (!Number.isFinite(daysLeft)) return "normal";
   if (daysLeft < 0) return "overdue";

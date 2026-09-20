@@ -17,10 +17,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
-from ss.campus.service import CAMPUS_PERSONA_IDS
-from ss.personas.registry import PersonaRegistry
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
+from stealth_study.campus.service import CAMPUS_PERSONA_IDS
+from stealth_study.personas.registry import PersonaRegistry
 
 CAMPUS = routes.CAMPUS_PREFIX
 ACTIVE_ID = "profile-active"
@@ -471,7 +471,7 @@ def test_i1_lists_the_six_station_personas_with_live_metadata(
     client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     registry = _registry(tmp_path)
-    monkeypatch.setattr("ss.personas.registry.get_registry", lambda: registry, raising=True)
+    monkeypatch.setattr("stealth_study.personas.registry.get_registry", lambda: registry, raising=True)
     body = client.get(f"{CAMPUS}/personas").json()
     listed = {row["id"]: row for row in body["items"]}
     assert tuple(listed) == CAMPUS_PERSONA_IDS
@@ -488,7 +488,7 @@ def test_i1_reports_a_disabled_persona_as_unavailable_without_hiding_it(
 ) -> None:
     registry = _registry(tmp_path)
     registry.set_enabled("cet-grader", False)
-    monkeypatch.setattr("ss.personas.registry.get_registry", lambda: registry, raising=True)
+    monkeypatch.setattr("stealth_study.personas.registry.get_registry", lambda: registry, raising=True)
     body = client.get(f"{CAMPUS}/personas").json()
     listed = {row["id"]: row for row in body["items"]}
     assert listed["cet-grader"]["available"] is False
@@ -500,7 +500,7 @@ def test_i1_never_lists_the_kernel_only_personas(
     client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     registry = _registry(tmp_path)
-    monkeypatch.setattr("ss.personas.registry.get_registry", lambda: registry, raising=True)
+    monkeypatch.setattr("stealth_study.personas.registry.get_registry", lambda: registry, raising=True)
     ids = {row["id"] for row in client.get(f"{CAMPUS}/personas").json()["items"]}
     assert "cowork" not in ids
     assert "code" not in ids

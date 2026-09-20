@@ -8,7 +8,7 @@ the normal approval settings, and "Inbox" stays reserved for the approvals surfa
 
 from __future__ import annotations
 
-from ss.personas.registry import PersonaRegistry
+from stealth_study.personas.registry import PersonaRegistry
 
 
 def _lead(tmp_path):

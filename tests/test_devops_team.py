@@ -9,7 +9,7 @@ the end user.
 
 from __future__ import annotations
 
-from ss.personas.registry import PersonaRegistry
+from stealth_study.personas.registry import PersonaRegistry
 
 ROSTER = ("logs-worker", "infra-worker", "change-worker")
 

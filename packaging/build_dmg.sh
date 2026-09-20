@@ -33,7 +33,7 @@
 # OCW_SKIP_NOTARIZE=1 to sign but skip the slow notary round-trip. Neither is distributable.
 #
 # Experimental (use-at-your-own-risk) connectors are EXCLUDED from this build by default —
-# the spec strips ss.connectors.experimental. Self-builders can opt in with:
+# the spec strips stealth_study.connectors.experimental. Self-builders can opt in with:
 #   COWORKER_EXPERIMENTAL=1 ./build_dmg.sh
 # VENV PREREQS (a fresh worktree's venv, discovered the hard way 2026-08-21):
 #   .venv/bin/pip install -e ".[dev,messaging,browser,bedrock]" pyinstaller typer

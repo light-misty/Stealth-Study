@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from ss.permissions import Mode, PermissionEngine
+from stealth_study.permissions import Mode, PermissionEngine
 
 MCP_META = SimpleNamespace(requires_approval=True, category="mcp")
 CONNECTOR_META = SimpleNamespace(requires_approval=True, category="connector")
@@ -64,8 +64,8 @@ def test_run_grant_cannot_override_a_read_only_mode(tmp_path):
 
 # -- server side: offered ONLY for the EXTERNAL family ----------------------------
 def test_this_run_grant_is_external_only():
-    from ss.engine import ApprovalOutcome
-    from ss.server.manager import _grant_offered
+    from stealth_study.engine import ApprovalOutcome
+    from stealth_study.server.manager import _grant_offered
 
     def req(name: str, category: str = "", approval: bool = False, args: dict | None = None):
         return SimpleNamespace(
@@ -92,8 +92,8 @@ def test_this_run_grant_is_external_only():
 def test_approval_outcome_downgrades_unoffered_grants_to_once():
     # POST /v1/inbox/{id}/resolve takes a raw string — the server validates every
     # grant vocabulary, including this_run and (gap closed) always_trust.
-    from ss.engine import ApprovalOutcome
-    from ss.server.manager import SessionManager
+    from stealth_study.engine import ApprovalOutcome
+    from stealth_study.server.manager import SessionManager
 
     refused: list[str] = []
     fake = SimpleNamespace(
@@ -127,14 +127,14 @@ def test_engine_end_to_end_one_card_per_run(tmp_path):
     import asyncio
 
     import aisuite as ai
-    from ss.engine import ApprovalOutcome, TurnEngine
-    from ss.providers import (
+    from stealth_study.engine import ApprovalOutcome, TurnEngine
+    from stealth_study.providers import (
         AssistantTurn,
         ModelCapabilities,
         ProviderClient,
         ToolCall,
     )
-    from ss.tools import ToolRegistry
+    from stealth_study.tools import ToolRegistry
 
     class Scripted(ProviderClient):
         def __init__(self, turns):

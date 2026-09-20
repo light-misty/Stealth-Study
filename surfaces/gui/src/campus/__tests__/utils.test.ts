@@ -116,7 +116,7 @@ describe("campusErrorInfo", () => {
   });
 });
 
-describe("deadlineTier (mirrors ss/campus/reminders.tier)", () => {
+describe("deadlineTier (mirrors stealth_study/campus/reminders.tier)", () => {
   it("maps the documented D-30/D-7/D-1 bands plus due/overdue", () => {
     expect(deadlineTier(1)).toBe("d1");
     expect(deadlineTier(2)).toBe("d7");

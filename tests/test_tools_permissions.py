@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 
 import aisuite as ai
-from ss.permissions import Decision, Mode, PermissionEngine
-from ss.tools import ToolRegistry
+from stealth_study.permissions import Decision, Mode, PermissionEngine
+from stealth_study.tools import ToolRegistry
 
 
 def _registry(root: Path) -> ToolRegistry:

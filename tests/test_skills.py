@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from ss.agent import build_engine
-from ss.agents import AgentContext, chat_agent, code_agent, get_agent
-from ss.providers import ModelCapabilities
-from ss.skills import SkillLoader, skill_catalog_text, skill_tools
-from ss.tools import ToolRegistry
-from ss.tools.shell import LocalExecutor
-from ss.tools.todo import TodoList
+from stealth_study.agent import build_engine
+from stealth_study.agents import AgentContext, chat_agent, code_agent, get_agent
+from stealth_study.providers import ModelCapabilities
+from stealth_study.skills import SkillLoader, skill_catalog_text, skill_tools
+from stealth_study.tools import ToolRegistry
+from stealth_study.tools.shell import LocalExecutor
+from stealth_study.tools.todo import TodoList
 
 
 class _Stub:

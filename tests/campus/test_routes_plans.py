@@ -21,8 +21,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
 
 ACTIVE_ID = "profile-kaoyan"
 OTHER_ID = "profile-other"
@@ -118,7 +118,7 @@ def model_client(seeded_store: store.CampusStore, monkeypatch: pytest.MonkeyPatc
     manager = FakeManager(text=PLAN_JSON)
     app = FastAPI()
     app.include_router(routes.build_campus_router(manager))
-    monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.service._utc_today", lambda: TODAY)
     return TestClient(app)
 
 
@@ -149,7 +149,7 @@ def test_f5_requires_an_exam_date(client: TestClient) -> None:
 def test_f5_refuses_a_past_exam_date(
     seeded_store: store.CampusStore, client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.service._utc_today", lambda: TODAY)
     seeded_store.update("exam_profile", OTHER_ID, {"exam_date": "2026-09-01"})
     response = _generate(client, OTHER_ID)
     assert response.status_code == 400
@@ -224,7 +224,7 @@ def test_f5_model_failure_maps_to_model_timeout(seeded_store: store.CampusStore)
 def test_f5_respects_heterogeneous_subjects(
     seeded_store: store.CampusStore, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.service._utc_today", lambda: TODAY)
     seeded_store.update(
         "exam_profile",
         OTHER_ID,

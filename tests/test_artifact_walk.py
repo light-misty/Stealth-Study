@@ -9,8 +9,8 @@ walk (rglob descends first and filters after, which is what caused the bug).
 
 import os
 
-from ss.server.manager import SessionManager
-from ss.tools.search import OS_DATA_DIRS
+from stealth_study.server.manager import SessionManager
+from stealth_study.tools.search import OS_DATA_DIRS
 
 
 def _ws(tmp_path):
@@ -34,7 +34,7 @@ def test_os_data_dirs_are_not_traversed(tmp_path, monkeypatch):
             walked.append(dirpath)
             yield dirpath, dirs, files
 
-    monkeypatch.setattr("ss.server.manager.os.walk", spy)
+    monkeypatch.setattr("stealth_study.server.manager.os.walk", spy)
     m = SessionManager(data_dir=tmp_path / "data", workspace=str(ws))
     names = [a["name"] for a in m.list_artifacts("s1")]
 

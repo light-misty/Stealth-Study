@@ -11,17 +11,17 @@ from pathlib import Path
 
 import pytest
 
-from ss.connections import (
+from stealth_study.connections import (
     PersonaConnectionStore,
     SessionConnectionStore,
     effective,
 )
-from ss.connectors.base import MessageEvent, SessionSource
-from ss.personas import registry as persona_registry
-from ss.personas.manifest import load_manifest_file
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server.manager import SessionManager
-from ss.sessions import SessionRecord
+from stealth_study.connectors.base import MessageEvent, SessionSource
+from stealth_study.personas import registry as persona_registry
+from stealth_study.personas.manifest import load_manifest_file
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server.manager import SessionManager
+from stealth_study.sessions import SessionRecord
 
 
 @pytest.fixture(autouse=True)

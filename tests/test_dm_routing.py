@@ -6,10 +6,10 @@ import asyncio
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.connectors.base import MessageEvent, SessionSource
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server import create_app
-from ss.server.manager import SessionManager
+from stealth_study.connectors.base import MessageEvent, SessionSource
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):

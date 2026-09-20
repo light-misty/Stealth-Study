@@ -12,9 +12,9 @@ import time
 
 import pytest
 
-from ss.permissions import PermissionEngine
-from ss.tools import ToolRegistry
-from ss.tools.shell import LocalExecutor, shell_tools
+from stealth_study.permissions import PermissionEngine
+from stealth_study.tools import ToolRegistry
+from stealth_study.tools.shell import LocalExecutor, shell_tools
 
 _WIN = sys.platform == "win32"
 
@@ -59,7 +59,7 @@ def test_managed_bin_dir_is_on_path_from_spawn(tmp_path, monkeypatch):
     stable bin dir goes on PATH at spawn, before anything exists in it."""
     import os as _os
 
-    from ss import toolchain
+    from stealth_study import toolchain
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     ex = LocalExecutor(cwd=tmp_path, default_timeout=10)

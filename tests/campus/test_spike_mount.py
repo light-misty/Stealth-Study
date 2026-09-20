@@ -50,8 +50,8 @@ def test_temp_router_health_200(spike, tmp_path: Path):
 
 
 def test_token_middleware_covers_mounted_router(spike, tmp_path: Path, monkeypatch):
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     token = "spike-t03-token"
     monkeypatch.setenv("COWORKER_API_TOKEN", token)
@@ -84,7 +84,7 @@ def test_patch_inserts_two_lines_after_app_creation(spike):
     anchor = next(
         i for i, ln in enumerate(lines) if ln.strip().startswith("app = FastAPI(")
     )
-    assert "from ss.campus.routes import build_campus_router" in lines[anchor + 1]
+    assert "from stealth_study.campus.routes import build_campus_router" in lines[anchor + 1]
     assert "app.include_router(build_campus_router(manager))" in lines[anchor + 2]
     assert len(lines) == len(original.splitlines()) + 2
     with pytest.raises(spike.SpikeError):

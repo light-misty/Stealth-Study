@@ -13,19 +13,19 @@ from dataclasses import dataclass, replace
 
 import pytest
 
-from ss import reviewer as reviewer_mod
-from ss.engine import ApprovalOutcome, TurnEngine
-from ss.events import EventType
-from ss.permissions import Mode, PermissionEngine
-from ss.providers import (
+from stealth_study import reviewer as reviewer_mod
+from stealth_study.engine import ApprovalOutcome, TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.providers.base import TokenUsage
-from ss.reviewer import AGENT_DENY_MESSAGE, Reviewer, parse_verdict
-from ss.tools import ToolRegistry
+from stealth_study.providers.base import TokenUsage
+from stealth_study.reviewer import AGENT_DENY_MESSAGE, Reviewer, parse_verdict
+from stealth_study.tools import ToolRegistry
 
 
 @dataclass
@@ -234,7 +234,7 @@ def test_reviewer_cannot_clear_a_git_hook_write(tmp_path):
 
 
 def test_reviewer_text_collapses_attachments_to_markers():
-    from ss.attachments import build_user_content, reviewer_text
+    from stealth_study.attachments import build_user_content, reviewer_text
 
     content = build_user_content(
         "clean up this spreadsheet",
@@ -258,7 +258,7 @@ def test_reviewer_text_collapses_attachments_to_markers():
 
 
 def test_reviewer_text_plain_and_edge_shapes():
-    from ss.attachments import ATTACHED_TEXT_PREFIX, reviewer_text
+    from stealth_study.attachments import ATTACHED_TEXT_PREFIX, reviewer_text
 
     assert reviewer_text("just typed text") == "just typed text"
     assert reviewer_text(None) == ""
@@ -270,7 +270,7 @@ def test_reviewer_text_plain_and_edge_shapes():
 
 
 def test_user_history_request_carries_markers_not_attachment_bodies(tmp_path):
-    from ss.attachments import build_user_content
+    from stealth_study.attachments import build_user_content
 
     engine, _rows, _approvals = _engine(tmp_path, [])
     engine.messages.append(

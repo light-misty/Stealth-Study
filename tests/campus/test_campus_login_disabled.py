@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.server import SessionManager, create_app
+from stealth_study.server import SessionManager, create_app
 
 
 def _write_global_config(state_dir: Path, body: str) -> None:

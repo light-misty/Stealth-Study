@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ss.providers import detect_provider, verify_provider_key
+from stealth_study.providers import detect_provider, verify_provider_key
 
 
 # -- detect_provider ------------------------------------------------------------

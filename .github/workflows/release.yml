@@ -68,7 +68,7 @@ jobs:
           $VPY = ".venv\Scripts\python.exe"
           & $VPY -m pip install --upgrade pip
           & $VPY -m pip install -e ".[bedrock]" pyinstaller typer tzdata
-          & $VPY -c "import aisuite, ss"
+          & $VPY -c "import aisuite, stealth_study"
 
       - name: npm ci
         working-directory: surfaces/gui

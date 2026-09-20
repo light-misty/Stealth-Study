@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ss.connectors import (
+from stealth_study.connectors import (
     ConnectorSettings,
     Gateway,
     MessageEvent,
@@ -18,11 +18,11 @@ from ss.connectors import (
     TeamAuth,
     load_settings,
 )
-from ss.connectors.config import is_authorized
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.secrets import SecretStore
-from ss.server import create_app
-from ss.server.manager import SessionManager
+from stealth_study.connectors.config import is_authorized
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.secrets import SecretStore
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):
@@ -216,7 +216,7 @@ def test_rest_allow_with_team_and_workspaces_field(tmp_path):
 
 # -- installer pre-add on managed install (UX-027) --------------------------------
 def test_managed_install_preadds_the_installer(tmp_path):
-    from ss.connectors.setup import managed_connect_slack_install
+    from stealth_study.connectors.setup import managed_connect_slack_install
 
     s = SecretStore(tmp_path / "secrets.json")
     managed_connect_slack_install(
@@ -228,7 +228,7 @@ def test_managed_install_preadds_the_installer(tmp_path):
 
 
 def test_reinstall_preserves_the_existing_allow_list(tmp_path):
-    from ss.connectors.setup import managed_connect_slack_install
+    from stealth_study.connectors.setup import managed_connect_slack_install
 
     s = SecretStore(tmp_path / "secrets.json")
     s.put(
@@ -249,7 +249,7 @@ def test_reinstall_preserves_the_existing_allow_list(tmp_path):
 
 
 def test_workspace_listing_carries_installer_identity(tmp_path):
-    from ss.connectors.setup import (
+    from stealth_study.connectors.setup import (
         _slack_workspaces,
         managed_connect_slack_install,
     )

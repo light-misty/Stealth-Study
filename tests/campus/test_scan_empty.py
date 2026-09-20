@@ -12,7 +12,7 @@ from typing import Optional
 
 import pytest
 
-from ss.campus.library import (
+from stealth_study.campus.library import (
     FAIL_NO_TEXT_LAYER,
     FAIL_PDF_BROKEN,
     FAIL_TOO_MANY_CHUNKS,
@@ -20,7 +20,7 @@ from ss.campus.library import (
     CampusLibrary,
     LibraryError,
 )
-from ss.campus.store import CampusStore
+from stealth_study.campus.store import CampusStore
 
 
 def _write_blank_pdf(path, num_pages: int) -> None:
@@ -81,7 +81,7 @@ def test_retry_unknown_doc_raises_doc_not_found(library) -> None:
 
 def test_retry_ready_doc_returns_same_row(library, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
-        "ss.campus.library._read_pdf_with_meta",
+        "stealth_study.campus.library._read_pdf_with_meta",
         lambda p: ([(1, "第一章 绪论\n内容")], False, []),
     )
     path = tmp_path / "doc.pdf"
@@ -97,7 +97,7 @@ def test_retry_ready_doc_returns_same_row(library, tmp_path, monkeypatch) -> Non
 
 def test_partial_blank_pages_below_ratio_stays_ready(library, tmp_path, monkeypatch) -> None:
     pages = [(1, "第一章 绪论\n内容"), (2, ""), (3, ""), (4, "")]
-    monkeypatch.setattr("ss.campus.library._read_pdf_with_meta", lambda p: (pages, False, []))
+    monkeypatch.setattr("stealth_study.campus.library._read_pdf_with_meta", lambda p: (pages, False, []))
     path = tmp_path / "doc.pdf"
     path.write_bytes(b"%PDF-fake")
     doc = library.import_pdf("p1", str(path))
@@ -107,7 +107,7 @@ def test_partial_blank_pages_below_ratio_stays_ready(library, tmp_path, monkeypa
 
 def test_partial_blank_pages_above_ratio_fails(library, tmp_path, monkeypatch) -> None:
     pages = [(1, "第一章 绪论\n内容"), (2, ""), (3, ""), (4, ""), (5, ""), (6, "")]
-    monkeypatch.setattr("ss.campus.library._read_pdf_with_meta", lambda p: (pages, False, []))
+    monkeypatch.setattr("stealth_study.campus.library._read_pdf_with_meta", lambda p: (pages, False, []))
     path = tmp_path / "doc.pdf"
     path.write_bytes(b"%PDF-fake")
     doc = library.import_pdf("p1", str(path))
@@ -162,7 +162,7 @@ def test_import_unsupported_type_raises(library, tmp_path) -> None:
 
 def test_import_truncated_pdf_keeps_extracted_pages(library, tmp_path, monkeypatch) -> None:
     pages = [(1, "第一章 绪论\n" + "内容" * 500)]
-    monkeypatch.setattr("ss.campus.library._read_pdf_with_meta", lambda p: (pages, True, []))
+    monkeypatch.setattr("stealth_study.campus.library._read_pdf_with_meta", lambda p: (pages, True, []))
     path = tmp_path / "big.pdf"
     path.write_bytes(b"%PDF-fake")
     doc = library.import_pdf("p1", str(path))
@@ -176,8 +176,8 @@ def test_import_truncated_pdf_keeps_extracted_pages(library, tmp_path, monkeypat
 
 def test_import_too_many_chunks_fails(library, tmp_path, monkeypatch) -> None:
     pages = [(i, f"第{i}章 内容") for i in range(1, 6)]
-    monkeypatch.setattr("ss.campus.library._read_pdf_with_meta", lambda p: (pages, False, []))
-    monkeypatch.setattr("ss.campus.library.MAX_DOC_CHUNKS", 2)
+    monkeypatch.setattr("stealth_study.campus.library._read_pdf_with_meta", lambda p: (pages, False, []))
+    monkeypatch.setattr("stealth_study.campus.library.MAX_DOC_CHUNKS", 2)
     path = tmp_path / "huge.pdf"
     path.write_bytes(b"%PDF-fake")
     doc = library.import_pdf("p1", str(path))
@@ -191,7 +191,7 @@ def test_import_too_many_chunks_fails(library, tmp_path, monkeypatch) -> None:
 
 def test_delete_doc_cascades_chunks_and_files(library, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
-        "ss.campus.library._read_pdf_with_meta",
+        "stealth_study.campus.library._read_pdf_with_meta",
         lambda p: ([(1, "第一章 绪论\n内容")], False, []),
     )
     path = tmp_path / "doc.pdf"
@@ -212,7 +212,7 @@ def test_delete_doc_cascades_chunks_and_files(library, tmp_path, monkeypatch) ->
 
 def test_delete_doc_of_other_profile_raises(library, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
-        "ss.campus.library._read_pdf_with_meta",
+        "stealth_study.campus.library._read_pdf_with_meta",
         lambda p: ([(1, "第一章 绪论\n内容")], False, []),
     )
     path = tmp_path / "doc.pdf"

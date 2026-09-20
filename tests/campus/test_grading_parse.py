@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from ss.campus.grading import (
+from stealth_study.campus.grading import (
     MAX_ERROR_ROWS,
     band_for_sum,
     extract_json,
@@ -232,7 +232,7 @@ def test_band_for_sum_covers_all_buckets() -> None:
 
 def test_band_intervals_cover_zero_to_fifteen() -> None:
     covered: set[int] = set()
-    for band, (low, high) in __import__("ss.campus.rubrics", fromlist=["ESSAY_BAND_INTERVALS"]).ESSAY_BAND_INTERVALS.items():
+    for band, (low, high) in __import__("stealth_study.campus.rubrics", fromlist=["ESSAY_BAND_INTERVALS"]).ESSAY_BAND_INTERVALS.items():
         covered.update(range(low, high + 1))
     assert covered == set(range(0, 16))
 

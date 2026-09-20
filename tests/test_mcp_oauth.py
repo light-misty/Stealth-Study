@@ -12,11 +12,11 @@ import pytest
 from fastapi.testclient import TestClient
 from mcp.shared.auth import OAuthClientInformationFull, OAuthToken
 
-from ss.mcp import oauth as mcp_oauth
-from ss.mcp.config import load_mcp_servers
-from ss.secrets import SecretStore
-from ss.server.app import create_app
-from ss.server.manager import SessionManager
+from stealth_study.mcp import oauth as mcp_oauth
+from stealth_study.mcp.config import load_mcp_servers
+from stealth_study.secrets import SecretStore
+from stealth_study.server.app import create_app
+from stealth_study.server.manager import SessionManager
 
 GRANOLA = {"type": "http", "url": "https://mcp.granola.ai/mcp", "auth": "oauth"}
 
@@ -211,7 +211,7 @@ async def test_storage_reports_remaining_lifetime_and_blanks_stale_access(tmp_pa
     stale, which makes the SDK run the refresh grant before the request."""
     from mcp.shared.auth import OAuthToken
 
-    from ss.secrets import SecretStore
+    from stealth_study.secrets import SecretStore
 
     secrets = SecretStore(tmp_path / "s.json")
     storage = mcp_oauth.SecretStoreTokenStorage("dlai", secrets)
@@ -242,7 +242,7 @@ async def test_storage_reports_remaining_lifetime_and_blanks_stale_access(tmp_pa
 async def test_storage_treats_unknown_token_age_as_stale(tmp_path):
     """Tokens persisted before issued_at existed have unknown age — assume stale
     (blank access, keep refresh) rather than sending an hour-old bearer."""
-    from ss.secrets import SecretStore
+    from stealth_study.secrets import SecretStore
 
     secrets = SecretStore(tmp_path / "s.json")
     secrets.put(
@@ -259,7 +259,7 @@ async def test_provider_seeds_and_persists_oauth_metadata(tmp_path):
     """The refresh grant runs BEFORE the SDK's discovery, so the provider must
     seed persisted authorization-server metadata at load — otherwise refresh
     POSTs to the default <origin>/token (404 on data.dlai.link)."""
-    from ss.secrets import SecretStore
+    from stealth_study.secrets import SecretStore
 
     secrets = SecretStore(tmp_path / "s.json")
     md = {

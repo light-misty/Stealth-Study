@@ -12,7 +12,7 @@
 //!
 //! The sidecar inherits this process's environment, so a shell-launched `npm run tauri dev`
 //! passes `OPENAI_API_KEY` through. A Finder-launched app has no shell env — there the key
-//!   comes from the SecretStore (Settings tab), see `ss.providers.resolve_api_key`.
+//!   comes from the SecretStore (Settings tab), see `stealth_study.providers.resolve_api_key`.
 
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};

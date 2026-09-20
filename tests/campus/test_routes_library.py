@@ -1,6 +1,6 @@
 """B 组资料库与按页问答端点（03 §4.2 B1-B7、G-07/G-10/G-11、KY-09/KY-10）。
 
-`ss/campus/library.py` 在 T08 就交付了库层（解析、切片、三级检索、QA 组装），但端点从未挂载：
+`stealth_study/campus/library.py` 在 T08 就交付了库层（解析、切片、三级检索、QA 组装），但端点从未挂载：
 前端 `campus/api.ts` 一直声明着 B1-B7，`LibraryPanel` / `MajorQAView` 也照常渲染，于是浏览器
 里点一次导入就是 404。本文件把这条链路钉死在 HTTP 层，同时覆盖 03 §4.2 的全部错误码分支。
 
@@ -18,8 +18,8 @@ import pytest
 from fastapi import FastAPI, HTTPException
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
 
 CAMPUS = routes.CAMPUS_PREFIX
 ACTIVE_ID = "profile-active"

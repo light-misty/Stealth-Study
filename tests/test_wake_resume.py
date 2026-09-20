@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 
-from ss.agent import build_engine
-from ss.agents.code import code_agent
-from ss.agents.cowork import cowork_agent
-from ss.automation.scheduler import Scheduler
-from ss.selfwake import Wake, WakeStore
-from ss.server.manager import SessionManager
+from stealth_study.agent import build_engine
+from stealth_study.agents.code import code_agent
+from stealth_study.agents.cowork import cowork_agent
+from stealth_study.automation.scheduler import Scheduler
+from stealth_study.selfwake import Wake, WakeStore
+from stealth_study.server.manager import SessionManager
 
 
 class _FakeStore:

@@ -80,7 +80,7 @@ const finishResult = (): AssessmentFinishResult => ({
   ],
 });
 
-const draftKey = "ss.campus.cet.assessment.p1";
+const draftKey = "stealth_study.campus.cet.assessment.p1";
 
 describe("AssessmentFlow", () => {
   beforeEach(() => {

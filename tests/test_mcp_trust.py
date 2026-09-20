@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from types import SimpleNamespace
 
-from ss.overrides import RiskOverrideStore
-from ss.permissions import Mode, PermissionEngine
+from stealth_study.overrides import RiskOverrideStore
+from stealth_study.permissions import Mode, PermissionEngine
 
 MCP_META = SimpleNamespace(requires_approval=True, category="mcp")
 TOOL = "mcp__atlassian__getJiraIssue"
@@ -57,7 +57,7 @@ def test_trust_accepts_hand_written_globs_and_bare_strings(tmp_path):
 
 def test_trust_rules_never_touch_classification(tmp_path):
     # Trust waives the card; the CLASS is welded on (the OPE-136 floor).
-    from ss.risk import RiskClass, classify
+    from stealth_study.risk import RiskClass, classify
 
     store = RiskOverrideStore(tmp_path / "ro.json")
     store.set_trust(TOOL)
@@ -119,8 +119,8 @@ def test_matrix_bypass_unchanged(tmp_path):
 
 # -- test-plan #17 (server side): the grant is offered only where the card shows it
 def test_always_trust_grant_is_mcp_only():
-    from ss.engine import ApprovalOutcome
-    from ss.server.manager import _grant_offered
+    from stealth_study.engine import ApprovalOutcome
+    from stealth_study.server.manager import _grant_offered
 
     def req(name: str, category: str):
         return SimpleNamespace(
@@ -145,8 +145,8 @@ def test_remove_server_revokes_its_trust_rules(tmp_path, monkeypatch):
     rules stay; sign-out (tokens only) deliberately does not do this."""
     from types import SimpleNamespace
 
-    from ss.server import manager as manager_mod
-    from ss.server.manager import SessionManager
+    from stealth_study.server import manager as manager_mod
+    from stealth_study.server.manager import SessionManager
 
     store = RiskOverrideStore(tmp_path / "ro.json")
     store.set_trust("mcp__atlassian__searchJiraIssuesUsingJql")
@@ -155,7 +155,7 @@ def test_remove_server_revokes_its_trust_rules(tmp_path, monkeypatch):
     store.set_trust("mcp__*")  # a broader glob — NOT this server's rule
 
     monkeypatch.setattr(manager_mod, "delete_global_server", lambda _n: True)
-    import ss.mcp.oauth as mcp_oauth
+    import stealth_study.mcp.oauth as mcp_oauth
 
     monkeypatch.setattr(mcp_oauth, "sign_out", lambda _n, _s: None)
 
@@ -187,7 +187,7 @@ def test_engine_fallback_without_a_store_degrades_to_session_scope(tmp_path):
 
 # -- test-plan #18 (config side): the legacy flag's migration primitive -----------
 def test_patch_global_server_none_deletes_the_key(tmp_path, monkeypatch):
-    from ss.mcp import config as mcp_config
+    from stealth_study.mcp import config as mcp_config
 
     monkeypatch.setattr(mcp_config, "global_mcp_path", lambda: tmp_path / "mcp.json")
     mcp_config.put_global_server(

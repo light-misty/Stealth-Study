@@ -3,10 +3,10 @@ matrix, both families' flagships as defaults, and friendly errors when an accoun
 use them (GPT-5.6 rolls out per-organization; quota/credits can run out on any model).
 """
 
-from ss.config import Config
-from ss.providers.errors import friendly_model_error
-from ss.providers.matrix import MATRIX, models_for_provider
-from ss.providers.registry import get_descriptor
+from stealth_study.config import Config
+from stealth_study.providers.errors import friendly_model_error
+from stealth_study.providers.matrix import MATRIX, models_for_provider
+from stealth_study.providers.registry import get_descriptor
 
 
 def test_new_flagships_in_matrix_with_labels():

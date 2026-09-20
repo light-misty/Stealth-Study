@@ -1,9 +1,9 @@
 """campus preference reading — the `[campus]` table of the global `config.toml`.
 
-ADR-04 explains why this file exists instead of an entry in `ss/config.py`: `load_config()`
+ADR-04 explains why this file exists instead of an entry in `stealth_study/config.py`: `load_config()`
 only knows 18 flat top-level keys, so a `[campus]` section written there would be silently
 ignored. This module therefore parses the same file itself through
-`ss.config.global_config_path()` and touches nothing in `ss/config.py`.
+`stealth_study.config.global_config_path()` and touches nothing in `stealth_study/config.py`.
 
 The runtime values live in `campus.db`'s `app_state` table (02 §4.2: "运行时以 app_state 为准");
 what is read here is the on-disk default that a fresh install starts from.

@@ -8,14 +8,14 @@ from __future__ import annotations
 
 import pytest
 
-from ss.secrets import SecretStore
-from ss.web import (
+from stealth_study.secrets import SecretStore
+from stealth_study.web import (
     SearchResult,
     build_provider,
     make_web_search_tool,
     provider_names,
 )
-from ss.web.providers import (
+from stealth_study.web.providers import (
     BraveProvider,
     DuckDuckGoProvider,
     TavilyProvider,
@@ -91,7 +91,7 @@ def test_tool_surfaces_missing_key_error(tmp_path):
 
 
 def test_resolve_provider_from_secretstore(tmp_path):
-    from ss.web import resolve_provider
+    from stealth_study.web import resolve_provider
 
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put("web_search:default", {"provider": "tavily", "api_key": "tvly-123"})
@@ -102,8 +102,8 @@ def test_resolve_provider_from_secretstore(tmp_path):
 def test_web_search_rest(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     client = TestClient(create_app(SessionManager(data_dir=tmp_path / "data")))
@@ -126,8 +126,8 @@ def test_web_search_rest(tmp_path, monkeypatch):
 
 
 def test_engine_registers_web_search(tmp_path):
-    from ss.agent import build_engine
-    from ss.agents import chat_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents import chat_agent
 
     eng = build_engine(
         agent=chat_agent(),
@@ -139,16 +139,16 @@ def test_engine_registers_web_search(tmp_path):
 
 class _StubProvider:
     def complete(self, **_kw):
-        from ss.providers import AssistantTurn
+        from stealth_study.providers import AssistantTurn
 
         return AssistantTurn()
 
     def capabilities(self, _model):
-        from ss.providers.base import ModelCapabilities
+        from stealth_study.providers.base import ModelCapabilities
 
         return ModelCapabilities()
 
     def stream(self, **_kw):
-        from ss.providers.base import StreamChunk
+        from stealth_study.providers.base import StreamChunk
 
         yield StreamChunk(turn=self.complete())

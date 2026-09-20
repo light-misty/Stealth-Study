@@ -11,7 +11,7 @@ import time
 
 import pytest
 
-from ss.logging_setup import get_logger, setup_logging
+from stealth_study.logging_setup import get_logger, setup_logging
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("SS_RUN_STRESS") != "1",
@@ -66,7 +66,7 @@ def test_backend_rotation_under_load(tmp_path, monkeypatch):
 def test_frontend_endpoint_bulk_ingest(tmp_path, monkeypatch, capsys):
     from fastapi.testclient import TestClient
 
-    from ss.server import SessionManager, create_app
+    from stealth_study.server import SessionManager, create_app
 
     monkeypatch.setenv("SS_LOG_DIR", str(tmp_path / "log"))
     monkeypatch.setenv("COWORKER_API_TOKEN", "t")

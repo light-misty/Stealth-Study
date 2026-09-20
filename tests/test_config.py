@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ss.config import load_config
+from stealth_study.config import load_config
 
 
 def test_defaults_when_no_files(tmp_path):
@@ -69,7 +69,7 @@ def test_trusted_workspace_adds_its_command_allowances_only(tmp_path):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Unix file permission mode test")
 def test_workspace_trust_is_canonical_and_user_owned(tmp_path):
-    from ss.workspace_trust import WorkspaceTrustStore
+    from stealth_study.workspace_trust import WorkspaceTrustStore
 
     real = tmp_path / "real"
     real.mkdir()
@@ -91,8 +91,8 @@ def test_workspace_trust_is_canonical_and_user_owned(tmp_path):
 
 
 def test_build_engine_honors_explicit_empty_command_allowlist(tmp_path):
-    from ss.agent import build_code_engine
-    from ss.config import global_config_path
+    from stealth_study.agent import build_code_engine
+    from stealth_study.config import global_config_path
 
     global_config_path().parent.mkdir(parents=True)
     global_config_path().write_text('allowed_commands = ["pytest"]\n')
@@ -120,7 +120,7 @@ def test_build_engine_respects_max_iterations(tmp_path):
     (tmp_path / ".stealth-study").mkdir()
     (tmp_path / ".stealth-study" / "config.toml").write_text("max_iterations = 3\n")
 
-    from ss.agent import build_code_engine
+    from stealth_study.agent import build_code_engine
 
     class _Stub:
         def complete(self, **k):  # pragma: no cover
@@ -141,7 +141,7 @@ def test_cloud_endpoints_default_to_production():
     relay default shipped once as "connected but relay OFF" on every machine
     but the developer's — the managed install succeeded (HTTPS via broker)
     while inbound relaying silently never started."""
-    from ss.config import Config
+    from stealth_study.config import Config
 
     cfg = Config()
     assert cfg.cloud_base_url == "https://api.openworker.com"

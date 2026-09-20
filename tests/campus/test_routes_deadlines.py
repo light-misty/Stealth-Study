@@ -1,6 +1,6 @@
 """H7-H10 考试节点与 CERT-13 应用内提醒端点（03 §4.8、07 §4 T12 验收③、ADR-12）。
 
-H9 经既有 `ss/automation` 的 TaskStore 创建 D-30/D-7/D-1 三条 `once` 任务（已创建的
+H9 经既有 `stealth_study/automation` 的 TaskStore 创建 D-30/D-7/D-1 三条 `once` 任务（已创建的
 不重复建、已错过的触发点不再建，过去的一次性任务永远不会触发）；H10 是横幅数据源，
 `deadline_snapshot` 的 D-30/D-7/D-1 三档状态在这里端到端钉住。全程无 OS 通知。
 """
@@ -14,9 +14,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.automation.store import TaskStore
-from ss.campus import models, reminders, routes, store
+from stealth_study import secrets
+from stealth_study.automation.store import TaskStore
+from stealth_study.campus import models, reminders, routes, store
 
 ACTIVE_ID = "profile-active"
 OTHER_ID = "profile-other"

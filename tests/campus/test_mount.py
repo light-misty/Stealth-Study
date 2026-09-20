@@ -7,19 +7,19 @@ nor turns a bad database into a silently degraded startup (03 §2-4).
 
 G-06 widens that budget by exactly one more module. The cloud sign-in kill switch adds a
 guarded early return to `/v1/cloud/login`, `/v1/cloud/logout`, `/auth/callback` and
-`/v1/cloud/status` inside `create_app()`, and `ss/campus/config.py` — project-owned code, not
+`/v1/cloud/status` inside `create_app()`, and `stealth_study/campus/config.py` — project-owned code, not
 an upstream file — carries the `login_enabled` read that drives it. Both are pinned below, so
 the wider patch still cannot reach any other backend module and the two-line mount itself
 stays untouched.
 
-The 2026-09-16 stage verification widens it by one module again: `ss/automation/store.py`
+The 2026-09-16 stage verification widens it by one module again: `stealth_study/automation/store.py`
 gained a `rowid DESC` tiebreaker so `unseen_failed` follows the newest run when two runs
 share one timestamp. Pinned below for the same reason.
 
 The logging-system branch widens it by one more module and one more `app.py` increment:
-`ss/server/run.py` initializes the unified log config at sidecar startup, and `app.py`
+`stealth_study/server/run.py` initializes the unified log config at sidecar startup, and `app.py`
 gains the request-context middleware plus the `POST /v1/logs/frontend` ingest endpoint
-(startup timestamp file naming + 50MB/daily rotation live in new file `ss/logging_setup.py`,
+(startup timestamp file naming + 50MB/daily rotation live in new file `stealth_study/logging_setup.py`,
 which the names-status check above deliberately ignores as a pure addition).
 
 The inbox-fix branch widens it by one more `app.py` increment: the `/v1/inbox` endpoint
@@ -37,8 +37,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import store
+from stealth_study import secrets
+from stealth_study.campus import store
 
 ROOT = Path(__file__).resolve().parents[2]
 APP_PY = ROOT / "ss" / "server" / "app.py"
@@ -99,7 +99,7 @@ def test_the_mount_is_the_only_router_include_in_the_file(app_source: list[str])
 # 2026-09-16 stage verification): `config.py` is the project-owned `login_enabled` read,
 # `app.py` the guarded early returns, `automation/store.py` the run-ordering fix that keeps
 # `unseen_failed` keyed to the newest run when two runs share a timestamp. A diff outside
-# this list — and outside `ss/campus/`, which the feature owns — means the intrusion has
+# this list — and outside `stealth_study/campus/`, which the feature owns — means the intrusion has
 # spread and must go back through review.
 BACKEND_PATCH = {
     "M\tss/campus/config.py",
@@ -107,7 +107,7 @@ BACKEND_PATCH = {
     "M\tss/automation/store.py",
     # logging-system 分支：sidecar 启动时初始化统一日志
     "M\tss/server/run.py",
-    # i18n-chinese-coverage 分支：错误响应附带稳定 error_code（文案仍为原英文，见 ss/errors.py）
+    # i18n-chinese-coverage 分支：错误响应附带稳定 error_code（文案仍为原英文，见 stealth_study/errors.py）
     "M\tss/server/manager.py",
     "M\tss/skills/store.py",
     # skip-question-card 分支（OPE-153）：ask 工具的哨兵值与跳过结算、引擎对
@@ -130,7 +130,7 @@ BACKEND_PATCH = {
     "M\tss/pdf_support.py",
     "M\tss/providers/registry.py",
 }
-CAMPUS_OWNED_PREFIX = "ss/campus/"
+CAMPUS_OWNED_PREFIX = "stealth_study/campus/"
 # campus 挂载、日志系统、inbox 修复与错误代号四条分支各自的 app.py 增量预算
 APP_PY_PATCHES = {
     "40\t2\tss/server/app.py",
@@ -146,7 +146,7 @@ def test_no_other_backend_module_changed_against_the_base_revision() -> None:
     base = _base_revision()
     if base is None or _on_the_base_revision(base):
         pytest.skip("no base revision to compare against from this checkout")
-    status = _git("diff", "--name-status", base, "--", "ss/")
+    status = _git("diff", "--name-status", base, "--", "stealth_study/")
     touched = [line for line in status.splitlines() if line[:1] in {"M", "D", "R"}]
     # A subset check, not an equality: the registered patch is merged into `main`, so a branch
     # cut from it is expected to contain *none* of those edits — what this gate forbids is an
@@ -160,7 +160,7 @@ def test_app_py_keeps_its_registered_budget_against_the_base_revision() -> None:
     base = _base_revision()
     if base is None or _on_the_base_revision(base):
         pytest.skip("no base revision to compare against from this checkout")
-    numstat = _git("diff", "--numstat", base, "--", "ss/server/app.py").strip()
+    numstat = _git("diff", "--numstat", base, "--", "stealth_study/server/app.py").strip()
     # Either the mount and the G-06 guard are already in the base (the normal case for a new
     # feature branch), `app.py` carries exactly one of the registered patches, or nothing.
     assert numstat in {"", *APP_PY_PATCHES}
@@ -169,8 +169,8 @@ def test_app_py_keeps_its_registered_budget_against_the_base_revision() -> None:
 def test_create_app_serves_the_campus_health_endpoint_behind_the_sidecar_token(
     monkeypatch, tmp_path: Path
 ) -> None:
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     token = "t06-sidecar-token"
     monkeypatch.setenv("COWORKER_API_TOKEN", token)
@@ -186,8 +186,8 @@ def test_create_app_serves_the_campus_health_endpoint_behind_the_sidecar_token(
 def test_create_app_leaves_the_existing_endpoints_alone(
     monkeypatch, tmp_path: Path
 ) -> None:
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     token = "t06-sidecar-token"
     monkeypatch.setenv("COWORKER_API_TOKEN", token)
@@ -199,8 +199,8 @@ def test_create_app_leaves_the_existing_endpoints_alone(
 
 
 def test_create_app_fails_to_start_when_the_campus_database_is_newer(tmp_path: Path) -> None:
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     database = secrets.state_dir() / "campus.db"
     database.parent.mkdir(parents=True, exist_ok=True)
@@ -220,8 +220,8 @@ def test_create_app_fails_to_start_when_the_campus_database_is_newer(tmp_path: P
 
 
 def test_the_sidecar_entry_point_serves_the_campus_health_endpoint(tmp_path: Path) -> None:
-    from ss.config import load_config
-    from ss.server.run import build_app
+    from stealth_study.config import load_config
+    from stealth_study.server.run import build_app
 
     config = load_config()
     client = TestClient(build_app(str(tmp_path / "workspace"), config.model, config.mode))
@@ -236,8 +236,8 @@ def test_the_sidecar_entry_point_serves_the_campus_health_endpoint(tmp_path: Pat
 
 
 def test_the_campus_routes_are_published_in_the_openapi_schema(tmp_path: Path) -> None:
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     schema = create_app(SessionManager(data_dir=tmp_path / "data")).openapi()
     assert HEALTH_PATH in schema["paths"]

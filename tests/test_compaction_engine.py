@@ -4,17 +4,17 @@ session persistence round-trip. Scripted providers, tiny forced windows, no netw
 
 import asyncio
 
-from ss.engine import TurnEngine
-from ss.events import EventType
-from ss.permissions import PermissionEngine
-from ss.providers import (
+from stealth_study.engine import TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import PermissionEngine
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.providers.base import TokenUsage
-from ss.tools import ToolRegistry
+from stealth_study.providers.base import TokenUsage
+from stealth_study.tools import ToolRegistry
 
 SUMMARY = "## Primary request and intent\nkeep building the report"
 
@@ -205,7 +205,7 @@ def test_non_overflow_provider_errors_still_surface(tmp_path):
 
 
 def test_set_compaction_settings_validates_and_round_trips(tmp_path):
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     class Provider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):
@@ -231,8 +231,8 @@ def test_set_compaction_settings_validates_and_round_trips(tmp_path):
 
 
 def test_compaction_state_survives_save_and_rebuild(tmp_path):
-    from ss.compaction import CompactionState
-    from ss.server.manager import SessionManager
+    from stealth_study.compaction import CompactionState
+    from stealth_study.server.manager import SessionManager
 
     class Provider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):

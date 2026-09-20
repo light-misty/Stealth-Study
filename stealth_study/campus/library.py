@@ -1,7 +1,7 @@
 """`library.py` — campus 资料库：导入解析、按页切片、三级检索、QA 组装（06 §4/§5）。
 
 职责边界（06 §1）：只做资料导入、按页切片、三级检索与 QA 上下文组装；不做批改、
-不落批改结果、**不修改 `ss/pdf_support.py`**。pypdf **逐页**提取（06 §8-1：
+不落批改结果、**不修改 `stealth_study/pdf_support.py`**。pypdf **逐页**提取（06 §8-1：
 `extract_text()` 返回整本文本，页边界在 join 时不可靠，拿不到 `page_no`），与
 `pdf_support.py:117` 同款容错（`strict=False`、逐页 try/except、空文本合法）。
 

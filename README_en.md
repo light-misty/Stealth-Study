@@ -93,9 +93,9 @@ To run the full desktop app instead of the browser UI, replace step 3 with `npm 
 
 | Path | What's inside |
 |---|---|
-| `ss/` | Python backend — agent engine, model providers, connectors, MCP client, memory, automation |
-| `ss/personas/builtin/` | Study-partner personas — manifests plus their bundled `skills/` |
-| `ss/campus/` | Exam-station domain — grading engine, mistake book, review queue, plans |
+| `stealth_study/` | Python backend — agent engine, model providers, connectors, MCP client, memory, automation |
+| `stealth_study/personas/builtin/` | Study-partner personas — manifests plus their bundled `skills/` |
+| `stealth_study/campus/` | Exam-station domain — grading engine, mistake book, review queue, plans |
 | `surfaces/gui/` | Desktop app — React UI + Tauri shell hosting the server |
 | `surfaces/gui/src/campus/` | Exam-station frontend (CET / 考研 / certificates) |
 | `stt/` | Speech-to-text sidecar (Rust) |

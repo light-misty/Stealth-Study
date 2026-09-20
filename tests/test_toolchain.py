@@ -13,7 +13,7 @@ import sys
 
 import pytest
 
-from ss import toolchain
+from stealth_study import toolchain
 
 
 def _make_exe(path, body: str = "#!/bin/sh\necho hi\n"):

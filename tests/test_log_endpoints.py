@@ -6,13 +6,13 @@ import re
 
 from starlette.requests import Request
 
-from ss.logging_setup import setup_logging
+from stealth_study.logging_setup import setup_logging
 
 
 def _make_client(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.server import SessionManager, create_app
+    from stealth_study.server import SessionManager, create_app
 
     monkeypatch.setenv("COWORKER_API_TOKEN", "secret-token")
     monkeypatch.setenv("SS_LOG_DIR", str(tmp_path / "log"))
@@ -106,7 +106,7 @@ def test_response_carries_x_request_id(tmp_path, monkeypatch):
 
 
 def test_request_user_id_prefers_actor_header(tmp_path, monkeypatch):
-    from ss.server.app import _request_user_id
+    from stealth_study.server.app import _request_user_id
 
     req = Request(
         {
@@ -121,7 +121,7 @@ def test_request_user_id_prefers_actor_header(tmp_path, monkeypatch):
 
 
 def test_request_user_id_falls_back_to_profile_id(tmp_path, monkeypatch):
-    from ss.server.app import _request_user_id
+    from stealth_study.server.app import _request_user_id
 
     req = Request(
         {
@@ -136,7 +136,7 @@ def test_request_user_id_falls_back_to_profile_id(tmp_path, monkeypatch):
 
 
 def test_request_user_id_empty_without_identity(tmp_path, monkeypatch):
-    from ss.server.app import _request_user_id
+    from stealth_study.server.app import _request_user_id
 
     req = Request(
         {

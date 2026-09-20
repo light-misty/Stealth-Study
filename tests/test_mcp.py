@@ -14,11 +14,11 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.mcp import build_callables, load_mcp_servers, tool_name
-from ss.mcp.config import MCPServerDef
-from ss.secrets import SecretStore
-from ss.server.app import create_app
-from ss.server.manager import SessionManager
+from stealth_study.mcp import build_callables, load_mcp_servers, tool_name
+from stealth_study.mcp.config import MCPServerDef
+from stealth_study.secrets import SecretStore
+from stealth_study.server.app import create_app
+from stealth_study.server.manager import SessionManager
 
 
 def _write_json(path, data):
@@ -264,7 +264,7 @@ def test_rest_crud(tmp_path, monkeypatch):
 @pytest.mark.asyncio
 async def test_stdio_startup_crash_captures_stderr_tail(tmp_path, monkeypatch):
     """A stdio server that dies before initialize leaves its stderr tail behind."""
-    from ss.mcp.client import MCPManager
+    from stealth_study.mcp.client import MCPManager
 
     mgr = MCPManager()
     server = MCPServerDef(
@@ -433,7 +433,7 @@ async def test_verify_round_trips_a_live_connection_and_refreshes_tools():
     refresh the tool list."""
     from types import SimpleNamespace
 
-    from ss.mcp.client import MCPManager, _Conn
+    from stealth_study.mcp.client import MCPManager, _Conn
 
     mgr = MCPManager()
 
@@ -454,7 +454,7 @@ async def test_verify_round_trips_a_live_connection_and_refreshes_tools():
 async def test_verify_tears_down_a_dead_connection_and_reconnects():
     from types import SimpleNamespace
 
-    from ss.mcp.client import MCPManager, _Conn
+    from stealth_study.mcp.client import MCPManager, _Conn
 
     mgr = MCPManager()
 
@@ -483,10 +483,10 @@ def test_delete_mcp_shuts_down_connection_and_forgets_tokens(tmp_path):
     the OAuth token/DCR profile purged, not just the config entry deleted."""
     from types import SimpleNamespace
 
-    from ss.mcp import oauth as mcp_oauth
-    from ss.mcp.client import _Conn
-    from ss.mcp.config import put_global_server
-    from ss.server import SessionManager
+    from stealth_study.mcp import oauth as mcp_oauth
+    from stealth_study.mcp.client import _Conn
+    from stealth_study.mcp.config import put_global_server
+    from stealth_study.server import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path / "data")
     put_global_server("gone-srv", {"url": "https://x.example/mcp", "auth": "oauth"})
@@ -512,14 +512,14 @@ async def test_session_notice_fires_once_per_failure_episode(tmp_path, monkeypat
     Connectors page carries the standing error in between."""
     from types import SimpleNamespace
 
-    from ss.server import SessionManager
+    from stealth_study.server import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path / "data")
     server = SimpleNamespace(
         name="flaky", transport="stdio", url=None, auth=None, enabled=True, include_tools=None, exclude_tools=None, requires_approval=True
     )
     monkeypatch.setattr(
-        "ss.server.manager.load_mcp_servers", lambda *a, **k: [server]
+        "stealth_study.server.manager.load_mcp_servers", lambda *a, **k: [server]
     )
 
     fail_with: list[str] = ["boom one"]
@@ -564,13 +564,13 @@ async def test_notice_dedupe_survives_restart(tmp_path, monkeypatch):
         name="flaky", transport="stdio", url=None, auth=None, enabled=True, include_tools=None, exclude_tools=None, requires_approval=True
     )
     monkeypatch.setattr(
-        "ss.server.manager.load_mcp_servers", lambda *a, **k: [server]
+        "stealth_study.server.manager.load_mcp_servers", lambda *a, **k: [server]
     )
 
     async def ensure(s, **kw):
         raise RuntimeError("same boom")
 
-    from ss.server import SessionManager
+    from stealth_study.server import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path / "data")
     monkeypatch.setattr(mgr.mcp, "ensure", ensure)
@@ -592,13 +592,13 @@ async def test_notice_dedupe_ignores_per_process_noise(tmp_path, monkeypatch):
     2026-08-21: a botocore error with a 0x… address re-noticed on every restart)."""
     from types import SimpleNamespace
 
-    from ss.server import SessionManager
+    from stealth_study.server import SessionManager
 
     server = SimpleNamespace(
         name="flaky", transport="stdio", url=None, auth=None, enabled=True, include_tools=None, exclude_tools=None, requires_approval=True
     )
     monkeypatch.setattr(
-        "ss.server.manager.load_mcp_servers", lambda *a, **k: [server]
+        "stealth_study.server.manager.load_mcp_servers", lambda *a, **k: [server]
     )
 
     errors = ["credential process <function f at 0x102ab40f0> pid 84121"]

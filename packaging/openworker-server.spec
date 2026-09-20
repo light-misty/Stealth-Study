@@ -3,9 +3,9 @@
 
 One-DIR bundle (exe + `_internal/` support folder) shipped via Tauri's `resources` slot.
 It used to be a onefile binary in the externalBin slot, but onefile self-extracts its whole
-archive to a temp dir on EVERY launch — 6-7s of "Starting ss…" splash (measured; the
+archive to a temp dir on EVERY launch — 6-7s of "Starting Stealth Study…" splash (measured; the
 actual Python import is ~0.5s). The wrinkles handled here:
-  - aisuite is a regular pip dependency (git-pinned in pyproject.toml); collect ss +
+  - aisuite is a regular pip dependency (git-pinned in pyproject.toml); collect stealth_study +
     aisuite submodules from the venv.
   - uvicorn loads its protocol/lifespan impls dynamically → collect_all.
   - certifi's CA bundle must ship for TLS (OpenAI, web search, Telegram/Slack).
@@ -34,14 +34,14 @@ IS_WINDOWS = sys.platform == "win32"
 
 # Experimental (use-at-your-own-risk) connectors are excluded from official builds: the code
 # is stripped, not just disabled. Self-builders opt in with COWORKER_EXPERIMENTAL=1; the
-# loader in ss/connectors/descriptors.py treats the missing package as a no-op.
+# loader in stealth_study/connectors/descriptors.py treats the missing package as a no-op.
 INCLUDE_EXPERIMENTAL = os.environ.get("COWORKER_EXPERIMENTAL") == "1"
 
 hiddenimports = []
 datas = []
 binaries = []
 
-for pkg in ("ss", "aisuite", "mcp", "ddgs", "croniter", "docstring_parser"):
+for pkg in ("stealth_study", "aisuite", "mcp", "ddgs", "croniter", "docstring_parser"):
     hiddenimports += collect_submodules(pkg)
 
 # Builtin personas ship as DATA, not code: personas/builtin/<id>/manifest.md plus their
@@ -50,11 +50,11 @@ for pkg in ("ss", "aisuite", "mcp", "ddgs", "croniter", "docstring_parser"):
 # persona-scoped skill silently disappears. (pyproject's package-data covers pip installs;
 # PyInstaller needs its own instruction.) Keep this even if the persona set changes — it
 # collects whatever non-.py files the package carries.
-datas += collect_data_files("ss")
+datas += collect_data_files("stealth_study")
 
 if not INCLUDE_EXPERIMENTAL:
     hiddenimports = [
-        m for m in hiddenimports if not m.startswith("ss.connectors.experimental")
+        m for m in hiddenimports if not m.startswith("stealth_study.connectors.experimental")
     ]
 
 # `websockets` powers the managed Slack relay client (relay_client.py). It is
@@ -104,7 +104,7 @@ a = Analysis(
     hookspath=[],
     runtime_hooks=[],
     excludes=["tkinter", "matplotlib", "PIL", "PyQt5", "PySide6"]
-    + ([] if INCLUDE_EXPERIMENTAL else ["ss.connectors.experimental"]),
+    + ([] if INCLUDE_EXPERIMENTAL else ["stealth_study.connectors.experimental"]),
     noarchive=False,
 )
 pyz = PYZ(a.pure)

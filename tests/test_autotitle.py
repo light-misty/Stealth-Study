@@ -10,8 +10,8 @@ from __future__ import annotations
 import asyncio
 import time
 
-from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
-from ss.server.manager import SessionManager
+from stealth_study.providers import AssistantTurn, ModelCapabilities, ProviderClient
+from stealth_study.server.manager import SessionManager
 
 
 class TitleAwareProvider(ProviderClient):

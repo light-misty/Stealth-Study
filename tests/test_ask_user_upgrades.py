@@ -6,10 +6,10 @@ untouched by all of it."""
 import asyncio
 import json
 
-from ss.inbox import InboxItem, InboxStore
-from ss.interactions import buttons_for, decode
-from ss.server.manager import SessionManager
-from ss.tools.ask import (
+from stealth_study.inbox import InboxItem, InboxStore
+from stealth_study.interactions import buttons_for, decode
+from stealth_study.server.manager import SessionManager
+from stealth_study.tools.ask import (
     MAX_GROUPED_QUESTIONS,
     SKIP_NOTE,
     SKIP_SENTINEL,

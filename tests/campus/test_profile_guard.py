@@ -27,8 +27,8 @@ import pytest
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
 
 ACTIVE_ID = "profile-active"
 FINISHED_ID = "profile-finished"

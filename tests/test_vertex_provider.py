@@ -6,9 +6,9 @@ from typing import Any, Optional
 
 import pytest
 
-from ss.providers import capabilities_for
-from ss.providers.base import AssistantTurn, ProviderClient, StreamChunk
-from ss.providers.vertex_provider import VertexProvider, load_credentials
+from stealth_study.providers import capabilities_for
+from stealth_study.providers.base import AssistantTurn, ProviderClient, StreamChunk
+from stealth_study.providers.vertex_provider import VertexProvider, load_credentials
 
 # -- family dispatch ----------------------------------------------------------------
 
@@ -148,7 +148,7 @@ def test_vertex_capabilities_from_matrix_and_fallback():
 
 
 def test_vertex_descriptor_and_builder():
-    from ss.providers.registry import build_provider_client, get_descriptor
+    from stealth_study.providers.registry import build_provider_client, get_descriptor
 
     d = get_descriptor("vertex")
     assert d is not None and d.needs_key
@@ -172,7 +172,7 @@ def test_vertex_descriptor_and_builder():
     assert by_key["vertex_api_key"].show_when == {"auth_method": "api_key"}
     assert by_key["service_account_json"].secret and by_key["vertex_api_key"].secret
 
-    from ss.providers.matrix import models_for_provider
+    from stealth_study.providers.matrix import models_for_provider
 
     assert d.recommended_model in models_for_provider("vertex")
 
@@ -231,7 +231,7 @@ def test_api_key_method_builds_express_gemini_client(monkeypatch):
         project="proj", location="us-east5", auth_method="api_key", api_key="AQ.k"
     )
     sub = p._family_client("gemini")
-    from ss.providers import GeminiProvider
+    from stealth_study.providers import GeminiProvider
 
     assert isinstance(sub, GeminiProvider)
     assert captured == {"vertexai": True, "api_key": "AQ.k"}
@@ -240,7 +240,7 @@ def test_api_key_method_builds_express_gemini_client(monkeypatch):
 def test_verify_vertex_api_key_method(monkeypatch):
     import httpx
 
-    from ss.providers.registry import verify_provider_key
+    from stealth_study.providers.registry import verify_provider_key
 
     out = verify_provider_key(
         "vertex",
@@ -279,7 +279,7 @@ def test_verify_vertex_api_key_method(monkeypatch):
 
 
 def test_verify_vertex_service_account_requires_json():
-    from ss.providers.registry import verify_provider_key
+    from stealth_study.providers.registry import verify_provider_key
 
     out = verify_provider_key(
         "vertex",
@@ -289,7 +289,7 @@ def test_verify_vertex_service_account_requires_json():
 
 
 def test_vertex_configured_needs_project_and_location():
-    from ss.providers.registry import descriptor_configured, get_descriptor
+    from stealth_study.providers.registry import descriptor_configured, get_descriptor
 
     d = get_descriptor("vertex")
     assert not descriptor_configured(d, {})
@@ -298,7 +298,7 @@ def test_vertex_configured_needs_project_and_location():
 
 
 def test_router_routes_vertex_ids():
-    from ss.providers.router import ProviderRouter
+    from stealth_study.providers.router import ProviderRouter
 
     router = ProviderRouter.__new__(ProviderRouter)
     model = "vertex:openweight/meta/llama-4-maverick-17b-128e-instruct-maas"
@@ -314,7 +314,7 @@ def test_router_routes_vertex_ids():
 def _patch_verify(monkeypatch, creds: Any, status_code: Optional[int]):
     import httpx
 
-    import ss.providers.vertex_provider as vp
+    import stealth_study.providers.vertex_provider as vp
 
     monkeypatch.setattr(vp, "load_credentials", lambda raw: creds)
     captured: dict = {}
@@ -335,7 +335,7 @@ def _patch_verify(monkeypatch, creds: Any, status_code: Optional[int]):
 
 
 def test_verify_vertex_ok(monkeypatch):
-    from ss.providers.registry import verify_provider_key
+    from stealth_study.providers.registry import verify_provider_key
 
     creds = _FakeCreds()
     captured = _patch_verify(monkeypatch, creds, 200)
@@ -350,7 +350,7 @@ def test_verify_vertex_ok(monkeypatch):
 
 
 def test_verify_vertex_maps_permission_errors(monkeypatch):
-    from ss.providers.registry import verify_provider_key
+    from stealth_study.providers.registry import verify_provider_key
 
     _patch_verify(monkeypatch, _FakeCreds(), 403)
     out = verify_provider_key(

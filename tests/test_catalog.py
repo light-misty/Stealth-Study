@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import pytest
 
-from ss.agents.base import AgentContext
-from ss.agents.code import CODE_CAPABILITIES, code_agent
-from ss.agents.cowork import COWORK_CAPABILITIES, cowork_agent
-from ss.catalog import CATALOG, capability, expand, risk_summary
-from ss.risk import RiskClass
-from ss.tools.todo import TodoList
+from stealth_study.agents.base import AgentContext
+from stealth_study.agents.code import CODE_CAPABILITIES, code_agent
+from stealth_study.agents.cowork import COWORK_CAPABILITIES, cowork_agent
+from stealth_study.catalog import CATALOG, capability, expand, risk_summary
+from stealth_study.risk import RiskClass
+from stealth_study.tools.todo import TodoList
 
 # Expected toolset for each surface — the frozen equivalence contract for the refactor.
 CODE_TOOLS = {

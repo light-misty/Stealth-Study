@@ -21,7 +21,7 @@
   Authenticode signing is a later step.
 
   Experimental (use-at-your-own-risk) connectors are EXCLUDED from this build by default —
-  the spec strips ss.connectors.experimental. Self-builders can opt in with:
+  the spec strips stealth_study.connectors.experimental. Self-builders can opt in with:
     $env:COWORKER_EXPERIMENTAL = "1"; .\build_windows.ps1
 #>
 [CmdletBinding()]

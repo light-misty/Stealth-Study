@@ -8,11 +8,11 @@ NEVER cover send_file.
 
 from pathlib import Path
 
-from ss.connectors.base import SendResult
-from ss.connectors.tools import make_send_file_tool
-from ss.permissions import Mode, PermissionEngine
-from ss.roots import RootDir
-from ss.secrets import SecretStore
+from stealth_study.connectors.base import SendResult
+from stealth_study.connectors.tools import make_send_file_tool
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.roots import RootDir
+from stealth_study.secrets import SecretStore
 
 
 def _secrets(tmp_path, token="xoxb-1") -> SecretStore:
@@ -139,7 +139,7 @@ def test_thread_send_message_grant_never_covers_send_file(tmp_path):
     target = "slack:T1/C9:1700.1"
     engine.task_rules.setdefault("send_message", set()).add(target)
 
-    from ss.connectors.tools import make_send_file_tool, make_send_message_tool
+    from stealth_study.connectors.tools import make_send_file_tool, make_send_message_tool
 
     msg_meta = make_send_message_tool(_secrets(tmp_path)).__aisuite_tool_metadata__
     file_meta = make_send_file_tool(

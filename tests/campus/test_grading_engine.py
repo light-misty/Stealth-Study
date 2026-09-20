@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ss.campus.grading import (
+from stealth_study.campus.grading import (
     CALL_BUDGET,
     DEGRADE_NOTICE,
     PROVIDER_TIMEOUT_S,
@@ -240,7 +240,7 @@ async def test_grade_unknown_kind_falls_back_by_rubric_id_request_shape() -> Non
 
 
 async def test_default_start_level_constant_is_zero() -> None:
-    from ss.campus.grading import DEFAULT_GRADING_START_LEVEL
+    from stealth_study.campus.grading import DEFAULT_GRADING_START_LEVEL
 
     assert DEFAULT_GRADING_START_LEVEL == 0
     engine = GradingEngine(FakeProvider({1: valid_essay()}), picker)

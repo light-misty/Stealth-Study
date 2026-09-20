@@ -13,14 +13,14 @@ import urllib.parse
 
 import pytest
 
-from ss import cloud
-from ss.config import Config
-from ss.connectors.setup import (
+from stealth_study import cloud
+from stealth_study.config import Config
+from stealth_study.connectors.setup import (
     connect_connector,
     connector_list,
     managed_connect_connector,
 )
-from ss.secrets import SecretStore
+from stealth_study.secrets import SecretStore
 
 
 @pytest.fixture
@@ -223,7 +223,7 @@ def test_every_managed_connector_has_a_provider_mapping():
     """A managed=True descriptor without a PROVIDER_FOR_CONNECTOR entry ships a
     dead one-click button ("X has no managed OAuth path") — outlook did exactly
     that. Wire the map in the same change that flips a connector to managed."""
-    from ss.connectors.descriptors import DESCRIPTORS
+    from stealth_study.connectors.descriptors import DESCRIPTORS
 
     managed = {d.name for d in DESCRIPTORS if d.managed}
     unmapped = managed - set(cloud.PROVIDER_FOR_CONNECTOR)

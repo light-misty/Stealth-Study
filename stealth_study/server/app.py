@@ -2620,7 +2620,7 @@ def create_app(manager: SessionManager) -> FastAPI:
         if engine.permissions.mode is Mode.AUTO_APPROVE and not any(
             m.get("kind") == "mode_notice" for m in engine.messages
         ):
-            from ss.permissions import AUTO_APPROVE_NOTICE
+            from stealth_study.permissions import AUTO_APPROVE_NOTICE
 
             engine._append_notice(
                 "mode_notice", AUTO_APPROVE_NOTICE, title="Auto-approve is on."
@@ -2756,7 +2756,7 @@ def create_app(manager: SessionManager) -> FastAPI:
                             # session enters Auto-Approve, a one-line marker otherwise.
                             # Server-authored + persisted, so reloads show it in place
                             # exactly once instead of re-announcing on every restart.
-                            from ss.permissions import (
+                            from stealth_study.permissions import (
                                 AUTO_APPROVE_NOTICE,
                                 MODE_LABELS,
                             )

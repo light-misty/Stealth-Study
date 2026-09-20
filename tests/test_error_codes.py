@@ -16,7 +16,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from ss.errors import (
+from stealth_study.errors import (
     CODES,
     UNCLASSIFIED,
     CodedValueError,
@@ -246,7 +246,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 
 
 def _subsystem_codes() -> set[str]:
-    """代码里真写出来的代号。扫整棵 `ss/` 树，新增站点自动进登记表，不必再维护文件清单。"""
+    """代码里真写出来的代号。扫整棵 `stealth_study/` 树，新增站点自动进登记表，不必再维护文件清单。"""
     found: set[str] = set()
     for path in sorted((_ROOT / "ss").rglob("*.py")):
         for groups in _CODE_LITERALS.findall(path.read_text(encoding="utf-8")):

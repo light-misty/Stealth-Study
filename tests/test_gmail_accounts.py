@@ -14,10 +14,10 @@ import time
 
 import pytest
 
-from ss.connectors import gmail_accounts
-from ss.connectors.integration_tools import make_integration_tools
-from ss.connectors.setup import connector_list, disconnect_connector
-from ss.secrets import SecretStore
+from stealth_study.connectors import gmail_accounts
+from stealth_study.connectors.integration_tools import make_integration_tools
+from stealth_study.connectors.setup import connector_list, disconnect_connector
+from stealth_study.secrets import SecretStore
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ def test_full_disconnect_drops_every_account(secrets):
 
 def _fake_gmail(monkeypatch, responses: dict[str, dict]):
     """Route _request by URL suffix; records the bearer token used."""
-    from ss.connectors import integration_tools
+    from stealth_study.connectors import integration_tools
 
     calls: list[tuple[str, str]] = []
 
@@ -266,7 +266,7 @@ def test_sender_rule_matching():
 
 
 def test_account_profile_refreshes_in_place(secrets, monkeypatch):
-    from ss import cloud
+    from stealth_study import cloud
 
     secrets.put(
         cloud.CLOUD_AUTH_PROFILE, {"access_token": "jwt", "expires": time.time() + 3600}
