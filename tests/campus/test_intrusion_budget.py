@@ -193,6 +193,18 @@ REGISTERED_PATCH: set[str] = {
     "stt/src/lib.rs",
     "surfaces/gui/scripts/tauri-dev.mjs",
     "surfaces/gui/src/theme.ts",
+    # CLI/域名统一：spec 更名、e2e-live 提示、mock 邮箱、GUI README 与更新端点。
+    "packaging/make_update_manifest.py",
+    "packaging/stealthstudy-server.spec",
+    "surfaces/gui/README.md",
+    "surfaces/gui/e2e-live/approval.spec.ts",
+    "surfaces/gui/e2e-live/fib.spec.ts",
+    "surfaces/gui/e2e-live/inbox.spec.ts",
+    "surfaces/gui/e2e-live/persistence.spec.ts",
+    "surfaces/gui/e2e-live/persona-install.spec.ts",
+    "surfaces/gui/e2e/cloud.spec.ts",
+    "surfaces/gui/e2e/project-bindings.spec.ts",
+    "surfaces/gui/src-tauri/tauri.conf.json",
 }
 
 # Design mockups: neither shipped nor compiled, and the whole redesign workflow lives in there.

@@ -99,7 +99,7 @@ HIU-WorkSpace/
 ├── assets/                     # 静态资源
 ├── stealth_study/                   # Python 后端核心包
 │   ├── __init__.py
-│   ├── cli.py                  # CLI 入口 (openworker TUI)
+│   ├── cli.py                  # CLI 入口 (stealthstudy TUI)
 │   ├── config.py               # 配置管理 (分层 TOML)
 │   ├── engine.py               # 代理引擎 (TurnEngine)
 │   ├── permissions.py          # 权限引擎
@@ -140,7 +140,7 @@ HIU-WorkSpace/
 │   ├── testing/                # 测试辅助 (fake_slack)
 │   └── server/                 # HTTP 服务器 (FastAPI)
 │       ├── app.py
-│       └── run.py              # 入口: openworker-server
+│       └── run.py              # 入口: stealthstudy-server
 ├── surfaces/gui/               # 桌面 GUI 应用
 │   ├── src/                    # React 前端源码
 │   │   ├── App.tsx
@@ -173,7 +173,7 @@ HIU-WorkSpace/
 │   ├── build_windows.ps1       # Windows MSI/NSIS 构建
 │   ├── setup_dev_env.sh        # 开发环境初始化
 │   ├── make_update_manifest.py # 更新 manifest 生成
-│   ├── openworker-server.spec  # PyInstaller spec
+│   ├── stealthstudy-server.spec  # PyInstaller spec
 │   ├── server_entry.py         # 服务器入口
 │   └── dmg-background.*        # DMG 背景图资源
 ├── scripts/                    # 辅助脚本
@@ -206,10 +206,10 @@ bash packaging/setup_dev_env.sh
 pytest tests -q
 
 # 启动本地代理服务器
-.venv\Scripts\openworker-server --cwd <项目路径> --port 8765
+.venv\Scripts\stealthstudy-server --cwd <项目路径> --port 8765
 
 # 启动 TUI
-.venv\Scripts\openworker
+.venv\Scripts\stealthstudy
 ```
 
 ### 前端 (GUI)
@@ -342,9 +342,9 @@ Jobs:
 
 | 命令 | 入口 | 用途 |
 |------|------|------|
-| `openworker` | `stealth_study.cli:main` | TUI 启动 (默认 code skill) |
-| `openworker-server` | `stealth_study.server.run:main` | HTTP 服务器启动 |
-| `openworker-connectors` | `stealth_study.connectors.cli:main` | 连接器管理 CLI |
+| `stealthstudy` | `stealth_study.cli:main` | TUI 启动 (默认 code skill) |
+| `stealthstudy-server` | `stealth_study.server.run:main` | HTTP 服务器启动 |
+| `stealthstudy-connectors` | `stealth_study.connectors.cli:main` | 连接器管理 CLI |
 | `ocw` | `stealth_study.teams.cli:main` | Teams 功能 (board, journal, MCP) |
 
 ## 安全与治理

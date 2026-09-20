@@ -144,5 +144,5 @@ def test_cloud_endpoints_default_to_production():
     from stealth_study.config import Config
 
     cfg = Config()
-    assert cfg.cloud_base_url == "https://api.openworker.com"
+    assert cfg.cloud_base_url == "https://api.stealthstudy.com"
     assert cfg.cloud_relay_ws_url.startswith("wss://")

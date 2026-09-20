@@ -409,7 +409,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
   // driving the real create-path (campus-profile-create-*), mirroring a first-run user.
   //
   // Every shape below mirrors the REAL `/v1/campus/*` responses (verified against a live
-  // `openworker-server`, see the campus contract probe in `docs/dev/交付文档/`): A2/A3 return a
+  // `stealthstudy-server`, see the campus contract probe in `docs/dev/交付文档/`): A2/A3 return a
   // bare `ExamProfile` (not `{profile}`), the list endpoints answer `{items}` (not `{docs}`),
   // H1 answers `{roots}`, D5/H10 answer `{items}`/`{banner}`, and A8 carries `current_model` +
   // `tasks[]` (the shape EmptyModelGuide reads). Fabricating a shape the backend never sends is
@@ -686,7 +686,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
   const projectBindings: Record<string, string> = {};
   const projectNames: Record<string, { name: string; key: string }[]> = {
     memory: [
-      { name: "openworker", key: "/k/openworker" },
+      { name: "stealthstudy", key: "/k/stealthstudy" },
       { name: "personal-ops", key: "/k/ops" },
     ],
     board: [{ name: "aicreator-ops", key: "/k/aico" }],
@@ -1995,7 +1995,7 @@ export async function mockApi(page: import("@playwright/test").Page) {
       });
     if (p.endsWith("/v1/cloud/status")) return json({ ...CLOUD_STATE });
     if (p.endsWith("/v1/cloud/login") && m === "POST") {
-      Object.assign(CLOUD_STATE, { signed_in: true, account: "rohit@openworker.com", user_id: "usr_e2e" });
+      Object.assign(CLOUD_STATE, { signed_in: true, account: "rohit@stealthstudy.com", user_id: "usr_e2e" });
       return json({ ok: true });
     }
     if (p.endsWith("/v1/cloud/telemetry") && m === "POST") {
@@ -2054,8 +2054,8 @@ export async function mockApi(page: import("@playwright/test").Page) {
       // Outlook managed connect = add the next mailbox (email-keyed accounts).
       if (p.includes("/connectors/outlook/")) {
         outlookState.accounts.push({
-          account_id: `mbx${outlookState.accounts.length + 1}@openworker.com`,
-          name: `mbx${outlookState.accounts.length + 1}@openworker.com`,
+          account_id: `mbx${outlookState.accounts.length + 1}@stealthstudy.com`,
+          name: `mbx${outlookState.accounts.length + 1}@stealthstudy.com`,
           default: outlookState.accounts.length === 0,
           managed: true,
         });

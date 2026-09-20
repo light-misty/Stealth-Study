@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-// LIVE campus integration — the real browser against a real `openworker-server`, no route mocks.
+// LIVE campus integration — the real browser against a real `stealthstudy-server`, no route mocks.
 //
 // This is the layer the hermetic suite in `e2e/` cannot provide: it catches the whole class of
 // defect where the frontend calls an endpoint the backend does not answer (missing route, missing

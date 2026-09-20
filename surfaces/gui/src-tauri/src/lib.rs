@@ -172,13 +172,13 @@ struct ServerLaunch {
 }
 
 fn server_exe_names() -> &'static [&'static str] {
-    // 服务器产物在仓库中以 `openworker-server` 为准（pyproject 入口、PyInstaller spec 与
-    // 打包脚本均如此）；`ss-server` 为旧构建遗留名，已替换为新名；同时接受两种名字，
+    // 服务器产物在仓库中以 `stealthstudy-server` 为准（pyproject 入口、PyInstaller spec 与
+    // 打包脚本均如此）；旧构建曾用 `ss-server`/`openworker-server`，现在同时接受新旧两种名字，
     // 才能保证 dev 环境与生产安装包都能命中 sidecar。
     if cfg!(windows) {
-        &["openworker-server.exe", "stealth-study-server.exe"]
+        &["stealthstudy-server.exe", "openworker-server.exe"]
     } else {
-        &["openworker-server", "stealth-study-server"]
+        &["stealthstudy-server", "openworker-server"]
     }
 }
 
@@ -234,7 +234,7 @@ fn dev_server_from(trees: &[PathBuf]) -> Option<(PathBuf, Option<PathBuf>)> {
 ///   2. The bundled onedir sidecar shipped via Tauri `resources` (production): the
 ///      `sidecar/` folder lands in Contents/Resources on macOS and in the install dir
 ///      (next to the app exe) on Windows.
-///   3. Legacy onefile slot: `openworker-server[.exe]` next to the app binary (pre-onedir
+///   3. Legacy onefile slot: `stealthstudy-server[.exe]` next to the app binary (pre-onedir
 ///      builds used Tauri externalBin).
 ///   4. Dev fallback: the repo venv — this tree first, then the primary checkout of the
 ///      same clone (`git worktree` checkouts have no venv of their own).
@@ -349,15 +349,15 @@ fn desktop_prefs_path() -> PathBuf {
     state_dir().join("desktop.json")
 }
 
-/// The sidecar's log file: `<state_dir>/logs/stealth-study-server.log`, fresh per
+/// The sidecar's log file: `<state_dir>/logs/stealthstudy-server.log`, fresh per
 /// launch with the previous run kept as `.old`. None (→ /dev/null) only if the
 /// directory can't be created — logging must never block startup.
 fn server_log_file() -> Option<std::fs::File> {
     let dir = state_dir().join("logs");
     std::fs::create_dir_all(&dir).ok()?;
-    let path = dir.join("stealth-study-server.log");
+    let path = dir.join("stealthstudy-server.log");
     if path.exists() {
-        let _ = std::fs::rename(&path, dir.join("stealth-study-server.log.old"));
+        let _ = std::fs::rename(&path, dir.join("stealthstudy-server.log.old"));
     }
     std::fs::File::create(&path).ok()
 }
@@ -545,7 +545,7 @@ fn set_tray_labels(
 // else — no global plugin JS): check, background pre-download, install. Update
 // artifacts are minisign-verified against the pubkey in tauri.conf.json before
 // anything is installed; the manifest lives at the endpoints configured there
-// (download.openworker.com → GitHub Releases).
+// (download.stealthstudy.com → GitHub Releases).
 
 #[derive(serde::Serialize)]
 struct UpdateInfo {
@@ -631,7 +631,7 @@ async fn install_update(
     }
     // Windows never reaches here (the NSIS installer takes over and relaunches).
     // macOS: the .app was swapped in place — restart into the new version. The tray
-    // Exit path's sidecar kill runs via RunEvent, so no orphaned openworker-server.
+    // Exit path's sidecar kill runs via RunEvent, so no orphaned stealthstudy-server.
     app.restart();
 }
 
@@ -926,8 +926,8 @@ mod tests {
         let base = scratch_tree("venvs");
         let own = base.join("own");
         let main = base.join("main");
-        touch_venv_server(&own, "openworker-server");
-        touch_venv_server(&main, "openworker-server");
+        touch_venv_server(&own, "stealthstudy-server");
+        touch_venv_server(&main, "stealthstudy-server");
 
         let (bin, pinned) = dev_server_from(&[own.clone(), main.clone()]).expect("both trees");
         assert!(bin.starts_with(&own), "{bin:?} must come from the own tree");

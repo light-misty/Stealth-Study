@@ -106,7 +106,7 @@ def test_http_status_exceptions_map_to_codes(status: int, expected: str) -> None
 
 
 def test_spawn_context_distinguishes_a_missing_executable() -> None:
-    exc = FileNotFoundError(errno.ENOENT, "No such file or directory: 'openworker-server'")
+    exc = FileNotFoundError(errno.ENOENT, "No such file or directory: 'stealthstudy-server'")
     assert error_code(exc) == "PATH_NOT_FOUND"
     assert error_code(exc, context="spawn") == "EXECUTABLE_NOT_FOUND"
 

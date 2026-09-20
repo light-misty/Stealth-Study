@@ -74,8 +74,8 @@ cd Stealth-Study
 bash packaging/setup_dev_env.sh
 
 # 2. Start the local agent server
-.venv/bin/openworker-server --cwd ~/project --port 8765
-#    (Windows: .venv\Scripts\openworker-server.exe)
+.venv/bin/stealthstudy-server --cwd ~/project --port 8765
+#    (Windows: .venv\Scripts\stealthstudy-server.exe)
 
 # 3. In a second terminal, start the UI
 cd surfaces/gui

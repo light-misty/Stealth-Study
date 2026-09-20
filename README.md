@@ -74,8 +74,8 @@ cd Stealth-Study
 bash packaging/setup_dev_env.sh
 
 # 2. 启动本地代理服务器
-.venv/bin/openworker-server --cwd ~/project --port 8765
-#    （Windows: .venv\Scripts\openworker-server.exe）
+.venv/bin/stealthstudy-server --cwd ~/project --port 8765
+#    （Windows: .venv\Scripts\stealthstudy-server.exe）
 
 # 3. 在第二个终端中启动 UI
 cd surfaces/gui

@@ -1,7 +1,7 @@
 """PyInstaller entry point for the bundled desktop sidecar server.
 
 Thin wrapper so PyInstaller has a concrete script to analyze (the console_script
-`openworker-server` is generated metadata, not a file). Runs the same `main()`.
+`stealthstudy-server` is generated metadata, not a file). Runs the same `main()`.
 """
 
 from stealth_study.server.run import main
