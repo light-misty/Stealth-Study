@@ -3431,7 +3431,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ss-desktop"
+name = "stealth-study-desktop"
 version = "0.1.0"
 dependencies = [
  "serde",

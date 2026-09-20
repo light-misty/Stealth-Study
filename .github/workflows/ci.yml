@@ -1,4 +1,4 @@
-# App CI — the ss Python suite, the GUI unit tests, and the hermetic
+# App CI — the stealth_study Python suite, the GUI unit tests, and the hermetic
 # Playwright e2e suite (mocked /v1 + WS; no model or network needed).
 #
 # 仅支持 Windows 平台；macOS/Linux CI 已禁用（保留代码，不运行）。

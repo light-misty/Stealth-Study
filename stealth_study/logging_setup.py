@@ -180,7 +180,7 @@ def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") ->
         log_dir = Path(env("STEALTH_STUDY_LOG_DIR") or Path(project_root) / "log")
         log_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
-        log_dir = Path(tempfile.gettempdir()) / "ss-log"
+        log_dir = Path(tempfile.gettempdir()) / "stealth-study-log"
         log_dir.mkdir(parents=True, exist_ok=True)
 
     try:

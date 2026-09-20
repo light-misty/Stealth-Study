@@ -102,7 +102,7 @@ def download(url: str, dest: pathlib.Path, retries: int = 3) -> None:
     last = None
     for _ in range(retries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "ss-spike-corpus"})
+            req = urllib.request.Request(url, headers={"User-Agent": "stealth-study-spike-corpus"})
             with urllib.request.urlopen(req, timeout=240) as resp, open(dest, "wb") as fh:
                 while True:
                     block = resp.read(1 << 20)

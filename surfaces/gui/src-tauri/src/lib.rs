@@ -1,7 +1,7 @@
 //! Stealth Study desktop shell.
 //!
 //! Tauri is a thin native window over the existing React SPA. It:
-//!   1. picks a free localhost port and starts the Python `ss-server` as a managed
+//!   1. picks a free localhost port and starts the Python sidecar as a managed
 //!      sidecar on that port (so it never clashes with a hand-run server on 8765);
 //!   2. injects the sidecar HTTP/WS addresses and per-launch authentication token before the
 //!      SPA loads (single codebase — the browser build still hits 8765);
@@ -165,7 +165,7 @@ fn sidecar_env() -> std::collections::HashMap<String, String> {
     std::collections::HashMap::new()
 }
 
-/// What the shell launches as the sidecar, plus the tree whose `ss` source it must run.
+/// What the shell launches as the sidecar, plus the tree whose `stealth_study` source it must run.
 struct ServerLaunch {
     bin: PathBuf,
     python_path: Option<PathBuf>,
@@ -173,12 +173,12 @@ struct ServerLaunch {
 
 fn server_exe_names() -> &'static [&'static str] {
     // 服务器产物在仓库中以 `openworker-server` 为准（pyproject 入口、PyInstaller spec 与
-    // 打包脚本均如此）；仅极少数旧构建/旧 venv 残留 `ss-server`。同时接受两种名字，
+    // 打包脚本均如此）；`ss-server` 为旧构建遗留名，已替换为新名；同时接受两种名字，
     // 才能保证 dev 环境与生产安装包都能命中 sidecar。
     if cfg!(windows) {
-        &["ss-server.exe", "openworker-server.exe"]
+        &["openworker-server.exe", "stealth-study-server.exe"]
     } else {
-        &["ss-server", "openworker-server"]
+        &["openworker-server", "stealth-study-server"]
     }
 }
 
@@ -216,7 +216,7 @@ fn venv_scripts_dir(tree: &Path) -> PathBuf {
 /// gitignored `.venv` that `packaging/setup_dev_env.sh` writes usually exists in one tree per
 /// clone. The first tree holding a console script wins; when that is not the running tree, the
 /// running tree's root comes back as the PYTHONPATH value, because a venv's editable install
-/// otherwise pins its own checkout's `ss` package.
+/// otherwise pins its own checkout's `stealth_study` package.
 fn dev_server_from(trees: &[PathBuf]) -> Option<(PathBuf, Option<PathBuf>)> {
     for (index, tree) in trees.iter().enumerate() {
         for name in server_exe_names() {
@@ -349,15 +349,15 @@ fn desktop_prefs_path() -> PathBuf {
     state_dir().join("desktop.json")
 }
 
-/// The sidecar's log file: `<state_dir>/logs/ss-server.log`, fresh per
+/// The sidecar's log file: `<state_dir>/logs/stealth-study-server.log`, fresh per
 /// launch with the previous run kept as `.old`. None (→ /dev/null) only if the
 /// directory can't be created — logging must never block startup.
 fn server_log_file() -> Option<std::fs::File> {
     let dir = state_dir().join("logs");
     std::fs::create_dir_all(&dir).ok()?;
-    let path = dir.join("ss-server.log");
+    let path = dir.join("stealth-study-server.log");
     if path.exists() {
-        let _ = std::fs::rename(&path, dir.join("ss-server.log.old"));
+        let _ = std::fs::rename(&path, dir.join("stealth-study-server.log.old"));
     }
     std::fs::File::create(&path).ok()
 }
@@ -719,7 +719,7 @@ pub fn run() {
                 server_cmd.env("STEALTH_STUDY_LOG_DIR", log_dir);
             }
             // Sidecar came from another checkout's venv (this worktree has none): its editable
-            // install would import THAT tree's `ss`, so pin this tree's source instead.
+            // install would import THAT tree's `stealth_study`, so pin this tree's source instead.
             if let Some(source_tree) = launch.python_path.as_deref() {
                 if let Some(python_path) = python_path_with(source_tree) {
                     server_cmd.env("PYTHONPATH", python_path);
@@ -735,10 +735,10 @@ pub fn run() {
             let child = match server_cmd.spawn() {
                 Ok(child) => Some(child),
                 Err(e) => {
-                    eprintln!("[ss] failed to start server sidecar {:?}: {e}", launch.bin);
+                    eprintln!("[stealth-study] failed to start server sidecar {:?}: {e}", launch.bin);
                     if !launch.bin.exists() {
                         eprintln!(
-                            "[ss] no dev venv in this tree or its main checkout — run \
+                            "[stealth-study] no dev venv in this tree or its main checkout — run \
                              `bash packaging/setup_dev_env.sh` there, or set COWORKER_SERVER_BIN"
                         );
                     }
@@ -859,7 +859,7 @@ mod tests {
     }
 
     fn scratch_tree(label: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!("ss-wt-{label}-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("stealth-study-wt-{label}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         std::fs::create_dir_all(&base).expect("scratch dir");
         base

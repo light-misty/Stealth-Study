@@ -1,5 +1,5 @@
 [package]
-name = "ss-stt"
+name = "stealth-study-stt"
 version = "0.1.0"
 description = "Local, offline speech-to-text engine for Stealth Study hosts"
 license = "Apache-2.0"

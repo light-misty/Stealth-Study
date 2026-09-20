@@ -26,7 +26,7 @@ Explicitly write out your entire deliberation process, documenting every interme
 
 ## 项目概述
 
-偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google 等），数据默认留在本机、模型统一通过云端 API Key 调用。项目代号为 `ss`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
+偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google 等），数据默认留在本机、模型统一通过云端 API Key 调用。项目代号为 `stealth_study`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
 
 ## 技术栈
 
@@ -53,8 +53,8 @@ Explicitly write out your entire deliberation process, documenting every interme
 - **测试框架**: Vitest
 
 ### Rust 组件
-- **桌面外壳**: Tauri 2 (crate: `ss-desktop`)
-- **语音转文本**: `ss-stt` (基于 whisper-rs + cpal)
+- **桌面外壳**: Tauri 2 (crate: `stealth-study-desktop`)
+- **语音转文本**: `stealth-study-stt` (基于 whisper-rs + cpal)
   - Rust 版本: 1.77+
   - whisper-rs: 0.16
 
@@ -363,7 +363,7 @@ Jobs:
 
 ## 注意事项
 
-- 状态目录: 默认 `~/偷偷学` (或 `%APPDATA%\ss`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
+- 状态目录: 默认 `%APPDATA%\Stealth Study`（Windows）/ `~/.config/Stealth Study`（macOS/Linux），可通过 `COWORKER_STATE_DIR` 环境变量覆盖
 - 临时目录: 测试环境使用 `COWORKER_SCRATCH_BASE` 环境变量隔离会话临时文件
 - 开发令牌: 本地开发通过 `X-StealthStudy-Token` 头部认证
 - 端口配置: 后端 HTTP 默认 8765，前端 Vite 开发服务器固定 1420

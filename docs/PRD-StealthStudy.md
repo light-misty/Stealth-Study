@@ -568,9 +568,9 @@ flowchart TD
   - 当前模型供给说明（云端 API Key 提供商列表 + 是否已在设置页配置）。
 - **点击后发生什么**：点击路径 → 打开系统文件管理器；切换模型供给说明 → 立即生效并提示。
 - **数据存哪**：`campus.db` 的 `app_state`（模型配置）；网络请求白名单读取既有 provider 配置。
-- **⚠️ 实现注意（v1.1）**：`state_dir()` 在 Windows 11 解析为 **`%APPDATA%\ss`**（`secrets.py:28-44`），是**隐藏目录**。"在文件管理器中打开"**必须用** **`explorer.exe`** **直接打开该完整路径**，不能只打开 `%APPDATA%`，否则用户找不到。
+- **⚠️ 实现注意（v1.1）**：`state_dir()` 在 Windows 11 解析为 **`%APPDATA%\Stealth Study`**（`secrets.py:28-44`），是**隐藏目录**。"在文件管理器中打开"**必须用** **`explorer.exe`** **直接打开该完整路径**，不能只打开 `%APPDATA%`，否则用户找不到。
 - **验收标准**：
-  - 隐私面板显示的目录与实际 `campus.db` 落点一致（Windows 下为 `C:\Users\<用户名>\AppData\Roaming\ss`）；
+  - 隐私面板显示的目录与实际 `campus.db` 落点一致（Windows 下为 `C:\Users\<用户名>\AppData\Roaming\Stealth Study`）；
   - 点击后能正确打开该隐藏目录（而非只打开父目录）；
   - 未配置模型时，AI 功能按钮禁用并提示（不静默失败）。
 
@@ -1240,9 +1240,9 @@ flowchart LR
 
 > **【架构师已确认 · 详见 §13.3 B6】** ✅ `state_dir()` 见 `stealth_study/secrets.py:28-44`：
 > `$COWORKER_STATE_DIR` → Windows `%APPDATA%\Stealth Study` → 其他 `~/.config/Stealth Study`。
-> **本用户环境（Windows 11）实测落点 =** **`C:\Users\<用户名>\AppData\Roaming\ss`**。
+> **本用户环境（Windows 11）实测落点 =** **`C:\Users\<用户名>\AppData\Roaming\Stealth Study`**。
 > 既有库确认为 `state_dir()/stealth_study.db`（`cli.py:45`、`conversations.py:82`、`server/manager.py:220`）。
-> 因此 `campus.db` 定为 **`C:\Users\<用户名>\AppData\Roaming\ss\campus.db`** ——
+> 因此 `campus.db` 定为 **`C:\Users\<用户名>\AppData\Roaming\Stealth Study\campus.db`** ——
 > 与既有库同目录 ✅、独立文件 ✅、可单独删除且不被任何既有代码引用 ✅，产品侧三条要求全部满足。
 > ⚠️ Windows 提醒：`AppData\Roaming` 是隐藏目录，G-03 的「在文件管理器中打开」应直接用 `explorer.exe` 打开该绝对路径。
 
@@ -1839,7 +1839,7 @@ pending ──解析失败──> failed（展示失败原因，可重试/删除
 | 路径                | 证据                                                                                                                     | 结论                                                  |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
 | 新增独立库 `campus.db` | `stealth_study/memory/sqlite_store.py:14-22` 的 store 类**接受任意 path 参数**并自建连接                                                       | 新写一个同类 store 即可，不碰 `coworker.db`                    |
-| 独立库落点             | `stealth_study/secrets.py:28-44` → Windows 11 解析为 `%APPDATA%\ss`                                                                  | `campus.db` 与 `coworker.db` 同目录、独立文件、可单独删除 ✅ 满足产品要求 |
+| 独立库落点             | `stealth_study/secrets.py:28-44` → Windows 11 解析为 `%APPDATA%\Stealth Study`                                                                  | `campus.db` 与 `coworker.db` 同目录、独立文件、可单独删除 ✅ 满足产品要求 |
 | 人设目录式新增           | `stealth_study/personas/registry.py:176-192` `_load_dir()` 扫描 `<dir>/<id>/manifest.md` + 同级 `skills/`                             | 新增目录**确实零代码生效**                                     |
 | 设置页 tab 增删改       | `SettingsView.tsx:95` **已有同款先例**：`const tabs = personas ? SET_TABS : SET_TABS.filter((tab) => tab.key !== "personas")` | "过滤 tab" 是本仓库**已验证的惯用法**，不是新发明                      |
 | i18n 追加           | `locales/zh.json` 顶层为扁平命名空间；`locales.test.ts:31-38` 强制 zh/en key 完全对齐                                                  | 追加 `campus.*` 可行，且有自动化测试兜底                          |
@@ -2100,14 +2100,14 @@ source_doc.chunk_count / chunk 表（campus.db，新增 chunk 表或用 JSON 列
 
 #### B6（追加）. `state_dir()` 的实际解析路径
 
-> ## 结论：**Windows 11 下 =** **`%APPDATA%\ss`，即** **`C:\Users\<用户名>\AppData\Roaming\ss`。**
+> ## 结论：**Windows 11 下 =** **`%APPDATA%\Stealth Study`，即** **`C:\Users\<用户名>\AppData\Roaming\Stealth Study`。**
 
 **证据**：`stealth_study/secrets.py:28-44`，注释与代码一致 ——
 
 ```
 1. $COWORKER_STATE_DIR      —— 显式覆盖（测试/旁路进程用）
-2. Windows: %APPDATA%\ss
-3. macOS/Linux: ~/.config/ss
+2. Windows: %APPDATA%\Stealth Study
+3. macOS/Linux: ~/.config/Stealth Study
 ```
 
 **落点确认：**
