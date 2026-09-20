@@ -1,7 +1,7 @@
 """MCP server config — the standard `mcpServers` JSON, layered global + workspace.
 
 Global:    ~/.config/Stealth Study/mcp.json
-Workspace: <workspace>/.coworker/mcp.json   (overrides global on name clash,
+Workspace: <workspace>/.stealth-study/mcp.json   (overrides global on name clash,
            but only after the user trusts that workspace — same gate as
            repository `allowed_commands`)
 
@@ -56,12 +56,12 @@ def _config_paths(
     workspace: Optional[str | Path], *, workspace_trusted: bool
 ) -> list[Path]:
     """Config files to merge. Workspace MCP is executable provenance (stdio spawn),
-    so an untrusted repo's `.coworker/mcp.json` is never read — cloning alone must
+    so an untrusted repo's `.stealth-study/mcp.json` is never read — cloning alone must
     not be enough to define processes that run at session open.
     """
     paths = [global_mcp_path()]
     if workspace and workspace_trusted:
-        paths.append(Path(workspace).expanduser() / ".coworker" / "mcp.json")
+        paths.append(Path(workspace).expanduser() / ".stealth-study" / "mcp.json")
     return paths
 
 

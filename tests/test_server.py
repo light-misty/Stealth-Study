@@ -723,8 +723,8 @@ def test_workspace_command_trust_controls_live_engine(tmp_path):
     from urllib.parse import quote
 
     proj = tmp_path / "trusted-project"
-    (proj / ".coworker").mkdir(parents=True)
-    (proj / ".coworker" / "config.toml").write_text(
+    (proj / ".stealth-study").mkdir(parents=True)
+    (proj / ".stealth-study" / "config.toml").write_text(
         'allowed_commands = ["pytest"]\nauto_allow = ["write_file"]\n'
     )
     manager = SessionManager(

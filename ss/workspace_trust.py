@@ -1,6 +1,6 @@
 """User-owned trust decisions for repository-provided command allowances.
 
-A repository may declare command prefixes in `.coworker/config.toml`, but those grants
+A repository may declare command prefixes in `.stealth-study/config.toml`, but those grants
 take effect only after the user trusts that exact canonical workspace root. Trust follows
 the path rather than a snapshot of the config: future changes at a trusted path are
 accepted until the user revokes trust.

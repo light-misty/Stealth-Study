@@ -1,6 +1,6 @@
 # coworker config — copy to one of:
 #   ~/.config/Stealth Study/config.toml   (global)
-#   <your-project>/.coworker/config.toml    (per-workspace, overrides global)
+#   <your-project>/.stealth-study/config.toml    (per-workspace, overrides global)
 #
 # All keys are optional; unset keys fall back to built-in defaults.
 

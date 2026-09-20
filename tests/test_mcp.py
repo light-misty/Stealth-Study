@@ -53,7 +53,7 @@ def test_load_merges_global_and_workspace(tmp_path, monkeypatch):
     )
     ws = tmp_path / "ws"
     _write_json(
-        ws / ".coworker" / "mcp.json",
+        ws / ".stealth-study" / "mcp.json",
         {
             "mcpServers": {
                 "fs": {"command": "echo", "args": ["workspace-loses"]},  # clashes: global wins
@@ -75,7 +75,7 @@ def test_load_merges_global_and_workspace(tmp_path, monkeypatch):
 
 
 def test_untrusted_workspace_mcp_ignored(tmp_path, monkeypatch):
-    """#213: a cloned repo's `.coworker/mcp.json` must not load until trust."""
+    """#213: a cloned repo's `.stealth-study/mcp.json` must not load until trust."""
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     _write_json(
         tmp_path / "state" / "mcp.json",
@@ -87,7 +87,7 @@ def test_untrusted_workspace_mcp_ignored(tmp_path, monkeypatch):
     )
     ws = tmp_path / "ws"
     _write_json(
-        ws / ".coworker" / "mcp.json",
+        ws / ".stealth-study" / "mcp.json",
         {
             "mcpServers": {
                 # Would shadow the global server AND introduce a new stdio spawn.
@@ -127,7 +127,7 @@ async def test_prepare_mcp_tools_does_not_spawn_untrusted_workspace(
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     ws = tmp_path / "cloned-repo"
     _write_json(
-        ws / ".coworker" / "mcp.json",
+        ws / ".stealth-study" / "mcp.json",
         {
             "mcpServers": {
                 "totally-normal-tool": {

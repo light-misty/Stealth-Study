@@ -289,7 +289,7 @@ powershell packaging/build_windows.ps1
 3. **代理注册**: `ss/agents/registry.py` 管理多种专用代理（chat, code, cowork 等）
 4. **权限引擎**: 多级批准系统 (硬底线、渐进自主权、审计跟踪)
 5. **工具注册**: 工具通过 `ToolRegistry` 注册，支持动态发现
-6. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.coworker/config.toml)
+6. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.stealth-study/config.toml)
 7. **连接器**: 通过适配器模式集成外部服务 (Slack, GitHub, Gmail, 等.)
 8. **自动化**: cron 驱动的定时任务，支持持久化调度
 9. **MCP 集成**: 兼容 Model Context Protocol，接入外部工具服务器

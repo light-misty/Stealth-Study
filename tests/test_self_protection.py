@@ -75,7 +75,7 @@ def test_protected_paths_cover_the_grant_and_trust_stores():
         ".git/hooks/pre-commit",
         ".github/workflows/ci.yml",
         ".vscode/tasks.json",
-        ".coworker/config.toml",
+        ".stealth-study/config.toml",
     ],
 )
 def test_protected_in_project_never_auto_approved(tmp_path, rel):

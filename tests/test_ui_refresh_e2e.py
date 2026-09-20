@@ -113,7 +113,7 @@ def _find_reply(outbound, channel, text):
 
 async def test_ui_refresh_cross_cutting_e2e(fake_slack, tmp_path, monkeypatch):
     # Isolate the SecretStore (machine-global otherwise) so "is slack connected?" is decided only
-    # by what this test writes; the manager's own data dir lives under tmp_path/.coworker.
+    # by what this test writes; the manager's own data dir lives under tmp_path/.stealth-study.
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
 
     ws = tmp_path / "ops_ws"

@@ -1,7 +1,7 @@
 """Skill management — CRUD over skill folders + per-session mutes (SKILLS-SPEC §4).
 
 Scope = folder location (folder-is-truth): global skills live in ``state_dir()/skills``,
-project skills in ``<workspace>/.coworker/skills``. There is no database; every operation
+project skills in ``<workspace>/.stealth-study/skills``. There is no database; every operation
 is a folder + ``SKILL.md`` operation, which keeps project skills shareable via git for free.
 
 Disable state is deliberately NOT a marker inside the skill folder: project folders travel
@@ -97,7 +97,7 @@ class SkillStore:
 
     # -- scope dirs ---------------------------------------------------------------
     def project_dir(self, workspace: str | Path) -> Path:
-        return Path(workspace).expanduser().resolve() / ".coworker" / "skills"
+        return Path(workspace).expanduser().resolve() / ".stealth-study" / "skills"
 
     def _base(self, scope: str, workspace: Optional[str | Path]) -> Path:
         if scope == GLOBAL_SCOPE:

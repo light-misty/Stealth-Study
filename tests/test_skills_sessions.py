@@ -117,8 +117,8 @@ def test_concurrent_sessions_same_workspace_independent(tmp_path):
 def test_no_workspace_means_global_only(manager, tmp_path):
     _skill(manager.skill_store.global_dir, "everywhere")
     ws = tmp_path / "elsewhere"
-    (ws / ".coworker" / "skills").mkdir(parents=True)
-    _skill(ws / ".coworker" / "skills", "local-only")
+    (ws / ".stealth-study" / "skills").mkdir(parents=True)
+    _skill(ws / ".stealth-study" / "skills", "local-only")
     assert manager.effective_skill_names("s1") == {"everywhere"}
     assert manager.effective_skill_names("s1", ws) == {"everywhere", "local-only"}
 

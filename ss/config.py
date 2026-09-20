@@ -1,7 +1,7 @@
 """Configuration — layered TOML: built-in defaults < global < per-workspace.
 
 Global:    <state-dir>/config.toml   (see `secrets.state_dir`; platform-native)
-Workspace: <workspace>/.coworker/config.toml   (overrides global)
+Workspace: <workspace>/.stealth-study/config.toml   (overrides global)
 
 Workspace command allowances apply only after the user trusts that exact canonical
 workspace path. Other permission grants remain global-only.
@@ -122,7 +122,7 @@ def _read(path: Path) -> dict[str, Any]:
 
 def workspace_allowed_commands(workspace: str | Path) -> list[str]:
     """Command prefixes requested by repository config; advisory until workspace trust."""
-    path = Path(workspace).expanduser() / ".coworker" / "config.toml"
+    path = Path(workspace).expanduser() / ".stealth-study" / "config.toml"
     value = _read(path).get("allowed_commands", [])
     if not isinstance(value, list):
         return []
@@ -143,7 +143,7 @@ def load_config(
             if key in _FIELDS:
                 setattr(cfg, key, value)
     if workspace:
-        w = Path(workspace).expanduser() / ".coworker" / "config.toml"
+        w = Path(workspace).expanduser() / ".stealth-study" / "config.toml"
         if w.is_file():
             for key, value in _read(w).items():
                 if key in _WORKSPACE_FIELDS:

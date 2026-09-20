@@ -118,7 +118,7 @@ _PROTECTED_IN_PROJECT = (
     ".github/workflows/",
     ".gitlab-ci.yml",
     ".vscode/tasks.json",
-    ".coworker/",  # workspace policy + skills the agent would otherwise self-grant
+    ".stealth-study/",  # workspace policy + skills the agent would otherwise self-grant
 )
 
 

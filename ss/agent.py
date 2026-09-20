@@ -184,7 +184,7 @@ def _loaded_skill_names(messages: list[dict[str, Any]]) -> set[str]:
 def _skill_dirs(workspace: Optional[Path]) -> list[Path]:
     dirs = [state_dir() / "skills"]
     if workspace is not None:
-        dirs.append(workspace / ".coworker" / "skills")
+        dirs.append(workspace / ".stealth-study" / "skills")
     return dirs
 
 

@@ -66,7 +66,7 @@ def test_create_project_scoped(store, workspace):
         scope="project",
         workspace=workspace,
     )
-    md = workspace / ".coworker" / "skills" / "release-checklist" / "SKILL.md"
+    md = workspace / ".stealth-study" / "skills" / "release-checklist" / "SKILL.md"
     assert md.is_file()
 
 
@@ -133,7 +133,7 @@ def test_move_roundtrip(store, workspace):
     store.create(name="mover", description="", instructions="x")
     moved = store.move("mover", to_scope="project", workspace=workspace)
     assert moved["scope"] == "project"
-    assert (workspace / ".coworker" / "skills" / "mover" / "SKILL.md").is_file()
+    assert (workspace / ".stealth-study" / "skills" / "mover" / "SKILL.md").is_file()
     assert not (store.global_dir / "mover").exists()
     store.move("mover", to_scope="global", workspace=workspace)
     assert (store.global_dir / "mover" / "SKILL.md").is_file()
@@ -151,7 +151,7 @@ def test_move_collision_leaves_source(store, workspace):
     with pytest.raises(ValueError, match="already exists"):
         store.move("both", to_scope="global", workspace=workspace)
     # most-local find() → the project copy was the move source and it survives
-    assert (workspace / ".coworker" / "skills" / "both" / "SKILL.md").is_file()
+    assert (workspace / ".stealth-study" / "skills" / "both" / "SKILL.md").is_file()
 
 
 # -- parsing edges (null/malformed input never crashes) -----------------------------
@@ -198,7 +198,7 @@ def test_unicode_content_and_crlf_roundtrip(store):
 def test_frontmatter_name_wins_and_keys_collisions(store, workspace):
     store.create(name="brand", description="global copy", instructions="g")
     _manual_skill(
-        workspace / ".coworker" / "skills",
+        workspace / ".stealth-study" / "skills",
         "other-folder",
         "---\nname: brand\ndescription: project copy\n---\nbody",
     )

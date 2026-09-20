@@ -144,7 +144,7 @@ def test_scratch_workspace_rejected_for_skill_writes(tmp_path):
     scratch_base = tmp_path / "scratchpads"
     manager.set_scratch_base(str(scratch_base))
     scratch_ws = scratch_base / "6d57038c-50d"
-    (scratch_ws / ".coworker" / "skills").mkdir(parents=True)
+    (scratch_ws / ".stealth-study" / "skills").mkdir(parents=True)
 
     res = client.post(
         "/v1/skills",

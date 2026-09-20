@@ -213,7 +213,7 @@ class SessionManager:
         if data_dir is not None:
             base = Path(data_dir).expanduser()
         elif self.default_workspace is not None:
-            base = Path(self.default_workspace) / ".coworker"
+            base = Path(self.default_workspace) / ".stealth-study"
         else:
             base = state_dir()
         base.mkdir(parents=True, exist_ok=True)
@@ -416,7 +416,7 @@ class SessionManager:
         }
 
     def _mcp_workspace_trusted(self, workspace: Optional[str | Path]) -> bool:
-        """Whether workspace `.coworker/mcp.json` may be loaded (#213).
+        """Whether workspace `.stealth-study/mcp.json` may be loaded (#213).
 
         Same consent boundary as repository ``allowed_commands``: an untrusted
         clone must not define stdio processes that spawn at session open.
