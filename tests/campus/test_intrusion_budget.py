@@ -56,6 +56,9 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/src/logging/upload.ts",
     "pyproject.toml",
     ".gitignore",
+    # fix/study-agent-persona 分支登记：README 重写为学习类应用定位，新增简体中文版。
+    "README.md",
+    "README.zh-CN.md",
     "docs/logging-system-test-report.md",
     "docs/superpowers/specs/2026-09-16-logging-system-design.md",
     # skip-question-card 分支登记：OPE-153 跳过提问——ask 工具的哨兵值与跳过结算、
