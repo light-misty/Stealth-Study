@@ -314,7 +314,7 @@ fn python_path_with(tree: &Path) -> Option<std::ffi::OsString> {
 /// `run.py` 把日志写到「项目/工作区根 /log」。侧边进程不以 `--cwd` 启动（它同时充当会话
 /// 工作区），因此用 `npm run tauri dev` 启动时 sidecar 继承本进程 cwd（`surfaces/gui`），
 /// 日志只会落到 `surfaces/gui/log`，而非平台期望的仓库根 `log/`。这里改向后端注入显式的
-/// `SS_LOG_DIR`（logging_setup 已优先读取该变量），同时保持会话工作区语义不变。
+/// `STEALTH_STUDY_LOG_DIR`（logging_setup 已优先读取该变量），同时保持会话工作区语义不变。
 /// 发布版可通过 COWORKER_PROJECT_ROOT 指定根目录。
 fn project_log_dir() -> Option<PathBuf> {
     if let Ok(root) = std::env::var("COWORKER_PROJECT_ROOT") {
@@ -716,7 +716,7 @@ pub fn run() {
             // cwd（npm run tauri dev 时为 surfaces/gui）漂移而看不到预期日志。
             // 在 sidecar_env()/COWORKER_* 之后设置，保证本变量优先生效。
             if let Some(log_dir) = project_log_dir() {
-                server_cmd.env("SS_LOG_DIR", log_dir);
+                server_cmd.env("STEALTH_STUDY_LOG_DIR", log_dir);
             }
             // Sidecar came from another checkout's venv (this worktree has none): its editable
             // install would import THAT tree's `ss`, so pin this tree's source instead.

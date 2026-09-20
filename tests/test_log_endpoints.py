@@ -15,7 +15,7 @@ def _make_client(tmp_path, monkeypatch):
     from stealth_study.server import SessionManager, create_app
 
     monkeypatch.setenv("COWORKER_API_TOKEN", "secret-token")
-    monkeypatch.setenv("SS_LOG_DIR", str(tmp_path / "log"))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_DIR", str(tmp_path / "log"))
     setup_logging(tmp_path)
     manager = SessionManager(workspace=tmp_path)
     return TestClient(create_app(manager))
@@ -80,7 +80,7 @@ def test_ingest_malformed_payload_returns_422(tmp_path, monkeypatch):
 
 
 def test_ingest_rotates_when_max_bytes_hit(tmp_path, monkeypatch):
-    monkeypatch.setenv("SS_LOG_MAX_BYTES", "300")
+    monkeypatch.setenv("STEALTH_STUDY_LOG_MAX_BYTES", "300")
     client = _make_client(tmp_path, monkeypatch)
     merged = {"accepted": 0, "skipped": 0, "rotated": False}
     for i in range(30):

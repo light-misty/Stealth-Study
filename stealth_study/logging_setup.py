@@ -171,25 +171,25 @@ def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") ->
     """初始化全局日志配置（幂等，可重复调用，便于测试隔离）。
 
     project_root 为项目根目录，日志写入其下 log/ 文件夹；路径与阈值均可
-    通过环境变量 SS_LOG_DIR / SS_LOG_MAX_BYTES / SS_LOG_BACKUP_COUNT /
-    SS_LOG_KEEP_FILES / SS_LOG_LEVEL 覆盖（测试隔离使用）。
+    通过环境变量 STEALTH_STUDY_LOG_DIR / STEALTH_STUDY_LOG_MAX_BYTES / STEALTH_STUDY_LOG_BACKUP_COUNT /
+    STEALTH_STUDY_LOG_KEEP_FILES / STEALTH_STUDY_LOG_LEVEL 覆盖（测试隔离使用）。
     """
     env = os.environ.get
     # 日志目录不可创建时降级到系统临时目录，避免影响主业务流程
     try:
-        log_dir = Path(env("SS_LOG_DIR") or Path(project_root) / "log")
+        log_dir = Path(env("STEALTH_STUDY_LOG_DIR") or Path(project_root) / "log")
         log_dir.mkdir(parents=True, exist_ok=True)
     except OSError:
         log_dir = Path(tempfile.gettempdir()) / "ss-log"
         log_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        max_bytes = int(env("SS_LOG_MAX_BYTES", "") or _DEFAULT_MAX_BYTES)
+        max_bytes = int(env("STEALTH_STUDY_LOG_MAX_BYTES", "") or _DEFAULT_MAX_BYTES)
     except ValueError:
         max_bytes = _DEFAULT_MAX_BYTES
-    backup_count = int(env("SS_LOG_BACKUP_COUNT", "5"))
-    keep_files = int(env("SS_LOG_KEEP_FILES", "14"))
-    level = _parse_level(env("SS_LOG_LEVEL", "") or level)
+    backup_count = int(env("STEALTH_STUDY_LOG_BACKUP_COUNT", "5"))
+    keep_files = int(env("STEALTH_STUDY_LOG_KEEP_FILES", "14"))
+    level = _parse_level(env("STEALTH_STUDY_LOG_LEVEL", "") or level)
 
     fmt = logging.Formatter(_RECORD_FMT, datefmt=_DATEFMT)
     root = logging.getLogger()

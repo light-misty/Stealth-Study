@@ -79,7 +79,7 @@ def test_level_names_map_to_standard_logging(tmp_path):
 
 def test_ss_log_dir_env_overrides_default(tmp_path, monkeypatch):
     custom = tmp_path / "custom-logs"
-    monkeypatch.setenv("SS_LOG_DIR", str(custom))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_DIR", str(custom))
     setup_logging(tmp_path)
     assert (custom / "backend_*.log").parent.exists()
 
@@ -97,7 +97,7 @@ def test_setup_logging_is_idempotent(tmp_path):
 
 
 def test_size_rotation_creates_backup_files(tmp_path, monkeypatch):
-    monkeypatch.setenv("SS_LOG_MAX_BYTES", "500")
+    monkeypatch.setenv("STEALTH_STUDY_LOG_MAX_BYTES", "500")
     setup_logging(tmp_path)
     lg = get_logger("rotate")
     for i in range(100):

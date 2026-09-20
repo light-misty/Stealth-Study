@@ -18,9 +18,9 @@ export function writeDevConfig(port, outDir = DEV_CONFIG_DIR) {
 }
 
 export async function resolveDevPort(options = {}) {
-  const envPort = Number(process.env.SS_DEV_PORT);
+  const envPort = Number(process.env.STEALTH_STUDY_DEV_PORT);
   if (Number.isInteger(envPort) && envPort > 0) {
-    console.log(`[tauri-dev] using port ${envPort} (SS_DEV_PORT)`);
+    console.log(`[tauri-dev] using port ${envPort} (STEALTH_STUDY_DEV_PORT)`);
     return envPort;
   }
   return findAvailablePort({ startPort: 1420, logger: (m) => console.log(m), ...options });
@@ -52,7 +52,7 @@ async function main() {
   const configPath = writeDevConfig(port);
   console.log(`[tauri-dev] wrote ${path.relative(process.cwd(), configPath)}`);
   runTauri(["dev", "-c", path.relative(process.cwd(), configPath), ...args.slice(1)], {
-    SS_DEV_PORT: String(port),
+    STEALTH_STUDY_DEV_PORT: String(port),
   });
 }
 

@@ -55,11 +55,11 @@
 
 - 环境变量（测试与部署可覆盖）：
 
-  - `SS_LOG_DIR`：日志目录（默认 `<project_root>/log`）。
-  - `SS_LOG_LEVEL`：级别（默认 INFO）。
-  - `SS_LOG_MAX_BYTES`：大小轮转阈值（默认 50MB）。
-  - `SS_LOG_BACKUP_COUNT`：大小轮转备份份数（默认 5）。
-  - `SS_LOG_KEEP_FILES`：按天归档保留文件数（默认 14）。
+  - `STEALTH_STUDY_LOG_DIR`：日志目录（默认 `<project_root>/log`）。
+  - `STEALTH_STUDY_LOG_LEVEL`：级别（默认 INFO）。
+  - `STEALTH_STUDY_LOG_MAX_BYTES`：大小轮转阈值（默认 50MB）。
+  - `STEALTH_STUDY_LOG_BACKUP_COUNT`：大小轮转备份份数（默认 5）。
+  - `STEALTH_STUDY_LOG_KEEP_FILES`：按天归档保留文件数（默认 14）。
 
 - contextvars：`request_id_var`、`user_id_var`；格式化器从 contextvars 取填充，无值显示 `-`。
 - 返回与全局 handler 相同格式的记录方法，供 get_logger(name) 使用。
@@ -150,7 +150,7 @@
 - 用例：
   - 目录自动创建、主文件命名 `backend_{YYYYMMDD_HHMMSS}.log`。
   - 格式包含毫秒时间戳、级别、模块、req、user。
-  - 环境变量覆盖（SS_LOG_DIR/MAX_BYTES 等）生效。
+  - 环境变量覆盖（STEALTH_STUDY_LOG_DIR/MAX_BYTES 等）生效。
   - 大小轮转触发 `.1` 备份；按日归档（mock datetime）；保留清理。
   - 中间件：request id 生成与 `X-Request-ID` 响应头；user_id 推导。
   - 端点：token 认证 401；合法/非法载荷；落盘格式；frontend 文件命名。

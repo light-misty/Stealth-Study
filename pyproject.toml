@@ -76,5 +76,5 @@ testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
 markers = [
-    "stress: 日志系统压力测试（SS_RUN_STRESS=1 时运行）",
+    "stress: 日志系统压力测试（STEALTH_STUDY_RUN_STRESS=1 时运行）",
 ]
