@@ -17,8 +17,8 @@ export default defineConfig(async ({ command }) => {
     const state =
       process.env.COWORKER_STATE_DIR ||
       (process.platform === "win32"
-        ? path.join(process.env.APPDATA || os.homedir(), "coworker")
-        : path.join(os.homedir(), ".config", "coworker"));
+        ? path.join(process.env.APPDATA || os.homedir(), "Stealth Study")
+        : path.join(os.homedir(), ".config", "Stealth Study"));
     const envApiPort = Number(process.env.SS_API_PORT);
     if (Number.isInteger(envApiPort) && envApiPort > 0) {
       devApiPort = String(envApiPort);

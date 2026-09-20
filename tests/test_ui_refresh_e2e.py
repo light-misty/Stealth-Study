@@ -309,5 +309,5 @@ async def test_ui_refresh_cross_cutting_e2e(fake_slack, tmp_path, monkeypatch):
         await mgr.aclose()
 
     # State-dir isolation held: the SecretStore resolved to the tmp_path-scoped path, never the
-    # machine-global ~/.config/coworker (so this run cannot mutate the real secrets hash).
+    # machine-global ~/.config/Stealth Study (so this run cannot mutate the real secrets hash).
     assert str(tmp_path) in str(mgr.secrets.path)

@@ -1239,7 +1239,7 @@ flowchart LR
 > 架构师需确认 `state_dir()` 的实际解析路径，以决定 `campus.db` 的最终落点。产品侧只要求：**与既有库同目录、独立文件、可单独删除而不影响主程序**。~~（v1.1 已确认，见下）~~
 
 > **【架构师已确认 · 详见 §13.3 B6】** ✅ `state_dir()` 见 `ss/secrets.py:28-44`：
-> `$COWORKER_STATE_DIR` → Windows `%APPDATA%\coworker` → 其他 `~/.config/coworker`。
+> `$COWORKER_STATE_DIR` → Windows `%APPDATA%\Stealth Study` → 其他 `~/.config/Stealth Study`。
 > **本用户环境（Windows 11）实测落点 =** **`C:\Users\<用户名>\AppData\Roaming\ss`**。
 > 既有库确认为 `state_dir()/ss.db`（`cli.py:45`、`conversations.py:82`、`server/manager.py:220`）。
 > 因此 `campus.db` 定为 **`C:\Users\<用户名>\AppData\Roaming\ss\campus.db`** ——

@@ -35,7 +35,7 @@ const SETTINGS = {
   surfaces: { cowork: true, chat: false, code: true },
   nav_layout: "grouped",
   scratch_base: "~/StealthStudy",
-  secrets_path: "/Users/test/.config/coworker/secrets.json",
+  secrets_path: "/Users/test/.config/Stealth Study/secrets.json",
   sessions_peek: 5,
   // Token savings (PDF attachments): 2-page limit keeps the composer threshold test's
   // fixture PDF small; the real default is 20.

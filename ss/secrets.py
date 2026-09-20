@@ -2,7 +2,7 @@
 
 Design (from OpenClaw): secrets **never enter the model's context, prompts, or traces**.
 The store holds profiles keyed by `connector[:account]`; values may be literals OR
-`${ENV_VAR}` references resolved at read time from the process env / `~/.config/coworker/.env`.
+`${ENV_VAR}` references resolved at read time from the process env / `~/.config/Stealth Study/.env`.
 
 v1 is a `0600` JSON file behind this interface; the interface is what callers depend on, so
 a Keychain / age-encrypted backend can swap in later without touching them.
@@ -30,9 +30,9 @@ def state_dir() -> Path:
 
     Resolution order:
     1. `$COWORKER_STATE_DIR` — explicit override on any OS (used by tests/sidecars).
-    2. Windows: `%APPDATA%\\coworker` (e.g. `C:\\Users\\You\\AppData\\Roaming\\coworker`),
+    2. Windows: `%APPDATA%\\Stealth Study` (e.g. `C:\\Users\\You\\AppData\\Roaming\\Stealth Study`),
        the native per-user app-data location.
-    3. macOS / Linux: `~/.config/coworker` (XDG-style, unchanged from prior behavior).
+    3. macOS / Linux: `~/.config/Stealth Study` (XDG-style, unchanged from prior behavior).
     """
     base = os.environ.get("COWORKER_STATE_DIR")
     if base:
@@ -40,8 +40,8 @@ def state_dir() -> Path:
     if sys.platform == "win32":
         appdata = os.environ.get("APPDATA")
         if appdata:
-            return Path(appdata) / "coworker"
-    return Path.home() / ".config" / "coworker"
+            return Path(appdata) / "Stealth Study"
+    return Path.home() / ".config" / "Stealth Study"
 
 
 def _load_dotenv(path: Path) -> dict[str, str]:

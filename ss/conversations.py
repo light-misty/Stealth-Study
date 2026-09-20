@@ -1,6 +1,6 @@
 """ConversationStore — global, file-backed session storage shared by all surfaces.
 
-Layout under a base dir (default `~/.config/coworker/`):
+Layout under a base dir (default `~/.config/Stealth Study/`):
   coworker.db                  SQLite index: sessions(id → project, title, n_msgs), workspaces, memory
   conversations/<id>.jsonl     append-only message log, one file per conversation
 

@@ -29,7 +29,7 @@ def _isolate_state_dir(tmp_path, monkeypatch):
     """Isolate the global state/secret dir for every test here.
 
     The `SessionManager` tests build a real `SecretStore()`, which defaults to the developer's
-    global state dir (`~/.config/coworker`) unless `COWORKER_STATE_DIR` is set — so without this a
+    global state dir (`~/.config/Stealth Study`) unless `COWORKER_STATE_DIR` is set — so without this a
     test's `secrets.put("github:default", …)` would write a fake token into the real secret store.
     Pin it at a throwaway dir. (Harmless for the pure store/resolver tests that use explicit paths.)
     """

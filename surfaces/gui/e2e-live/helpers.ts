@@ -12,8 +12,8 @@ function sidecarToken(): string {
   const state =
     process.env.COWORKER_STATE_DIR ||
     (process.platform === "win32"
-      ? join(process.env.APPDATA || homedir(), "coworker")
-      : join(homedir(), ".config", "coworker"));
+      ? join(process.env.APPDATA || homedir(), "Stealth Study")
+      : join(homedir(), ".config", "Stealth Study"));
   try {
     return readFileSync(join(state, "sidecar-8765.token"), "utf8").trim();
   } catch {

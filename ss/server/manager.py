@@ -3486,7 +3486,7 @@ class SessionManager:
             "scratch_base": self._prefs.get("scratch_base")
             or self.DEFAULT_SCRATCH_BASE,
             # Real on-disk secrets location, so the UI shows the OS-native path instead of a
-            # hardcoded POSIX one (Windows -> %APPDATA%\coworker, macOS/Linux -> ~/.config).
+            # hardcoded POSIX one (Windows -> %APPDATA%\Stealth Study, macOS/Linux -> ~/.config/Stealth Study).
             "secrets_path": str(self.secrets.path),
             **self.pdf_settings(),
             **self.compaction_settings_payload(),

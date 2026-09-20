@@ -24,8 +24,8 @@ function liveToken(): string {
   const state =
     process.env.COWORKER_STATE_DIR ??
     (process.platform === "win32"
-      ? path.join(process.env.APPDATA ?? os.homedir(), "coworker")
-      : path.join(os.homedir(), ".config", "coworker"));
+      ? path.join(process.env.APPDATA ?? os.homedir(), "Stealth Study")
+      : path.join(os.homedir(), ".config", "Stealth Study"));
   const file = path.join(state, "sidecar-8765.token");
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : "";
 }

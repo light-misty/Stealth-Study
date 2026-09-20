@@ -151,7 +151,7 @@ def test_shell_commands_not_auto_allowed_by_default(tmp_path):
         "python3 -c 'import os'",
         "pytest /tmp/attacker_test.py",
         "find . -exec sh -c 'echo arbitrary' {} +",
-        "cat ~/.config/coworker/secrets.json",
+        "cat ~/.config/Stealth Study/secrets.json",
         "echo $OPENAI_API_KEY",
         "git status",
     ):

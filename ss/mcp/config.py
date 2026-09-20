@@ -1,6 +1,6 @@
 """MCP server config — the standard `mcpServers` JSON, layered global + workspace.
 
-Global:    ~/.config/coworker/mcp.json
+Global:    ~/.config/Stealth Study/mcp.json
 Workspace: <workspace>/.coworker/mcp.json   (overrides global on name clash,
            but only after the user trusts that workspace — same gate as
            repository `allowed_commands`)
