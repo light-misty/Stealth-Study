@@ -205,6 +205,8 @@ REGISTERED_PATCH: set[str] = {
     "surfaces/gui/e2e/cloud.spec.ts",
     "surfaces/gui/e2e/project-bindings.spec.ts",
     "surfaces/gui/src-tauri/tauri.conf.json",
+    "surfaces/gui/package.json",
+    "surfaces/gui/package-lock.json",
 }
 
 # Design mockups: neither shipped nor compiled, and the whole redesign workflow lives in there.

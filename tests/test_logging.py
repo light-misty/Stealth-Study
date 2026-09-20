@@ -185,3 +185,21 @@ def test_write_frontend_logs_truncates_oversized_batch(tmp_path):
     accepted, skipped, _ = write_frontend_logs(entries)
     assert accepted == 10000
     assert skipped == 1
+
+def test_default_project_log_root_walks_up_to_repo_root(tmp_path):
+    from stealth_study.logging_setup import default_project_log_root
+
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    (repo / 'pyproject.toml').write_text('x', encoding='utf-8')
+    deep = repo / 'surfaces' / 'gui' / 'src-tauri'
+    deep.mkdir(parents=True)
+    assert default_project_log_root(deep) == repo / 'log'
+
+
+def test_default_project_log_root_falls_back_to_cwd(tmp_path):
+    from stealth_study.logging_setup import default_project_log_root
+
+    orphan = tmp_path / 'orphan'
+    orphan.mkdir()
+    assert default_project_log_root(orphan) == orphan / 'log'

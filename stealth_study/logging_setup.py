@@ -167,6 +167,19 @@ def _parse_level(level: int | str) -> int:
     return names.get(level.strip().upper(), logging.INFO)
 
 
+def default_project_log_root(start: str | os.PathLike | None = None) -> Path:
+    """日志根：从 start（默认当前目录）向上找含 pyproject.toml 的目录并取其 log/。
+
+    桌面壳 sidecar 的 cwd 可能是 src-tauri / surfaces/gui 等子目录；逐个向上直到
+    仓库根，保证日志落在「项目根 log/」而非 cwd/log，与桌面壳注入的语义一致。
+    """
+    cwd = Path(start).expanduser().resolve() if start else Path.cwd()
+    for d in (cwd, *cwd.parents):
+        if (d / "pyproject.toml").is_file():
+            return d / "log"
+    return cwd / "log"
+
+
 def setup_logging(project_root: str | os.PathLike, level: int | str = "INFO") -> dict[str, Any]:
     """初始化全局日志配置（幂等，可重复调用，便于测试隔离）。
 

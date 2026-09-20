@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 from ..config import load_config
-from ..logging_setup import setup_logging
+from ..logging_setup import default_project_log_root, setup_logging
 from ..permissions import Mode
 from ..secrets import state_dir, write_private_text
 from .app import _WS_MAX_FRAME_BYTES, create_app
@@ -197,9 +197,18 @@ def main(argv=None) -> None:
     explicit_port = any(a == "--port" or a.startswith("--port=") for a in argv_list)
     args = parser.parse_args(argv)
 
-    # 初始化统一日志：以工作区（--cwd）为根，日志写入其下 log/ 文件夹
+    # 初始化统一日志：会话工作区仍以 --cwd（缺省当前目录）为准，但日志根优先取
+    # STEALTH_STUDY_LOG_DIR / COWORKER_PROJECT_ROOT，缺省时向上找仓库根落 log/，
+    # 避免桌面壳 sidecar 的 cwd 漂移（src-tauri/surfaces/gui）导致日志分散。
     workspace_root = Path(args.cwd).expanduser().resolve() if args.cwd else Path.cwd()
-    setup_logging(workspace_root)
+    log_env = os.environ.get("STEALTH_STUDY_LOG_DIR")
+    if log_env:
+        log_root = Path(log_env).expanduser()
+    elif os.environ.get("COWORKER_PROJECT_ROOT"):
+        log_root = Path(os.environ["COWORKER_PROJECT_ROOT"]).expanduser() / "log"
+    else:
+        log_root = default_project_log_root(workspace_root)
+    setup_logging(log_root)
     args.port = resolve_server_port(args.port, explicit_port, host=args.host)
 
     # Publish the ACTUAL bound port so loopback URLs (the managed-OAuth callback)
