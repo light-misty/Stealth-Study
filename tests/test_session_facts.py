@@ -12,13 +12,13 @@ from dataclasses import dataclass
 
 import pytest
 
-from ss import session_facts
-from ss.engine import TurnEngine
-from ss.events import EventType
-from ss.permissions import PermissionEngine
-from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from ss.roots import RootDir
-from ss.tools import ToolRegistry
+from stealth_study import session_facts
+from stealth_study.engine import TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import PermissionEngine
+from stealth_study.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from stealth_study.roots import RootDir
+from stealth_study.tools import ToolRegistry
 
 
 @dataclass

@@ -1118,7 +1118,7 @@
     "voice_windows": "Windows",
     "voice_windows_detail": "Download a whisper.cpp model to enable Voice Input.",
     "trusted_workspaces": "Trusted workspaces",
-    "trusted_workspaces_help": "Trusted projects may manage their command allowances in .coworker/config.toml.",
+    "trusted_workspaces_help": "Trusted projects may manage their command allowances in .stealth-study/config.toml.",
     "trust_loading": "Loading…",
     "trust_empty": "No workspaces are trusted.",
     "trust_allowances_one": "{{count}} project command allowance",

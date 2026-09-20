@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.skills import (
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.skills import (
     SessionSkillStore,
     SkillLoader,
     SkillStore,
@@ -20,7 +20,7 @@ from ss.skills import (
     skill_catalog_text,
     skill_tools,
 )
-from ss.server.manager import SessionManager
+from stealth_study.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):
@@ -117,8 +117,8 @@ def test_concurrent_sessions_same_workspace_independent(tmp_path):
 def test_no_workspace_means_global_only(manager, tmp_path):
     _skill(manager.skill_store.global_dir, "everywhere")
     ws = tmp_path / "elsewhere"
-    (ws / ".coworker" / "skills").mkdir(parents=True)
-    _skill(ws / ".coworker" / "skills", "local-only")
+    (ws / ".stealth-study" / "skills").mkdir(parents=True)
+    _skill(ws / ".stealth-study" / "skills", "local-only")
     assert manager.effective_skill_names("s1") == {"everywhere"}
     assert manager.effective_skill_names("s1", ws) == {"everywhere", "local-only"}
 
@@ -130,7 +130,7 @@ def test_workspace_without_skills_dir_is_fine(manager, tmp_path):
 
 
 def test_empty_catalog_is_safe(tmp_path):
-    from ss.tools.registry import ToolRegistry
+    from stealth_study.tools.registry import ToolRegistry
 
     loader = SkillLoader([tmp_path / "nowhere"])
     assert skill_catalog_text(loader) == ""
@@ -148,8 +148,8 @@ def test_live_load_skill_semantics(manager):
     · load_skill consults live state per call (create-after-build loadable; a Settings
       disable applies to RUNNING sessions; delete ≡ disable to the model);
     · the ONLY thing that persists is what a conversation already loaded (history)."""
-    from ss.agent import build_engine
-    from ss.agents.chat import chat_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents.chat import chat_agent
 
     _skill(manager.skill_store.global_dir, "early", body="early body")
     engine = build_engine(
@@ -197,8 +197,8 @@ def test_disable_countermand_for_loaded_skills(manager):
     history are not. Recomputed fresh: re-enabling clears it; unloaded skills never get one."""
     import json as _json
 
-    from ss.agent import build_engine
-    from ss.agents.chat import chat_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents.chat import chat_agent
 
     _skill(manager.skill_store.global_dir, "used-one", body="used body")
     _skill(manager.skill_store.global_dir, "unused-one", body="never loaded")

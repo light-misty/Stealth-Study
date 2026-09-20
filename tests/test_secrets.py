@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 
-from ss.secrets import SecretStore
+from stealth_study.secrets import SecretStore
 
 
 def test_put_get_round_trip(tmp_path):

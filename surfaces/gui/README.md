@@ -17,7 +17,7 @@ bash packaging/setup_dev_env.sh   # → .venv (server + aisuite)
 1. **启动服务器**（需要环境中已配置模型 Key，例如 `OPENAI_API_KEY` ——
    或稍后应用的设置中添加），从仓库根目录执行：
    ```bash
-   ./.venv/bin/openworker-server --cwd /path/to/your/project --port 8765
+   ./.venv/bin/stealthstudy-server --cwd /path/to/your/project --port 8765
    ```
 2. **启动 UI：**
    ```bash
@@ -35,7 +35,7 @@ bash packaging/setup_dev_env.sh   # → .venv (server + aisuite)
 
 Tauri 外壳包裹相同的 UI，并自行管理 Python 服务器——无需单独的终端。
 它需要 Rust 工具链（`rustup`）和引导步骤中的 venv；在开发模式下，它会自动
-找到 `.venv/bin/openworker-server` 路径下的服务器。
+找到 `.venv/bin/stealthstudy-server` 路径下的服务器。
 
 ```bash
 cd surfaces/gui

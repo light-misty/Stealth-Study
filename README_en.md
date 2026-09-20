@@ -74,8 +74,8 @@ cd Stealth-Study
 bash packaging/setup_dev_env.sh
 
 # 2. Start the local agent server
-.venv/bin/openworker-server --cwd ~/project --port 8765
-#    (Windows: .venv\Scripts\openworker-server.exe)
+.venv/bin/stealthstudy-server --cwd ~/project --port 8765
+#    (Windows: .venv\Scripts\stealthstudy-server.exe)
 
 # 3. In a second terminal, start the UI
 cd surfaces/gui
@@ -83,7 +83,7 @@ npm install
 npm run dev        # browser UI on the Vite dev port (1420)
 ```
 
-On each start, the standalone server writes a token to `<state-dir>/sidecar-8765.token`; Vite reads that user-only file at startup. For direct API calls, send its value in the `X-SS-Token` header. The desktop app uses an in-memory launch token that is never written to disk.
+On each start, the standalone server writes a token to `<state-dir>/sidecar-8765.token`; Vite reads that user-only file at startup. For direct API calls, send its value in the `X-StealthStudy-Token` header. The desktop app uses an in-memory launch token that is never written to disk.
 
 To run the full desktop app instead of the browser UI, replace step 3 with `npm run tauri dev` (from `surfaces/gui/`) — the Tauri shell opens the window and manages the service itself.
 
@@ -93,9 +93,9 @@ To run the full desktop app instead of the browser UI, replace step 3 with `npm 
 
 | Path | What's inside |
 |---|---|
-| `ss/` | Python backend — agent engine, model providers, connectors, MCP client, memory, automation |
-| `ss/personas/builtin/` | Study-partner personas — manifests plus their bundled `skills/` |
-| `ss/campus/` | Exam-station domain — grading engine, mistake book, review queue, plans |
+| `stealth_study/` | Python backend — agent engine, model providers, connectors, MCP client, memory, automation |
+| `stealth_study/personas/builtin/` | Study-partner personas — manifests plus their bundled `skills/` |
+| `stealth_study/campus/` | Exam-station domain — grading engine, mistake book, review queue, plans |
 | `surfaces/gui/` | Desktop app — React UI + Tauri shell hosting the server |
 | `surfaces/gui/src/campus/` | Exam-station frontend (CET / 考研 / certificates) |
 | `stt/` | Speech-to-text sidecar (Rust) |

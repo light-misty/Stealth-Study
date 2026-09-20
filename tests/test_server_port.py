@@ -8,7 +8,7 @@ import socket
 
 import pytest
 
-from ss.server.run import port_in_use, resolve_server_port
+from stealth_study.server.run import port_in_use, resolve_server_port
 
 
 def bind_port(port: int, host: str = "127.0.0.1") -> socket.socket:
@@ -88,7 +88,7 @@ def test_exhaustion_raises_when_no_port_is_free():
 def test_attempts_and_final_port_are_logged(caplog):
     base, servers = bind_consecutive(2)
     try:
-        with caplog.at_level("INFO", logger="ss.server.run"):
+        with caplog.at_level("INFO", logger="stealth_study.server.run"):
             resolved = resolve_server_port(base, explicit=False)
     finally:
         close_all(servers)

@@ -7,7 +7,7 @@ import { test, expect } from "./fixtures";
 // (this one, advance) and "Skip all" (resolve the rest). Seeded via a per-test inbox route
 // override so the base fixtures' counts stay untouched.
 
-// Mirrors SKIP in InboxItemCard.tsx / SKIP_SENTINEL in ss/tools/ask.py.
+// Mirrors SKIP in InboxItemCard.tsx / SKIP_SENTINEL in stealth_study/tools/ask.py.
 const SKIP = "__ocw_skip__";
 
 const BASE = {

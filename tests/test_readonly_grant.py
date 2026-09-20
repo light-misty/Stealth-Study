@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from ss.permissions import Mode, PermissionEngine
-from ss.readonly import is_readonly_command
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.readonly import is_readonly_command
 
 ACCEPT = [
     "ls -la",
@@ -107,7 +107,7 @@ def test_engine_grant_gates_on_classifier(tmp_path):
 
 
 def test_grant_persists_via_session_grants(tmp_path):
-    from ss.server.manager import _grants_of
+    from stealth_study.server.manager import _grants_of
 
     class FakeEngine:
         class permissions:

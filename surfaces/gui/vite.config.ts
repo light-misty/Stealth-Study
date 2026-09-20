@@ -7,7 +7,7 @@ import { findAvailablePort, findDevApi } from "./scripts/dev-port.mjs";
 
 // `base: "./"` makes built asset URLs relative, so the bundle loads from the `tauri://`
 // origin in the desktop shell (absolute `/assets` 404s there); a server-hosted build is
-// unaffected. Dev resolves the first free port from 1420 upward (or `SS_DEV_PORT`) and pins
+// unaffected. Dev resolves the first free port from 1420 upward (or `STEALTH_STUDY_DEV_PORT`) and pins
 // it with strictPort; the Tauri dev wrapper keeps `tauri.conf.json` devUrl in sync.
 export default defineConfig(async ({ command }) => {
   let devToken = "";
@@ -17,9 +17,9 @@ export default defineConfig(async ({ command }) => {
     const state =
       process.env.COWORKER_STATE_DIR ||
       (process.platform === "win32"
-        ? path.join(process.env.APPDATA || os.homedir(), "coworker")
-        : path.join(os.homedir(), ".config", "coworker"));
-    const envApiPort = Number(process.env.SS_API_PORT);
+        ? path.join(process.env.APPDATA || os.homedir(), "Stealth Study")
+        : path.join(os.homedir(), ".config", "Stealth Study"));
+    const envApiPort = Number(process.env.STEALTH_STUDY_API_PORT);
     if (Number.isInteger(envApiPort) && envApiPort > 0) {
       devApiPort = String(envApiPort);
       try {
@@ -27,7 +27,7 @@ export default defineConfig(async ({ command }) => {
       } catch {
         devToken = "";
       }
-      console.log(`[dev-port] api server port: ${devApiPort} (SS_API_PORT)`);
+      console.log(`[dev-port] api server port: ${devApiPort} (STEALTH_STUDY_API_PORT)`);
     } else {
       const api = findDevApi(state);
       if (api) {
@@ -44,10 +44,10 @@ export default defineConfig(async ({ command }) => {
       if (!process.env.VITE_COWORKER_API_TOKEN && devToken)
         process.env.VITE_COWORKER_API_TOKEN = devToken;
     }
-    const envPort = Number(process.env.SS_DEV_PORT);
+    const envPort = Number(process.env.STEALTH_STUDY_DEV_PORT);
     if (Number.isInteger(envPort) && envPort > 0) {
       devPort = envPort;
-      console.log(`[dev-port] using port ${devPort} (SS_DEV_PORT)`);
+      console.log(`[dev-port] using port ${devPort} (STEALTH_STUDY_DEV_PORT)`);
     } else {
       devPort = await findAvailablePort({ startPort: 1420, logger: (m) => console.log(m) });
     }

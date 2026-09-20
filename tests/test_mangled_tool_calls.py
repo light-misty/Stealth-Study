@@ -13,10 +13,10 @@ import json
 
 import pytest
 
-from ss.engine import EventType, TurnEngine, _MANGLED_PREVIEW_CHARS
-from ss.permissions import Mode, PermissionEngine
-from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from ss.tools import ToolRegistry
+from stealth_study.engine import EventType, TurnEngine, _MANGLED_PREVIEW_CHARS
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from stealth_study.tools import ToolRegistry
 
 
 class MangledProvider(ProviderClient):

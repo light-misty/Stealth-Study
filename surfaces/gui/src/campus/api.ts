@@ -95,7 +95,7 @@ export class CampusApiError extends Error {
 const request = async (path: string, init: RequestInit = {}): Promise<any> => {
   const headers = new Headers(init.headers);
   const token = apiToken();
-  if (token) headers.set("X-SS-Token", token);
+  if (token) headers.set("X-StealthStudy-Token", token);
   if (typeof init.body === "string" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }

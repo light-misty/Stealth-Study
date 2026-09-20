@@ -4,9 +4,9 @@ plus the gateway's recently-seen senders (each flagged authorized), and allow/di
 
 from fastapi.testclient import TestClient
 
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server import create_app
-from ss.server.manager import SessionManager
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):

@@ -2,7 +2,7 @@
 
 `readonly.py` vets what a command DOES — carefully, and fail-closed. It said nothing about
 what a command READS, so a grant the user reads as "stop asking about my project files"
-also covered ~/.aws/credentials, another repository's history, and OpenWorker's own secrets
+also covered ~/.aws/credentials, another repository's history, and Stealth Study's own secrets
 file. The self-protection floor does not cover that: it guards those files against
 modification, not reading.
 """
@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from ss.permissions import Mode, PermissionEngine
-from ss.readonly import is_readonly_command, read_targets
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.readonly import is_readonly_command, read_targets
 
 
 @pytest.fixture()
@@ -72,8 +72,8 @@ def test_openworkers_own_secrets_are_no_longer_readable(session):
     # The floor hard-denies WRITES to this file in every mode and cannot be overridden.
     # Reading was never checked, so one click on a convenience button dumped it into the
     # transcript — and from there to the model provider on the next turn.
-    assert not runs(session, "cat ~/.config/coworker/secrets.json")
-    assert not runs(session, "jq . ~/.config/coworker/secrets.json")
+    assert not runs(session, "cat ~/.config/Stealth Study/secrets.json")
+    assert not runs(session, "jq . ~/.config/Stealth Study/secrets.json")
 
 
 def test_another_repository_is_not_in_scope(session):
@@ -87,7 +87,7 @@ def test_traversal_is_resolved_not_string_matched(session):
 
 
 def test_a_second_granted_root_is_in_scope(tmp_path):
-    from ss.roots import RootDir
+    from stealth_study.roots import RootDir
 
     repo, notes = tmp_path / "repo", tmp_path / "notes"
     repo.mkdir()

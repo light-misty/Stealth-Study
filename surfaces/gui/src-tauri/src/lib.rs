@@ -1,7 +1,7 @@
 //! Stealth Study desktop shell.
 //!
 //! Tauri is a thin native window over the existing React SPA. It:
-//!   1. picks a free localhost port and starts the Python `ss-server` as a managed
+//!   1. picks a free localhost port and starts the Python sidecar as a managed
 //!      sidecar on that port (so it never clashes with a hand-run server on 8765);
 //!   2. injects the sidecar HTTP/WS addresses and per-launch authentication token before the
 //!      SPA loads (single codebase — the browser build still hits 8765);
@@ -12,7 +12,7 @@
 //!
 //! The sidecar inherits this process's environment, so a shell-launched `npm run tauri dev`
 //! passes `OPENAI_API_KEY` through. A Finder-launched app has no shell env — there the key
-//!   comes from the SecretStore (Settings tab), see `ss.providers.resolve_api_key`.
+//!   comes from the SecretStore (Settings tab), see `stealth_study.providers.resolve_api_key`.
 
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -165,20 +165,20 @@ fn sidecar_env() -> std::collections::HashMap<String, String> {
     std::collections::HashMap::new()
 }
 
-/// What the shell launches as the sidecar, plus the tree whose `ss` source it must run.
+/// What the shell launches as the sidecar, plus the tree whose `stealth_study` source it must run.
 struct ServerLaunch {
     bin: PathBuf,
     python_path: Option<PathBuf>,
 }
 
 fn server_exe_names() -> &'static [&'static str] {
-    // 服务器产物在仓库中以 `openworker-server` 为准（pyproject 入口、PyInstaller spec 与
-    // 打包脚本均如此）；仅极少数旧构建/旧 venv 残留 `ss-server`。同时接受两种名字，
+    // 服务器产物在仓库中以 `stealthstudy-server` 为准（pyproject 入口、PyInstaller spec 与
+    // 打包脚本均如此）；旧构建曾用 `ss-server`/`openworker-server`，现在同时接受新旧两种名字，
     // 才能保证 dev 环境与生产安装包都能命中 sidecar。
     if cfg!(windows) {
-        &["ss-server.exe", "openworker-server.exe"]
+        &["stealthstudy-server.exe", "openworker-server.exe"]
     } else {
-        &["ss-server", "openworker-server"]
+        &["stealthstudy-server", "openworker-server"]
     }
 }
 
@@ -216,7 +216,7 @@ fn venv_scripts_dir(tree: &Path) -> PathBuf {
 /// gitignored `.venv` that `packaging/setup_dev_env.sh` writes usually exists in one tree per
 /// clone. The first tree holding a console script wins; when that is not the running tree, the
 /// running tree's root comes back as the PYTHONPATH value, because a venv's editable install
-/// otherwise pins its own checkout's `ss` package.
+/// otherwise pins its own checkout's `stealth_study` package.
 fn dev_server_from(trees: &[PathBuf]) -> Option<(PathBuf, Option<PathBuf>)> {
     for (index, tree) in trees.iter().enumerate() {
         for name in server_exe_names() {
@@ -234,7 +234,7 @@ fn dev_server_from(trees: &[PathBuf]) -> Option<(PathBuf, Option<PathBuf>)> {
 ///   2. The bundled onedir sidecar shipped via Tauri `resources` (production): the
 ///      `sidecar/` folder lands in Contents/Resources on macOS and in the install dir
 ///      (next to the app exe) on Windows.
-///   3. Legacy onefile slot: `openworker-server[.exe]` next to the app binary (pre-onedir
+///   3. Legacy onefile slot: `stealthstudy-server[.exe]` next to the app binary (pre-onedir
 ///      builds used Tauri externalBin).
 ///   4. Dev fallback: the repo venv — this tree first, then the primary checkout of the
 ///      same clone (`git worktree` checkouts have no venv of their own).
@@ -314,7 +314,7 @@ fn python_path_with(tree: &Path) -> Option<std::ffi::OsString> {
 /// `run.py` 把日志写到「项目/工作区根 /log」。侧边进程不以 `--cwd` 启动（它同时充当会话
 /// 工作区），因此用 `npm run tauri dev` 启动时 sidecar 继承本进程 cwd（`surfaces/gui`），
 /// 日志只会落到 `surfaces/gui/log`，而非平台期望的仓库根 `log/`。这里改向后端注入显式的
-/// `SS_LOG_DIR`（logging_setup 已优先读取该变量），同时保持会话工作区语义不变。
+/// `STEALTH_STUDY_LOG_DIR`（logging_setup 已优先读取该变量），同时保持会话工作区语义不变。
 /// 发布版可通过 COWORKER_PROJECT_ROOT 指定根目录。
 fn project_log_dir() -> Option<PathBuf> {
     if let Ok(root) = std::env::var("COWORKER_PROJECT_ROOT") {
@@ -330,7 +330,7 @@ fn project_log_dir() -> Option<PathBuf> {
 }
 
 /// Mirror of `coworker.secrets.state_dir()` so the shell and server agree on `desktop.json`.
-/// Windows: `%APPDATA%\coworker`; POSIX: `~/.config/coworker`. `COWORKER_STATE_DIR` overrides.
+/// Windows: `%APPDATA%\Stealth Study`; POSIX: `~/.config/Stealth Study`. `COWORKER_STATE_DIR` overrides.
 fn state_dir() -> PathBuf {
     if let Ok(d) = std::env::var("COWORKER_STATE_DIR") {
         return PathBuf::from(d);
@@ -338,26 +338,26 @@ fn state_dir() -> PathBuf {
     #[cfg(windows)]
     {
         if let Ok(appdata) = std::env::var("APPDATA") {
-            return PathBuf::from(appdata).join("coworker");
+            return PathBuf::from(appdata).join("Stealth Study");
         }
     }
     let home = std::env::var("HOME").unwrap_or_else(|_| ".".into());
-    PathBuf::from(home).join(".config").join("coworker")
+    PathBuf::from(home).join(".config").join("Stealth Study")
 }
 
 fn desktop_prefs_path() -> PathBuf {
     state_dir().join("desktop.json")
 }
 
-/// The sidecar's log file: `<state_dir>/logs/ss-server.log`, fresh per
+/// The sidecar's log file: `<state_dir>/logs/stealthstudy-server.log`, fresh per
 /// launch with the previous run kept as `.old`. None (→ /dev/null) only if the
 /// directory can't be created — logging must never block startup.
 fn server_log_file() -> Option<std::fs::File> {
     let dir = state_dir().join("logs");
     std::fs::create_dir_all(&dir).ok()?;
-    let path = dir.join("ss-server.log");
+    let path = dir.join("stealthstudy-server.log");
     if path.exists() {
-        let _ = std::fs::rename(&path, dir.join("ss-server.log.old"));
+        let _ = std::fs::rename(&path, dir.join("stealthstudy-server.log.old"));
     }
     std::fs::File::create(&path).ok()
 }
@@ -545,7 +545,7 @@ fn set_tray_labels(
 // else — no global plugin JS): check, background pre-download, install. Update
 // artifacts are minisign-verified against the pubkey in tauri.conf.json before
 // anything is installed; the manifest lives at the endpoints configured there
-// (download.openworker.com → GitHub Releases).
+// (download.stealthstudy.com → GitHub Releases).
 
 #[derive(serde::Serialize)]
 struct UpdateInfo {
@@ -631,7 +631,7 @@ async fn install_update(
     }
     // Windows never reaches here (the NSIS installer takes over and relaunches).
     // macOS: the .app was swapped in place — restart into the new version. The tray
-    // Exit path's sidecar kill runs via RunEvent, so no orphaned openworker-server.
+    // Exit path's sidecar kill runs via RunEvent, so no orphaned stealthstudy-server.
     app.restart();
 }
 
@@ -716,10 +716,10 @@ pub fn run() {
             // cwd（npm run tauri dev 时为 surfaces/gui）漂移而看不到预期日志。
             // 在 sidecar_env()/COWORKER_* 之后设置，保证本变量优先生效。
             if let Some(log_dir) = project_log_dir() {
-                server_cmd.env("SS_LOG_DIR", log_dir);
+                server_cmd.env("STEALTH_STUDY_LOG_DIR", log_dir);
             }
             // Sidecar came from another checkout's venv (this worktree has none): its editable
-            // install would import THAT tree's `ss`, so pin this tree's source instead.
+            // install would import THAT tree's `stealth_study`, so pin this tree's source instead.
             if let Some(source_tree) = launch.python_path.as_deref() {
                 if let Some(python_path) = python_path_with(source_tree) {
                     server_cmd.env("PYTHONPATH", python_path);
@@ -735,10 +735,10 @@ pub fn run() {
             let child = match server_cmd.spawn() {
                 Ok(child) => Some(child),
                 Err(e) => {
-                    eprintln!("[ss] failed to start server sidecar {:?}: {e}", launch.bin);
+                    eprintln!("[stealth-study] failed to start server sidecar {:?}: {e}", launch.bin);
                     if !launch.bin.exists() {
                         eprintln!(
-                            "[ss] no dev venv in this tree or its main checkout — run \
+                            "[stealth-study] no dev venv in this tree or its main checkout — run \
                              `bash packaging/setup_dev_env.sh` there, or set COWORKER_SERVER_BIN"
                         );
                     }
@@ -859,7 +859,7 @@ mod tests {
     }
 
     fn scratch_tree(label: &str) -> PathBuf {
-        let base = std::env::temp_dir().join(format!("ss-wt-{label}-{}", std::process::id()));
+        let base = std::env::temp_dir().join(format!("stealth-study-wt-{label}-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&base);
         std::fs::create_dir_all(&base).expect("scratch dir");
         base
@@ -926,8 +926,8 @@ mod tests {
         let base = scratch_tree("venvs");
         let own = base.join("own");
         let main = base.join("main");
-        touch_venv_server(&own, "openworker-server");
-        touch_venv_server(&main, "openworker-server");
+        touch_venv_server(&own, "stealthstudy-server");
+        touch_venv_server(&main, "stealthstudy-server");
 
         let (bin, pinned) = dev_server_from(&[own.clone(), main.clone()]).expect("both trees");
         assert!(bin.starts_with(&own), "{bin:?} must come from the own tree");

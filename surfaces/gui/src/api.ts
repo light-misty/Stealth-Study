@@ -27,7 +27,7 @@ const fetch = (
 ): Promise<Response> => {
   const headers = new Headers(init.headers);
   const token = apiToken();
-  if (token) headers.set("X-SS-Token", token);
+  if (token) headers.set("X-StealthStudy-Token", token);
   return globalThis.fetch(input, { ...init, headers });
 };
 

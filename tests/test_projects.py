@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from ss.memory.base import Scope
-from ss.memory.sqlite_store import SQLiteMemoryStore
-from ss.projects import (
+from stealth_study.memory.base import Scope
+from stealth_study.memory.sqlite_store import SQLiteMemoryStore
+from stealth_study.projects import (
     ProjectNames,
     project_key,
     project_label,
@@ -17,8 +17,8 @@ from ss.projects import (
     resolve_board_space,
     resolve_memory_key,
 )
-from ss.teams.store import GENESIS, TeamStore
-from ss.teams.model import Actor, Role
+from stealth_study.teams.store import GENESIS, TeamStore
+from stealth_study.teams.model import Actor, Role
 
 
 def _git(cwd: Path, *args: str) -> None:

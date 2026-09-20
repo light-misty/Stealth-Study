@@ -8,7 +8,7 @@ import asyncio
 
 import pytest
 
-from ss.connectors import (
+from stealth_study.connectors import (
     ConnectorSettings,
     FakeAdapter,
     Gateway,
@@ -19,8 +19,8 @@ from ss.connectors import (
     make_send_message_tool,
     parse_target,
 )
-from ss.connectors.base import SendResult
-from ss.secrets import SecretStore
+from stealth_study.connectors.base import SendResult
+from stealth_study.secrets import SecretStore
 
 
 # -- target tokens -------------------------------------------------------------
@@ -124,7 +124,7 @@ def test_load_settings_from_secretstore(tmp_path, monkeypatch):
         "telegram:default", {"type": "token", "bot_token": "T", "allowed_users": ["u1"]}
     )
     settings = __import__(
-        "ss.connectors.config", fromlist=["load_settings"]
+        "stealth_study.connectors.config", fromlist=["load_settings"]
     ).load_settings(secrets)
     assert settings["telegram"].enabled is True
     assert settings["telegram"].allowed_users == {"u1"}
@@ -136,7 +136,7 @@ def test_load_settings_env_allowlist(tmp_path, monkeypatch):
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put("telegram:default", {"bot_token": "T"})
     settings = __import__(
-        "ss.connectors.config", fromlist=["load_settings"]
+        "stealth_study.connectors.config", fromlist=["load_settings"]
     ).load_settings(secrets)
     assert settings["telegram"].allowed_users == {"a", "b", "c"}
 
@@ -197,24 +197,24 @@ class _StubProvider:
     """Minimal ProviderClient stand-in (build_engine never calls it)."""
 
     def complete(self, **_kw):  # pragma: no cover - never invoked at build time
-        from ss.providers import AssistantTurn
+        from stealth_study.providers import AssistantTurn
 
         return AssistantTurn()
 
     def capabilities(self, _model):  # pragma: no cover
-        from ss.providers.base import ModelCapabilities
+        from stealth_study.providers.base import ModelCapabilities
 
         return ModelCapabilities()
 
     def stream(self, **_kw):  # pragma: no cover
-        from ss.providers.base import StreamChunk
+        from stealth_study.providers.base import StreamChunk
 
         yield StreamChunk(turn=self.complete())
 
 
 def test_engine_connector_tools_are_cowork_scoped(tmp_path):
-    from ss.agent import build_engine
-    from ss.agents import chat_agent, code_agent, cowork_agent, myhelper_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents import chat_agent, code_agent, cowork_agent, myhelper_agent
 
     secrets = SecretStore(tmp_path / "secrets.json")
     eng = build_engine(agent=chat_agent(), provider=_StubProvider(), secrets=secrets)
@@ -294,7 +294,7 @@ def test_engine_connector_tools_are_cowork_scoped(tmp_path):
 
 # -- connector setup (descriptors / connect / disconnect / list) ---------------
 def test_connector_list_descriptors(tmp_path):
-    from ss.connectors import connector_list
+    from stealth_study.connectors import connector_list
 
     by_name = {
         c["name"]: c for c in connector_list(SecretStore(tmp_path / "secrets.json"))
@@ -334,9 +334,9 @@ def test_connector_list_pre_connect_copy(tmp_path):
     """Every connectable connector ships Access bullets for the pre-connect
     detail page (UX-DECISIONS §38) — an empty Access section would render as
     'this app tells you nothing about what it can do'."""
-    from ss.connectors import connector_list
-    from ss.connectors.catalog_copy import ACCESS
-    from ss.connectors.descriptors import list_descriptors
+    from stealth_study.connectors import connector_list
+    from stealth_study.connectors.catalog_copy import ACCESS
+    from stealth_study.connectors.descriptors import list_descriptors
 
     for c in connector_list(SecretStore(tmp_path / "secrets.json")):
         assert isinstance(c["about"], str)
@@ -354,7 +354,7 @@ def test_connector_list_pre_connect_copy(tmp_path):
 
 
 def test_connector_list_connected_for_required_profiles(tmp_path):
-    from ss.connectors import (
+    from stealth_study.connectors import (
         connect_connector,
         connector_list,
         update_connector_tools,
@@ -398,7 +398,7 @@ def test_connector_list_connected_for_required_profiles(tmp_path):
 
 
 def test_connect_disconnect_no_validate(tmp_path):
-    from ss.connectors import (
+    from stealth_study.connectors import (
         connect_connector,
         connector_list,
         disconnect_connector,
@@ -430,8 +430,8 @@ def test_connect_disconnect_no_validate(tmp_path):
 def test_reconnect_does_not_clobber_secret_or_allowlist(tmp_path):
     # Regression: a re-submit carrying the masked placeholder (or a blank allow-list) must not
     # overwrite a stored real token / wipe the live allow-list.
-    from ss.connectors import connect_connector
-    from ss.connectors.descriptors import get_descriptor
+    from stealth_study.connectors import connect_connector
+    from stealth_study.connectors.descriptors import get_descriptor
 
     secrets = SecretStore(tmp_path / "secrets.json")
     placeholder = next(
@@ -467,7 +467,7 @@ def test_reconnect_does_not_clobber_secret_or_allowlist(tmp_path):
 
 
 def test_connect_missing_required_field(tmp_path):
-    from ss.connectors import connect_connector
+    from stealth_study.connectors import connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
     res = connect_connector(
@@ -477,7 +477,7 @@ def test_connect_missing_required_field(tmp_path):
 
 
 def test_manual_slack_reconnect_preserves_approval_owners(tmp_path):
-    from ss.connectors import connect_connector
+    from stealth_study.connectors import connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put(
@@ -502,8 +502,8 @@ def test_manual_slack_reconnect_preserves_approval_owners(tmp_path):
 
 
 def test_connect_validation_runs(tmp_path):
-    from ss.connectors import connect_connector
-    from ss.connectors.descriptors import ValidationResult, get_descriptor
+    from stealth_study.connectors import connect_connector
+    from stealth_study.connectors.descriptors import ValidationResult, get_descriptor
 
     secrets = SecretStore(tmp_path / "secrets.json")
     desc = get_descriptor("telegram")
@@ -522,9 +522,9 @@ def test_connect_validation_runs(tmp_path):
 def test_connectors_rest(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
-    from ss.connectors.descriptors import ValidationResult, get_descriptor
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.connectors.descriptors import ValidationResult, get_descriptor
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     desc = get_descriptor("telegram")
@@ -560,7 +560,7 @@ def test_connectors_rest(tmp_path, monkeypatch):
 def test_telegram_message_mapper():
     from types import SimpleNamespace
 
-    from ss.connectors import telegram_message_to_event
+    from stealth_study.connectors import telegram_message_to_event
 
     msg = SimpleNamespace(
         text="hello",
@@ -582,7 +582,7 @@ def test_telegram_message_mapper():
 
 
 def test_slack_event_mapper_and_loop_guard():
-    from ss.connectors import slack_event_to_event
+    from stealth_study.connectors import slack_event_to_event
 
     ev = slack_event_to_event(
         {
@@ -608,7 +608,7 @@ def test_slack_event_mapper_and_loop_guard():
 
 
 def test_make_adapter():
-    from ss.connectors import SlackAdapter, TelegramAdapter, make_adapter
+    from stealth_study.connectors import SlackAdapter, TelegramAdapter, make_adapter
 
     assert isinstance(make_adapter("telegram", {"bot_token": "T"}), TelegramAdapter)
     assert isinstance(
@@ -619,7 +619,7 @@ def test_make_adapter():
 
 
 async def test_slack_resolves_and_caches_display_name():
-    from ss.connectors import SlackAdapter
+    from stealth_study.connectors import SlackAdapter
 
     calls: list[str] = []
 
@@ -649,7 +649,7 @@ async def test_slack_resolves_and_caches_display_name():
 
 
 async def test_slack_resolve_channel_name():
-    from ss.connectors import SlackAdapter
+    from stealth_study.connectors import SlackAdapter
 
     calls: list[str] = []
 
@@ -701,8 +701,8 @@ async def test_gateway_records_recent_senders():
 
 
 def test_manager_allow_disallow(tmp_path, monkeypatch):
-    from ss.connectors import connect_connector
-    from ss.server.manager import SessionManager
+    from stealth_study.connectors import connect_connector
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     m = SessionManager(data_dir=tmp_path / "data")
@@ -754,7 +754,7 @@ _NEW_CONNECTORS = {
 
 
 def test_new_connector_descriptors_listed(tmp_path):
-    from ss.connectors import connector_list
+    from stealth_study.connectors import connector_list
 
     by_name = {
         c["name"]: c for c in connector_list(SecretStore(tmp_path / "secrets.json"))
@@ -776,8 +776,8 @@ def test_new_connector_descriptors_listed(tmp_path):
 
 
 def test_new_connectors_connect_and_gate_tools(tmp_path):
-    from ss.connectors import connect_connector, connector_list
-    from ss.connectors.integration_tools import make_integration_tools
+    from stealth_study.connectors import connect_connector, connector_list
+    from stealth_study.connectors.integration_tools import make_integration_tools
 
     secrets = SecretStore(tmp_path / "secrets.json")
     for name, fields in _NEW_CONNECTORS.items():
@@ -795,7 +795,7 @@ def test_new_connectors_connect_and_gate_tools(tmp_path):
 
 
 def test_new_tools_error_when_not_connected(tmp_path):
-    from ss.connectors.integration_tools import make_integration_tools
+    from stealth_study.connectors.integration_tools import make_integration_tools
 
     tools = {
         t.__name__: t
@@ -828,7 +828,7 @@ def test_new_tools_error_when_not_connected(tmp_path):
 
 def _connected_tools(tmp_path, monkeypatch, calls):
     """All new connectors connected + _request recorded instead of hitting the network."""
-    import ss.connectors.integration_tools as it
+    import stealth_study.connectors.integration_tools as it
 
     secrets = SecretStore(tmp_path / "secrets.json")
     for name, fields in _NEW_CONNECTORS.items():
@@ -921,8 +921,8 @@ def test_registry_has_no_duplicate_names():
     """A new full descriptor once coexisted with a stale placeholder (both
     named "notion") — the Connectors page showed the connector twice and the
     tool registry carried colliding tool names. Guard both registries."""
-    from ss.connectors.descriptors import DESCRIPTORS
-    from ss.connectors.tool_defs import TOOL_DEFS
+    from stealth_study.connectors.descriptors import DESCRIPTORS
+    from stealth_study.connectors.tool_defs import TOOL_DEFS
 
     names = [d.name for d in DESCRIPTORS]
     assert len(names) == len(set(names)), sorted(n for n in names if names.count(n) > 1)
@@ -1122,7 +1122,7 @@ def test_batch3_tools_request_routing(tmp_path, monkeypatch):
 
 
 def test_docusign_account_discovery_caches(tmp_path, monkeypatch):
-    import ss.connectors.integration_tools as it
+    import stealth_study.connectors.integration_tools as it
 
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put("docusign:default", {"access_token": "ds_x", "enabled": True})
@@ -1163,7 +1163,7 @@ def test_docusign_account_discovery_caches(tmp_path, monkeypatch):
 
 
 def test_drive_read_file_exports_google_docs(tmp_path, monkeypatch):
-    import ss.connectors.integration_tools as it
+    import stealth_study.connectors.integration_tools as it
 
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put("google_drive:default", {"access_token": "ya29.x", "enabled": True})
@@ -1198,8 +1198,8 @@ def test_drive_read_file_exports_google_docs(tmp_path, monkeypatch):
 
 
 def test_notion_read_page_flattens_blocks(tmp_path, monkeypatch):
-    import ss.connectors.integration_tools as it
-    from ss.connectors import accounts
+    import stealth_study.connectors.integration_tools as it
+    from stealth_study.connectors import accounts
 
     secrets = SecretStore(tmp_path / "secrets.json")
     accounts.add_account(secrets, "notion", "ws1", {"access_token": "t"})
@@ -1234,9 +1234,9 @@ def test_notion_read_page_flattens_blocks(tmp_path, monkeypatch):
 def test_managed_callback_profile_keys_by_account_id(tmp_path):
     """Managed OAuth on an account-patterned connector: the broker's account_id
     keys the profile; a second workspace is a second account."""
-    from ss.cloud import managed_profile_from_callback
-    from ss.connectors import accounts
-    from ss.connectors.setup import managed_connect_connector
+    from stealth_study.cloud import managed_profile_from_callback
+    from stealth_study.connectors import accounts
+    from stealth_study.connectors.setup import managed_connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
     p1 = managed_profile_from_callback(
@@ -1264,9 +1264,9 @@ def test_google_drive_multi_account_keys_by_email(tmp_path):
     """Managed Drive must add multiple accounts keyed by email — the same way
     Gmail does — not by the opaque Google `sub`. The broker sends both `account`
     (email) and `account_id` (sub); account_field="@identity" makes the email win."""
-    from ss.cloud import managed_profile_from_callback
-    from ss.connectors import accounts
-    from ss.connectors.setup import managed_connect_connector
+    from stealth_study.cloud import managed_profile_from_callback
+    from stealth_study.connectors import accounts
+    from stealth_study.connectors.setup import managed_connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
     p1 = managed_profile_from_callback(
@@ -1299,13 +1299,13 @@ def test_google_drive_multi_account_keys_by_email(tmp_path):
 def test_outlook_managed_multi_account_keys_by_email(tmp_path, monkeypatch):
     """Managed Outlook mirrors Gmail/Drive: broker `account` (email from the
     Microsoft id_token) keys each mailbox; tools take an account param."""
-    import ss.connectors.integration_tools as it
-    from ss.cloud import managed_profile_from_callback
-    from ss.connectors import accounts
-    from ss.connectors.setup import managed_connect_connector
+    import stealth_study.connectors.integration_tools as it
+    from stealth_study.cloud import managed_profile_from_callback
+    from stealth_study.connectors import accounts
+    from stealth_study.connectors.setup import managed_connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
-    for email, tok in (("rohit@openworker.com", "g1"), ("ops@acme.com", "g2")):
+    for email, tok in (("rohit@stealthstudy.com", "g1"), ("ops@acme.com", "g2")):
         managed_connect_connector(
             secrets,
             "outlook",
@@ -1314,7 +1314,7 @@ def test_outlook_managed_multi_account_keys_by_email(tmp_path, monkeypatch):
             ),
         )
     ids = [a for a, _ in accounts.list_accounts(secrets, "outlook")]
-    assert ids == ["ops@acme.com", "rohit@openworker.com"], ids
+    assert ids == ["ops@acme.com", "rohit@stealthstudy.com"], ids
 
     calls = []
 
@@ -1329,7 +1329,7 @@ def test_outlook_managed_multi_account_keys_by_email(tmp_path, monkeypatch):
     assert calls[-1]["headers"]["Authorization"] == "Bearer g2"
     # default account = first connected (rohit@ was added first)
     out = tools["outlook_list_events"]()
-    assert out["account"] == "rohit@openworker.com"
+    assert out["account"] == "rohit@stealthstudy.com"
     # Bare list = the next-7-days calendarView (recurrences expanded), not /me/events.
     assert calls[-1]["url"] == "https://graph.microsoft.com/v1.0/me/calendarView"
 
@@ -1339,9 +1339,9 @@ def test_outlook_calendar_tools_hit_the_right_graph_endpoints(tmp_path, monkeypa
     create carries attendees/location/Teams flags, update PATCHes only the
     provided fields, respond posts to the accept/decline/tentativelyAccept
     action endpoints."""
-    import ss.connectors.integration_tools as it
-    from ss.cloud import managed_profile_from_callback
-    from ss.connectors.setup import managed_connect_connector
+    import stealth_study.connectors.integration_tools as it
+    from stealth_study.cloud import managed_profile_from_callback
+    from stealth_study.connectors.setup import managed_connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
     managed_connect_connector(
@@ -1350,7 +1350,7 @@ def test_outlook_calendar_tools_hit_the_right_graph_endpoints(tmp_path, monkeypa
         managed_profile_from_callback(
             {
                 "access_token": "tok",
-                "account": "rohit@openworker.com",
+                "account": "rohit@stealthstudy.com",
                 "provider": "microsoft",
             }
         ),
@@ -1410,8 +1410,8 @@ def test_outlook_calendar_tools_hit_the_right_graph_endpoints(tmp_path, monkeypa
 def test_batch2_account_param_picks_the_profile(tmp_path, monkeypatch):
     """Two PostHog projects connected → the account param routes the call; the
     default pointer serves bare calls; unknown accounts fail closed."""
-    import ss.connectors.integration_tools as it
-    from ss.connectors import accounts
+    import stealth_study.connectors.integration_tools as it
+    from stealth_study.connectors import accounts
 
     calls = []
     secrets = SecretStore(tmp_path / "secrets.json")
@@ -1518,7 +1518,7 @@ def test_new_write_tools_require_approval(tmp_path, monkeypatch):
 
 
 def test_gitlab_self_hosted_base_url(tmp_path, monkeypatch):
-    import ss.connectors.integration_tools as it
+    import stealth_study.connectors.integration_tools as it
 
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put(
@@ -1535,7 +1535,7 @@ def test_gitlab_self_hosted_base_url(tmp_path, monkeypatch):
 
 
 def test_quickbooks_sandbox_environment(tmp_path, monkeypatch):
-    import ss.connectors.integration_tools as it
+    import stealth_study.connectors.integration_tools as it
 
     secrets = SecretStore(tmp_path / "secrets.json")
     secrets.put(
@@ -1552,7 +1552,7 @@ def test_quickbooks_sandbox_environment(tmp_path, monkeypatch):
 
 
 def test_new_connector_validators_wired():
-    from ss.connectors.descriptors import get_descriptor
+    from stealth_study.connectors.descriptors import get_descriptor
 
     for name in (
         "linear",
@@ -1577,7 +1577,7 @@ def test_new_connector_validators_wired():
 
 
 def test_validate_whoami_helper(monkeypatch):
-    import ss.connectors.descriptors as d
+    import stealth_study.connectors.descriptors as d
 
     class _Resp:
         def __init__(self, status, payload):
@@ -1611,7 +1611,7 @@ def test_validate_whoami_helper(monkeypatch):
 def experimental_descriptor():
     """Register a synthetic experimental connector through the same hook the
     experimental package uses, and clean it up afterwards."""
-    import ss.connectors.descriptors as d
+    import stealth_study.connectors.descriptors as d
 
     desc = d.ConnectorDescriptor(
         name="dangerzone",
@@ -1632,7 +1632,7 @@ def experimental_descriptor():
 
 
 def test_experimental_hidden_until_enabled(tmp_path, experimental_descriptor):
-    from ss.connectors import connector_list, set_experimental_enabled
+    from stealth_study.connectors import connector_list, set_experimental_enabled
 
     secrets = SecretStore(tmp_path / "secrets.json")
     assert "dangerzone" not in {c["name"] for c in connector_list(secrets)}
@@ -1650,7 +1650,7 @@ def test_experimental_hidden_until_enabled(tmp_path, experimental_descriptor):
 
 
 def test_experimental_connect_requires_optin_and_ack(tmp_path, experimental_descriptor):
-    from ss.connectors import (
+    from stealth_study.connectors import (
         connect_connector,
         connector_list,
         set_experimental_enabled,
@@ -1676,7 +1676,7 @@ def test_experimental_connect_requires_optin_and_ack(tmp_path, experimental_desc
 
 
 def test_experimental_does_not_gate_regular_connectors(tmp_path):
-    from ss.connectors import connect_connector
+    from stealth_study.connectors import connect_connector
 
     secrets = SecretStore(tmp_path / "secrets.json")
     res = connect_connector(
@@ -1688,8 +1688,8 @@ def test_experimental_does_not_gate_regular_connectors(tmp_path):
 def test_experimental_rest_roundtrip(tmp_path, monkeypatch, experimental_descriptor):
     from fastapi.testclient import TestClient
 
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     client = TestClient(create_app(SessionManager(data_dir=tmp_path / "data")))
@@ -1721,8 +1721,8 @@ def test_experimental_rest_roundtrip(tmp_path, monkeypatch, experimental_descrip
 
 def test_experimental_package_loads_cleanly():
     """The experimental package import hook is a no-op when the package is empty or absent."""
-    from ss.connectors.descriptors import DESCRIPTORS
-    from ss.connectors.experimental import EXPERIMENTAL_DESCRIPTORS
+    from stealth_study.connectors.descriptors import DESCRIPTORS
+    from stealth_study.connectors.experimental import EXPERIMENTAL_DESCRIPTORS
 
     assert EXPERIMENTAL_DESCRIPTORS == []
     assert all(d.experimental is False for d in DESCRIPTORS if d.name != "dangerzone")

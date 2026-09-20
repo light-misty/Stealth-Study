@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from ss.providers import (
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     OpenAIProvider,
@@ -14,8 +14,8 @@ from ss.providers import (
     StreamChunk,
     capabilities_for,
 )
-from ss.providers.registry import _normalize_ollama_url, build_provider_client
-from ss.providers.openai_provider import (
+from stealth_study.providers.registry import _normalize_ollama_url, build_provider_client
+from stealth_study.providers.openai_provider import (
     _salvage_tool_calls_from_text,
     looks_like_unparsed_tool_call,
 )
@@ -101,7 +101,7 @@ def _patch_build(monkeypatch):
         state["latest"][name] = rec
         return rec
 
-    monkeypatch.setattr("ss.providers.router.build_provider_client", fake_build)
+    monkeypatch.setattr("stealth_study.providers.router.build_provider_client", fake_build)
     return state
 
 
@@ -343,7 +343,7 @@ def test_complete_salvages_only_when_tools_requested():
 # -- manager get/set_provider ---------------------------------------------------
 def test_manager_provider_config(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     assert isinstance(mgr.provider, ProviderRouter)
@@ -366,12 +366,12 @@ def test_manager_curated_models(tmp_path, monkeypatch):
     plus user-added custom ids. A fresh install shows only the (not-yet-usable) default.
     """
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.providers.registry import provider_descriptors
+    from stealth_study.providers.registry import provider_descriptors
 
     for d in provider_descriptors():  # ambient dev-shell keys must not leak in
         if d.env_key:
             monkeypatch.delenv(d.env_key, raising=False)
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     # `ollama:*` selectability is an HTTP probe of a local server; pin it so this test
     # covers picker mechanics only (the probe itself is covered by
@@ -417,7 +417,7 @@ def test_manager_curated_models(tmp_path, monkeypatch):
 
 def test_set_provider_auto_adds_recommended_when_pulled(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     monkeypatch.setattr(  # pretend the recommended model is pulled
@@ -432,7 +432,7 @@ def test_set_provider_auto_adds_recommended_when_pulled(tmp_path, monkeypatch):
 
 def test_set_provider_skips_recommended_when_not_pulled(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     monkeypatch.setattr(mgr, "_suggested_models", lambda name: [])  # nothing pulled
@@ -443,8 +443,8 @@ def test_set_provider_skips_recommended_when_not_pulled(tmp_path, monkeypatch):
 def test_provider_builders(monkeypatch):
     import pytest
 
-    from ss.providers import AnthropicProvider, GeminiProvider
-    from ss.providers.registry import build_provider_client
+    from stealth_study.providers import AnthropicProvider, GeminiProvider
+    from stealth_study.providers.registry import build_provider_client
 
     # anthropic and gemini are native: key resolution deferred to first call
     p = build_provider_client("anthropic", {"api_key": "sk-ant-x"}, None)
@@ -462,7 +462,7 @@ def test_provider_builders(monkeypatch):
 
     # OpenAI custom endpoint (Azure /openai/v1, OpenRouter, vLLM, …) passes through and
     # keeps Chat Completions; a blank endpoint means stock OpenAI → the Responses API.
-    from ss.providers import OpenAIResponsesProvider
+    from stealth_study.providers import OpenAIResponsesProvider
 
     o = build_provider_client(
         "openai", {"base_url": "https://my.azure.example/openai/v1"}, None
@@ -483,7 +483,7 @@ def test_anthropic_gemini_provider_config(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     provs = {p["name"]: p for p in mgr.get_providers()}
@@ -510,7 +510,7 @@ def test_first_configured_provider_wins_default(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     for var in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY"):
         monkeypatch.delenv(var, raising=False)
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     assert (
@@ -528,7 +528,7 @@ def test_first_configured_provider_wins_default(tmp_path, monkeypatch):
 
 def test_surface_visibility(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     # default: Cowork only
@@ -554,7 +554,7 @@ def test_surface_visibility(tmp_path, monkeypatch):
 
 def test_provider_suggested_models(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     provs = {p["name"]: p for p in mgr.get_providers()}
@@ -594,7 +594,7 @@ def test_manager_key_hygiene_stamps(tmp_path, monkeypatch):
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     from datetime import date
 
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path)
     mgr.set_provider("deepseek", {"api_key": "ds-key"})

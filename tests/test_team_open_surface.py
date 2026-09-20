@@ -7,9 +7,9 @@ import json
 
 import pytest
 
-from ss.teams import Actor, AuthorityError, BoardError, JournalStore, Role, TeamStore
-from ss.teams.dialect import LocalDialect, RemoteDialect, local_dialect
-from ss.teams.tokens import BoardTokens
+from stealth_study.teams import Actor, AuthorityError, BoardError, JournalStore, Role, TeamStore
+from stealth_study.teams.dialect import LocalDialect, RemoteDialect, local_dialect
+from stealth_study.teams.tokens import BoardTokens
 
 USER = Actor(id="user", role=Role.USER)
 LEAD = Actor(id="lead-1", role=Role.LEAD, persona="swe-lead")
@@ -160,9 +160,9 @@ def api(tmp_path, monkeypatch):
     """The real FastAPI app over a real manager state dir, driven in-process."""
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     monkeypatch.setenv("COWORKER_API_TOKEN", "sidecar-secret")
-    from ss.permissions import Mode
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.permissions import Mode
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     manager = SessionManager(
         workspace=None,
@@ -497,7 +497,7 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"drill-bytes"
 
 
 def test_attachment_store_is_content_addressed(tmp_path):
-    from ss.teams.attachments import AttachmentStore, stored_name
+    from stealth_study.teams.attachments import AttachmentStore, stored_name
 
     store = AttachmentStore(tmp_path / "attachments")
     ref = store.put(PNG, "shot.png")
@@ -510,7 +510,7 @@ def test_attachment_store_is_content_addressed(tmp_path):
 
 
 def test_attachment_store_validates(tmp_path):
-    from ss.teams.attachments import AttachmentStore
+    from stealth_study.teams.attachments import AttachmentStore
 
     store = AttachmentStore(tmp_path / "attachments")
     with pytest.raises(BoardError, match="images only"):
@@ -550,7 +550,7 @@ def test_attach_over_the_wire_and_fetch(api):
     assert shown["comments"][-1]["body"] == "statements page, dark mode"
 
     # and the lead can fetch the bytes back
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     stored = stored_name(result["ref"])
     data, mime = lead.attachment("proj", stored)
@@ -569,7 +569,7 @@ def test_attach_over_the_wire_and_fetch(api):
 def test_board_attachment_read_hides_foreign_worker_reference(api):
     client, manager, app = api
     from fastapi.testclient import TestClient
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead_token = _tokens(manager).mint("lead-1", "lead")
     nia_token = _tokens(manager).mint("nia", "worker")
@@ -650,7 +650,7 @@ def test_board_attachment_read_rejects_malformed_name(api):
 
 def test_board_attachment_read_hides_unreferenced_blob(api):
     client, manager, _ = api
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead = {
         "Authorization": f"Bearer {_tokens(manager).mint('lead-1', 'lead')}"
@@ -669,7 +669,7 @@ def test_board_attachment_read_hides_unreferenced_blob(api):
 
 def test_board_attachment_read_hides_missing_referenced_blob(api):
     client, manager, _ = api
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead = {
         "Authorization": f"Bearer {_tokens(manager).mint('lead-1', 'lead')}"
@@ -703,7 +703,7 @@ def test_board_attachment_read_hides_missing_referenced_blob(api):
 
 
 def test_local_attachment_read_tracks_worker_visibility(tmp_path):
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     worker = LocalDialect(
@@ -734,7 +734,7 @@ def test_local_attachment_read_tracks_worker_visibility(tmp_path):
 
 
 def test_local_attachment_read_allows_a_visible_deduplicated_reference(tmp_path):
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     worker = LocalDialect(
@@ -764,7 +764,7 @@ def test_local_attachment_read_allows_a_visible_deduplicated_reference(tmp_path)
 
 
 def test_local_attachment_read_rejects_forged_comment_and_transition_refs(tmp_path):
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     worker = LocalDialect(
@@ -798,7 +798,7 @@ def test_local_attachment_read_rejects_forged_comment_and_transition_refs(tmp_pa
 def test_legacy_attachment_refs_are_grandfathered_across_rebuild(tmp_path):
     import sqlite3
 
-    from ss.teams.attachments import AttachmentStore, stored_name
+    from stealth_study.teams.attachments import AttachmentStore, stored_name
 
     db_path = tmp_path / "teams.db"
     attachments = AttachmentStore(tmp_path / "attachments")
@@ -839,7 +839,7 @@ def test_legacy_attachment_refs_are_grandfathered_across_rebuild(tmp_path):
 
 
 def test_local_attachment_read_allows_a_directly_linked_item(tmp_path):
-    from ss.teams.attachments import stored_name
+    from stealth_study.teams.attachments import stored_name
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     worker = LocalDialect(
@@ -905,7 +905,7 @@ def test_token_mint_validates_role(tmp_path):
 def test_mcp_tool_surface_is_role_scoped(tmp_path):
     import anyio
 
-    from ss.teams.mcp_server import build
+    from stealth_study.teams.mcp_server import build
 
     worker = build(
         local_dialect(tmp_path, actor="nia", role="worker"), space="proj"
@@ -930,7 +930,7 @@ def test_mcp_tool_surface_is_role_scoped(tmp_path):
 def test_mcp_worker_loop_through_call_tool(tmp_path):
     import anyio
 
-    from ss.teams.mcp_server import build
+    from stealth_study.teams.mcp_server import build
 
     lead_dialect = local_dialect(tmp_path, actor="lead-1", role="lead")
     item = lead_dialect.create_item("proj", title="Via MCP", criteria="c")
@@ -952,7 +952,7 @@ def test_mcp_worker_loop_through_call_tool(tmp_path):
 def test_mcp_board_show_does_not_return_a_foreign_item(tmp_path):
     import anyio
 
-    from ss.teams.mcp_server import build
+    from stealth_study.teams.mcp_server import build
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     foreign = lead.create_item(
@@ -974,7 +974,7 @@ def test_mcp_board_show_does_not_return_a_foreign_item(tmp_path):
 
 
 def test_cli_headless_flow(tmp_path, capsys):
-    from ss.teams.cli import main
+    from stealth_study.teams.cli import main
 
     space_args = ["--db", str(tmp_path), "--space", "proj"]
     assert main(
@@ -1012,7 +1012,7 @@ def test_cli_headless_flow(tmp_path, capsys):
 
 
 def test_cli_worker_cannot_show_a_foreign_item(tmp_path, capsys):
-    from ss.teams.cli import main
+    from stealth_study.teams.cli import main
 
     space_args = ["--db", str(tmp_path), "--space", "proj"]
     lead_args = [*space_args, "--actor", "lead-1", "--role", "lead"]
@@ -1033,8 +1033,8 @@ def test_cli_worker_cannot_show_a_foreign_item(tmp_path, capsys):
 
 
 def test_cli_worker_cannot_download_a_foreign_attachment(tmp_path, capsys):
-    from ss.teams.attachments import stored_name
-    from ss.teams.cli import main
+    from stealth_study.teams.attachments import stored_name
+    from stealth_study.teams.cli import main
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     foreign = lead.create_item("proj", title="Private Webb task", criteria="c")
@@ -1068,8 +1068,8 @@ def test_cli_worker_cannot_download_a_foreign_attachment(tmp_path, capsys):
 
 
 def test_cli_authorized_attachment_download(tmp_path, capsys):
-    from ss.teams.attachments import stored_name
-    from ss.teams.cli import main
+    from stealth_study.teams.attachments import stored_name
+    from stealth_study.teams.cli import main
 
     lead = local_dialect(tmp_path, actor="lead-1", role="lead")
     item = lead.create_item("proj", title="Evidence", criteria="c")
@@ -1102,7 +1102,7 @@ def test_cli_authorized_attachment_download(tmp_path, capsys):
 
 
 def test_cli_token_mint_and_list(tmp_path, capsys):
-    from ss.teams.cli import main
+    from stealth_study.teams.cli import main
 
     assert main(
         ["board", "token", "mint", "--actor", "nia", "--role", "worker",

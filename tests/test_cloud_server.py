@@ -1,4 +1,4 @@
-"""Sidecar loopback routes for OpenWorker Cloud: /oauth/callback,
+"""Sidecar loopback routes for Stealth Study Cloud: /oauth/callback,
 /auth/callback, /v1/cloud/*, connect-managed gating.
 
 These exercise the UPSTREAM one-click flow, so the fixture turns `campus.login_enabled` on
@@ -11,11 +11,11 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.server import SessionManager, create_app
+from stealth_study.server import SessionManager, create_app
 
 
 def _allow_managed_state(state: str = "s") -> None:
-    from ss import cloud
+    from stealth_study import cloud
 
     cloud._pending_managed_states[state] = cloud._now()
 
@@ -154,7 +154,7 @@ You are the Sales Coworker."""
 def _stub_gallery(monkeypatch, markdown=SALES_MANIFEST, *, hash_ok=True):
     import hashlib
 
-    from ss import cloud
+    from stealth_study import cloud
 
     digest = "sha256:" + hashlib.sha256(markdown.encode()).hexdigest()
     manifest = {
@@ -190,7 +190,7 @@ def test_gallery_install_rejects_hash_mismatch(client, monkeypatch):
 
 
 def test_gallery_install_requires_sign_in(client, monkeypatch):
-    from ss import cloud
+    from stealth_study import cloud
 
     monkeypatch.setattr(cloud, "gallery_manifest", lambda s, c, slug: None)
     body = client.post("/v1/personas/install", json={"gallery_slug": "sales"}).json()

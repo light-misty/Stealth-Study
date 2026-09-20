@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from ss.personas.manifest import ManifestError, parse_manifest
+from stealth_study.personas.manifest import ManifestError, parse_manifest
 
 VALID = """---
 id: demo
@@ -76,8 +76,8 @@ def test_recommending_an_undeclared_connector_is_author_drift():
 
 
 def test_to_agent_carries_traits_and_tools(tmp_path):
-    from ss.agents.base import AgentContext
-    from ss.tools.todo import TodoList
+    from stealth_study.agents.base import AgentContext
+    from stealth_study.tools.todo import TodoList
 
     agent = parse_manifest(VALID).to_agent()
     assert agent.name == "demo" and agent.requires_folder is False

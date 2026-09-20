@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import pytest
 
-from ss.personas.registry import DEFAULT_PERSONA_ID, PersonaRegistry
+from stealth_study.personas.registry import DEFAULT_PERSONA_ID, PersonaRegistry
 
-# T21 备考台六人设：manifest 落盘于 ss/personas/builtin/<id>/（05 §2 目录布局）。
+# T21 备考台六人设：manifest 落盘于 stealth_study/personas/builtin/<id>/（05 §2 目录布局）。
 CAMPUS_PERSONAS = (
     "cert-instructor",
     "cet-examiner",

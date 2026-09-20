@@ -10,7 +10,7 @@ import io
 
 import pytest
 
-from ss.campus.library import (
+from stealth_study.campus.library import (
     MAX_CHUNK_CHARS,
     MAX_DOC_CHUNKS,
     MAX_EXTRACT_CHARS,

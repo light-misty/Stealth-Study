@@ -10,11 +10,11 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ss.inbox import VIS_INLINE, VIS_INBOX
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server import create_app
-from ss.server.manager import SessionManager
-from ss.sessions import SessionRecord
+from stealth_study.inbox import VIS_INLINE, VIS_INBOX
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
+from stealth_study.sessions import SessionRecord
 
 
 class NoTurnsProvider(ProviderClient):

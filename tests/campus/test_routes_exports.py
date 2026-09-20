@@ -21,10 +21,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
-from ss.campus.config import load_campus_config
-from ss.campus.service import CampusError, CampusService
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
+from stealth_study.campus.config import load_campus_config
+from stealth_study.campus.service import CampusError, CampusService
 
 ACTIVE_ID = "profile-export"
 OTHER_ID = "profile-other"

@@ -3,13 +3,13 @@
 import asyncio
 import json
 
-from ss.inbox import InboxStore
-from ss.interactions import Button, buttons_for, decode, encode
-from ss.tools.ask import SKIP_SENTINEL
-from ss.connectors.base import InteractionEvent
-from ss.connectors.senders import _slack_blocks
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server.manager import SessionManager
+from stealth_study.inbox import InboxStore
+from stealth_study.interactions import Button, buttons_for, decode, encode
+from stealth_study.tools.ask import SKIP_SENTINEL
+from stealth_study.connectors.base import InteractionEvent
+from stealth_study.connectors.senders import _slack_blocks
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):

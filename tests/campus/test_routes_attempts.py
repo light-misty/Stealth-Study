@@ -22,8 +22,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
 
 ACTIVE_ID = "profile-active"
 OTHER_ID = "profile-other"
@@ -433,7 +433,7 @@ def test_e5_keeps_the_attempt_out_of_another_profile_view(
 
 
 def test_every_question_type_is_either_objective_or_gradable() -> None:
-    from ss.campus import service
+    from stealth_study.campus import service
 
     for qtype in models.QuestionType:
         objective = qtype.value in service.OBJECTIVE_QUESTION_TYPES

@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 import pytest_asyncio
 
-from ss.testing.fake_slack import FakeSlack
+from stealth_study.testing.fake_slack import FakeSlack
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +22,7 @@ def _isolated_state_dir(tmp_path, monkeypatch):
     as burst noise in the ocw-connect-telemetry-events table)."""
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "coworker-state"))
     # Universal scratch provisions a per-session dir for EVERY session — without this,
-    # tests would mkdir under the developer's real ~/OpenWorker.
+    # tests would mkdir under the developer's real ~/Stealth Study/scratch.
     monkeypatch.setenv("COWORKER_SCRATCH_BASE", str(tmp_path / "coworker-scratch"))
     monkeypatch.delenv("COWORKER_API_TOKEN", raising=False)
 

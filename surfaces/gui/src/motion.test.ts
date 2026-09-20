@@ -13,10 +13,10 @@ describe("unified motion foundation", () => {
   });
 
   it("defines the shared keyframes", () => {
-    expect(css).toContain("@keyframes ss-fade-in");
-    expect(css).toContain("@keyframes ss-fade-up");
-    expect(css).toContain("@keyframes ss-pop-in");
-    expect(css).toContain("@keyframes ss-slide-down");
+    expect(css).toContain("@keyframes stealth-study-fade-in");
+    expect(css).toContain("@keyframes stealth-study-fade-up");
+    expect(css).toContain("@keyframes stealth-study-pop-in");
+    expect(css).toContain("@keyframes stealth-study-slide-down");
   });
 
   it("defines the shared transition utilities", () => {
@@ -39,7 +39,7 @@ describe("unified motion foundation", () => {
     expect(css).toMatch(/\.dd-menu\s*\{[^}]*animation:/);
     expect(css).toMatch(/\.dlg-card\s*\{[^}]*animation:/);
     expect(css).toMatch(/\.board-overlay\s*\{[^}]*animation:/);
-    expect(css).toContain("@keyframes ss-pop-centered");
+    expect(css).toContain("@keyframes stealth-study-pop-centered");
     expect(css).toContain(".modal-pop");
   });
 

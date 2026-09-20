@@ -64,7 +64,7 @@ def fetch(url: str, dest: Path, tries: int = 4) -> bytes:
     last: Exception | None = None
     for _ in range(tries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "ss-v0-spike"})
+            req = urllib.request.Request(url, headers={"User-Agent": "stealth-study-v0-spike"})
             with urllib.request.urlopen(req, timeout=90) as resp:
                 chunks = b""
                 while True:

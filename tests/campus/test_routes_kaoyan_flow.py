@@ -21,8 +21,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import routes, store
+from stealth_study import secrets
+from stealth_study.campus import routes, store
 
 TODAY = date(2026, 9, 15)
 EXAM = date(2026, 12, 26)
@@ -75,9 +75,9 @@ def seeded_store(campus_db_path: Any) -> Any:
 def model_client(
     seeded_store: Any, monkeypatch: pytest.MonkeyPatch
 ) -> TestClient:
-    monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.service._utc_today", lambda: TODAY)
     monkeypatch.setattr(
-        "ss.campus.service._utcnow_iso", lambda: f"{TODAY.isoformat()}T08:00:00Z"
+        "stealth_study.campus.service._utcnow_iso", lambda: f"{TODAY.isoformat()}T08:00:00Z"
     )
     app = FastAPI()
     app.include_router(routes.build_campus_router(FakeManager(text=PLAN_JSON)))

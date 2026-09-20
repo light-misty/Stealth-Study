@@ -27,16 +27,16 @@ import time
 
 from fastapi.testclient import TestClient
 
-from ss.interactions import decode
-from ss.providers import (
+from stealth_study.interactions import decode
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.server import create_app
-from ss.server.manager import SessionManager
-from ss.sessions import SessionRecord
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
+from stealth_study.sessions import SessionRecord
 
 SID = "incident"
 CHANNEL = "C_OPS"
@@ -113,7 +113,7 @@ def _find_reply(outbound, channel, text):
 
 async def test_ui_refresh_cross_cutting_e2e(fake_slack, tmp_path, monkeypatch):
     # Isolate the SecretStore (machine-global otherwise) so "is slack connected?" is decided only
-    # by what this test writes; the manager's own data dir lives under tmp_path/.coworker.
+    # by what this test writes; the manager's own data dir lives under tmp_path/.stealth-study.
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
 
     ws = tmp_path / "ops_ws"
@@ -309,5 +309,5 @@ async def test_ui_refresh_cross_cutting_e2e(fake_slack, tmp_path, monkeypatch):
         await mgr.aclose()
 
     # State-dir isolation held: the SecretStore resolved to the tmp_path-scoped path, never the
-    # machine-global ~/.config/coworker (so this run cannot mutate the real secrets hash).
+    # machine-global ~/.config/Stealth Study (so this run cannot mutate the real secrets hash).
     assert str(tmp_path) in str(mgr.secrets.path)

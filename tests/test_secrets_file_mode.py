@@ -12,8 +12,8 @@ import sys
 
 import pytest
 
-from ss import secrets as secrets_mod
-from ss.secrets import SecretStore, write_private_text
+from stealth_study import secrets as secrets_mod
+from stealth_study.secrets import SecretStore, write_private_text
 
 posix_only = pytest.mark.skipif(
     sys.platform == "win32", reason="POSIX mode bits; Windows uses the icacls ACL path"

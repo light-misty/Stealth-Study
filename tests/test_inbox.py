@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from ss.inbox import (
+from stealth_study.inbox import (
     KIND_APPROVAL,
     KIND_NOTIFICATION,
     STATE_RESOLVED,
@@ -60,7 +60,7 @@ def test_reconcile_on_resume(tmp_path):
 def test_inbox_approver_allow(tmp_path):
     async def run():
         store = InboxStore(tmp_path / "inbox.json")
-        from ss.engine import ApprovalOutcome, PermissionRequest
+        from stealth_study.engine import ApprovalOutcome, PermissionRequest
 
         approver = inbox_approver(store, "s1")
         req = PermissionRequest("run_shell", {}, None, "needs approval")
@@ -84,7 +84,7 @@ def test_inbox_approver_allow(tmp_path):
 def test_inbox_approver_deny(tmp_path):
     async def run():
         store = InboxStore(tmp_path / "inbox.json")
-        from ss.engine import ApprovalOutcome, PermissionRequest
+        from stealth_study.engine import ApprovalOutcome, PermissionRequest
 
         approver = inbox_approver(store, "s1")
         req = PermissionRequest("rm", {}, None, "danger")
@@ -104,7 +104,7 @@ def test_inbox_approver_deny(tmp_path):
 
 
 def test_args_preview():
-    from ss.inbox import args_preview
+    from stealth_study.inbox import args_preview
 
     assert (
         args_preview({"path": "g.txt", "content": "buy milk"})
@@ -116,8 +116,8 @@ def test_args_preview():
 
 
 def test_approval_body_includes_tool_args():
-    from ss.engine import PermissionRequest
-    from ss.server.manager import _approval_body
+    from stealth_study.engine import PermissionRequest
+    from stealth_study.server.manager import _approval_body
 
     req = PermissionRequest(
         "write_file", {"path": "groceries.txt", "content": "buy milk"}, None, ""
@@ -132,8 +132,8 @@ def test_approval_body_includes_tool_args():
 def test_approval_body_strips_boilerplate_reason():
     """OPE-136 found-in-testing: the live card filters the engine's default
     "requires approval" boilerplate — the parked/mirrored body must not bake it in."""
-    from ss.engine import PermissionRequest
-    from ss.server.manager import _approval_body
+    from stealth_study.engine import PermissionRequest
+    from stealth_study.server.manager import _approval_body
 
     req = PermissionRequest("write_file", {"path": "g.txt"}, None, "requires approval")
     body = _approval_body(req)
@@ -147,8 +147,8 @@ def test_approval_prompt_data_carries_mcp_evidence():
     renders the identical scope chip and evidence, never the vague fallback."""
     from types import SimpleNamespace
 
-    from ss.engine import PermissionRequest
-    from ss.server.manager import SessionManager
+    from stealth_study.engine import PermissionRequest
+    from stealth_study.server.manager import SessionManager
 
     fake_mgr = SimpleNamespace(
         task_store=SimpleNamespace(task_for_run_session=lambda _s: None)

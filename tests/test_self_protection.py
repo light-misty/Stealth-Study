@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from ss.permissions import Mode, PermissionEngine, protected_paths
-from ss.secrets import state_dir
+from stealth_study.permissions import Mode, PermissionEngine, protected_paths
+from stealth_study.secrets import state_dir
 
 ALL_MODES = [Mode.DISCUSS, Mode.PLAN, Mode.INTERACTIVE, Mode.CUSTOM, Mode.AUTO_APPROVE, Mode.BYPASS_APPROVALS]
 
@@ -75,7 +75,7 @@ def test_protected_paths_cover_the_grant_and_trust_stores():
         ".git/hooks/pre-commit",
         ".github/workflows/ci.yml",
         ".vscode/tasks.json",
-        ".coworker/config.toml",
+        ".stealth-study/config.toml",
     ],
 )
 def test_protected_in_project_never_auto_approved(tmp_path, rel):

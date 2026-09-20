@@ -7,14 +7,14 @@ from __future__ import annotations
 
 import pytest
 
-from ss.connectors import accounts, descriptors
-from ss.connectors.descriptors import ConnectorDescriptor, Field, ValidationResult
-from ss.connectors.setup import (
+from stealth_study.connectors import accounts, descriptors
+from stealth_study.connectors.descriptors import ConnectorDescriptor, Field, ValidationResult
+from stealth_study.connectors.setup import (
     connect_connector,
     connector_list,
     disconnect_connector,
 )
-from ss.secrets import SecretStore
+from stealth_study.secrets import SecretStore
 
 
 def _fake_descriptor(name="acmeapp", account_field="project_id", managed=False):
@@ -151,9 +151,9 @@ def test_generic_account_routes(acme, secrets, tmp_path, monkeypatch):
     account-patterned connectors and refuse everything else."""
     from fastapi.testclient import TestClient
 
-    from ss.providers import ModelCapabilities, ProviderClient
-    from ss.server.app import create_app
-    from ss.server.manager import SessionManager
+    from stealth_study.providers import ModelCapabilities, ProviderClient
+    from stealth_study.server.app import create_app
+    from stealth_study.server.manager import SessionManager
 
     class _Provider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):

@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from ss.campus import models, reminders, store
+from stealth_study.campus import models, reminders, store
 
 TODAY = date(2026, 9, 15)
 

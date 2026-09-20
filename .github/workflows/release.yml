@@ -12,7 +12,7 @@
 # 仅支持 Windows 平台；macOS 构建已禁用（代码保留在 build_dmg.sh 中，不运行）。
 #
 # Each installer is uploaded twice: once with its versioned name (archive) and once with a
-# stable name (OpenWorker-windows-setup.exe, OpenWorker-windows.msi) so the website can link to
+# stable name (StealthStudy-windows-setup.exe, StealthStudy-windows.msi) so the website can link to
 #   github.com/<repo>/releases/latest/download/<stable-name>
 # and never need updating.
 #
@@ -68,7 +68,7 @@ jobs:
           $VPY = ".venv\Scripts\python.exe"
           & $VPY -m pip install --upgrade pip
           & $VPY -m pip install -e ".[bedrock]" pyinstaller typer tzdata
-          & $VPY -c "import aisuite, ss"
+          & $VPY -c "import aisuite, stealth_study"
 
       - name: npm ci
         working-directory: surfaces/gui
@@ -85,11 +85,11 @@ jobs:
           New-Item -ItemType Directory -Force -Path out | Out-Null
           $BUNDLE = "surfaces\gui\src-tauri\target\release\bundle"
           Copy-Item "$BUNDLE\nsis\*.exe" out\
-          Copy-Item "$BUNDLE\nsis\*.exe" out\OpenWorker-windows-setup.exe
+          Copy-Item "$BUNDLE\nsis\*.exe" out\StealthStudy-windows-setup.exe
           Copy-Item "$BUNDLE\msi\*.msi" out\
-          Copy-Item "$BUNDLE\msi\*.msi" out\OpenWorker-windows.msi
+          Copy-Item "$BUNDLE\msi\*.msi" out\StealthStudy-windows.msi
           $SIG = Get-Item "$BUNDLE\nsis\*.exe.sig" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($SIG) { Copy-Item $SIG.FullName out\OpenWorker-windows-setup.exe.sig }
+          if ($SIG) { Copy-Item $SIG.FullName out\StealthStudy-windows-setup.exe.sig }
           Get-ChildItem out | Format-Table Name, Length
 
       - uses: actions/upload-artifact@v4

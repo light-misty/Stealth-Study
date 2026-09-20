@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 
-from ss.inbox import InboxStore, inbox_approver
-from ss.unattended import UnattendedRegistry
+from stealth_study.inbox import InboxStore, inbox_approver
+from stealth_study.unattended import UnattendedRegistry
 
 
 def test_toggle_and_persist(tmp_path):
@@ -28,7 +28,7 @@ def test_unattended_session_routes_to_inbox(tmp_path):
         unattended.set("s1", True)
         assert unattended.is_unattended("s1")
 
-        from ss.engine import ApprovalOutcome, PermissionRequest
+        from stealth_study.engine import ApprovalOutcome, PermissionRequest
 
         approver = inbox_approver(inbox, "s1")
 

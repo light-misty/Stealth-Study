@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-// LIVE campus integration — the real browser against a real `openworker-server`, no route mocks.
+// LIVE campus integration — the real browser against a real `stealthstudy-server`, no route mocks.
 //
 // This is the layer the hermetic suite in `e2e/` cannot provide: it catches the whole class of
 // defect where the frontend calls an endpoint the backend does not answer (missing route, missing
@@ -24,14 +24,14 @@ function liveToken(): string {
   const state =
     process.env.COWORKER_STATE_DIR ??
     (process.platform === "win32"
-      ? path.join(process.env.APPDATA ?? os.homedir(), "coworker")
-      : path.join(os.homedir(), ".config", "coworker"));
+      ? path.join(process.env.APPDATA ?? os.homedir(), "Stealth Study")
+      : path.join(os.homedir(), ".config", "Stealth Study"));
   const file = path.join(state, "sidecar-8765.token");
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8").trim() : "";
 }
 
 const TOKEN = liveToken();
-const auth = { "X-SS-Token": TOKEN };
+const auth = { "X-StealthStudy-Token": TOKEN };
 
 /** Every `/v1/campus/*` response the page received that was not a success. */
 function watchCampusCalls(page: Page): string[] {

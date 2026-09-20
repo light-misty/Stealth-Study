@@ -14,8 +14,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ss.engine import ApprovalOutcome
-from ss.server.manager import SessionManager
+from stealth_study.engine import ApprovalOutcome
+from stealth_study.server.manager import SessionManager
 
 
 @pytest.fixture

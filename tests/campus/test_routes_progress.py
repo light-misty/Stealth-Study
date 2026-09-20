@@ -18,8 +18,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ss import secrets
-from ss.campus import models, routes, store
+from stealth_study import secrets
+from stealth_study.campus import models, routes, store
 
 ACTIVE_ID = "profile-active"
 OTHER_ID = "profile-other"
@@ -102,8 +102,8 @@ def seeded_store(campus_db_path: Any) -> store.CampusStore:
 
 @pytest.fixture()
 def client(seeded_store: store.CampusStore, monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
-    monkeypatch.setattr("ss.campus.reminders.today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.reminders.today", lambda: TODAY)
     app = FastAPI()
     app.include_router(routes.build_campus_router(object()))
     return TestClient(app)
@@ -178,8 +178,8 @@ def test_g4_reads_a_finished_profile(
             "status": "finished",
         },
     )
-    monkeypatch.setattr("ss.campus.service._utc_today", lambda: TODAY)
-    monkeypatch.setattr("ss.campus.reminders.today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.service._utc_today", lambda: TODAY)
+    monkeypatch.setattr("stealth_study.campus.reminders.today", lambda: TODAY)
     app = FastAPI()
     app.include_router(routes.build_campus_router(object()))
     client = TestClient(app)

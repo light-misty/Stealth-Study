@@ -6,14 +6,14 @@ import sys
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.providers import (
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.server import SessionManager, create_app
-from ss.sessions import SessionRecord
+from stealth_study.server import SessionManager, create_app
+from stealth_study.sessions import SessionRecord
 
 
 class ScriptedProvider(ProviderClient):
@@ -360,8 +360,8 @@ def test_ws_simple_turn(tmp_path):
 
 
 def test_ws_rejects_oversized_message(tmp_path):
-    from ss.server import app as app_mod
-    from ss.attachments import MAX_ATTACHMENTS
+    from stealth_study.server import app as app_mod
+    from stealth_study.attachments import MAX_ATTACHMENTS
 
     client = _client(tmp_path, [_text("should not run")])
     with client.websocket_connect("/ws/session/big") as ws:
@@ -468,7 +468,7 @@ def test_ws_allows_only_one_inflight_turn_per_session(tmp_path):
 
 
 def test_ws_rate_limits_inbound_frames(tmp_path):
-    from ss.server import app as app_mod
+    from stealth_study.server import app as app_mod
     from starlette.websockets import WebSocketDisconnect
 
     client = _client(tmp_path, [])
@@ -487,7 +487,7 @@ def test_server_sets_explicit_websocket_frame_limit(tmp_path, monkeypatch):
     import sys
     from types import SimpleNamespace
 
-    from ss.server import run as server_run
+    from stealth_study.server import run as server_run
 
     seen = {}
     fake_app = object()
@@ -511,7 +511,7 @@ def test_server_sets_explicit_websocket_frame_limit(tmp_path, monkeypatch):
 def test_standalone_server_token_file_is_user_only(tmp_path, monkeypatch):
     import os
 
-    from ss.server import run as server_run
+    from stealth_study.server import run as server_run
 
     monkeypatch.delenv("COWORKER_API_TOKEN", raising=False)
     path = server_run._ensure_api_token(9876)
@@ -595,7 +595,7 @@ def test_ws_allows_webview_origin(tmp_path):
 
 
 def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
-    from ss.mcp.config import global_mcp_path
+    from stealth_study.mcp.config import global_mcp_path
     from starlette.websockets import WebSocketDisconnect as WSD
 
     monkeypatch.setenv("COWORKER_API_TOKEN", "a" * 64)
@@ -605,10 +605,10 @@ def test_sidecar_token_gates_rest_and_websockets(tmp_path, monkeypatch):
     assert client.get("/v1/health").json() == {"status": "ok"}
     assert client.get("/v1/sessions").status_code == 401
     assert client.get(
-        "/v1/sessions", headers={"X-SS-Token": "wrong"}
+        "/v1/sessions", headers={"X-StealthStudy-Token": "wrong"}
     ).status_code == 401
 
-    headers = {"X-SS-Token": "a" * 64}
+    headers = {"X-StealthStudy-Token": "a" * 64}
     assert client.get("/v1/health", headers=headers).json()[
         "default_workspace"
     ] == str(tmp_path.resolve())
@@ -723,8 +723,8 @@ def test_workspace_command_trust_controls_live_engine(tmp_path):
     from urllib.parse import quote
 
     proj = tmp_path / "trusted-project"
-    (proj / ".coworker").mkdir(parents=True)
-    (proj / ".coworker" / "config.toml").write_text(
+    (proj / ".stealth-study").mkdir(parents=True)
+    (proj / ".stealth-study" / "config.toml").write_text(
         'allowed_commands = ["pytest"]\nauto_allow = ["write_file"]\n'
     )
     manager = SessionManager(
@@ -782,7 +782,7 @@ def test_workspace_command_trust_controls_live_engine(tmp_path):
 def test_recent_workspaces_exclude_scratch_dirs(tmp_path):
     # Scratch dirs get touched like any workspace, but must never show up as
     # "recent projects" in the folder gate (owner call, 2026-07-03).
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     proj = tmp_path / "real-project"
     proj.mkdir()
@@ -801,8 +801,8 @@ def test_delete_session_removes_its_scratch_dir_only(tmp_path):
     # 2026-07-03) — but NEVER a real project folder the user picked.
     from pathlib import Path
 
-    from ss.server.manager import SessionManager
-    from ss.sessions import SessionRecord
+    from stealth_study.server.manager import SessionManager
+    from stealth_study.sessions import SessionRecord
 
     mgr = SessionManager(workspace=tmp_path, provider=ScriptedProvider([]))
     mgr._prefs["scratch_base"] = str(tmp_path / "scratch")
@@ -1105,18 +1105,18 @@ def test_mcp_connect_route_flags_authorizing_immediately(tmp_path, monkeypatch):
     synchronously (and only for known servers, so nothing wedges)."""
     import asyncio
 
-    from ss.server import SessionManager
+    from stealth_study.server import SessionManager
 
     mgr = SessionManager(data_dir=tmp_path / "data")
     monkeypatch.setattr(
-        "ss.server.manager.read_global", lambda: {"sales-db": {"command": "x"}}
+        "stealth_study.server.manager.read_global", lambda: {"sales-db": {"command": "x"}}
     )
     mgr.begin_mcp_connect("sales-db")
     assert "sales-db" in mgr._mcp_authorizing
     mgr.begin_mcp_connect("nope")
     assert "nope" not in mgr._mcp_authorizing
     # An unmatched name clears the flag instead of wedging "Testing…" forever.
-    monkeypatch.setattr("ss.server.manager.load_mcp_servers", lambda *a, **k: [])
+    monkeypatch.setattr("stealth_study.server.manager.load_mcp_servers", lambda *a, **k: [])
     res = asyncio.run(mgr.connect_mcp("sales-db"))
     assert not res["ok"] and "sales-db" not in mgr._mcp_authorizing
 
@@ -1163,7 +1163,7 @@ def test_set_mode_persists_notice_once_then_markers(tmp_path):
 
 
 def test_connect_banners_a_session_already_in_auto_approve(tmp_path):
-    from ss.permissions import Mode
+    from stealth_study.permissions import Mode
 
     manager = SessionManager(
         workspace=tmp_path,

@@ -14,7 +14,7 @@
 | 后端测试 | pytest 8 (asyncio_mode=auto, 状态目录隔离 fixture) |
 | 前端 | React 18 + TypeScript 5.5 + Vite 5 |
 | 前端测试 | Vitest 2.1.9 + jsdom |
-| 日志目录 | 项目根 `log/`（测试经 SS_LOG_DIR 重定向到临时目录） |
+| 日志目录 | 项目根 `log/`（测试经 STEALTH_STUDY_LOG_DIR 重定向到临时目录） |
 
 ## 2. 后端功能测试
 
@@ -28,9 +28,9 @@
 | BE-02 | 格式字段 | 毫秒级时间戳、级别、模块名、`req=`、`user=` | 通过 |
 | BE-03 | 上下文回退 | 未设置 request_id / user_id 时显示 `-` | 通过 |
 | BE-04 | 级别映射 | DEBUG/INFO/WARN/ERROR/FATAL(CRITICAL) 均可记录 | 通过 |
-| BE-05 | 环境变量覆盖 | `SS_LOG_DIR` 重定向日志目录 | 通过 |
+| BE-05 | 环境变量覆盖 | `STEALTH_STUDY_LOG_DIR` 重定向日志目录 | 通过 |
 | BE-06 | 配置幂等性 | 重复 `setup_logging` 不叠加 handler | 通过 |
-| BE-07 | 大小轮转 | `SS_LOG_MAX_BYTES` 调小后产生 `.1/.2` 归档 | 通过 |
+| BE-07 | 大小轮转 | `STEALTH_STUDY_LOG_MAX_BYTES` 调小后产生 `.1/.2` 归档 | 通过 |
 | BE-08 | 按日归档 | 跨日自动开新文件（新时间戳文件名），旧文件保留 | 通过 |
 | BE-09 | 保留清理 | `keep_files` 仅保留最近 N 个文件 | 通过 |
 | BE-10 | 并发写入 | 8 协程 × 200 行共 1600 行无丢失 | 通过 |
@@ -51,7 +51,7 @@
 
 `pytest tests -q`：**3342 通过，27 跳过，0 失败**（修复 test_mount 守护预算后）。
 
-说明：`tests/campus/test_mount.py` 对 `ss/` 后端模块改动有白名单守护，本次按该文件既有「预算扩宽注册」先例（G-06、store.py）登记了日志分支的两处合法改动：`ss/server/run.py`（启动初始化日志）与 `app.py` 增量预算；守护用例 9 例全部通过。
+说明：`tests/campus/test_mount.py` 对 `stealth_study/` 后端模块改动有白名单守护，本次按该文件既有「预算扩宽注册」先例（G-06、store.py）登记了日志分支的两处合法改动：`stealth_study/server/run.py`（启动初始化日志）与 `app.py` 增量预算；守护用例 9 例全部通过。
 
 ## 3. 前端功能测试
 
@@ -75,7 +75,7 @@
 
 ## 4. 压力测试与性能指标
 
-命令：`SS_RUN_STRESS=1 pytest tests/test_logging_stress.py -q -s`（默认跳过，避免拖慢 CI）。
+命令：`STEALTH_STUDY_RUN_STRESS=1 pytest tests/test_logging_stress.py -q -s`（默认跳过，避免拖慢 CI）。
 
 | 场景 | 数据量 | 结果 | 指标 |
 |---|---|---|---|

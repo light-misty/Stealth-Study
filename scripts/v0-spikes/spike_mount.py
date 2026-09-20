@@ -25,12 +25,12 @@ from pathlib import Path
 import httpx
 
 ROOT = Path(__file__).resolve().parents[2]
-APP_PY = ROOT / "ss" / "server" / "app.py"
+APP_PY = ROOT / "stealth_study" / "server" / "app.py"
 RESULTS_DIR = ROOT / "scripts" / "v0-spikes" / "results"
 MOUNT_MARKER = "T03 SPIKE-3 temporary mount"
 ANCHOR_PREFIX = "app = FastAPI("
 PATCH_LINES = (
-    f"    from ss.campus.routes import build_campus_router  # {MOUNT_MARKER}",
+    f"    from stealth_study.campus.routes import build_campus_router  # {MOUNT_MARKER}",
     "    app.include_router(build_campus_router(manager))",
 )
 
@@ -108,8 +108,8 @@ sys.path.insert(0, r"{root}")
 
 import uvicorn
 
-from ss.config import load_config
-from ss.server.run import _WS_MAX_FRAME_BYTES, build_app
+from stealth_study.config import load_config
+from stealth_study.server.run import _WS_MAX_FRAME_BYTES, build_app
 
 cfg = load_config()
 app = build_app(None, cfg.model, cfg.mode)
@@ -159,7 +159,7 @@ def _mtime(path: Path) -> float | None:
 
 
 def run_smoke() -> dict:
-    from ss.secrets import state_dir
+    from stealth_study.secrets import state_dir
 
     checks: dict[str, bool] = {}
     details: dict[str, object] = {}
@@ -189,7 +189,7 @@ def run_smoke() -> dict:
     original = APP_PY.read_text(encoding="utf-8")
     patched = apply_mount_patch(original)
     try:
-        write_temp_campus_package(ROOT / "ss")
+        write_temp_campus_package(ROOT / "stealth_study")
         APP_PY.write_text(patched, encoding="utf-8")
 
         child_src = CHILD_TEMPLATE.format(root=ROOT, port=port, sentinel=sentinel)
@@ -233,14 +233,14 @@ def run_smoke() -> dict:
 
             r = get("/v1/campus/health")
             check("campus_health_no_token_401", r.status_code == 401, r.status_code)
-            r = get("/v1/campus/health", {"x-ss-token": "wrong"})
+            r = get("/v1/campus/health", {"x-stealthstudy-token": "wrong"})
             check("campus_health_wrong_token_401", r.status_code == 401, r.status_code)
-            r = get("/v1/campus/health", {"x-ss-token": token})
+            r = get("/v1/campus/health", {"x-stealthstudy-token": token})
             ok = r.status_code == 200 and r.json().get("status") == "ok"
             check("campus_health_with_token_200", ok, r.status_code)
 
             for path in ("/v1/sessions", "/v1/settings", "/v1/automations"):
-                r = get(path, {"x-ss-token": token})
+                r = get(path, {"x-stealthstudy-token": token})
                 check(f"existing_{path.strip('/').replace('/', '_')}_200",
                       r.status_code == 200, r.status_code)
 
@@ -262,7 +262,7 @@ def run_smoke() -> dict:
               f"before={db_mtime_before} after={_mtime(real_db)}")
     finally:
         APP_PY.write_text(original, encoding="utf-8")
-        campus_dir = ROOT / "ss" / "campus"
+        campus_dir = ROOT / "stealth_study" / "campus"
         if campus_dir.is_dir():
             _purge_tree(campus_dir)
 

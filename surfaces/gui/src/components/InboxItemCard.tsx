@@ -44,7 +44,7 @@ const ROW_OFF = "border-line bg-paper hover:border-accent hover:bg-accentSoft/50
 const ROW_ON = "border-accent bg-accentSoft";
 
 // The resolution a card sends when the user declines to answer (OPE-153). Mirrors
-// SKIP_SENTINEL in ss/tools/ask.py, which turns it back into a null answer —
+// SKIP_SENTINEL in stealth_study/tools/ask.py, which turns it back into a null answer —
 // keep the two constants in step.
 const SKIP = "__ocw_skip__";
 

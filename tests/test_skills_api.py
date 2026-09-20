@@ -14,8 +14,8 @@ import zipfile
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
-from ss.server import SessionManager, create_app
+from stealth_study.providers import AssistantTurn, ModelCapabilities, ProviderClient
+from stealth_study.server import SessionManager, create_app
 
 
 class ScriptedProvider(ProviderClient):
@@ -144,7 +144,7 @@ def test_scratch_workspace_rejected_for_skill_writes(tmp_path):
     scratch_base = tmp_path / "scratchpads"
     manager.set_scratch_base(str(scratch_base))
     scratch_ws = scratch_base / "6d57038c-50d"
-    (scratch_ws / ".coworker" / "skills").mkdir(parents=True)
+    (scratch_ws / ".stealth-study" / "skills").mkdir(parents=True)
 
     res = client.post(
         "/v1/skills",
@@ -271,8 +271,8 @@ def test_engine_catalog_respects_settings_disable(tmp_path):
     )
     client.patch("/v1/skills/hidden", json={"enabled": False})
 
-    from ss.agent import build_engine
-    from ss.agents.chat import chat_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents.chat import chat_agent
 
     engine = build_engine(
         agent=chat_agent(),  # workspace-free agent (persona retired; builder remains)

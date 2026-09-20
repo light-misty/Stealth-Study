@@ -9,14 +9,14 @@ import sys
 
 import pytest
 
-from ss.connectors import relay_client
-from ss.connectors.adapters import make_adapter
-from ss.connectors.base import InteractionEvent, MessageEvent
-from ss.connectors.config import ConnectorSettings, load_settings
-from ss.connectors.relay_client import SlackRelayAdapter
-from ss.connectors.slack_addr import qualify, split
-from ss.connectors.tools import make_send_message_tool
-from ss.secrets import SecretStore
+from stealth_study.connectors import relay_client
+from stealth_study.connectors.adapters import make_adapter
+from stealth_study.connectors.base import InteractionEvent, MessageEvent
+from stealth_study.connectors.config import ConnectorSettings, load_settings
+from stealth_study.connectors.relay_client import SlackRelayAdapter
+from stealth_study.connectors.slack_addr import qualify, split
+from stealth_study.connectors.tools import make_send_message_tool
+from stealth_study.secrets import SecretStore
 
 
 @pytest.fixture(autouse=True)
@@ -347,7 +347,7 @@ async def test_relay_send_selects_per_team_token(monkeypatch):
 
     def fake_send(token, chat_id, text, thread_id=None):
         captured.update(token=token, chat_id=chat_id, text=text)
-        from ss.connectors.base import SendResult
+        from stealth_study.connectors.base import SendResult
 
         return SendResult(True, message_id="ts1")
 
@@ -371,7 +371,7 @@ def test_send_message_tool_per_team_and_default_token():
 
     def fake_slack(token, chat_id, text, thread_id):
         calls.append((token, chat_id))
-        from ss.connectors.base import SendResult
+        from stealth_study.connectors.base import SendResult
 
         return SendResult(True, message_id="ts")
 
@@ -400,7 +400,7 @@ def test_make_adapter_relay_mode_builds_relay_client():
 
 
 def test_make_adapter_socket_mode_builds_socket_adapter():
-    from ss.connectors.adapters import SlackAdapter
+    from stealth_study.connectors.adapters import SlackAdapter
 
     adapter = make_adapter("slack", {"bot_token": "xoxb", "app_token": "xapp"})
     assert isinstance(adapter, SlackAdapter)

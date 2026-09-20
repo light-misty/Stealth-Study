@@ -12,8 +12,8 @@ function sidecarToken(): string {
   const state =
     process.env.COWORKER_STATE_DIR ||
     (process.platform === "win32"
-      ? join(process.env.APPDATA || homedir(), "coworker")
-      : join(homedir(), ".config", "coworker"));
+      ? join(process.env.APPDATA || homedir(), "Stealth Study")
+      : join(homedir(), ".config", "Stealth Study"));
   try {
     return readFileSync(join(state, "sidecar-8765.token"), "utf8").trim();
   } catch {
@@ -25,7 +25,7 @@ function sidecarToken(): string {
 export function backendFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   const token = sidecarToken();
-  if (token) headers.set("X-SS-Token", token);
+  if (token) headers.set("X-StealthStudy-Token", token);
   return fetch(`${BACKEND}${path}`, { ...init, headers });
 }
 
@@ -35,7 +35,7 @@ export async function scratchBaseIfReady(): Promise<string | null> {
     const res = await backendFetch("/v1/settings");
     const s = await res.json();
     if (res.ok && s.model_ready) {
-      return String(s.scratch_base || "~/OpenWorker").replace(/^~(?=\/|$)/, homedir());
+      return String(s.scratch_base || "~/Stealth Study/scratch").replace(/^~(?=\/|$)/, homedir());
     }
   } catch {
     /* backend unreachable */

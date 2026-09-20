@@ -1098,7 +1098,7 @@
     "voice_windows": "Windows",
     "voice_windows_detail": "下载一个 whisper.cpp 模型以启用语音输入。",
     "trusted_workspaces": "受信任的工作区",
-    "trusted_workspaces_help": "受信任的项目可在 .coworker/config.toml 中管理其命令许可。",
+    "trusted_workspaces_help": "受信任的项目可在 .stealth-study/config.toml 中管理其命令许可。",
     "trust_loading": "加载中…",
     "trust_empty": "暂无受信任的工作区。",
     "trust_allowances_other": "{{count}} 项项目命令许可",

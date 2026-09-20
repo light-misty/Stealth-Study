@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from ss.connectors.browser_automation import make_browser_automation_tools
-from ss.risk import RiskClass, classify
-from ss.roots import RootDir
+from stealth_study.connectors.browser_automation import make_browser_automation_tools
+from stealth_study.risk import RiskClass, classify
+from stealth_study.roots import RootDir
 
 
 @pytest.fixture()

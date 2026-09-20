@@ -1,4 +1,4 @@
-"""Unit tests for `ss.campus.models` — enums, row dataclasses and the static model list."""
+"""Unit tests for `stealth_study.campus.models` — enums, row dataclasses and the static model list."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import sqlite3
 
 import pytest
 
-from ss.campus import models
+from stealth_study.campus import models
 
 EXPECTED_ENUM_VALUES: dict[str, list[str]] = {
     "TrackType": ["cet", "kaoyan", "cert", "other"],
@@ -208,7 +208,7 @@ def test_static_model_list_covers_every_campus_task() -> None:
 
 
 def test_static_model_list_ids_exist_in_the_provider_matrix() -> None:
-    from ss.providers.matrix import MATRIX
+    from stealth_study.providers.matrix import MATRIX
 
     for choice in models.TASK_MODEL_CHOICES.values():
         assert choice.recommended in MATRIX, choice.recommended

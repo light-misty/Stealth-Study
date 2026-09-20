@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from ss.permissions import PermissionEngine
+from stealth_study.permissions import PermissionEngine
 
 
 def _allowed(tmp_path, command: str, allowlist: list[str]) -> bool:

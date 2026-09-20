@@ -11,17 +11,17 @@ from pathlib import Path
 
 import pytest
 
-from ss.connections import (
+from stealth_study.connections import (
     PersonaConnectionStore,
     SessionConnectionStore,
     effective,
 )
-from ss.connectors.base import MessageEvent, SessionSource
-from ss.personas import registry as persona_registry
-from ss.personas.manifest import load_manifest_file
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server.manager import SessionManager
-from ss.sessions import SessionRecord
+from stealth_study.connectors.base import MessageEvent, SessionSource
+from stealth_study.personas import registry as persona_registry
+from stealth_study.personas.manifest import load_manifest_file
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server.manager import SessionManager
+from stealth_study.sessions import SessionRecord
 
 
 @pytest.fixture(autouse=True)
@@ -29,7 +29,7 @@ def _isolate_state_dir(tmp_path, monkeypatch):
     """Isolate the global state/secret dir for every test here.
 
     The `SessionManager` tests build a real `SecretStore()`, which defaults to the developer's
-    global state dir (`~/.config/coworker`) unless `COWORKER_STATE_DIR` is set — so without this a
+    global state dir (`~/.config/Stealth Study`) unless `COWORKER_STATE_DIR` is set — so without this a
     test's `secrets.put("github:default", …)` would write a fake token into the real secret store.
     Pin it at a throwaway dir. (Harmless for the pure store/resolver tests that use explicit paths.)
     """

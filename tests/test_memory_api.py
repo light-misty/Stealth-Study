@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from ss.memory.settings import MAX_USER_RULES_CHARS
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server import SessionManager, create_app
+from stealth_study.memory.settings import MAX_USER_RULES_CHARS
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server import SessionManager, create_app
 
 
 class _StubProvider(ProviderClient):

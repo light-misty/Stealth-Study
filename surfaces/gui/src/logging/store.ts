@@ -29,7 +29,7 @@ export interface LogStore {
   count(): Promise<number>;
 }
 
-const DB_NAME = "ss-logs";
+const DB_NAME = "stealth-study-logs";
 const STORE_NAME = "entries";
 
 export class IdbLogStore implements LogStore {

@@ -5,7 +5,7 @@ import json
 
 import pytest
 
-from ss.compaction import (
+from stealth_study.compaction import (
     CompactionState,
     DEFAULT_CAP_TOKENS,
     DEFAULT_CONTEXT_WINDOW,
@@ -318,7 +318,7 @@ def test_is_context_overflow():
 def test_user_messages_capped_across_repeated_compactions():
     # The mechanical user-message list must not grow forever — newest _USER_MESSAGES_MAX
     # survive, the rest stay counted so the block's "omitted" note is honest.
-    from ss.compaction import _USER_MESSAGES_MAX
+    from stealth_study.compaction import _USER_MESSAGES_MAX
 
     msgs = [{"role": "system", "content": "s"}]
     for i in range(120):

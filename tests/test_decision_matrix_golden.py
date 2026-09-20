@@ -20,7 +20,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from ss.permissions import Mode, PermissionEngine
+from stealth_study.permissions import Mode, PermissionEngine
 
 _MATRIX = Path(__file__).parent / "corpora" / "decision_matrix.csv"
 

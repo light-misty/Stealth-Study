@@ -37,7 +37,7 @@ from typing import Any, Iterable, Optional
 # Allow `python scripts/eval_reviewer.py` as well as `-m scripts.eval_reviewer`.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from ss.reviewer import Reviewer, Verdict  # noqa: E402
+from stealth_study.reviewer import Reviewer, Verdict  # noqa: E402
 
 CORPUS_DIR = Path(__file__).resolve().parent.parent / "tests" / "corpora"
 CORPORA = ("benign", "dangerous", "injection")
@@ -139,7 +139,7 @@ class _StubProvider:
     it trivially 'knows' the answer. Real runs use ProviderRouter."""
 
     def complete(self, *, model, messages, tools=None, **settings):
-        from ss.providers.base import AssistantTurn, TokenUsage
+        from stealth_study.providers.base import AssistantTurn, TokenUsage
 
         # The row's correct key is smuggled in the last user message by the stub caller.
         # `clip_message` collapses the newline to a space, so match on the token, not "\n".
@@ -155,7 +155,7 @@ class _StubProvider:
         )
 
     def capabilities(self, model):
-        from ss.providers.base import ModelCapabilities
+        from stealth_study.providers.base import ModelCapabilities
 
         return ModelCapabilities()
 
@@ -274,8 +274,8 @@ async def run_corpus(
 def build_reviewer(model: str, *, stub: bool) -> Reviewer:
     if stub:
         return Reviewer(provider=_StubProvider(), model=model)
-    from ss.providers import ProviderRouter
-    from ss.secrets import SecretStore
+    from stealth_study.providers import ProviderRouter
+    from stealth_study.secrets import SecretStore
 
     provider = ProviderRouter(SecretStore())
     return Reviewer(provider=provider, model=model)

@@ -19,7 +19,7 @@ function closeServer(server: net.Server): Promise<void> {
 }
 
 afterEach(() => {
-  delete process.env.SS_DEV_PORT;
+  delete process.env.STEALTH_STUDY_DEV_PORT;
 });
 
 describe("buildDevConfig", () => {
@@ -44,17 +44,17 @@ describe("writeDevConfig", () => {
 });
 
 describe("resolveDevPort", () => {
-  it("honors SS_DEV_PORT without probing", async () => {
+  it("honors STEALTH_STUDY_DEV_PORT without probing", async () => {
     const server = await listenOn(14310);
     try {
-      process.env.SS_DEV_PORT = "14310";
+      process.env.STEALTH_STUDY_DEV_PORT = "14310";
       await expect(resolveDevPort()).resolves.toBe(14310);
     } finally {
       await closeServer(server);
     }
   });
 
-  it("falls back to the first free port when SS_DEV_PORT is unset", async () => {
+  it("falls back to the first free port when STEALTH_STUDY_DEV_PORT is unset", async () => {
     const first = await listenOn(0);
     const base = (first.address() as net.AddressInfo).port;
     const second = await listenOn(base + 1, "::1").catch(() => null);

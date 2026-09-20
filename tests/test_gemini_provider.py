@@ -8,8 +8,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from ss.providers import GeminiProvider, capabilities_for
-from ss.providers.gemini_provider import (
+from stealth_study.providers import GeminiProvider, capabilities_for
+from stealth_study.providers.gemini_provider import (
     _sanitize_schema,
     convert_messages,
     convert_tools,
@@ -448,7 +448,7 @@ def test_stream_handles_enum_like_finish_reason():
 
 
 def test_registry_builds_native_gemini_provider():
-    from ss.providers.registry import build_provider_client
+    from stealth_study.providers.registry import build_provider_client
 
     provider = build_provider_client("gemini", {"api_key": "AIza-x"}, None)
     assert isinstance(provider, GeminiProvider)
@@ -458,7 +458,7 @@ def test_registry_builds_native_gemini_provider():
 
 
 def test_resolve_api_key_env_then_secrets(monkeypatch):
-    from ss.providers.gemini_provider import resolve_api_key
+    from stealth_study.providers.gemini_provider import resolve_api_key
 
     monkeypatch.setenv("GEMINI_API_KEY", "AIza-env")
     assert resolve_api_key() == "AIza-env"
@@ -482,7 +482,7 @@ def test_gemini_capabilities_parallel_tool_calls():
 
 
 def test_convert_pdf_file_part_to_inline_data():
-    from ss.providers.gemini_provider import _user_parts
+    from stealth_study.providers.gemini_provider import _user_parts
 
     parts = _user_parts(
         [

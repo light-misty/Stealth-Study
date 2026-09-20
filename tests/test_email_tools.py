@@ -6,15 +6,15 @@ from email.message import EmailMessage
 
 import pytest
 
-from ss.connectors.email_tools import (
+from stealth_study.connectors.email_tools import (
     build_search_criteria,
     decode_mime_header,
     extract_text_body,
     make_email_tools,
     resolve_servers,
 )
-from ss.roots import RootDir
-from ss.secrets import SecretStore
+from stealth_study.roots import RootDir
+from stealth_study.secrets import SecretStore
 
 
 # -- fakes ----------------------------------------------------------------------
@@ -343,8 +343,8 @@ def test_approval_gating(tmp_path):
 
 
 def test_connector_registration():
-    from ss.connectors.descriptors import get_descriptor
-    from ss.connectors.tool_defs import TOOLS_BY_CONNECTOR, connector_for_tool
+    from stealth_study.connectors.descriptors import get_descriptor
+    from stealth_study.connectors.tool_defs import TOOLS_BY_CONNECTOR, connector_for_tool
 
     descriptor = get_descriptor("email")
     assert descriptor is not None and descriptor.auth == "app_password"
@@ -359,7 +359,7 @@ def test_connector_registration():
 
 
 def test_make_integration_tools_includes_email(tmp_path):
-    from ss.connectors.integration_tools import make_integration_tools
+    from stealth_study.connectors.integration_tools import make_integration_tools
 
     secrets = _connected_secrets(tmp_path)
     tools = make_integration_tools(

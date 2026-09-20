@@ -74,8 +74,8 @@ cd Stealth-Study
 bash packaging/setup_dev_env.sh
 
 # 2. 启动本地代理服务器
-.venv/bin/openworker-server --cwd ~/project --port 8765
-#    （Windows: .venv\Scripts\openworker-server.exe）
+.venv/bin/stealthstudy-server --cwd ~/project --port 8765
+#    （Windows: .venv\Scripts\stealthstudy-server.exe）
 
 # 3. 在第二个终端中启动 UI
 cd surfaces/gui
@@ -83,7 +83,7 @@ npm install
 npm run dev        # 浏览器 UI 运行在 Vite 开发端口（1420）
 ```
 
-每次启动时，独立服务器会在 `<state-dir>/sidecar-8765.token` 生成令牌；Vite 启动时读取该仅用户可访问的文件。直接调用 API 时请在 `X-SS-Token` 头部中发送该值。桌面应用使用内存中的启动令牌，从不写入磁盘。
+每次启动时，独立服务器会在 `<state-dir>/sidecar-8765.token` 生成令牌；Vite 启动时读取该仅用户可访问的文件。直接调用 API 时请在 `X-StealthStudy-Token` 头部中发送该值。桌面应用使用内存中的启动令牌，从不写入磁盘。
 
 要运行完整的桌面应用而非浏览器 UI，请把第 3 步换成 `npm run tauri dev`（在 `surfaces/gui/` 下运行）——Tauri 外壳会打开窗口并自行管理服务。
 
@@ -93,9 +93,9 @@ npm run dev        # 浏览器 UI 运行在 Vite 开发端口（1420）
 
 | 目录 | 内容 |
 |---|---|
-| `ss/` | Python 后端——Agent 引擎、模型提供商、连接器、MCP 客户端、记忆、自动化 |
-| `ss/personas/builtin/` | 学习伙伴人设——manifest 与其配套 `skills/` |
-| `ss/campus/` | 备考台域——批改引擎、错题本、复习队列、计划 |
+| `stealth_study/` | Python 后端——Agent 引擎、模型提供商、连接器、MCP 客户端、记忆、自动化 |
+| `stealth_study/personas/builtin/` | 学习伙伴人设——manifest 与其配套 `skills/` |
+| `stealth_study/campus/` | 备考台域——批改引擎、错题本、复习队列、计划 |
 | `surfaces/gui/` | 桌面应用——React UI + 承载服务器的 Tauri 外壳 |
 | `surfaces/gui/src/campus/` | 备考台前端（四六级 / 考研 / 证书） |
 | `stt/` | 语音转文本副进程 (Rust) |

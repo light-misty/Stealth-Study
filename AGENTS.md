@@ -26,7 +26,7 @@ Explicitly write out your entire deliberation process, documenting every interme
 
 ## 项目概述
 
-偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google 等），数据默认留在本机、模型统一通过云端 API Key 调用。项目代号为 `ss`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
+偷偷学是一个开源的 AI 协作伙伴平台，运行在桌面端，支持多模型提供商（OpenAI、Anthropic、Google 等），数据默认留在本机、模型统一通过云端 API Key 调用。项目代号为 `stealth_study`，基于 [aisuite](https://github.com/andrewyng/aisuite) 构建。
 
 ## 技术栈
 
@@ -53,8 +53,8 @@ Explicitly write out your entire deliberation process, documenting every interme
 - **测试框架**: Vitest
 
 ### Rust 组件
-- **桌面外壳**: Tauri 2 (crate: `ss-desktop`)
-- **语音转文本**: `ss-stt` (基于 whisper-rs + cpal)
+- **桌面外壳**: Tauri 2 (crate: `stealth-study-desktop`)
+- **语音转文本**: `stealth-study-stt` (基于 whisper-rs + cpal)
   - Rust 版本: 1.77+
   - whisper-rs: 0.16
 
@@ -97,9 +97,9 @@ HIU-WorkSpace/
 │   └── release.yml             # 发布流程
 ├── .venv/                      # Python 虚拟环境
 ├── assets/                     # 静态资源
-├── ss/                   # Python 后端核心包
+├── stealth_study/                   # Python 后端核心包
 │   ├── __init__.py
-│   ├── cli.py                  # CLI 入口 (openworker TUI)
+│   ├── cli.py                  # CLI 入口 (stealthstudy TUI)
 │   ├── config.py               # 配置管理 (分层 TOML)
 │   ├── engine.py               # 代理引擎 (TurnEngine)
 │   ├── permissions.py          # 权限引擎
@@ -140,7 +140,7 @@ HIU-WorkSpace/
 │   ├── testing/                # 测试辅助 (fake_slack)
 │   └── server/                 # HTTP 服务器 (FastAPI)
 │       ├── app.py
-│       └── run.py              # 入口: openworker-server
+│       └── run.py              # 入口: stealthstudy-server
 ├── surfaces/gui/               # 桌面 GUI 应用
 │   ├── src/                    # React 前端源码
 │   │   ├── App.tsx
@@ -173,7 +173,7 @@ HIU-WorkSpace/
 │   ├── build_windows.ps1       # Windows MSI/NSIS 构建
 │   ├── setup_dev_env.sh        # 开发环境初始化
 │   ├── make_update_manifest.py # 更新 manifest 生成
-│   ├── openworker-server.spec  # PyInstaller spec
+│   ├── stealthstudy-server.spec  # PyInstaller spec
 │   ├── server_entry.py         # 服务器入口
 │   └── dmg-background.*        # DMG 背景图资源
 ├── scripts/                    # 辅助脚本
@@ -184,7 +184,7 @@ HIU-WorkSpace/
 ├── docs/                       # 文档与规范
 ├── ui-mocks/                   # UI 设计稿
 ├── reports/                    # 评估报告
-├── ss.egg-info/          # pip install -e 生成的元数据
+├── stealth_study.egg-info/          # pip install -e 生成的元数据
 ├── pyproject.toml              # Python 项目配置
 └── README.md
 ```
@@ -206,10 +206,10 @@ bash packaging/setup_dev_env.sh
 pytest tests -q
 
 # 启动本地代理服务器
-.venv\Scripts\openworker-server --cwd <项目路径> --port 8765
+.venv\Scripts\stealthstudy-server --cwd <项目路径> --port 8765
 
 # 启动 TUI
-.venv\Scripts\openworker
+.venv\Scripts\stealthstudy
 ```
 
 ### 前端 (GUI)
@@ -284,12 +284,12 @@ powershell packaging/build_windows.ps1
 
 ### 架构模式
 
-1. **提供商抽象层**: `ss/providers/base.py` 定义 `ProviderClient` ABC，各提供商实现该接口
+1. **提供商抽象层**: `stealth_study/providers/base.py` 定义 `ProviderClient` ABC，各提供商实现该接口
 2. **代理引擎**: `TurnEngine` (engine.py) 驱动模型↔工具交互循环，使用 asyncio
-3. **代理注册**: `ss/agents/registry.py` 管理多种专用代理（chat, code, cowork 等）
+3. **代理注册**: `stealth_study/agents/registry.py` 管理多种专用代理（chat, code, cowork 等）
 4. **权限引擎**: 多级批准系统 (硬底线、渐进自主权、审计跟踪)
 5. **工具注册**: 工具通过 `ToolRegistry` 注册，支持动态发现
-6. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.coworker/config.toml)
+6. **分层配置**: 默认值 → 全局 (<state-dir>/config.toml) → 工作区 (<workspace>/.stealth-study/config.toml)
 7. **连接器**: 通过适配器模式集成外部服务 (Slack, GitHub, Gmail, 等.)
 8. **自动化**: cron 驱动的定时任务，支持持久化调度
 9. **MCP 集成**: 兼容 Model Context Protocol，接入外部工具服务器
@@ -342,10 +342,10 @@ Jobs:
 
 | 命令 | 入口 | 用途 |
 |------|------|------|
-| `openworker` | `ss.cli:main` | TUI 启动 (默认 code skill) |
-| `openworker-server` | `ss.server.run:main` | HTTP 服务器启动 |
-| `openworker-connectors` | `ss.connectors.cli:main` | 连接器管理 CLI |
-| `ocw` | `ss.teams.cli:main` | Teams 功能 (board, journal, MCP) |
+| `stealthstudy` | `stealth_study.cli:main` | TUI 启动 (默认 code skill) |
+| `stealthstudy-server` | `stealth_study.server.run:main` | HTTP 服务器启动 |
+| `stealthstudy-connectors` | `stealth_study.connectors.cli:main` | 连接器管理 CLI |
+| `ocw` | `stealth_study.teams.cli:main` | Teams 功能 (board, journal, MCP) |
 
 ## 安全与治理
 
@@ -363,9 +363,9 @@ Jobs:
 
 ## 注意事项
 
-- 状态目录: 默认 `~/偷偷学` (或 `%APPDATA%\ss`)，可通过 `COWORKER_STATE_DIR` 环境变量覆盖
+- 状态目录: 默认 `%APPDATA%\Stealth Study`（Windows）/ `~/.config/Stealth Study`（macOS/Linux），可通过 `COWORKER_STATE_DIR` 环境变量覆盖
 - 临时目录: 测试环境使用 `COWORKER_SCRATCH_BASE` 环境变量隔离会话临时文件
-- 开发令牌: 本地开发通过 `X-SS-Token` 头部认证
+- 开发令牌: 本地开发通过 `X-StealthStudy-Token` 头部认证
 - 端口配置: 后端 HTTP 默认 8765，前端 Vite 开发服务器固定 1420
 - 国际化: 支持英文 (en) 和中文 (zh)，翻译文件在 `surfaces/gui/src/locales/`
 - Python 版本下限 3.10；3.10 环境使用 `tomli` 后备 tomllib

@@ -1,6 +1,6 @@
 """Opt-in live check of the static model list (INF-08 / ADR-06).
 
-`test_models.py` proves offline that every declared id exists in `ss.providers.matrix`. It
+`test_models.py` proves offline that every declared id exists in `stealth_study.providers.matrix`. It
 cannot prove the ids actually answer — and T04 §4 决策一 requires exactly that before a
 vendor is trusted: "V0.1 接入任何新厂商模型前，须先用该厂商模型重跑…". This module closes
 that gap for the DeepSeek entries, which are the ones the static list declares as the
@@ -16,8 +16,8 @@ import os
 
 import pytest
 
-from ss.campus import models
-from ss.providers import registry
+from stealth_study.campus import models
+from stealth_study.providers import registry
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("DEEPSEEK_API_KEY"),

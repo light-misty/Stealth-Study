@@ -11,21 +11,21 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 
 import aisuite as ai
-from ss.engine import TurnEngine
-from ss.events import EventType
-from ss.permissions import PermissionEngine
-from ss.providers import (
+from stealth_study.engine import TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import PermissionEngine
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
 )
-from ss.providers.anthropic_provider import AnthropicProvider
-from ss.providers.base import TokenUsage
-from ss.providers.bedrock_provider import _BedrockConverseClient
-from ss.providers.gemini_provider import GeminiProvider
-from ss.providers.matrix import model_context_windows
-from ss.providers.openai_provider import OpenAIProvider
-from ss.tools import ToolRegistry
+from stealth_study.providers.anthropic_provider import AnthropicProvider
+from stealth_study.providers.base import TokenUsage
+from stealth_study.providers.bedrock_provider import _BedrockConverseClient
+from stealth_study.providers.gemini_provider import GeminiProvider
+from stealth_study.providers.matrix import model_context_windows
+from stealth_study.providers.openai_provider import OpenAIProvider
+from stealth_study.tools import ToolRegistry
 
 
 def _final_turn(chunks):

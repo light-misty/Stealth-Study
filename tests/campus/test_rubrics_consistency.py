@@ -1,6 +1,6 @@
 """T21 rubric 一致性测试（08 §5.1 的 CI 硬门禁）。
 
-权威文本落在 `ss/campus/rubrics.py`（05 §4.2 约定）；技能包 SKILL.md 的「评分标准」章节
+权威文本落在 `stealth_study/campus/rubrics.py`（05 §4.2 约定）；技能包 SKILL.md 的「评分标准」章节
 逐字引用同一份文本（05 §4.2 第 2 条：单一来源 + 一致性测试）。T21 把 SKILL.md 落盘后，
 本测试的取源从 `docs/dev/05` 文档正文切换为
 `personas/builtin/<id>/skills/<name>/SKILL.md`——比对口径不变：剥掉 YAML 前言后
@@ -15,9 +15,9 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSONAS = ROOT / "ss" / "personas" / "builtin"
+PERSONAS = ROOT / "stealth_study" / "personas" / "builtin"
 
-from ss.campus import rubrics
+from stealth_study.campus import rubrics
 
 
 def _skill_body(relative_path: str) -> str:

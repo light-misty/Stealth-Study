@@ -1,7 +1,7 @@
 """日志系统压力测试：大流量写入的吞吐、轮转与批量接收正确性。
 
-默认跳过；显式设置 SS_RUN_STRESS=1 时运行（避免拖慢常规 CI）：
-    SS_RUN_STRESS=1 python -m pytest tests/test_logging_stress.py -q -s
+默认跳过；显式设置 STEALTH_STUDY_RUN_STRESS=1 时运行（避免拖慢常规 CI）：
+    STEALTH_STUDY_RUN_STRESS=1 python -m pytest tests/test_logging_stress.py -q -s
 """
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ import time
 
 import pytest
 
-from ss.logging_setup import get_logger, setup_logging
+from stealth_study.logging_setup import get_logger, setup_logging
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("SS_RUN_STRESS") != "1",
-    reason="压力测试需显式设置 SS_RUN_STRESS=1 运行",
+    os.environ.get("STEALTH_STUDY_RUN_STRESS") != "1",
+    reason="压力测试需显式设置 STEALTH_STUDY_RUN_STRESS=1 运行",
 )
 
 # 单测写入规模（10 万行）
@@ -24,8 +24,8 @@ TOTAL = 100_000
 
 def test_backend_throughput_large_volume(tmp_path, monkeypatch, capsys):
     # 关闭大小轮转以排除归档开销，测纯写入吞吐
-    monkeypatch.setenv("SS_LOG_MAX_BYTES", "0")
-    monkeypatch.setenv("SS_LOG_DIR", str(tmp_path / "log"))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_MAX_BYTES", "0")
+    monkeypatch.setenv("STEALTH_STUDY_LOG_DIR", str(tmp_path / "log"))
     setup_logging(tmp_path, level="INFO")
     lg = get_logger("stress")
 
@@ -46,9 +46,9 @@ def test_backend_throughput_large_volume(tmp_path, monkeypatch, capsys):
 
 
 def test_backend_rotation_under_load(tmp_path, monkeypatch):
-    monkeypatch.setenv("SS_LOG_MAX_BYTES", str(256 * 1024))
-    monkeypatch.setenv("SS_LOG_KEEP_FILES", "3")
-    monkeypatch.setenv("SS_LOG_DIR", str(tmp_path / "log"))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_MAX_BYTES", str(256 * 1024))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_KEEP_FILES", "3")
+    monkeypatch.setenv("STEALTH_STUDY_LOG_DIR", str(tmp_path / "log"))
     setup_logging(tmp_path, level="DEBUG")
     lg = get_logger("stress-rot")
 
@@ -66,9 +66,9 @@ def test_backend_rotation_under_load(tmp_path, monkeypatch):
 def test_frontend_endpoint_bulk_ingest(tmp_path, monkeypatch, capsys):
     from fastapi.testclient import TestClient
 
-    from ss.server import SessionManager, create_app
+    from stealth_study.server import SessionManager, create_app
 
-    monkeypatch.setenv("SS_LOG_DIR", str(tmp_path / "log"))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_DIR", str(tmp_path / "log"))
     monkeypatch.setenv("COWORKER_API_TOKEN", "t")
     setup_logging(tmp_path)
     client = TestClient(create_app(SessionManager(workspace=tmp_path)))
@@ -82,7 +82,7 @@ def test_frontend_endpoint_bulk_ingest(tmp_path, monkeypatch, capsys):
         for i in range(5000)
     ]
     start = time.perf_counter()
-    resp = client.post("/v1/logs/frontend", headers={"X-SS-Token": "t"}, json={"logs": entries})
+    resp = client.post("/v1/logs/frontend", headers={"X-StealthStudy-Token": "t"}, json={"logs": entries})
     elapsed = time.perf_counter() - start
     assert resp.status_code == 200
     body = resp.json()

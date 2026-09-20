@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from ss.environment import environment_context
+from stealth_study.environment import environment_context
 
 
 def _git_repo(tmp_path):
@@ -57,14 +57,14 @@ class _Stub:
         raise NotImplementedError
 
     def capabilities(self, model):
-        from ss.providers import ModelCapabilities
+        from stealth_study.providers import ModelCapabilities
 
         return ModelCapabilities()
 
 
 def test_build_engine_injects_environment(tmp_path):
-    from ss.agent import build_engine
-    from ss.agents import code_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents import code_agent
 
     engine = build_engine(agent=code_agent(), workspace=tmp_path, provider=_Stub())
     try:

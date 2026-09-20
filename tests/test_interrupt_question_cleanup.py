@@ -3,13 +3,13 @@ its questions can never be answered and must not linger as answerable cards (nor
 
 import asyncio
 
-from ss.providers import (
+from stealth_study.providers import (
     AssistantTurn,
     ModelCapabilities,
     ProviderClient,
     ToolCall,
 )
-from ss.server.manager import SessionManager
+from stealth_study.server.manager import SessionManager
 
 
 class ScriptedProvider(ProviderClient):

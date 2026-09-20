@@ -24,7 +24,7 @@ test("attach menu: two sections, memory submenu with derived + named rows", asyn
   await expect(menu.getByText("…/ro4d/demo-universe/notes")).toBeVisible();
   await expect(menu.getByText("this folder")).toBeVisible();
   // Named rows (MRU), no filter under 6, the two actions.
-  await expect(menu.getByText("openworker")).toBeVisible();
+  await expect(menu.getByText("stealthstudy")).toBeVisible();
   await expect(menu.getByText("personal-ops")).toBeVisible();
   await expect(menu.getByPlaceholder("Filter…")).toHaveCount(0);
   await expect(menu.getByText("Name current memory…")).toBeVisible();
@@ -34,7 +34,7 @@ test("attach menu: two sections, memory submenu with derived + named rows", asyn
 test("binding swap round-trips and closes the menu", async ({ page }) => {
   await openAttach(page);
   await page.getByRole("button", { name: "Project memory" }).click();
-  await page.getByTestId("project-menu-memory").getByText("openworker").click();
+  await page.getByTestId("project-menu-memory").getByText("stealthstudy").click();
   // Menu closed on success.
   await expect(page.getByTestId("project-menu-memory")).toHaveCount(0);
 

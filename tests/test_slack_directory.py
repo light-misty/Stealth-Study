@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import pytest
 
-from ss.connectors import slack_directory
-from ss.secrets import SecretStore
+from stealth_study.connectors import slack_directory
+from stealth_study.secrets import SecretStore
 
 
 @pytest.fixture
@@ -122,8 +122,8 @@ def test_allow_with_name_seeds_people_directory(tmp_path, monkeypatch):
     """A directory pick lands on the allow-list AND the chip shows the display
     name immediately — no first message needed."""
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.providers import ModelCapabilities, ProviderClient
-    from ss.server.manager import SessionManager
+    from stealth_study.providers import ModelCapabilities, ProviderClient
+    from stealth_study.server.manager import SessionManager
 
     class _Provider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **settings):

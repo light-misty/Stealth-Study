@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 
-from ss.conversations import ConversationStore
+from stealth_study.conversations import ConversationStore
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────

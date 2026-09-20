@@ -10,8 +10,8 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from ss.server.app import create_app
-from ss.server.manager import SessionManager
+from stealth_study.server.app import create_app
+from stealth_study.server.manager import SessionManager
 
 
 @pytest.fixture
@@ -70,8 +70,8 @@ def test_prefs_falls_back_to_config_when_unset(tmp_path, monkeypatch):
 def test_build_engine_override_beats_config(tmp_path, monkeypatch):
     # build_engine's auto_approve arg (what the server passes) overrides the config value.
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
-    from ss.agent import build_engine
-    from ss.agents.chat import chat_agent
+    from stealth_study.agent import build_engine
+    from stealth_study.agents.chat import chat_agent
 
     # config has it off by default; override to on → a reviewer is attached.
     engine = build_engine(agent=chat_agent(), auto_approve=True, auto_approve_shadow=False)
@@ -84,7 +84,7 @@ def test_build_engine_override_beats_config(tmp_path, monkeypatch):
 
 
 def test_reviewer_stats_aggregates_by_stage(tmp_path):
-    from ss.audit import AuditStore
+    from stealth_study.audit import AuditStore
 
     store = AuditStore(tmp_path / "audit.db")
     sid = "s1"
@@ -114,7 +114,7 @@ def test_reviewer_stats_aggregates_by_stage(tmp_path):
 def test_audit_migration_adds_columns_to_a_legacy_db(tmp_path):
     import sqlite3
 
-    from ss.audit import AuditStore
+    from stealth_study.audit import AuditStore
 
     # A pre-2026-08-12 database without the reviewer columns.
     db = tmp_path / "legacy.db"
@@ -153,7 +153,7 @@ def test_reviewer_stats_carry_the_cached_share(tmp_path):
     # The badge could only ever see FRESH tokens (~75 of a ~1,500-token check once the
     # provider caches the instruction prefix), so it under-reported cost by more the
     # longer a session ran. The cached share now rides every verdict row into the sums.
-    from ss.audit import AuditStore
+    from stealth_study.audit import AuditStore
 
     store = AuditStore(tmp_path / "audit.db")
     for _ in range(3):
@@ -180,7 +180,7 @@ def test_existing_databases_gain_the_cache_columns(tmp_path):
     # in place — old rows read as zero, new rows record the real figures.
     import sqlite3
 
-    from ss.audit import AuditStore
+    from stealth_study.audit import AuditStore
 
     db = tmp_path / "audit.db"
     con = sqlite3.connect(db)

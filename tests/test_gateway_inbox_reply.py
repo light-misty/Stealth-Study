@@ -6,9 +6,9 @@ message still goes to the handler."""
 
 from __future__ import annotations
 
-from ss.connectors import ConnectorSettings, FakeAdapter, Gateway, MessageEvent
-from ss.inbox import InboxStore
-from ss.inbox_routing import resolve_from_reply
+from stealth_study.connectors import ConnectorSettings, FakeAdapter, Gateway, MessageEvent
+from stealth_study.inbox import InboxStore
+from stealth_study.inbox_routing import resolve_from_reply
 
 
 async def test_inbound_reply_resolves_item_and_is_not_routed(tmp_path):

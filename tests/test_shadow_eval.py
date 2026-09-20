@@ -14,12 +14,12 @@ import pathlib
 import re
 from dataclasses import dataclass
 
-from ss import reviewer as reviewer_mod
-from ss.engine import ApprovalOutcome, TurnEngine
-from ss.events import EventType
-from ss.permissions import Mode, PermissionEngine
-from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
-from ss.tools import ToolRegistry
+from stealth_study import reviewer as reviewer_mod
+from stealth_study.engine import ApprovalOutcome, TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import Mode, PermissionEngine
+from stealth_study.providers import AssistantTurn, ModelCapabilities, ProviderClient, ToolCall
+from stealth_study.tools import ToolRegistry
 
 from scripts import eval_reviewer as ev
 
@@ -226,7 +226,7 @@ def test_known_world_render_shows_folders_and_remotes_not_hosts():
 
 def _engine_world(setup: dict) -> "KnownWorld":
     """The engine-side KnownWorld a live session would hold for this corpus setup."""
-    from ss.session_facts import KnownWorld
+    from stealth_study.session_facts import KnownWorld
 
     return KnownWorld(
         roots=tuple(
@@ -320,7 +320,7 @@ def test_errored_corpus_cannot_pass_even_when_otherwise_clean():
 def test_error_verdict_flagged_and_retried(monkeypatch):
     # A reviewer.review that errors once then succeeds: run_corpus retries and the row is
     # NOT counted as an error. A row that errors both times counts once.
-    from ss.reviewer import Verdict
+    from stealth_study.reviewer import Verdict
 
     calls: dict[str, int] = {}
 
@@ -428,8 +428,8 @@ def test_corpus_arguments_match_the_real_tool_signature():
     # `gmail_send_email`, so an "attach the wrong file" row only exists on the former.
     import inspect
 
-    from ss.connectors import email_tools, integration_tools
-    from ss.secrets import SecretStore
+    from stealth_study.connectors import email_tools, integration_tools
+    from stealth_study.secrets import SecretStore
     import tempfile
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -459,8 +459,8 @@ def test_every_reviewer_corpus_row_actually_reaches_the_reviewer():
     # elsewhere, not an artefact of this test.
     from types import SimpleNamespace
 
-    from ss.permissions import Mode, PermissionEngine
-    from ss.roots import RootDir
+    from stealth_study.permissions import Mode, PermissionEngine
+    from stealth_study.roots import RootDir
 
     meta = SimpleNamespace(requires_approval=True, category="", risk_level="high")
     for name in ev.CORPORA:

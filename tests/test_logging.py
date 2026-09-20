@@ -9,7 +9,7 @@ from datetime import datetime
 
 import pytest
 
-from ss.logging_setup import (
+from stealth_study.logging_setup import (
     DailyRotatingSizeHandler,
     get_logger,
     request_id_var,
@@ -79,7 +79,7 @@ def test_level_names_map_to_standard_logging(tmp_path):
 
 def test_ss_log_dir_env_overrides_default(tmp_path, monkeypatch):
     custom = tmp_path / "custom-logs"
-    monkeypatch.setenv("SS_LOG_DIR", str(custom))
+    monkeypatch.setenv("STEALTH_STUDY_LOG_DIR", str(custom))
     setup_logging(tmp_path)
     assert (custom / "backend_*.log").parent.exists()
 
@@ -97,7 +97,7 @@ def test_setup_logging_is_idempotent(tmp_path):
 
 
 def test_size_rotation_creates_backup_files(tmp_path, monkeypatch):
-    monkeypatch.setenv("SS_LOG_MAX_BYTES", "500")
+    monkeypatch.setenv("STEALTH_STUDY_LOG_MAX_BYTES", "500")
     setup_logging(tmp_path)
     lg = get_logger("rotate")
     for i in range(100):
@@ -185,3 +185,21 @@ def test_write_frontend_logs_truncates_oversized_batch(tmp_path):
     accepted, skipped, _ = write_frontend_logs(entries)
     assert accepted == 10000
     assert skipped == 1
+
+def test_default_project_log_root_walks_up_to_repo_root(tmp_path):
+    from stealth_study.logging_setup import default_project_log_root
+
+    repo = tmp_path / 'repo'
+    repo.mkdir()
+    (repo / 'pyproject.toml').write_text('x', encoding='utf-8')
+    deep = repo / 'surfaces' / 'gui' / 'src-tauri'
+    deep.mkdir(parents=True)
+    assert default_project_log_root(deep) == repo / 'log'
+
+
+def test_default_project_log_root_falls_back_to_cwd(tmp_path):
+    from stealth_study.logging_setup import default_project_log_root
+
+    orphan = tmp_path / 'orphan'
+    orphan.mkdir()
+    assert default_project_log_root(orphan) == orphan / 'log'

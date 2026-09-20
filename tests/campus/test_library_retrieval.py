@@ -10,8 +10,8 @@ import sqlite3
 
 import pytest
 
-from ss.campus.library import CampusLibrary, extract_keywords, score_chunk
-from ss.campus.store import CampusStore
+from stealth_study.campus.library import CampusLibrary, extract_keywords, score_chunk
+from stealth_study.campus.store import CampusStore
 
 
 @pytest.fixture
@@ -208,7 +208,7 @@ def test_fts_enabled_builds_virtual_table_and_searches(lib) -> None:
 @pytest.mark.skipif(not _fts_available(), reason="sqlite build has no FTS5")
 def test_import_maintains_fts_index(lib, tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(
-        "ss.campus.library._read_pdf_with_meta",
+        "stealth_study.campus.library._read_pdf_with_meta",
         lambda p: ([(1, "backpropagation updates the weights")], False, []),
     )
     fts_lib = CampusLibrary(lib.store, lib_dir=tmp_path / "library", enable_fts=True)

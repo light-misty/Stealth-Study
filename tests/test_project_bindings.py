@@ -7,10 +7,10 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from ss.memory.base import Scope
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server import SessionManager, create_app
-from ss.sessions import SessionRecord
+from stealth_study.memory.base import Scope
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server import SessionManager, create_app
+from stealth_study.sessions import SessionRecord
 
 
 class _StubProvider(ProviderClient):

@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ss.personas.registry import PersonaRegistry
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.server.manager import SessionManager
-from ss.sessions import SessionRecord
+from stealth_study.personas.registry import PersonaRegistry
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.server.manager import SessionManager
+from stealth_study.sessions import SessionRecord
 
 BUNDLES = {
     "security": {"semgrep-review", "secret-scan", "security-fix-pr"},
@@ -98,7 +98,7 @@ def test_scanner_skills_offer_a_fallback_instead_of_stopping(tmp_path):
     """The skills used to say "if missing … and STOP", which is precisely the instruction
     that produced the vanished check. A missing tool must lead to request_tool or a manual
     equivalent — never to a dropped step."""
-    import ss.personas as personas_pkg
+    import stealth_study.personas as personas_pkg
 
     root = Path(personas_pkg.__file__).parent / "builtin" / "security" / "skills"
     secret_scan = (root / "secret-scan" / "SKILL.md").read_text(encoding="utf-8")
@@ -118,7 +118,7 @@ def test_cloud_posture_drives_trivy_config_not_deprecated_tfsec(tmp_path):
     """tfsec was folded into trivy upstream and is maintenance-only; recommending it
     sends request_tool (and users) after a dead tool. `trivy config` is the successor.
     The only tfsec mention allowed in the bundle is the deprecation ban itself."""
-    import ss.personas as personas_pkg
+    import stealth_study.personas as personas_pkg
 
     root = Path(personas_pkg.__file__).parent / "builtin" / "cloud-posture"
     assert "tfsec" not in (root / "manifest.md").read_text(encoding="utf-8")

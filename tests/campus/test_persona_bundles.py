@@ -18,14 +18,14 @@ from pathlib import Path
 
 import pytest
 
-from ss.personas.manifest import ManifestError, parse_manifest
-from ss.personas.registry import PersonaRegistry
-from ss.providers import ModelCapabilities, ProviderClient
-from ss.sessions import SessionRecord
-from ss.skills.base import SkillLoader
+from stealth_study.personas.manifest import ManifestError, parse_manifest
+from stealth_study.personas.registry import PersonaRegistry
+from stealth_study.providers import ModelCapabilities, ProviderClient
+from stealth_study.sessions import SessionRecord
+from stealth_study.skills.base import SkillLoader
 
 ROOT = Path(__file__).resolve().parents[2]
-PERSONAS = ROOT / "ss" / "personas" / "builtin"
+PERSONAS = ROOT / "stealth_study" / "personas" / "builtin"
 DOC = ROOT / "docs" / "dev" / "05-人设与技能包设计.md"
 
 # 人设 id → 该 bundle 的技能 allowlist（05 §2 字段分配总表）。
@@ -146,8 +146,8 @@ def test_campus_personas_resolve_without_shell_or_git(tmp_path, monkeypatch):
     备考台是终端用户面（学生），05 §2 只给 files/search/todo；一旦有人在 manifest 里
     补上 `shell` 或 `git`，这里立刻变红——执行权不该随人设落盘悄悄扩出去。
     """
-    from ss.agents.base import AgentContext
-    from ss.tools.todo import TodoList
+    from stealth_study.agents.base import AgentContext
+    from stealth_study.tools.todo import TodoList
 
     monkeypatch.delenv("OPENWORKER_UNSHIPPED", raising=False)
     reg = _reg(tmp_path)
@@ -178,10 +178,10 @@ def test_manifest_is_verbatim_the_05_document_template(header: str) -> None:
 
 
 def test_seven_skill_bundles_live_inside_their_persona_directories() -> None:
-    """7 个技能包必须落在人设 bundle 内（ADR-02），不建 `ss/skills/campus/`。"""
+    """7 个技能包必须落在人设 bundle 内（ADR-02），不建 `stealth_study/skills/campus/`。"""
     assert len(ALL_SKILLS) == 7
     assert len(set(ALL_SKILLS)) == 7
-    assert not (ROOT / "ss" / "skills" / "campus").exists()
+    assert not (ROOT / "stealth_study" / "skills" / "campus").exists()
 
     for persona_id, skills in BUNDLES.items():
         bundle = PERSONAS / persona_id / "skills"
@@ -223,7 +223,7 @@ def test_load_skill_gate_admits_only_the_personas_own_skills():
     """渐进加载的落地口径：会话目录只有 name+description，正文经 load_skill 取；
     跨人设的技能在门禁处被拒，不靠提示词自觉（`skill_tools` 的 allowed 闸门）。
     """
-    from ss.skills.base import skill_catalog_text, skill_tools
+    from stealth_study.skills.base import skill_catalog_text, skill_tools
 
     for persona_id, skills in BUNDLES.items():
         if not skills:
@@ -259,7 +259,7 @@ class _ScriptedProvider(ProviderClient):
 
 
 def _manager(tmp_path, monkeypatch):
-    from ss.server.manager import SessionManager
+    from stealth_study.server.manager import SessionManager
 
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     return SessionManager(workspace=tmp_path, provider=_ScriptedProvider())
@@ -325,7 +325,7 @@ def test_illegal_campus_injection_does_not_silently_land_in_the_registry(tmp_pat
     """把非法人设推进 bundle 扫描路径，`_load_dir()` 必须抛错而不是静默跳过。
 
     静默丢掉是更危险的失败模式：注册表看似正常，用户装的人设却不存在。这里用临时
-    `builtin_dir` 复现同一段扫描代码，不触碰仓库内的真实 `ss/personas/builtin/`。
+    `builtin_dir` 复现同一段扫描代码，不触碰仓库内的真实 `stealth_study/personas/builtin/`。
     """
     monkeypatch.setenv("COWORKER_STATE_DIR", str(tmp_path / "state"))
     probe = tmp_path / "builtin" / "campus-bogus-probe"
@@ -339,7 +339,7 @@ def test_illegal_campus_injection_does_not_silently_land_in_the_registry(tmp_pat
 
 
 def test_unknown_tool_is_rejected_by_the_manifest_error():
-    """tools 只认 `ss/catalog.py` 的 6 个 id；PRD 提到的 ask/plan 不在白名单。"""
+    """tools 只认 `stealth_study/catalog.py` 的 6 个 id；PRD 提到的 ask/plan 不在白名单。"""
     with pytest.raises(ManifestError, match="unknown tool capabilities"):
         parse_manifest("---\nid: bogus\ntools: [ask]\n---\n非法工具。\n")
 

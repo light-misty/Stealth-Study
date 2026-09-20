@@ -12,12 +12,12 @@ from pathlib import Path
 import pytest
 
 import aisuite as ai
-from ss.engine import TurnEngine
-from ss.events import EventType
-from ss.permissions import Decision, Mode, PermissionEngine
-from ss.providers import AssistantTurn, ToolCall
-from ss.roots import RootDir, normalize_roots, render_context
-from ss.tools import ToolRegistry
+from stealth_study.engine import TurnEngine
+from stealth_study.events import EventType
+from stealth_study.permissions import Decision, Mode, PermissionEngine
+from stealth_study.providers import AssistantTurn, ToolCall
+from stealth_study.roots import RootDir, normalize_roots, render_context
+from stealth_study.tools import ToolRegistry
 
 
 def _bare_engine(**kw):
@@ -177,8 +177,8 @@ def test_outbound_messages_noop_without_provider():
 
 
 def _cowork_manager(tmp_path):
-    from ss.providers import ModelCapabilities, ProviderClient
-    from ss.server import SessionManager
+    from stealth_study.providers import ModelCapabilities, ProviderClient
+    from stealth_study.server import SessionManager
 
     class _Provider(ProviderClient):
         def complete(self, *, model, messages, tools=None, **s):

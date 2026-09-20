@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import re
 
-from ss.connectors import connector_list
-from ss.connectors.descriptors import (
+from stealth_study.connectors import connector_list
+from stealth_study.connectors.descriptors import (
     ConnectorDescriptor,
     get_descriptor,
     list_descriptors,
 )
-from ss.secrets import SecretStore
+from stealth_study.secrets import SecretStore
 
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 

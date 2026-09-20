@@ -1,7 +1,7 @@
 # 跳过提问功能交付文档（OPE-153）
 
 本文档覆盖功能说明、开发完成度评估、测试报告与使用指南。功能移植自远程分支
-`issue/skip-question-card`（两个提交，作者 Devika Verma），适配当前 main 的 `ss/`
+`issue/skip-question-card`（两个提交，作者 Devika Verma），适配当前 main 的 `stealth_study/`
 包结构后在本分支 `feat/skip-question-card` 交付。
 
 ## 1. 功能说明
@@ -47,11 +47,11 @@ OPE-153 为问题卡片补上"跳过"这一退出途径。
 上游分支基于重构前的 `coworker/` 包结构，与本分支合并基（main）相距 349 个提交。
 移植以 cherry-pick 完成，保留原作者署名：
 
-- `coworker/engine.py` → `ss/engine.py`、`coworker/tools/ask.py` → `ss/tools/ask.py`、
-  `coworker/interactions.py` → `ss/interactions.py`（包重命名适配）。
+- `coworker/engine.py` → `stealth_study/engine.py`、`coworker/tools/ask.py` → `stealth_study/tools/ask.py`、
+  `coworker/interactions.py` → `stealth_study/interactions.py`（包重命名适配）。
 - InboxItemCard.tsx 与 main 新增的 `approvalItemFromParked` 同位插入冲突：两者均保留。
-- tests/test_interactions.py 导入块冲突：保留 `ss.*` 路径并新增 `SKIP_SENTINEL` 导入。
-- e2e 规格注释中的旧包路径同步更正为 `ss/tools/ask.py`。
+- tests/test_interactions.py 导入块冲突：保留 `stealth_study.*` 路径并新增 `SKIP_SENTINEL` 导入。
+- e2e 规格注释中的旧包路径同步更正为 `stealth_study/tools/ask.py`。
 - 哨兵语义、null 回答约定、按钮样式与测试断言全部保留上游原样。
 
 ## 2. 完成度评估
@@ -67,7 +67,7 @@ OPE-153 为问题卡片补上"跳过"这一退出途径。
 ## 3. 测试环境
 
 - OS：Windows 11
-- Python 3.12.13（主仓 `.venv`；从工作树根以 `python -m pytest` 运行，确保 `import ss`
+- Python 3.12.13（主仓 `.venv`；从工作树根以 `python -m pytest` 运行，确保 `import stealth_study`
   解析到工作树代码）
 - Node v22.18.0、Playwright 1.61.1（Chromium，Desktop Chrome 档案）
 - 测试对象：分支 `feat/skip-question-card` @ `6719bf6`（已合并 main `f59415a`）

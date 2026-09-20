@@ -1,5 +1,5 @@
 [package]
-name = "ss-desktop"
+name = "stealth-study-desktop"
 version = "0.1.0"
 description = "Stealth Study desktop shell"
 license = "Apache-2.0"

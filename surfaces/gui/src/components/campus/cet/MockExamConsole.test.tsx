@@ -21,7 +21,7 @@ const apiMock = api as unknown as Record<string, ReturnType<typeof vi.fn>>;
 
 afterEach(cleanup);
 
-const draftKey = "ss.campus.cet.mock.p1";
+const draftKey = "stealth_study.campus.cet.mock.p1";
 
 const mockView = (overrides: Partial<MockExamView> = {}): MockExamView => ({
   id: "m1",

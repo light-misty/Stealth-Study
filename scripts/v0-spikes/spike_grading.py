@@ -530,8 +530,8 @@ def load_corpus(path: Path) -> list[dict]:
 
 def resolve_provider() -> tuple[Any, str]:
     sys.path.insert(0, str(ROOT))
-    from ss.providers.openai_provider import OpenAIProvider
-    from ss.secrets import SecretStore
+    from stealth_study.providers.openai_provider import OpenAIProvider
+    from stealth_study.secrets import SecretStore
 
     profile = SecretStore().get(SECRET_PROFILE)
     if not profile or not profile.get("api_key"):

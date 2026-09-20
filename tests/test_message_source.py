@@ -9,13 +9,13 @@ import asyncio
 
 from fastapi.testclient import TestClient
 
-from ss.connectors.base import MessageEvent, MessageSource, SessionSource
-from ss.engine import TurnEngine
-from ss.permissions import PermissionEngine
-from ss.providers import AssistantTurn, ModelCapabilities, ProviderClient
-from ss.server import create_app
-from ss.server.manager import SessionManager
-from ss.tools import ToolRegistry
+from stealth_study.connectors.base import MessageEvent, MessageSource, SessionSource
+from stealth_study.engine import TurnEngine
+from stealth_study.permissions import PermissionEngine
+from stealth_study.providers import AssistantTurn, ModelCapabilities, ProviderClient
+from stealth_study.server import create_app
+from stealth_study.server.manager import SessionManager
+from stealth_study.tools import ToolRegistry
 
 
 class CapturingProvider(ProviderClient):
@@ -181,7 +181,7 @@ def test_tool_display_sidecar_is_agent_invisible(tmp_path):
     """`_display` on a tool result (e.g. gmail filter-hidden counts) mirrors the
     `source` contract: lifted onto the message for the GUI, audited as a rule+count
     row, and stripped from every provider feed — the agent sees no tombstone."""
-    from ss.providers.base import ToolCall
+    from stealth_study.providers.base import ToolCall
 
     audits: list[dict] = []
     engine = TurnEngine(

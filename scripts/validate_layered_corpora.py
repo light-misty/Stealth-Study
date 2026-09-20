@@ -39,7 +39,7 @@ class ValidationError(Exception):
 
 def production_tools() -> set[str]:
     sys.path.insert(0, str(ROOT))
-    from ss.connectors.tool_defs import TOOL_DEFS
+    from stealth_study.connectors.tool_defs import TOOL_DEFS
 
     return CORE_TOOLS | {d.name for d in TOOL_DEFS}
 

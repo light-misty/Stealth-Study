@@ -1,4 +1,4 @@
-"""Migration-drill tests for `ss.campus.store` — the `schema_meta` version runner (02 §3).
+"""Migration-drill tests for `stealth_study.campus.store` — the `schema_meta` version runner (02 §3).
 
 The drill reproduces 02 §3.5's V0.2 example verbatim (`degrade_level` on `attempt`) and adds a
 synthetic column that v1 genuinely does not ship, because v1 already declares `degrade_level`
@@ -18,7 +18,7 @@ from typing import Any
 
 import pytest
 
-from ss.campus import store
+from stealth_study.campus import store
 
 
 def _v2_add_column(conn: sqlite3.Connection) -> None:

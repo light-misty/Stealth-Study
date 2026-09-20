@@ -28,8 +28,8 @@ function closeServer(server: net.Server): Promise<void> {
 const configFn = viteConfig as unknown as (env: ConfigEnv) => Promise<ResolvedConfig>;
 
 afterEach(() => {
-  delete process.env.SS_DEV_PORT;
-  delete process.env.SS_API_PORT;
+  delete process.env.STEALTH_STUDY_DEV_PORT;
+  delete process.env.STEALTH_STUDY_API_PORT;
   delete process.env.COWORKER_STATE_DIR;
   delete process.env.VITE_COWORKER_HTTP;
   delete process.env.VITE_COWORKER_WS;
@@ -37,8 +37,8 @@ afterEach(() => {
 });
 
 describe("vite config dev port", () => {
-  it("uses SS_DEV_PORT in serve mode when provided", async () => {
-    process.env.SS_DEV_PORT = "14300";
+  it("uses STEALTH_STUDY_DEV_PORT in serve mode when provided", async () => {
+    process.env.STEALTH_STUDY_DEV_PORT = "14300";
     const config = await configFn({ command: "serve", mode: "development" });
     expect(config.server.port).toBe(14300);
     expect(config.server.strictPort).toBe(true);
@@ -52,8 +52,8 @@ describe("vite config dev port", () => {
     if (server) await closeServer(server);
   });
 
-  it("keeps the fixed port 1420 in build mode regardless of SS_DEV_PORT", async () => {
-    process.env.SS_DEV_PORT = "14300";
+  it("keeps the fixed port 1420 in build mode regardless of STEALTH_STUDY_DEV_PORT", async () => {
+    process.env.STEALTH_STUDY_DEV_PORT = "14300";
     const config = await configFn({ command: "build", mode: "production" });
     expect(config.server.port).toBe(1420);
   });
@@ -74,13 +74,13 @@ describe("vite config dev port", () => {
     }
   });
 
-  it("honors SS_API_PORT over the newest sidecar token", async () => {
+  it("honors STEALTH_STUDY_API_PORT over the newest sidecar token", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vite-api-test-"));
     try {
       fs.writeFileSync(path.join(dir, "sidecar-8766.token"), "tok-8766\n");
       fs.writeFileSync(path.join(dir, "sidecar-14321.token"), "tok-14321\n");
       process.env.COWORKER_STATE_DIR = dir;
-      process.env.SS_API_PORT = "14321";
+      process.env.STEALTH_STUDY_API_PORT = "14321";
       await configFn({ command: "serve", mode: "development" });
       expect(process.env.VITE_COWORKER_HTTP).toBe("http://127.0.0.1:14321");
       expect(process.env.VITE_COWORKER_API_TOKEN).toBe("tok-14321");
