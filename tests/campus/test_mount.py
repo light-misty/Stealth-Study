@@ -118,6 +118,8 @@ BACKEND_PATCH = {
     # i18n-chinese-coverage 分支续：personas 域的清单/导出异常改抛带代号类型，云端画廊
     # 与 install/export 端点随之附带 error_code（裸文本照旧保留）
     "M\tss/personas/registry.py",
+    # fix/study-agent-persona 分支：默认人设（cowork）系统提示词与元数据学习向改造
+    "M\tss/agents/cowork.py",
     "M\tss/cloud.py",
     # i18n-chinese-coverage 分支续：项目命名异常改抛带代号类型（定时任务与绑定域）
     "M\tss/projects.py",
