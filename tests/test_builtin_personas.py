@@ -51,3 +51,14 @@ def test_code_keeps_single_root_file_tools(tmp_path):
     names = _names(reg.agent("code"), _ctx(tmp_path))
     assert "read_file" in names and "read_file_lines" not in names
     assert "git_log" in names  # code has git; cowork/ops do not
+
+
+def test_default_cowork_prompt_is_study_oriented():
+    from ss.agents.cowork import COWORK_INSTRUCTIONS
+
+    prompt = COWORK_INSTRUCTIONS
+    assert "学习" in prompt
+    assert "deliverable" not in prompt.lower()
+    assert "knowledge-work" not in prompt.lower()
+
+
